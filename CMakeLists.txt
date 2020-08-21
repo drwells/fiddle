@@ -1,8 +1,9 @@
 SET(TARGET "fiddle")
 
-SET(TARGET_SRC
-  ${TARGET}.cc
-  )
+SET(TARGET_SRC ${TARGET}.cc)
+
+# TODO: switch to using real targets
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/include/)
 
 # Usually, you will not need to modify anything beyond this point...
 
