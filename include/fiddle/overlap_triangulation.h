@@ -90,6 +90,12 @@ class OverlapTriangulation : public Triangulation<dim, spacedim>
       return *native_tria;
     }
 
+
+    const parallel::shared::Triangulation<dim> &get_native_triangulation() const
+    {
+      return *native_tria;
+    }
+
     /**
      * Get the native cell iterator equivalent to the current cell iterator.
      */
@@ -100,11 +106,24 @@ class OverlapTriangulation : public Triangulation<dim, spacedim>
       return intersecting_native_cells[cell->user_index()];
     }
 
+    /**
+     * Get the active cell iterators in order of ascending corresponding native
+     * active cell index.
+     */
     inline
     const std::vector<active_cell_iterator> &
     get_cell_iterators_in_active_native_order() const
     {
       return cell_iterators_in_active_native_order;
+    }
+
+    /**
+     * Get the MPI communicator for the underlying shared triangulation.
+     */
+    virtual const MPI_Comm &
+    get_communicator() const
+    {
+      return native_tria->get_communicator();
     }
 
   protected:
