@@ -2,7 +2,10 @@
 #include <deal.II/base/index_set.h>
 #include <deal.II/base/function_lib.h>
 
+#include <deal.II/distributed/shared_tria.h>
+
 #include <deal.II/dofs/dof_handler.h>
+#include <deal.II/dofs/dof_tools.h>
 
 #include <deal.II/fe/fe_q.h>
 
@@ -17,13 +20,13 @@
 #include <deal.II/numerics/vector_tools.h>
 
 #include <fiddle/overlap_triangulation.h>
+#include <fiddle/overlap_partitioning_tools.h>
 
 #include <iostream>
 #include <fstream>
 #include <cmath>
 
 using namespace dealii;
-
 
 int main(int argc, char **argv)
 {
@@ -32,7 +35,7 @@ int main(int argc, char **argv)
   const auto rank = Utilities::MPI::this_mpi_process(mpi_comm);
   parallel::shared::Triangulation<2> native_tria(mpi_comm);
   GridGenerator::hyper_ball(native_tria);
-  native_tria.refine_global(3);
+  native_tria.refine_global(4);
 
   {
     GridOut go;
