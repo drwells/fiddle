@@ -76,9 +76,6 @@ int main(int argc, char **argv)
   DoFHandler<2> ib_dof_handler(ib_tria);
   ib_dof_handler.distribute_dofs(fe);
 
-  // go for something even easier - set up the mapping on a single processor first
-  Assert(rank == 0, ExcNotImplemented());
-
   // Possible parallel version:
   //
   // 1. Determine which active cell indices the IB tria needs.
@@ -92,7 +89,7 @@ int main(int argc, char **argv)
   // 4. Set up an IndexTranslator between IB dofs (purely local) and native dofs
   //    (distributed).
 
-  // 1:
+  // 1: determine required active cell indices:
   std::map<types::subdomain_id, std::vector<unsigned int>>
     native_active_cell_ids_on_ib;
   for (const auto &cell : ib_tria.active_cell_iterators())
@@ -105,12 +102,12 @@ int main(int argc, char **argv)
   for (auto &pair : native_active_cell_ids_on_ib)
     std::sort(pair.second.begin(), pair.second.end());
 
-  // 2:
+  // 2: send requested active cell indices:
   const std::map<types::subdomain_id, std::vector<unsigned int>>
     requested_native_active_cell_indices =
     Utilities::MPI::some_to_some(mpi_comm, native_active_cell_ids_on_ib);
 
-  // 3:
+  // 3: pack dofs:
   std::map<types::subdomain_id,
            std::vector<types::global_dof_index>> dofs_on_native;
   // TODO: we could make this more efficient by sorting DH iterators by active
@@ -137,6 +134,9 @@ int main(int argc, char **argv)
 
       dofs_on_native[requested_rank].push_back(numbers::invalid_dof_index);
       ++active_cell_index_ptr;
+      // we may run out of requested cells before we run out of owned cells
+      if (active_cell_index_ptr == active_cell_indices.end())
+        break;
     }
   }
 
@@ -163,6 +163,8 @@ int main(int argc, char **argv)
                 ib_tria.get_native_cell(b)->active_cell_index();
             });
 
+  std::vector<std::pair<types::global_dof_index, types::global_dof_index>>
+    ib_to_native;
   // 4:
   for (const auto &pair : native_dof_indices)
     {
@@ -175,6 +177,7 @@ int main(int argc, char **argv)
         {
           const auto active_cell_index = *packed_ptr;
           ++packed_ptr;
+          // Find the IB cell corresponding to the given active cell index.
           const auto ib_dh_cell =
             std::lower_bound(ib_dh_cells.begin(), ib_dh_cells.end(),
                              active_cell_index,
@@ -190,21 +193,23 @@ int main(int argc, char **argv)
           const auto n_dofs = *packed_ptr;
           ++packed_ptr;
 
-          std::cout << "dofs on native:\n";
           native_cell_dofs.clear();
           for (unsigned int i = 0; i < n_dofs; ++i)
           {
-            std::cout << *packed_ptr << '\n';
             native_cell_dofs.push_back(*packed_ptr);
             ++packed_ptr;
           }
           Assert(*packed_ptr == numbers::invalid_dof_index, ExcInternalError());
           ++packed_ptr;
 
-          // We should really set up an IndexTranslator here instead
+          // Copy data between orderings.
           (*ib_dh_cell)->get_dof_indices(ib_cell_dofs);
           for (unsigned int i = 0; i < n_dofs; ++i)
-            ib_solution[ib_cell_dofs[i]] = native_solution[native_cell_dofs[i]];
+          {
+            ib_solution[ib_cell_dofs[i]] =
+              localized_native_solution[native_cell_dofs[i]];
+            ib_to_native.emplace_back(ib_cell_dofs[i], native_cell_dofs[i]);
+          }
         }
     }
 
