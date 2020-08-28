@@ -10,7 +10,8 @@
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_out.h>
 
-#include <deal.II/distributed/shared_tria.h>
+#include <deal.II/lac/vector.h>
+#include <deal.II/lac/petsc_vector.h>
 
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
@@ -144,11 +145,16 @@ int main(int argc, char **argv)
     native_dof_indices = Utilities::MPI::some_to_some(mpi_comm, dofs_on_native);
 
   // generate some data so we can check what happens when we move
-  Vector<double> native_solution(native_dof_handler.n_dofs());
-  Vector<double> ib_solution(ib_dof_handler.n_dofs());
+  IndexSet locally_relevant_dofs;
+  DoFTools::extract_locally_relevant_dofs(native_dof_handler, locally_relevant_dofs);
+  PETScWrappers::MPI::Vector native_solution(native_dof_handler.locally_owned_dofs(),
+                                             mpi_comm);
   VectorTools::interpolate(native_dof_handler,
                            Functions::CosineFunction<2>(),
                            native_solution);
+
+  Vector<double> ib_solution(ib_dof_handler.n_dofs());
+  Vector<double> localized_native_solution(native_solution);
 
   // we now have the native dofs on each cell in a packed format: active cell
   // index, dofs, sentinel. Make it easier to look up local cells by sorting by
@@ -212,15 +218,54 @@ int main(int argc, char **argv)
           }
         }
     }
+  std::sort(ib_to_native.begin(), ib_to_native.end(),
+            [](const auto &a, const auto &b){return a.first < b.first;});
+  ib_to_native.erase(std::unique(ib_to_native.begin(), ib_to_native.end()),
+                     ib_to_native.end());
+  std::vector<types::global_dof_index> native_indices(ib_to_native.size());
+  std::transform(ib_to_native.begin(), ib_to_native.end(),
+                 native_indices.begin(),
+                 [](const auto &a){return a.second;});
+
+  // At this point we need to set up an object that can copy from the
+  // distributed native format onto each IB processor. It isn't clear to me what
+  // deal.II or PETSc class can do this. Some indirect possibilities:
+  //
+  // 1. Create a purely ghosted LA::d::V as an intermediate step.
+  // 2. Create a purely ghosted Vec as an intermediate step.
+  //
+  // I think I see how 2 would work out: after scattering we will know, in the
+  // ghost region, the global indices and values - we can do an index
+  // translation back to local and copy.
+  //
+  // I don't think this will work as specified - I think we need to create a
+  // vector that has the same locally owned range as the native but whose ghost
+  // region is the nonlocal IB data.
+  //
+  // The next difficult part is to go in the opposite direction - we will need a
+  // way to accumulate values from the IB partitioning back to the native one.
+  //
+  // For now lets just use huge ghost regions. Doing something else with
+  // VecScatter or similar is not simple since all vector classes have a concept
+  // of index ownership, which isn't really relevant in the 'native to IB' case.
+  IndexSet native_dofs_on_ib(native_dof_handler.n_dofs());
+  native_dofs_on_ib.add_indices(native_indices.begin(), native_indices.end());
 
   {
+    PETScWrappers::MPI::Vector
+      ghosted_native_solution(native_dof_handler.locally_owned_dofs(),
+                              locally_relevant_dofs,
+                              mpi_comm);
+    ghosted_native_solution = native_solution;
+    ghosted_native_solution.update_ghost_values();
+
     DataOut<2> data_out;
     data_out.attach_dof_handler(native_dof_handler);
-    data_out.add_data_vector(native_solution, "solution");
+    data_out.add_data_vector(ghosted_native_solution, "solution");
     data_out.build_patches();
 
-    std::ofstream out("native-solution.vtu");
-    data_out.write_vtu(out);
+    data_out.write_vtu_with_pvtu_record(
+      "./", "solution", 0, mpi_comm);
   }
 
   {
@@ -229,7 +274,7 @@ int main(int argc, char **argv)
     data_out.add_data_vector(ib_solution, "solution");
     data_out.build_patches();
 
-    std::ofstream out("ib-solution.vtu");
+    std::ofstream out("ib-solution-" + std::to_string(rank) + ".vtu");
     data_out.write_vtu(out);
   }
 }
