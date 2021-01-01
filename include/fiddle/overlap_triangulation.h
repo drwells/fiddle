@@ -112,8 +112,9 @@ namespace fdl
     inline cell_iterator
     get_native_cell(const cell_iterator &cell) const
     {
-      AssertIndexRange(cell->user_index(), intersecting_native_cells.size());
-      const auto native_cell = intersecting_native_cells[cell->user_index()];
+      AssertIndexRange(cell->user_index(), native_cells.size());
+      const auto pair = native_cells[cell->user_index()];
+      const cell_iterator native_cell(native_tria, pair.first, pair.second);
       Assert((native_cell->barycenter() - cell->barycenter()).norm() < 1e-12,
              ExcInternalError());
       return native_cell;
@@ -148,15 +149,15 @@ namespace fdl
     {
       Assert(&cell->get_triangulation() == native_tria,
              ExcMessage("should be a native cell"));
-      intersecting_native_cells.push_back(cell);
-      return intersecting_native_cells.size() - 1;
+      native_cells.emplace_back(cell->level(), cell->index());
+      return native_cells.size() - 1;
     }
 
     void
     reinit_overlapping_tria(
       const std::vector<BoundingBox<spacedim>> &patch_bboxes)
     {
-      intersecting_native_cells.clear();
+      native_cells.clear();
       this->clear();
 
       std::vector<CellData<dim>> cells;
@@ -360,10 +361,10 @@ namespace fdl
       native_tria;
 
     /**
-     * Iterators to native cells which have an equivalent cell on this
-     * triangulation.
+     * Level and index pairs (i.e., enough to create an iterator) of native
+     * cells which have an equivalent cell on this triangulation.
      */
-    std::vector<cell_iterator> intersecting_native_cells;
+    std::vector<std::pair<int, int>> native_cells;
 
     /**
      * Active cell iterators sorted by the active cell index of the
