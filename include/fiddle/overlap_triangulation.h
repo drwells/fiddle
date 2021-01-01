@@ -3,27 +3,27 @@
 
 #include <deal.II/base/bounding_box.h>
 
+#include <deal.II/distributed/shared_tria.h>
+
 #include <deal.II/grid/tria.h>
 #include <deal.II/grid/tria_description.h>
-
-#include <deal.II/distributed/shared_tria.h>
 
 #include <algorithm>
 #include <vector>
 
 namespace fdl
 {
-using namespace dealii;
+  using namespace dealii;
 
-// todo - add it to deal.II
-template <int spacedim>
-bool intersects(const BoundingBox<spacedim> &a,
-                const BoundingBox<spacedim> &b)
-{
+  // todo - add it to deal.II
+  template <int spacedim>
+  bool
+  intersects(const BoundingBox<spacedim> &a, const BoundingBox<spacedim> &b)
+  {
     // Since boxes are tensor products of line intervals it suffices to check
     // that the line segments for each coordinate axis overlap.
     for (unsigned int d = 0; d < spacedim; ++d)
-    {
+      {
         // Line segments can intersect in two ways:
         // 1. They can overlap.
         // 2. One can be inside the other.
@@ -33,65 +33,68 @@ bool intersects(const BoundingBox<spacedim> &a,
         // check that one end point of the first line segment lies in the second
         // line segment. Note that we don't need, in the second case, to do two
         // checks since that case is already covered by the first.
-        if (!((a.lower_bound(d) <= b.lower_bound(d) && b.lower_bound(d) <= a.upper_bound(d)) ||
-              (a.lower_bound(d) <= b.upper_bound(d) && b.upper_bound(d) <= a.upper_bound(d))) &&
-            !((b.lower_bound(d) <= a.lower_bound(d) && a.lower_bound(d) <= b.upper_bound(d))))
-        {
+        if (!((a.lower_bound(d) <= b.lower_bound(d) &&
+               b.lower_bound(d) <= a.upper_bound(d)) ||
+              (a.lower_bound(d) <= b.upper_bound(d) &&
+               b.upper_bound(d) <= a.upper_bound(d))) &&
+            !((b.lower_bound(d) <= a.lower_bound(d) &&
+               a.lower_bound(d) <= b.upper_bound(d))))
+          {
             return false;
-        }
-    }
+          }
+      }
 
     return true;
-}
+  }
 
-
-
-//
-// Class describing a Triangulation built from a shared Triangulation.
-//
-template <int dim, int spacedim = dim>
-class OverlapTriangulation : public Triangulation<dim, spacedim>
-{
-  using active_cell_iterator =
-    typename dealii::Triangulation<dim, spacedim>::active_cell_iterator;
-  using cell_iterator =
-    typename dealii::Triangulation<dim, spacedim>::cell_iterator;
+  //
+  // Class describing a Triangulation built from a shared Triangulation.
+  //
+  template <int dim, int spacedim = dim>
+  class OverlapTriangulation : public Triangulation<dim, spacedim>
+  {
+    using active_cell_iterator =
+      typename dealii::Triangulation<dim, spacedim>::active_cell_iterator;
+    using cell_iterator =
+      typename dealii::Triangulation<dim, spacedim>::cell_iterator;
 
   public:
-    OverlapTriangulation
-    (const parallel::shared::Triangulation<dim, spacedim> &shared_tria,
-     const std::vector<BoundingBox<spacedim>> &bboxes)
+    OverlapTriangulation(
+      const parallel::shared::Triangulation<dim, spacedim> &shared_tria,
+      const std::vector<BoundingBox<spacedim>> &            patch_bboxes)
     {
-      reinit(shared_tria, bboxes);
+      reinit(shared_tria, patch_bboxes);
     }
 
     void
     reinit(const parallel::shared::Triangulation<dim, spacedim> &shared_tria,
-           const std::vector<BoundingBox<spacedim>> &bboxes)
+           const std::vector<BoundingBox<spacedim>> &            patch_bboxes)
     {
       // todo - clear signals, etc. if there is a new shared tria
       native_tria = &shared_tria;
       cell_iterators_in_active_native_order.clear();
 
-      reinit_overlapping_tria(bboxes);
+      reinit_overlapping_tria(patch_bboxes);
 
       // Also set up some cached information:
       for (const auto &cell : this->active_cell_iterators())
         cell_iterators_in_active_native_order.push_back(cell);
       std::sort(cell_iterators_in_active_native_order.begin(),
                 cell_iterators_in_active_native_order.end(),
-                [&](const auto &a, const auto &b)
-                {return this->get_native_cell(a)->active_cell_index() <
-                        this->get_native_cell(b)->active_cell_index();});
+                [&](const auto &a, const auto &b) {
+                  return this->get_native_cell(a)->active_cell_index() <
+                         this->get_native_cell(b)->active_cell_index();
+                });
     }
 
-    parallel::shared::Triangulation<dim> &get_native_triangulation()
+    parallel::shared::Triangulation<dim> &
+    get_native_triangulation()
     {
       return *native_tria;
     }
 
-
-    const parallel::shared::Triangulation<dim> &get_native_triangulation() const
+    const parallel::shared::Triangulation<dim> &
+    get_native_triangulation() const
     {
       return *native_tria;
     }
@@ -99,9 +102,8 @@ class OverlapTriangulation : public Triangulation<dim, spacedim>
     /**
      * Get the native cell iterator equivalent to the current cell iterator.
      */
-    inline
-    active_cell_iterator
-    get_native_cell(const active_cell_iterator &cell) const
+    inline cell_iterator
+    get_native_cell(const cell_iterator &cell) const
     {
       return intersecting_native_cells[cell->user_index()];
     }
@@ -110,8 +112,7 @@ class OverlapTriangulation : public Triangulation<dim, spacedim>
      * Get the active cell iterators in order of ascending corresponding native
      * active cell index.
      */
-    inline
-    const std::vector<active_cell_iterator> &
+    inline const std::vector<active_cell_iterator> &
     get_cell_iterators_in_active_native_order() const
     {
       return cell_iterators_in_active_native_order;
@@ -128,18 +129,109 @@ class OverlapTriangulation : public Triangulation<dim, spacedim>
 
   protected:
     void
-    reinit_overlapping_tria(const std::vector<BoundingBox<spacedim>> &bboxes)
+    reinit_overlapping_tria(
+      const std::vector<BoundingBox<spacedim>> &patch_bboxes)
     {
       intersecting_native_cells.clear();
       this->clear();
 
       std::vector<CellData<dim>> cells;
-      SubCellData subcell_data;
+      SubCellData                subcell_data;
+
+#define USE_NEW_EXTRACT_ALGORITHM 1
+#if USE_NEW_EXTRACT_ALGORITHM
+      unsigned int coarsest_level_n = numbers::invalid_unsigned_int;
+      for (unsigned int level_n = 0; level_n < native_tria->n_levels();
+           ++level_n)
+        {
+          // We only need to start looking for intersections if the level
+          // contains an active cell intersecting the patches.
+          for (const auto &cell : native_tria->active_cell_iterators_on_level(level_n))
+            {
+              // TODO: use an rtree instead of checking boxes in a loop
+              for (const auto &patch_bbox : patch_bboxes)
+                {
+                  if (intersects(cell->bounding_box(), patch_bbox))
+                    {
+                      coarsest_level_n = level_n;
+                      // we need to break out of three loops so jump
+                      goto found_coarsest_level;
+                    }
+                }
+            }
+        }
+
+    found_coarsest_level:
+      Assert(coarsest_level_n != numbers::invalid_unsigned_int,
+             ExcInternalError());
+      for (const auto &cell :
+           native_tria->cell_iterators_on_level(coarsest_level_n))
+        {
+          for (const auto &patch_bbox : patch_bboxes)
+            {
+              if (intersects(cell->bounding_box(), patch_bbox))
+                {
+                  CellData<spacedim> cell_data;
+                  // Temporarily refer to native cells with the material id
+                  intersecting_native_cells.push_back(cell);
+                  cell_data.material_id = intersecting_native_cells.size() - 1;
+
+                  cell_data.vertices.clear();
+                  for (const auto &index : cell->vertex_indices())
+                    cell_data.vertices.push_back(cell->vertex_index(index));
+                  cells.push_back(std::move(cell_data));
+
+                  // set up subcell data:
+                  auto extract_subcell = [](const auto &iter,
+                                            auto &cell_data)
+                  {
+                    cell_data.vertices.clear();
+                    for (const auto &index : iter->vertex_indices())
+                      cell_data.vertices.push_back(
+                        iter->vertex_index(index));
+                    cell_data.manifold_id = iter->manifold_id();
+                    cell_data.boundary_id = iter->at_boundary() ?
+                      iter->boundary_id() : numbers::internal_face_boundary_id;
+                  };
+
+                  if (spacedim == 2)
+                    {
+                      for (const auto face : cell->face_iterators())
+                        {
+                          CellData<1> boundary_line;
+                          extract_subcell(face, boundary_line);
+                          subcell_data.boundary_lines.push_back(
+                            std::move(boundary_line));
+                        }
+                    }
+                  else if (spacedim == 3)
+                    {
+                      for (const auto face : cell->face_iterators())
+                        {
+                          CellData<2> boundary_quad;
+                          extract_subcell(face, boundary_quad);
+                          subcell_data.boundary_quads.push_back(
+                            std::move(boundary_quad));
+
+                          for (auto line_n = 0; line_n < face->n_lines();
+                               ++line_n)
+                            {
+                              CellData<1> boundary_line;
+                              extract_subcell(face->line(line_n), boundary_line);
+                              subcell_data.boundary_lines.push_back(
+                                std::move(boundary_line));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+#else
       for (const auto &cell : native_tria->active_cell_iterators())
         {
           // TODO: use an rtree instead of checking boxes in a loop
-          for (const auto &bbox : bboxes)
-            if (intersects(cell->bounding_box(), bbox))
+          for (const auto &patch_bbox : patch_bboxes)
+            if (intersects(cell->bounding_box(), patch_bbox))
               {
                 CellData<spacedim> cell_data;
                 // Temporarily refer to native cells with the material id
@@ -151,40 +243,116 @@ class OverlapTriangulation : public Triangulation<dim, spacedim>
                   cell_data.vertices.push_back(cell->vertex_index(index));
 
                 cells.push_back(std::move(cell_data));
-                // TODO: also populate subcell data
-                // TODO: get multiple active levels working
+                // this approach doesn't work with subcell data or amr
               }
         }
-      this->create_triangulation(native_tria->get_vertices(), cells, subcell_data);
-
+#endif
+      // Set up the coarsest level of the new overlap triangulation:
+      this->create_triangulation(native_tria->get_vertices(),
+                                 cells,
+                                 subcell_data);
       for (auto &cell : this->active_cell_iterators())
         {
-          const auto &native_cell = intersecting_native_cells[cell->user_index()];
+          const auto &native_cell =
+            intersecting_native_cells[cell->user_index()];
           cell->set_user_index(cell->material_id());
           cell->set_material_id(native_cell->material_id());
-          cell->set_subdomain_id(native_cell->subdomain_id());
           cell->set_manifold_id(native_cell->manifold_id());
+          if (native_cell->is_active())
+            {
+              cell->set_subdomain_id(native_cell->subdomain_id());
+            }
         }
+      for (const auto manifold_id : native_tria->get_manifold_ids())
+        {
+          if (manifold_id != numbers::flat_manifold_id)
+            this->set_manifold(manifold_id,
+                               native_tria->get_manifold(manifold_id));
+        }
+#ifdef USE_NEW_EXTRACT_ALGORITHM
+      // Set up the
+      for (unsigned int level_n = 0;
+           level_n < native_tria->n_levels() - coarsest_level_n;
+           ++level_n)
+        {
+          // If a native cell is refined then mark the equivalent overlap cell
+          // for refinement.
+          bool refined = false;
+          for (auto &cell : this->cell_iterators_on_level(level_n))
+            {
+              const auto &native_cell =
+                intersecting_native_cells[cell->user_index()];
+              if (native_cell->has_children())
+                {
+                  refined = true;
+                  Assert(native_cell->refinement_case() ==
+                           RefinementCase<dim>::isotropic_refinement,
+                         ExcNotImplemented());
+                  cell->set_refine_flag();
+                }
+            }
+          if (refined)
+            {
+              this->execute_coarsening_and_refinement();
+              // Copy essential properties to the new cells on level_n + 1 and
+              // continue setting up intersecting_native_cells for the new
+              // cells.
+              for (auto &cell : this->cell_iterators_on_level(level_n))
+                {
+                  if (cell->has_children())
+                    {
+                      const auto native_cell = get_native_cell(cell);
+                      const auto n_children  = cell->n_children();
+                      for (unsigned int child_n = 0; child_n < n_children;
+                           ++child_n)
+                        {
+                          auto       child        = cell->child(child_n);
+                          const auto native_child = native_cell->child(child_n);
+                          // These should be equal but are not after we refine
+                          // the grid a few times
+                          Assert((child->barycenter() -
+                                  native_child->barycenter())
+                                     .norm() < 1e-12,
+                                 ExcInternalError());
+                          intersecting_native_cells.push_back(native_child);
+                          child->set_user_index(
+                            intersecting_native_cells.size() - 1);
+                          if (native_child->is_active())
+                            {
+                              child->set_material_id(
+                                native_child->material_id());
+                              child->set_subdomain_id(
+                                native_child->subdomain_id());
+                              child->set_manifold_id(
+                                native_child->manifold_id());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+#endif
     }
 
     /**
      * Pointer to the Triangulation which describes the whole domain.
      */
     SmartPointer<const parallel::shared::Triangulation<dim, spacedim>,
-                 OverlapTriangulation<dim, spacedim>> native_tria;
+                 OverlapTriangulation<dim, spacedim>>
+      native_tria;
 
     /**
      * Iterators to native cells which have an equivalent cell on this
      * triangulation.
      */
-    std::vector<active_cell_iterator> intersecting_native_cells;
+    std::vector<cell_iterator> intersecting_native_cells;
 
     /**
      * Active cell iterators sorted by the active cell index of the
      * corresponding native cell. Useful for doing data transfer.
      */
     std::vector<active_cell_iterator> cell_iterators_in_active_native_order;
-};
-}
+  };
+} // namespace fdl
 
 #endif // define included_fiddle_overlap_triangulation_h

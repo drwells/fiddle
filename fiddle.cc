@@ -35,7 +35,14 @@ int main(int argc, char **argv)
   const auto rank = Utilities::MPI::this_mpi_process(mpi_comm);
   parallel::shared::Triangulation<2> native_tria(mpi_comm);
   GridGenerator::hyper_ball(native_tria);
-  native_tria.refine_global(4);
+  native_tria.refine_global(1);
+  for (unsigned int i = 0; i < 3; ++i)
+  {
+    for (const auto &cell : native_tria.active_cell_iterators())
+      if (cell->barycenter()[0] > 0.0)
+        cell->set_refine_flag();
+    native_tria.execute_coarsening_and_refinement();
+  }
 
   {
     GridOut go;
