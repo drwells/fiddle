@@ -51,7 +51,7 @@ namespace fdl
   // Class describing a Triangulation built from a shared Triangulation.
   //
   template <int dim, int spacedim = dim>
-  class OverlapTriangulation : public Triangulation<dim, spacedim>
+  class OverlapTriangulation : public dealii::Triangulation<dim, spacedim>
   {
     using active_cell_iterator =
       typename dealii::Triangulation<dim, spacedim>::active_cell_iterator;
@@ -66,6 +66,12 @@ namespace fdl
       reinit(shared_tria, patch_bboxes);
     }
 
+    virtual types::subdomain_id
+    locally_owned_subdomain() const
+    {
+      return 0;
+    }
+
     void
     reinit(const parallel::shared::Triangulation<dim, spacedim> &shared_tria,
            const std::vector<BoundingBox<spacedim>> &            patch_bboxes)
@@ -78,7 +84,8 @@ namespace fdl
 
       // Also set up some cached information:
       for (const auto &cell : this->active_cell_iterators())
-        cell_iterators_in_active_native_order.push_back(cell);
+        if (cell->subdomain_id() != numbers::artificial_subdomain_id)
+          cell_iterators_in_active_native_order.push_back(cell);
       std::sort(cell_iterators_in_active_native_order.begin(),
                 cell_iterators_in_active_native_order.end(),
                 [&](const auto &a, const auto &b) {
@@ -105,7 +112,11 @@ namespace fdl
     inline cell_iterator
     get_native_cell(const cell_iterator &cell) const
     {
-      return intersecting_native_cells[cell->user_index()];
+      AssertIndexRange(cell->user_index(), intersecting_native_cells.size());
+      const auto native_cell = intersecting_native_cells[cell->user_index()];
+      Assert((native_cell->barycenter() - cell->barycenter()).norm() < 1e-12,
+             ExcInternalError());
+      return native_cell;
     }
 
     /**
@@ -128,6 +139,19 @@ namespace fdl
     }
 
   protected:
+    /**
+     * Utility function that stores a native cell and returns its array index
+     * (which will then be set as the user index or material id).
+     */
+    std::size_t
+    add_native_cell(const cell_iterator &cell)
+    {
+      Assert(&cell->get_triangulation() == native_tria,
+             ExcMessage("should be a native cell"));
+      intersecting_native_cells.push_back(cell);
+      return intersecting_native_cells.size() - 1;
+    }
+
     void
     reinit_overlapping_tria(
       const std::vector<BoundingBox<spacedim>> &patch_bboxes)
@@ -138,6 +162,14 @@ namespace fdl
       std::vector<CellData<dim>> cells;
       SubCellData                subcell_data;
 
+      // TODO: replace with an rtree
+      auto intersects_patches = [&](const auto &cell) {
+        for (const auto &patch_bbox : patch_bboxes)
+          if (intersects(cell->bounding_box(), patch_bbox))
+            return true;
+        return false;
+      };
+
 #define USE_NEW_EXTRACT_ALGORITHM 1
 #if USE_NEW_EXTRACT_ALGORITHM
       unsigned int coarsest_level_n = numbers::invalid_unsigned_int;
@@ -146,17 +178,14 @@ namespace fdl
         {
           // We only need to start looking for intersections if the level
           // contains an active cell intersecting the patches.
-          for (const auto &cell : native_tria->active_cell_iterators_on_level(level_n))
+          for (const auto &cell :
+               native_tria->active_cell_iterators_on_level(level_n))
             {
-              // TODO: use an rtree instead of checking boxes in a loop
-              for (const auto &patch_bbox : patch_bboxes)
+              if (intersects_patches(cell))
                 {
-                  if (intersects(cell->bounding_box(), patch_bbox))
-                    {
-                      coarsest_level_n = level_n;
-                      // we need to break out of three loops so jump
-                      goto found_coarsest_level;
-                    }
+                  coarsest_level_n = level_n;
+                  // we need to break out of two loops so jump
+                  goto found_coarsest_level;
                 }
             }
         }
@@ -167,60 +196,53 @@ namespace fdl
       for (const auto &cell :
            native_tria->cell_iterators_on_level(coarsest_level_n))
         {
-          for (const auto &patch_bbox : patch_bboxes)
+          if (intersects_patches(cell))
             {
-              if (intersects(cell->bounding_box(), patch_bbox))
+              CellData<spacedim> cell_data;
+              // Temporarily refer to native cells with the material id
+              cell_data.material_id = add_native_cell(cell);
+
+              cell_data.vertices.clear();
+              for (const auto &index : cell->vertex_indices())
+                cell_data.vertices.push_back(cell->vertex_index(index));
+              cells.push_back(std::move(cell_data));
+
+              // set up subcell data:
+              auto extract_subcell = [](const auto &iter, auto &cell_data) {
+                cell_data.vertices.clear();
+                for (const auto &index : iter->vertex_indices())
+                  cell_data.vertices.push_back(iter->vertex_index(index));
+                cell_data.manifold_id = iter->manifold_id();
+                cell_data.boundary_id = iter->at_boundary() ?
+                                          iter->boundary_id() :
+                                          numbers::internal_face_boundary_id;
+              };
+
+              if (spacedim == 2)
                 {
-                  CellData<spacedim> cell_data;
-                  // Temporarily refer to native cells with the material id
-                  intersecting_native_cells.push_back(cell);
-                  cell_data.material_id = intersecting_native_cells.size() - 1;
-
-                  cell_data.vertices.clear();
-                  for (const auto &index : cell->vertex_indices())
-                    cell_data.vertices.push_back(cell->vertex_index(index));
-                  cells.push_back(std::move(cell_data));
-
-                  // set up subcell data:
-                  auto extract_subcell = [](const auto &iter,
-                                            auto &cell_data)
-                  {
-                    cell_data.vertices.clear();
-                    for (const auto &index : iter->vertex_indices())
-                      cell_data.vertices.push_back(
-                        iter->vertex_index(index));
-                    cell_data.manifold_id = iter->manifold_id();
-                    cell_data.boundary_id = iter->at_boundary() ?
-                      iter->boundary_id() : numbers::internal_face_boundary_id;
-                  };
-
-                  if (spacedim == 2)
+                  for (const auto face : cell->face_iterators())
                     {
-                      for (const auto face : cell->face_iterators())
+                      CellData<1> boundary_line;
+                      extract_subcell(face, boundary_line);
+                      subcell_data.boundary_lines.push_back(
+                        std::move(boundary_line));
+                    }
+                }
+              else if (spacedim == 3)
+                {
+                  for (const auto face : cell->face_iterators())
+                    {
+                      CellData<2> boundary_quad;
+                      extract_subcell(face, boundary_quad);
+                      subcell_data.boundary_quads.push_back(
+                        std::move(boundary_quad));
+
+                      for (auto line_n = 0; line_n < face->n_lines(); ++line_n)
                         {
                           CellData<1> boundary_line;
-                          extract_subcell(face, boundary_line);
+                          extract_subcell(face->line(line_n), boundary_line);
                           subcell_data.boundary_lines.push_back(
                             std::move(boundary_line));
-                        }
-                    }
-                  else if (spacedim == 3)
-                    {
-                      for (const auto face : cell->face_iterators())
-                        {
-                          CellData<2> boundary_quad;
-                          extract_subcell(face, boundary_quad);
-                          subcell_data.boundary_quads.push_back(
-                            std::move(boundary_quad));
-
-                          for (auto line_n = 0; line_n < face->n_lines();
-                               ++line_n)
-                            {
-                              CellData<1> boundary_line;
-                              extract_subcell(face->line(line_n), boundary_line);
-                              subcell_data.boundary_lines.push_back(
-                                std::move(boundary_line));
-                            }
                         }
                     }
                 }
@@ -229,22 +251,19 @@ namespace fdl
 #else
       for (const auto &cell : native_tria->active_cell_iterators())
         {
-          // TODO: use an rtree instead of checking boxes in a loop
-          for (const auto &patch_bbox : patch_bboxes)
-            if (intersects(cell->bounding_box(), patch_bbox))
-              {
-                CellData<spacedim> cell_data;
-                // Temporarily refer to native cells with the material id
-                intersecting_native_cells.push_back(cell);
-                cell_data.material_id = intersecting_native_cells.size() - 1;
+          if (intersects_patches(cell))
+            {
+              CellData<spacedim> cell_data;
+              // Temporarily refer to native cells with the material id
+              cell_data.material_id = add_native_cell(cell);
 
-                cell_data.vertices.clear();
-                for (const auto &index : cell->vertex_indices())
-                  cell_data.vertices.push_back(cell->vertex_index(index));
+              cell_data.vertices.clear();
+              for (const auto &index : cell->vertex_indices())
+                cell_data.vertices.push_back(cell->vertex_index(index));
 
-                cells.push_back(std::move(cell_data));
-                // this approach doesn't work with subcell data or amr
-              }
+              cells.push_back(std::move(cell_data));
+              // this approach doesn't work with subcell data or amr
+            }
         }
 #endif
       // Set up the coarsest level of the new overlap triangulation:
@@ -253,15 +272,11 @@ namespace fdl
                                  subcell_data);
       for (auto &cell : this->active_cell_iterators())
         {
-          const auto &native_cell =
-            intersecting_native_cells[cell->user_index()];
+          // switch the material id for the user index so that native cell
+          // lookup works:
           cell->set_user_index(cell->material_id());
+          const auto native_cell = get_native_cell(cell);
           cell->set_material_id(native_cell->material_id());
-          cell->set_manifold_id(native_cell->manifold_id());
-          if (native_cell->is_active())
-            {
-              cell->set_subdomain_id(native_cell->subdomain_id());
-            }
         }
       for (const auto manifold_id : native_tria->get_manifold_ids())
         {
@@ -270,7 +285,6 @@ namespace fdl
                                native_tria->get_manifold(manifold_id));
         }
 #ifdef USE_NEW_EXTRACT_ALGORITHM
-      // Set up the
       for (unsigned int level_n = 0;
            level_n < native_tria->n_levels() - coarsest_level_n;
            ++level_n)
@@ -280,22 +294,29 @@ namespace fdl
           bool refined = false;
           for (auto &cell : this->cell_iterators_on_level(level_n))
             {
-              const auto &native_cell =
-                intersecting_native_cells[cell->user_index()];
-              if (native_cell->has_children())
+              if (intersects_patches(cell))
                 {
-                  refined = true;
-                  Assert(native_cell->refinement_case() ==
-                           RefinementCase<dim>::isotropic_refinement,
-                         ExcNotImplemented());
-                  cell->set_refine_flag();
+                  const auto native_cell = get_native_cell(cell);
+                  cell->set_subdomain_id(0);
+                  if (native_cell->has_children())
+                    {
+                      refined = true;
+                      Assert(native_cell->refinement_case() ==
+                               RefinementCase<dim>::isotropic_refinement,
+                             ExcNotImplemented());
+                      cell->set_refine_flag();
+                    }
+                }
+              else
+                {
+                  cell->set_subdomain_id(numbers::artificial_subdomain_id);
                 }
             }
           if (refined)
             {
               this->execute_coarsening_and_refinement();
               // Copy essential properties to the new cells on level_n + 1 and
-              // continue setting up intersecting_native_cells for the new
+              // continue setting up native cells for the new
               // cells.
               for (auto &cell : this->cell_iterators_on_level(level_n))
                 {
@@ -314,15 +335,12 @@ namespace fdl
                                   native_child->barycenter())
                                      .norm() < 1e-12,
                                  ExcInternalError());
-                          intersecting_native_cells.push_back(native_child);
-                          child->set_user_index(
-                            intersecting_native_cells.size() - 1);
+                          child->set_user_index(add_native_cell(native_child));
+                          child->set_subdomain_id(0);
                           if (native_child->is_active())
                             {
                               child->set_material_id(
                                 native_child->material_id());
-                              child->set_subdomain_id(
-                                native_child->subdomain_id());
                               child->set_manifold_id(
                                 native_child->manifold_id());
                             }

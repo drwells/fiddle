@@ -54,10 +54,13 @@ namespace fdl
       native_active_cell_ids_on_overlap;
     for (const auto &cell : overlap_tria.active_cell_iterators())
       {
-        const auto &native_cell  = overlap_tria.get_native_cell(cell);
-        const auto  subdomain_id = native_cell->subdomain_id();
-        native_active_cell_ids_on_overlap[subdomain_id].push_back(
-          native_cell->active_cell_index());
+        if (cell->is_locally_owned())
+          {
+            const auto &native_cell  = overlap_tria.get_native_cell(cell);
+            const auto  subdomain_id = native_cell->subdomain_id();
+            native_active_cell_ids_on_overlap[subdomain_id].push_back(
+              native_cell->active_cell_index());
+          }
       }
     for (auto &pair : native_active_cell_ids_on_overlap)
       std::sort(pair.second.begin(), pair.second.end());
@@ -116,7 +119,10 @@ namespace fdl
     std::vector<typename DoFHandler<dim, spacedim>::active_cell_iterator>
       overlap_dh_cells;
     for (const auto &cell : overlap_dof_handler.active_cell_iterators())
-      overlap_dh_cells.push_back(cell);
+      {
+        if (cell->is_locally_owned())
+          overlap_dh_cells.push_back(cell);
+      }
     std::sort(overlap_dh_cells.begin(),
               overlap_dh_cells.end(),
               [&](const auto &a, const auto &b) {
