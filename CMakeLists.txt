@@ -3,6 +3,7 @@ SET(TARGET "fiddle")
 SET(TARGET_SRC ${TARGET}.cc
   source/grid/overlap_tria.cc
   source/transfer/overlap_partitioning_tools.cc
+  source/transfer/scatter.cc
   )
 
 # TODO: switch to using real targets
