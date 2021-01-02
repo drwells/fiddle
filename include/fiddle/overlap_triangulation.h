@@ -123,6 +123,10 @@ namespace fdl
     /**
      * Get the active cell iterators in order of ascending corresponding native
      * active cell index.
+     *
+     * @todo replace this with something that stores cell {level, index} pairs
+     * instead to lower memory usage (we don't need to store multiple pointers
+     * to the triangulation).
      */
     inline const std::vector<active_cell_iterator> &
     get_cell_iterators_in_active_native_order() const
@@ -134,9 +138,19 @@ namespace fdl
      * Get the MPI communicator for the underlying shared triangulation.
      */
     virtual const MPI_Comm &
-    get_communicator() const
+    get_native_communicator() const
     {
       return native_tria->get_communicator();
+    }
+
+    /**
+     * This is an inherently serial Triangulation (no data is exchanged in this
+     * class) so its own communicator is MPI_COMM_SELF.
+     */
+    virtual const MPI_Comm &
+    get_communicator() const
+    {
+      return MPI_COMM_SELF;
     }
 
   protected:
