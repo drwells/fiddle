@@ -94,15 +94,10 @@ main(int argc, char **argv)
   IndexSet locally_relevant_dofs;
   DoFTools::extract_locally_relevant_dofs(native_dof_handler,
                                           locally_relevant_dofs);
-#define USE_FDL_SCATTER 1
-#if USE_FDL_SCATTER
+
   // TODO: VT::interpolate requires ghost data with LA::d::V, not sure why
   LinearAlgebra::distributed::Vector<double> native_solution(
     native_dof_handler.locally_owned_dofs(), locally_relevant_dofs, mpi_comm);
-#else
-  PETScWrappers::MPI::Vector native_solution(
-    native_dof_handler.locally_owned_dofs(), mpi_comm);
-#endif
   VectorTools::interpolate(native_dof_handler,
                            Functions::CosineFunction<2>(),
                            native_solution);
@@ -113,28 +108,15 @@ main(int argc, char **argv)
     fdl::compute_overlap_to_native_dof_translation(ib_tria,
                                                    ib_dof_handler,
                                                    native_dof_handler);
-#if USE_FDL_SCATTER
   fdl::Scatter<double> scatter(overlap_to_native,
                                native_dof_handler.locally_owned_dofs(),
                                mpi_comm);
   scatter.global_to_overlap_start(native_solution, 0, ib_solution);
   scatter.global_to_overlap_finish(native_solution, ib_solution);
-#else
-  Vector<double> localized_native_solution(native_solution);
-  for (types::global_dof_index dof = 0; dof < ib_dof_handler.n_dofs(); ++dof)
-    {
-      ib_solution[dof] = localized_native_solution[overlap_to_native[dof]];
-    }
-#endif
 
   {
-#if USE_FDL_SCATTER
     LinearAlgebra::distributed::Vector<double> ghosted_native_solution(
       native_dof_handler.locally_owned_dofs(), locally_relevant_dofs, mpi_comm);
-#else
-    PETScWrappers::MPI::Vector ghosted_native_solution(
-      native_dof_handler.locally_owned_dofs(), locally_relevant_dofs, mpi_comm);
-#endif
     ghosted_native_solution = native_solution;
     ghosted_native_solution.update_ghost_values();
 
