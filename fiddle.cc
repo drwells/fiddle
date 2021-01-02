@@ -19,9 +19,9 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 
-#include <fiddle/overlap_partitioning_tools.h>
-#include <fiddle/overlap_triangulation.h>
-#include <fiddle/scatter.h>
+#include <fiddle/grid/overlap_tria.h>
+#include <fiddle/transfer/overlap_partitioning_tools.h>
+#include <fiddle/transfer/scatter.h>
 
 #include <cmath>
 #include <fstream>

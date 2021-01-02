@@ -1,5 +1,5 @@
-#ifndef included_fiddle_overlap_triangulation_h
-#define included_fiddle_overlap_triangulation_h
+#ifndef included_fiddle_overlap_tria_h
+#define included_fiddle_overlap_tria_h
 
 #include <deal.II/base/bounding_box.h>
 
@@ -388,4 +388,4 @@ namespace fdl
   };
 } // namespace fdl
 
-#endif // define included_fiddle_overlap_triangulation_h
+#endif // define included_fiddle_overlap_tria_h

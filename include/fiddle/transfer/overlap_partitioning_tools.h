@@ -2,7 +2,7 @@
 
 #include <deal.II/dofs/dof_tools.h>
 
-#include <fiddle/overlap_triangulation.h>
+#include <fiddle/grid/overlap_tria.h>
 
 namespace fdl
 {
