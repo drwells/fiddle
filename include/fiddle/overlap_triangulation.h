@@ -113,7 +113,7 @@ namespace fdl
     get_native_cell(const cell_iterator &cell) const
     {
       AssertIndexRange(cell->user_index(), native_cells.size());
-      const auto pair = native_cells[cell->user_index()];
+      const auto          pair = native_cells[cell->user_index()];
       const cell_iterator native_cell(native_tria, pair.first, pair.second);
       Assert((native_cell->barycenter() - cell->barycenter()).norm() < 1e-12,
              ExcInternalError());
