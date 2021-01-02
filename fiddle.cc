@@ -111,8 +111,15 @@ main(int argc, char **argv)
   fdl::Scatter<double> scatter(overlap_to_native,
                                native_dof_handler.locally_owned_dofs(),
                                mpi_comm);
+  // Scatter forward...
   scatter.global_to_overlap_start(native_solution, 0, ib_solution);
   scatter.global_to_overlap_finish(native_solution, ib_solution);
+
+  // and back.
+  scatter.overlap_to_global_start(ib_solution, VectorOperation::insert, 0,
+                                  native_solution);
+  scatter.overlap_to_global_finish(ib_solution, VectorOperation::insert,
+                                   native_solution);
 
   {
     LinearAlgebra::distributed::Vector<double> ghosted_native_solution(

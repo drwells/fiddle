@@ -65,21 +65,37 @@ namespace fdl
            ExcMessage("The output vector should have the same number of dofs "
                       "as were provided to the constructor in local"));
 
+    // This requires some care - when we scatter with insert we assume that the
+    // dof is set to the correct value on its owning processor. This is not the
+    // case here since local values are not present in the overlap space. In
+    // particular, neither ghost data nor owned data is known before we
+    // communicate so we can't really check for consistent settings (i.e., there
+    // is no correct value set on the owning processor). Hence we do a max
+    // operation instead and hope the caller isn't doing anything too weird.
     Assert(operation == VectorOperation::insert ||
              operation == VectorOperation::add,
            ExcNotImplemented());
-    scatterer = 0.0;
+    if (operation == VectorOperation::add)
+      scatterer = 0.0;
+    else
+    {
+      const auto size = scatterer.local_size() + scatterer.get_partitioner()
+        ->n_ghost_indices();
+      for (std::size_t i = 0; i < size; ++i)
+        scatterer.local_element(i) = std::numeric_limits<T>::min();
+    }
     // TODO: we can probably do the index translation just once and store it
     // so we could instead use scatterer::local_element(). It might be faster
     // but it will take up more memory.
     for (std::size_t i = 0; i < overlap_dofs.size(); ++i)
       scatterer[overlap_dofs[i]] = input[i];
+    // The ghost array is out of sync with the actual values the vector should
+    // have - explicitly set it as such so we can compress
+    scatterer.set_ghost_state(false);
 
-    scatterer.compress_start(channel, operation);
-
-    // don't copy any ghost data - ghost regions are not the same anyway
-    for (std::size_t i = 0; i < scatterer.local_size(); ++i)
-      output.local_element(i) = scatterer.local_element(i);
+    const VectorOperation::values actual_op = operation == VectorOperation::add ?
+      VectorOperation::add : VectorOperation::max;
+    scatterer.compress_start(channel, actual_op);
   }
 
 
@@ -98,7 +114,9 @@ namespace fdl
            ExcMessage("The output vector should have the same number of dofs "
                       "as were provided to the constructor in local"));
 
-    scatterer.compress_finish(operation);
+    const VectorOperation::values actual_op = operation == VectorOperation::add ?
+      VectorOperation::add : VectorOperation::max;
+    scatterer.compress_finish(actual_op);
 
     for (std::size_t i = 0; i < scatterer.local_size(); ++i)
       output.local_element(i) = scatterer.local_element(i);
