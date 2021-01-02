@@ -1,6 +1,6 @@
 SET(TARGET "fiddle")
 
-SET(TARGET_SRC ${TARGET}.cc)
+SET(TARGET_SRC ${TARGET}.cc source/grid/overlap_tria.cc)
 
 # TODO: switch to using real targets
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/include/)
