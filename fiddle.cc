@@ -21,6 +21,7 @@
 
 #include <fiddle/overlap_partitioning_tools.h>
 #include <fiddle/overlap_triangulation.h>
+#include <fiddle/scatter.h>
 
 #include <cmath>
 #include <fstream>
@@ -91,55 +92,47 @@ main(int argc, char **argv)
   IndexSet locally_relevant_dofs;
   DoFTools::extract_locally_relevant_dofs(native_dof_handler,
                                           locally_relevant_dofs);
+#define USE_FDL_SCATTER 1
+#if USE_FDL_SCATTER
+  // TODO: VT::interpolate requires ghost data with LA::d::V, not sure why
+  LinearAlgebra::distributed::Vector<double> native_solution(
+    native_dof_handler.locally_owned_dofs(), locally_relevant_dofs, mpi_comm);
+#else
   PETScWrappers::MPI::Vector native_solution(
     native_dof_handler.locally_owned_dofs(), mpi_comm);
+#endif
   VectorTools::interpolate(native_dof_handler,
                            Functions::CosineFunction<2>(),
                            native_solution);
 
   Vector<double> ib_solution(ib_dof_handler.n_dofs());
-  Vector<double> localized_native_solution(native_solution);
 
   const std::vector<types::global_dof_index> overlap_to_native =
     fdl::compute_overlap_to_native_dof_translation(ib_tria,
                                                    ib_dof_handler,
                                                    native_dof_handler);
+#if USE_FDL_SCATTER
+  fdl::Scatter<double> scatter(overlap_to_native,
+                               native_dof_handler.locally_owned_dofs(),
+                               mpi_comm);
+  scatter.global_to_overlap_start(native_solution, 0, ib_solution);
+  scatter.global_to_overlap_finish(native_solution, ib_solution);
+#else
+  Vector<double> localized_native_solution(native_solution);
   for (types::global_dof_index dof = 0; dof < ib_dof_handler.n_dofs(); ++dof)
     {
       ib_solution[dof] = localized_native_solution[overlap_to_native[dof]];
     }
-
-    // At this point we need to set up an object that can copy from the
-    // distributed native format onto each IB processor. It isn't clear to me
-    // what deal.II or PETSc class can do this. Some indirect possibilities:
-    //
-    // 1. Create a purely ghosted LA::d::V as an intermediate step.
-    // 2. Create a purely ghosted Vec as an intermediate step.
-    //
-    // I think I see how 2 would work out: after scattering we will know, in the
-    // ghost region, the global indices and values - we can do an index
-    // translation back to local and copy.
-    //
-    // I don't think this will work as specified - I think we need to create a
-    // vector that has the same locally owned range as the native but whose
-    // ghost region is the nonlocal IB data.
-    //
-    // The next difficult part is to go in the opposite direction - we will need
-    // a way to accumulate values from the IB partitioning back to the native
-    // one.
-    //
-    // For now lets just use huge ghost regions. Doing something else with
-    // VecScatter or similar is not simple since all vector classes have a
-    // concept of index ownership, which isn't really relevant in the 'native to
-    // IB' case.
-#if 0
-  IndexSet native_dofs_on_ib(native_dof_handler.n_dofs());
-  native_dofs_on_ib.add_indices(native_indices.begin(), native_indices.end());
 #endif
 
   {
+#if USE_FDL_SCATTER
+    LinearAlgebra::distributed::Vector<double> ghosted_native_solution(
+      native_dof_handler.locally_owned_dofs(), locally_relevant_dofs, mpi_comm);
+#else
     PETScWrappers::MPI::Vector ghosted_native_solution(
       native_dof_handler.locally_owned_dofs(), locally_relevant_dofs, mpi_comm);
+#endif
     ghosted_native_solution = native_solution;
     ghosted_native_solution.update_ghost_values();
 
