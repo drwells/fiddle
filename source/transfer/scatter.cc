@@ -1,8 +1,9 @@
+#include <fiddle/transfer/scatter.h>
+
 #include <deal.II/base/index_set.h>
 
 #include <deal.II/lac/la_parallel_vector.h>
 
-#include <fiddle/transfer/scatter.h>
 #include <mpi.h>
 
 namespace fdl

@@ -1,3 +1,8 @@
+#include <fiddle/grid/overlap_tria.h>
+
+#include <fiddle/transfer/overlap_partitioning_tools.h>
+#include <fiddle/transfer/scatter.h>
+
 #include <deal.II/base/function_lib.h>
 #include <deal.II/base/index_set.h>
 #include <deal.II/base/mpi.h>
@@ -18,10 +23,6 @@
 
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
-
-#include <fiddle/grid/overlap_tria.h>
-#include <fiddle/transfer/overlap_partitioning_tools.h>
-#include <fiddle/transfer/scatter.h>
 
 #include <cmath>
 #include <fstream>

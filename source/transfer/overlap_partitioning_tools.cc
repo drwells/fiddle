@@ -1,10 +1,11 @@
+#include <fiddle/grid/overlap_tria.h>
+
+#include <fiddle/transfer/overlap_partitioning_tools.h>
+
 #include <deal.II/base/index_set.h>
 #include <deal.II/base/types.h>
 
 #include <deal.II/dofs/dof_handler.h>
-
-#include <fiddle/grid/overlap_tria.h>
-#include <fiddle/transfer/overlap_partitioning_tools.h>
 
 namespace fdl
 {

@@ -1,6 +1,6 @@
-#include <deal.II/grid/tria_description.h>
-
 #include <fiddle/grid/overlap_tria.h>
+
+#include <deal.II/grid/tria_description.h>
 
 #include <algorithm>
 

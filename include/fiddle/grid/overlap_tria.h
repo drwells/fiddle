@@ -1,7 +1,8 @@
 #ifndef included_fiddle_overlap_tria_h
 #define included_fiddle_overlap_tria_h
 
-#include <deal.II/base/bounding_box.h>
+#include <fiddle/grid/intersection_predicate.h>
+
 #include <deal.II/base/subscriptor.h>
 
 #include <deal.II/distributed/shared_tria.h>

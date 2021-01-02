@@ -1,8 +1,8 @@
+#include <fiddle/grid/overlap_tria.h>
+
 #include <deal.II/base/types.h>
 
 #include <deal.II/dofs/dof_handler.h>
-
-#include <fiddle/grid/overlap_tria.h>
 
 namespace fdl
 {
