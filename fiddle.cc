@@ -76,7 +76,8 @@ main(int argc, char **argv)
         Assert(false, ExcNotImplemented());
     }
 
-  fdl::OverlapTriangulation<2> ib_tria(native_tria, {bbox});
+  fdl::TriaIntersectionPredicate<2> pred({bbox});
+  fdl::OverlapTriangulation<2>      ib_tria(native_tria, pred);
 
   {
     GridOut       go;

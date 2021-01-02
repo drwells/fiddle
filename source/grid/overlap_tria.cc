@@ -8,46 +8,12 @@ namespace fdl
 {
   using namespace dealii;
 
-  // todo - add it to deal.II
-  template <int spacedim>
-  bool
-  intersects(const BoundingBox<spacedim> &a, const BoundingBox<spacedim> &b)
-  {
-    // Since boxes are tensor products of line intervals it suffices to check
-    // that the line segments for each coordinate axis overlap.
-    for (unsigned int d = 0; d < spacedim; ++d)
-      {
-        // Line segments can intersect in two ways:
-        // 1. They can overlap.
-        // 2. One can be inside the other.
-        //
-        // In the first case we want to see if either end point of the second
-        // line segment lies within the first. In the second case we can simply
-        // check that one end point of the first line segment lies in the second
-        // line segment. Note that we don't need, in the second case, to do two
-        // checks since that case is already covered by the first.
-        if (!((a.lower_bound(d) <= b.lower_bound(d) &&
-               b.lower_bound(d) <= a.upper_bound(d)) ||
-              (a.lower_bound(d) <= b.upper_bound(d) &&
-               b.upper_bound(d) <= a.upper_bound(d))) &&
-            !((b.lower_bound(d) <= a.lower_bound(d) &&
-               a.lower_bound(d) <= b.upper_bound(d))))
-          {
-            return false;
-          }
-      }
-
-    return true;
-  }
-
-
-
   template <int dim, int spacedim>
   OverlapTriangulation<dim, spacedim>::OverlapTriangulation(
     const parallel::shared::Triangulation<dim, spacedim> &shared_tria,
-    const std::vector<BoundingBox<spacedim>> &            patch_bboxes)
+    const IntersectionPredicate<dim, spacedim> &          predicate)
   {
-    reinit(shared_tria, patch_bboxes);
+    reinit(shared_tria, predicate);
   }
 
 
@@ -65,15 +31,15 @@ namespace fdl
   void
   OverlapTriangulation<dim, spacedim>::reinit(
     const parallel::shared::Triangulation<dim, spacedim> &shared_tria,
-    const std::vector<BoundingBox<spacedim>> &            patch_bboxes)
+    const IntersectionPredicate<dim, spacedim> &          predicate)
   {
     // todo - clear signals, etc. if there is a new shared tria
     native_tria = &shared_tria;
-    cell_iterators_in_active_native_order.clear();
 
-    reinit_overlapping_tria(patch_bboxes);
+    reinit_overlapping_tria(predicate);
 
     // Also set up some cached information:
+    cell_iterators_in_active_native_order.clear();
     for (const auto &cell : this->active_cell_iterators())
       if (cell->subdomain_id() != numbers::artificial_subdomain_id)
         cell_iterators_in_active_native_order.push_back(cell);
@@ -90,21 +56,13 @@ namespace fdl
   template <int dim, int spacedim>
   void
   OverlapTriangulation<dim, spacedim>::reinit_overlapping_tria(
-    const std::vector<BoundingBox<spacedim>> &patch_bboxes)
+    const IntersectionPredicate<dim, spacedim> &predicate)
   {
     native_cells.clear();
     this->clear();
 
     std::vector<CellData<dim>> cells;
     SubCellData                subcell_data;
-
-    // TODO: replace with an rtree
-    auto intersects_patches = [&](const auto &cell) {
-      for (const auto &patch_bbox : patch_bboxes)
-        if (intersects(cell->bounding_box(), patch_bbox))
-          return true;
-      return false;
-    };
 
     unsigned int coarsest_level_n = numbers::invalid_unsigned_int;
     for (unsigned int level_n = 0; level_n < native_tria->n_levels(); ++level_n)
@@ -114,7 +72,7 @@ namespace fdl
         for (const auto &cell :
              native_tria->active_cell_iterators_on_level(level_n))
           {
-            if (intersects_patches(cell))
+            if (predicate(cell))
               {
                 coarsest_level_n = level_n;
                 // we need to break out of two loops so jump
@@ -129,7 +87,7 @@ namespace fdl
     for (const auto &cell :
          native_tria->cell_iterators_on_level(coarsest_level_n))
       {
-        if (intersects_patches(cell))
+        if (predicate(cell))
           {
             CellData<dim> cell_data;
             // Temporarily refer to native cells with the material id
@@ -209,7 +167,7 @@ namespace fdl
         bool refined = false;
         for (auto &cell : this->cell_iterators_on_level(level_n))
           {
-            if (intersects_patches(cell))
+            if (predicate(cell))
               {
                 const auto native_cell = get_native_cell(cell);
                 cell->set_subdomain_id(0);
