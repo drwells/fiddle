@@ -1,0 +1,7 @@
+*vtu
+*eps
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+./fiddle
+Makefile
