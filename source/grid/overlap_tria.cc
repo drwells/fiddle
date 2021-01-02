@@ -1,8 +1,8 @@
 #include <deal.II/grid/tria_description.h>
 
-#include <algorithm>
-
 #include <fiddle/grid/overlap_tria.h>
+
+#include <algorithm>
 
 namespace fdl
 {
@@ -40,6 +40,8 @@ namespace fdl
     return true;
   }
 
+
+
   template <int dim, int spacedim>
   OverlapTriangulation<dim, spacedim>::OverlapTriangulation(
     const parallel::shared::Triangulation<dim, spacedim> &shared_tria,
@@ -48,12 +50,16 @@ namespace fdl
     reinit(shared_tria, patch_bboxes);
   }
 
+
+
   template <int dim, int spacedim>
   types::subdomain_id
   OverlapTriangulation<dim, spacedim>::locally_owned_subdomain() const
   {
     return 0;
   }
+
+
 
   template <int dim, int spacedim>
   void
@@ -79,6 +85,8 @@ namespace fdl
               });
   }
 
+
+
   template <int dim, int spacedim>
   void
   OverlapTriangulation<dim, spacedim>::reinit_overlapping_tria(
@@ -98,8 +106,6 @@ namespace fdl
       return false;
     };
 
-#define USE_NEW_EXTRACT_ALGORITHM 1
-#if USE_NEW_EXTRACT_ALGORITHM
     unsigned int coarsest_level_n = numbers::invalid_unsigned_int;
     for (unsigned int level_n = 0; level_n < native_tria->n_levels(); ++level_n)
       {
@@ -140,9 +146,7 @@ namespace fdl
               for (const auto &index : iter->vertex_indices())
                 cell_data.vertices.push_back(iter->vertex_index(index));
               cell_data.manifold_id = iter->manifold_id();
-              cell_data.boundary_id = iter->at_boundary() ?
-                                        iter->boundary_id() :
-                                        numbers::internal_face_boundary_id;
+              cell_data.boundary_id = iter->boundary_id();
             };
 
             if (dim == 2)
@@ -176,24 +180,7 @@ namespace fdl
               }
           }
       }
-#else
-    for (const auto &cell : native_tria->active_cell_iterators())
-      {
-        if (intersects_patches(cell))
-          {
-            CellData<spacedim> cell_data;
-            // Temporarily refer to native cells with the material id
-            cell_data.material_id = add_native_cell(cell);
 
-            cell_data.vertices.clear();
-            for (const auto &index : cell->vertex_indices())
-              cell_data.vertices.push_back(cell->vertex_index(index));
-
-            cells.push_back(std::move(cell_data));
-            // this approach doesn't work with subcell data or amr
-          }
-      }
-#endif
     // Set up the coarsest level of the new overlap triangulation:
     this->create_triangulation(native_tria->get_vertices(),
                                cells,
@@ -212,7 +199,7 @@ namespace fdl
           this->set_manifold(manifold_id,
                              native_tria->get_manifold(manifold_id));
       }
-#ifdef USE_NEW_EXTRACT_ALGORITHM
+
     for (unsigned int level_n = 0;
          level_n < native_tria->n_levels() - coarsest_level_n;
          ++level_n)
@@ -275,9 +262,7 @@ namespace fdl
               }
           }
       }
-#endif
   }
-
 
   template class OverlapTriangulation<2, 2>;
 
