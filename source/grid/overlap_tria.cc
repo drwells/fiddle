@@ -167,9 +167,9 @@ namespace fdl
         bool refined = false;
         for (auto &cell : this->cell_iterators_on_level(level_n))
           {
-            if (predicate(cell))
+            const auto native_cell = get_native_cell(cell);
+            if (predicate(native_cell))
               {
-                const auto native_cell = get_native_cell(cell);
                 cell->set_subdomain_id(0);
                 if (native_cell->has_children())
                   {

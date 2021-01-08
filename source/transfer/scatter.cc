@@ -78,12 +78,12 @@ namespace fdl
     if (operation == VectorOperation::add)
       scatterer = 0.0;
     else
-    {
-      const auto size = scatterer.local_size() + scatterer.get_partitioner()
-        ->n_ghost_indices();
-      for (std::size_t i = 0; i < size; ++i)
-        scatterer.local_element(i) = std::numeric_limits<T>::min();
-    }
+      {
+        const auto size = scatterer.local_size() +
+                          scatterer.get_partitioner()->n_ghost_indices();
+        for (std::size_t i = 0; i < size; ++i)
+          scatterer.local_element(i) = std::numeric_limits<T>::min();
+      }
     // TODO: we can probably do the index translation just once and store it
     // so we could instead use scatterer::local_element(). It might be faster
     // but it will take up more memory.
@@ -93,8 +93,9 @@ namespace fdl
     // have - explicitly set it as such so we can compress
     scatterer.set_ghost_state(false);
 
-    const VectorOperation::values actual_op = operation == VectorOperation::add ?
-      VectorOperation::add : VectorOperation::max;
+    const VectorOperation::values actual_op =
+      operation == VectorOperation::add ? VectorOperation::add :
+                                          VectorOperation::max;
     scatterer.compress_start(channel, actual_op);
   }
 
@@ -114,8 +115,9 @@ namespace fdl
            ExcMessage("The output vector should have the same number of dofs "
                       "as were provided to the constructor in local"));
 
-    const VectorOperation::values actual_op = operation == VectorOperation::add ?
-      VectorOperation::add : VectorOperation::max;
+    const VectorOperation::values actual_op =
+      operation == VectorOperation::add ? VectorOperation::add :
+                                          VectorOperation::max;
     scatterer.compress_finish(actual_op);
 
     for (std::size_t i = 0; i < scatterer.local_size(); ++i)

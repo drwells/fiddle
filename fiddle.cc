@@ -1,8 +1,10 @@
+#include <fiddle/grid/intersection_predicate.h>
 #include <fiddle/grid/overlap_tria.h>
 
 #include <fiddle/transfer/overlap_partitioning_tools.h>
 #include <fiddle/transfer/scatter.h>
 
+#include <deal.II/base/bounding_box_data_out.h>
 #include <deal.II/base/function_lib.h>
 #include <deal.II/base/index_set.h>
 #include <deal.II/base/mpi.h>
@@ -13,6 +15,8 @@
 #include <deal.II/dofs/dof_tools.h>
 
 #include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/mapping_fe_field.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_out.h>
@@ -29,6 +33,22 @@
 #include <iostream>
 
 using namespace dealii;
+
+template <int dim>
+class IdentityFunction : public Function<dim>
+{
+public:
+  IdentityFunction()
+    : Function<dim>(dim)
+  {}
+
+  double
+  value(const Point<dim> &p, const unsigned int component) const override
+  {
+    AssertIndexRange(component, dim);
+    return p[component];
+  }
+};
 
 int
 main(int argc, char **argv)
@@ -72,53 +92,93 @@ main(int argc, char **argv)
         bbox = BoundingBox<2>(
           std::make_pair(Point<2>(0.0, -1.0), Point<2>(1.0, 0.0)));
         break;
+      case 4:
+        bbox = BoundingBox<2>(
+          std::make_pair(Point<2>(-0.5, -0.5), Point<2>(0.5, 0.5)));
+        break;
       default:
-        Assert(false, ExcNotImplemented());
+        break;
+        // Assert(false, ExcNotImplemented());
     }
 
-  fdl::TriaIntersectionPredicate<2> pred({bbox});
-  fdl::OverlapTriangulation<2>      ib_tria(native_tria, pred);
+  // set up the position system, which describes the geometry:
+  FESystem<2>   position_fe(FE_Q<2>(1), 2);
+  DoFHandler<2> native_position_dh(native_tria);
+  native_position_dh.distribute_dofs(position_fe);
+
+  IndexSet locally_relevant_position_dofs;
+  DoFTools::extract_locally_relevant_dofs(native_position_dh,
+                                          locally_relevant_position_dofs);
+  LinearAlgebra::distributed::Vector<double> native_position(
+    native_position_dh.locally_owned_dofs(),
+    locally_relevant_position_dofs,
+    mpi_comm);
+  VectorTools::interpolate(native_position_dh,
+                           IdentityFunction<2>(),
+                           native_position);
+  native_position.update_ghost_values();
+
+  MappingFEField<2, 2, decltype(native_position)> native_mapping(
+    native_position_dh, native_position);
+
+  fdl::FEIntersectionPredicate<2> fe_pred({bbox},
+                                          mpi_comm,
+                                          native_position_dh,
+                                          native_mapping);
+
+  {
+    BoundingBoxDataOut<2> bbox_data_out;
+    bbox_data_out.build_patches(fe_pred.active_cell_bboxes);
+    std::ofstream out("bboxes-" + std::to_string(rank) + ".vtk");
+    bbox_data_out.write_vtk(out);
+  }
+
+  // set up the overlap tria:
+  fdl::OverlapTriangulation<2> overlap_tria(native_tria, fe_pred);
 
   {
     GridOut       go;
-    std::ofstream out("tria-2-" + std::to_string(rank) + ".eps");
-    go.write_eps(ib_tria, out);
+    std::ofstream out("overlap-tria-" + std::to_string(rank) + ".eps");
+    go.write_eps(overlap_tria, out);
   }
 
+  // Now the geometry is ready. set up dofs:
   FE_Q<2>       fe(3);
   DoFHandler<2> native_dof_handler(native_tria);
   native_dof_handler.distribute_dofs(fe);
-  DoFHandler<2> ib_dof_handler(ib_tria);
-  ib_dof_handler.distribute_dofs(fe);
+  DoFHandler<2> overlap_dof_handler(overlap_tria);
+  overlap_dof_handler.distribute_dofs(fe);
 
+  // TODO: VT::interpolate requires ghost data with LA::d::V, not sure why
   IndexSet locally_relevant_dofs;
   DoFTools::extract_locally_relevant_dofs(native_dof_handler,
                                           locally_relevant_dofs);
-
-  // TODO: VT::interpolate requires ghost data with LA::d::V, not sure why
   LinearAlgebra::distributed::Vector<double> native_solution(
     native_dof_handler.locally_owned_dofs(), locally_relevant_dofs, mpi_comm);
   VectorTools::interpolate(native_dof_handler,
                            Functions::CosineFunction<2>(),
                            native_solution);
 
-  Vector<double> ib_solution(ib_dof_handler.n_dofs());
+  Vector<double> overlap_solution(overlap_dof_handler.n_dofs());
 
   const std::vector<types::global_dof_index> overlap_to_native =
-    fdl::compute_overlap_to_native_dof_translation(ib_tria,
-                                                   ib_dof_handler,
+    fdl::compute_overlap_to_native_dof_translation(overlap_tria,
+                                                   overlap_dof_handler,
                                                    native_dof_handler);
   fdl::Scatter<double> scatter(overlap_to_native,
                                native_dof_handler.locally_owned_dofs(),
                                mpi_comm);
   // Scatter forward...
-  scatter.global_to_overlap_start(native_solution, 0, ib_solution);
-  scatter.global_to_overlap_finish(native_solution, ib_solution);
+  scatter.global_to_overlap_start(native_solution, 0, overlap_solution);
+  scatter.global_to_overlap_finish(native_solution, overlap_solution);
 
   // and back.
-  scatter.overlap_to_global_start(ib_solution, VectorOperation::insert, 0,
+  scatter.overlap_to_global_start(overlap_solution,
+                                  VectorOperation::insert,
+                                  0,
                                   native_solution);
-  scatter.overlap_to_global_finish(ib_solution, VectorOperation::insert,
+  scatter.overlap_to_global_finish(overlap_solution,
+                                   VectorOperation::insert,
                                    native_solution);
 
   {
@@ -137,11 +197,11 @@ main(int argc, char **argv)
 
   {
     DataOut<2> data_out;
-    data_out.attach_dof_handler(ib_dof_handler);
-    data_out.add_data_vector(ib_solution, "solution");
+    data_out.attach_dof_handler(overlap_dof_handler);
+    data_out.add_data_vector(overlap_solution, "solution");
     data_out.build_patches();
 
-    std::ofstream out("ib-solution-" + std::to_string(rank) + ".vtu");
+    std::ofstream out("overlap-solution-" + std::to_string(rank) + ".vtu");
     data_out.write_vtu(out);
   }
 }
