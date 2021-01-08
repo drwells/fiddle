@@ -35,11 +35,10 @@
 using namespace dealii;
 
 template <int dim>
-class IdentityFunction : public Function<dim>
+class Identity : public Function<dim>
 {
 public:
-  IdentityFunction()
-    : Function<dim>(dim)
+  Identity() : Function<dim>(dim)
   {}
 
   double
@@ -47,6 +46,22 @@ public:
   {
     AssertIndexRange(component, dim);
     return p[component];
+  }
+};
+
+template <int dim>
+class Displace : public Function<dim>
+{
+public:
+  Displace()
+    : Function<dim>(dim)
+  {}
+
+  double
+  value(const Point<dim> &p, const unsigned int component) const override
+  {
+    AssertIndexRange(component, dim);
+    return p[component] + p[0];
   }
 };
 
@@ -78,19 +93,19 @@ main(int argc, char **argv)
     {
       case 0:
         bbox = BoundingBox<2>(
-          std::make_pair(Point<2>(0.0, 0.0), Point<2>(1.0, 1.0)));
+          std::make_pair(Point<2>(0.0, 0.0), Point<2>(2.0, 2.0)));
         break;
       case 1:
         bbox = BoundingBox<2>(
-          std::make_pair(Point<2>(-1.0, 0.0), Point<2>(0.0, 1.0)));
+          std::make_pair(Point<2>(-2.0, 0.0), Point<2>(0.0, 2.0)));
         break;
       case 2:
         bbox = BoundingBox<2>(
-          std::make_pair(Point<2>(-1.0, -1.0), Point<2>(0.0, 0.0)));
+          std::make_pair(Point<2>(-2.0, -2.0), Point<2>(0.0, 0.0)));
         break;
       case 3:
         bbox = BoundingBox<2>(
-          std::make_pair(Point<2>(0.0, -1.0), Point<2>(1.0, 0.0)));
+          std::make_pair(Point<2>(0.0, -2.0), Point<2>(2.0, 0.0)));
         break;
       case 4:
         bbox = BoundingBox<2>(
@@ -109,17 +124,24 @@ main(int argc, char **argv)
   IndexSet locally_relevant_position_dofs;
   DoFTools::extract_locally_relevant_dofs(native_position_dh,
                                           locally_relevant_position_dofs);
-  LinearAlgebra::distributed::Vector<double> native_position(
-    native_position_dh.locally_owned_dofs(),
-    locally_relevant_position_dofs,
-    mpi_comm);
-  VectorTools::interpolate(native_position_dh,
-                           IdentityFunction<2>(),
-                           native_position);
-  native_position.update_ghost_values();
+  auto native_position_partitioner = std::make_shared<Utilities::MPI::Partitioner>
+    (native_position_dh.locally_owned_dofs(),
+     locally_relevant_position_dofs,
+     mpi_comm);
+  LinearAlgebra::distributed::Vector<double> native_initial_position
+    (native_position_partitioner);
+  LinearAlgebra::distributed::Vector<double> native_current_position
+    (native_position_partitioner);
+  VectorTools::interpolate(native_position_dh, Identity<2>(), native_initial_position);
+  VectorTools::interpolate(native_position_dh, Displace<2>(), native_current_position);
+  native_initial_position.update_ghost_values();
+  native_current_position.update_ghost_values();
+  // TODO: get the rest of this pipeline working with the displaced field.
+  // Ultimately we want to be able to plot visit data with those coordinates and
+  // not the actual triangulation coordinates.
 
-  MappingFEField<2, 2, decltype(native_position)> native_mapping(
-    native_position_dh, native_position);
+  MappingFEField<2, 2, decltype(native_current_position)> native_mapping(
+    native_position_dh, native_current_position);
 
   fdl::FEIntersectionPredicate<2> fe_pred({bbox},
                                           mpi_comm,
@@ -135,6 +157,24 @@ main(int argc, char **argv)
 
   // set up the overlap tria:
   fdl::OverlapTriangulation<2> overlap_tria(native_tria, fe_pred);
+  DoFHandler<2> overlap_position_dh(overlap_tria);
+  overlap_position_dh.distribute_dofs(position_fe);
+
+  Vector<double> overlap_current_position(overlap_position_dh.n_dofs());
+
+  const std::vector<types::global_dof_index> overlap_to_native_position =
+    fdl::compute_overlap_to_native_dof_translation(overlap_tria,
+                                                   overlap_position_dh,
+                                                   native_position_dh);
+  fdl::Scatter<double> position_scatter(overlap_to_native_position,
+                                        native_position_dh.locally_owned_dofs(),
+                                        mpi_comm);
+  position_scatter.global_to_overlap_start(native_current_position, 0,
+                                           overlap_current_position);
+  position_scatter.global_to_overlap_finish(native_current_position,
+                                            overlap_current_position);
+  MappingFEField<2, 2, decltype(overlap_current_position)> overlap_mapping(
+    overlap_position_dh, overlap_current_position);
 
   {
     GridOut       go;
@@ -142,7 +182,7 @@ main(int argc, char **argv)
     go.write_eps(overlap_tria, out);
   }
 
-  // Now the geometry is ready. set up dofs:
+  // Now the topology and geometry are ready. set up dofs:
   FE_Q<2>       fe(3);
   DoFHandler<2> native_dof_handler(native_tria);
   native_dof_handler.distribute_dofs(fe);
@@ -161,11 +201,11 @@ main(int argc, char **argv)
 
   Vector<double> overlap_solution(overlap_dof_handler.n_dofs());
 
-  const std::vector<types::global_dof_index> overlap_to_native =
+  const std::vector<types::global_dof_index> overlap_to_native_solution =
     fdl::compute_overlap_to_native_dof_translation(overlap_tria,
                                                    overlap_dof_handler,
                                                    native_dof_handler);
-  fdl::Scatter<double> scatter(overlap_to_native,
+  fdl::Scatter<double> scatter(overlap_to_native_solution,
                                native_dof_handler.locally_owned_dofs(),
                                mpi_comm);
   // Scatter forward...
@@ -181,6 +221,7 @@ main(int argc, char **argv)
                                    VectorOperation::insert,
                                    native_solution);
 
+  // output native data:
   {
     LinearAlgebra::distributed::Vector<double> ghosted_native_solution(
       native_dof_handler.locally_owned_dofs(), locally_relevant_dofs, mpi_comm);
@@ -190,16 +231,17 @@ main(int argc, char **argv)
     DataOut<2> data_out;
     data_out.attach_dof_handler(native_dof_handler);
     data_out.add_data_vector(ghosted_native_solution, "solution");
-    data_out.build_patches();
+    data_out.build_patches(native_mapping);
 
     data_out.write_vtu_with_pvtu_record("./", "solution", 0, mpi_comm);
   }
 
+  // output overlap data:
   {
     DataOut<2> data_out;
     data_out.attach_dof_handler(overlap_dof_handler);
     data_out.add_data_vector(overlap_solution, "solution");
-    data_out.build_patches();
+    data_out.build_patches(overlap_mapping);
 
     std::ofstream out("overlap-solution-" + std::to_string(rank) + ".vtu");
     data_out.write_vtu(out);
