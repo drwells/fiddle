@@ -9,6 +9,8 @@
 
 #include <deal.II/grid/tria.h>
 
+#include <fiddle/base/exceptions.h>
+
 #include <vector>
 
 namespace fdl
@@ -112,7 +114,7 @@ namespace fdl
     const auto          pair = native_cells[cell->user_index()];
     const cell_iterator native_cell(native_tria, pair.first, pair.second);
     Assert((native_cell->barycenter() - cell->barycenter()).norm() < 1e-12,
-           ExcInternalError());
+           ExcFDLInternalError());
     return native_cell;
   }
 

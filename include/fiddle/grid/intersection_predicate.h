@@ -7,6 +7,8 @@
 
 #include <deal.II/grid/tria.h>
 
+#include <fiddle/base/exceptions.h>
+
 #include <mpi.h>
 
 namespace fdl
@@ -186,6 +188,9 @@ namespace fdl
         {
           Assert(false, ExcNotImplemented());
         }
+
+      Assert(false, ExcFDLInternalError());
+      return false;
     }
 
     const SmartPointer<const Triangulation<dim, spacedim>> tria;

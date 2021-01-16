@@ -83,7 +83,7 @@ namespace fdl
 
   found_coarsest_level:
     Assert(coarsest_level_n != numbers::invalid_unsigned_int,
-           ExcInternalError());
+           ExcFDLInternalError());
     for (const auto &cell :
          native_tria->cell_iterators_on_level(coarsest_level_n))
       {
@@ -207,7 +207,7 @@ namespace fdl
                         Assert((child->barycenter() -
                                 native_child->barycenter())
                                    .norm() < 1e-12,
-                               ExcInternalError());
+                               ExcFDLInternalError());
                         child->set_user_index(add_native_cell(native_child));
                         child->set_subdomain_id(0);
                         if (native_child->is_active())

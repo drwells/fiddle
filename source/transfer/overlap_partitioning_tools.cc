@@ -83,7 +83,7 @@ namespace fdl
               continue;
 
             Assert(active_cell_index_ptr < active_cell_indices.end(),
-                   ExcInternalError());
+                   ExcFDLInternalError());
             dofs_on_native[requested_rank].push_back(*active_cell_index_ptr);
             cell->get_dof_indices(cell_dofs);
             dofs_on_native[requested_rank].push_back(cell_dofs.size());
@@ -147,10 +147,10 @@ namespace fdl
                        val;
               });
             Assert(overlap_dh_cell != overlap_dh_cells.end(),
-                   ExcInternalError());
+                   ExcFDLInternalError());
             Assert(overlap_tria.get_native_cell(*overlap_dh_cell)
                        ->active_cell_index() == active_cell_index,
-                   ExcInternalError());
+                   ExcFDLInternalError());
             const auto n_dofs = *packed_ptr;
             ++packed_ptr;
 
@@ -161,7 +161,7 @@ namespace fdl
                 ++packed_ptr;
               }
             Assert(*packed_ptr == numbers::invalid_dof_index,
-                   ExcInternalError());
+                   ExcFDLInternalError());
             ++packed_ptr;
 
             // Copy data between orderings.
