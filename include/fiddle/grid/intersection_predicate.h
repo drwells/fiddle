@@ -9,44 +9,13 @@
 
 #include <fiddle/base/exceptions.h>
 
+#include <fiddle/grid/box_utilities.h>
+
 #include <mpi.h>
 
 namespace fdl
 {
   using namespace dealii;
-
-  // todo - add it to deal.II
-  template <int spacedim, typename Number1, typename Number2>
-  bool
-  intersects(const BoundingBox<spacedim, Number1> &a,
-             const BoundingBox<spacedim, Number2> &b)
-  {
-    // Since boxes are tensor products of line intervals it suffices to check
-    // that the line segments for each coordinate axis overlap.
-    for (unsigned int d = 0; d < spacedim; ++d)
-      {
-        // Line segments can intersect in two ways:
-        // 1. They can overlap.
-        // 2. One can be inside the other.
-        //
-        // In the first case we want to see if either end point of the second
-        // line segment lies within the first. In the second case we can simply
-        // check that one end point of the first line segment lies in the second
-        // line segment. Note that we don't need, in the second case, to do two
-        // checks since that case is already covered by the first.
-        if (!((a.lower_bound(d) <= b.lower_bound(d) &&
-               b.lower_bound(d) <= a.upper_bound(d)) ||
-              (a.lower_bound(d) <= b.upper_bound(d) &&
-               b.upper_bound(d) <= a.upper_bound(d))) &&
-            !((b.lower_bound(d) <= a.lower_bound(d) &&
-               a.lower_bound(d) <= b.upper_bound(d))))
-          {
-            return false;
-          }
-      }
-
-    return true;
-  }
 
   /**
    * Class which can determine whether or not a given cell intersects some
@@ -56,6 +25,9 @@ namespace fdl
   class IntersectionPredicate
   {
   public:
+    /**
+     *
+     */
     virtual bool
     operator()(const typename Triangulation<dim, spacedim>::cell_iterator &cell)
       const = 0;
@@ -94,6 +66,12 @@ namespace fdl
 
   /**
    * Intersection predicate based on a displacement from a finite element field.
+   *
+   * This class is intended for usage with parallel::shared::Triangulation. In
+   * particular, the bounding boxes associated with all active cells will be
+   * present on all processors. This is useful for creating an
+   * OverlapTriangulation on each processor with bounding boxes intersecting an
+   * arbitrary part of the Triangulation.
    */
   template <int dim, int spacedim = dim>
   class FEIntersectionPredicate : public IntersectionPredicate<dim, spacedim>

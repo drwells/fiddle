@@ -32,6 +32,8 @@
 #include <fstream>
 #include <iostream>
 
+// Test the bounding boxes per element computed by FEIntersectionPredicate
+
 using namespace dealii;
 
 template <int dim>

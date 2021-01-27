@@ -17,9 +17,13 @@ namespace fdl
 {
   using namespace dealii;
 
-  //
-  // Class describing a Triangulation built from a shared Triangulation.
-  //
+  /**
+   * Class describing a Triangulation built from a shared Triangulation where
+   * each processor contains the subset of the input triangulation that overlaps
+   * with the provided set of bounding boxes. In general, these subsets will
+   * overlap (i.e., a cell can be assigned to an arbitrary number of
+   * processors).
+   */
   template <int dim, int spacedim = dim>
   class OverlapTriangulation : public dealii::Triangulation<dim, spacedim>
   {
