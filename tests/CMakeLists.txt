@@ -47,6 +47,7 @@ SETUP(base hello.cc fiddle2d)
 
 # grid:
 SETUP(grid fe_predicate_01.cc fiddle2d)
+SETUP(grid grid_predicate_01.cc fiddle2d)
 
 ADD_CUSTOM_COMMAND(TARGET tests
   POST_BUILD

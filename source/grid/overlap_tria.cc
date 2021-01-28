@@ -90,6 +90,7 @@ namespace fdl
         if (predicate(cell))
           {
             CellData<dim> cell_data;
+            cell_data.manifold_id = cell->manifold_id();
             // Temporarily refer to native cells with the material id
             cell_data.material_id = add_native_cell(cell);
 
@@ -164,7 +165,7 @@ namespace fdl
       {
         // If a native cell is refined then mark the equivalent overlap cell
         // for refinement.
-        bool refined = false;
+        bool do_refinement = false;
         for (auto &cell : this->cell_iterators_on_level(level_n))
           {
             const auto native_cell = get_native_cell(cell);
@@ -173,7 +174,7 @@ namespace fdl
                 cell->set_subdomain_id(0);
                 if (native_cell->has_children())
                   {
-                    refined = true;
+                    do_refinement = true;
                     Assert(native_cell->refinement_case() ==
                              RefinementCase<dim>::isotropic_refinement,
                            ExcNotImplemented());
@@ -185,7 +186,7 @@ namespace fdl
                 cell->set_subdomain_id(numbers::artificial_subdomain_id);
               }
           }
-        if (refined)
+        if (do_refinement)
           {
             this->execute_coarsening_and_refinement();
             // Copy essential properties to the new cells on level_n + 1 and
@@ -219,6 +220,12 @@ namespace fdl
                   }
               }
           }
+
+        // Check to see if we have run out of levels - i.e., if we didn't refine
+        // and we are on the finest level, we can't look for cells to refine on
+        // the next level (as it does not exist)
+        if (level_n == this->n_levels() - 1)
+          break;
       }
   }
 
