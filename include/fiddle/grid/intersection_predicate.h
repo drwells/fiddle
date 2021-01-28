@@ -44,7 +44,7 @@ namespace fdl
   {
   public:
     TriaIntersectionPredicate(const std::vector<BoundingBox<spacedim>> &bboxes)
-      : bounding_boxes(bboxes)
+      : patch_boxes(bboxes)
     {
       // TODO: build an rtree here.
     }
@@ -54,14 +54,13 @@ namespace fdl
       const override
     {
       const auto cell_bbox = cell->bounding_box();
-      for (const auto &bbox : bounding_boxes)
+      for (const auto &bbox : patch_boxes)
         if (intersects(cell_bbox, bbox))
           return true;
       return false;
     }
 
-  protected:
-    std::vector<BoundingBox<spacedim>> bounding_boxes;
+    const std::vector<BoundingBox<spacedim>> patch_boxes;
   };
 
   /**
