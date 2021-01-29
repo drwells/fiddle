@@ -1,6 +1,8 @@
 #ifndef included_fiddle_grid_box_utilities_h
 #define included_fiddle_grid_box_utilities_h
 
+#include <deal.II/base/bounding_box.h>
+
 #include <CartesianPatchGeometry.h>
 #include <Patch.h>
 
@@ -52,8 +54,8 @@ namespace fdl
    */
   template <int spacedim>
   std::vector<BoundingBox<spacedim>>
-  patch_bboxes(const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>> &patches,
-               const double extra_ghost_cell_fraction = 0.0)
+  compute_patch_bboxes(const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>> &patches,
+                       const double extra_ghost_cell_fraction = 0.0)
   {
     Assert(extra_ghost_cell_fraction >= 0.0,
            ExcMessage("The fraction of additional ghost cells to add must be positive."));

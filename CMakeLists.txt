@@ -26,6 +26,7 @@ FIND_PACKAGE(IBAMR 0.8.0 REQUIRED HINTS ${IBAMR_DIR} $ENV{IBAMR_DIR})
 #
 SET(FIDDLE_SRC ${TARGET}.cc
   source/grid/overlap_tria.cc
+  source/grid/patch_map.cc
   source/transfer/overlap_partitioning_tools.cc
   source/transfer/scatter.cc)
 
