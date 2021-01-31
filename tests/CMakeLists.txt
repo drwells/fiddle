@@ -51,6 +51,8 @@ SETUP(grid grid_predicate_01.cc fiddle2d)
 SETUP(grid patch_map_01.cc fiddle2d)
 SETUP(grid patch_map_02.cc fiddle2d)
 
+SETUP(grid tag_cells_01.cc fiddle2d)
+
 ADD_CUSTOM_COMMAND(TARGET tests
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/attest ${CMAKE_BINARY_DIR}/attest)
