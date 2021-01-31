@@ -1,6 +1,8 @@
 #ifndef included_fiddle_intersection_predicate_h
 #define included_fiddle_intersection_predicate_h
 
+#include <fiddle/grid/box_utilities.h>
+
 #include <deal.II/base/bounding_box.h>
 
 #include <deal.II/dofs/dof_handler.h>
@@ -8,8 +10,6 @@
 #include <deal.II/grid/tria.h>
 
 #include <fiddle/base/exceptions.h>
-
-#include <fiddle/grid/box_utilities.h>
 
 #include <mpi.h>
 
@@ -45,9 +45,7 @@ namespace fdl
   public:
     TriaIntersectionPredicate(const std::vector<BoundingBox<spacedim>> &bboxes)
       : patch_boxes(bboxes)
-    {
-      // TODO: build an rtree here.
-    }
+    {}
 
     virtual bool
     operator()(const typename Triangulation<dim, spacedim>::cell_iterator &cell)

@@ -1,3 +1,9 @@
+#include <fiddle/grid/intersection_predicate.h>
+#include <fiddle/grid/overlap_tria.h>
+
+#include <fiddle/transfer/overlap_partitioning_tools.h>
+#include <fiddle/transfer/scatter.h>
+
 #include <deal.II/base/bounding_box_data_out.h>
 #include <deal.II/base/function_lib.h>
 #include <deal.II/base/index_set.h>
@@ -22,12 +28,6 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 
-#include <fiddle/grid/intersection_predicate.h>
-#include <fiddle/grid/overlap_tria.h>
-
-#include <fiddle/transfer/overlap_partitioning_tools.h>
-#include <fiddle/transfer/scatter.h>
-
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -38,7 +38,8 @@ template <int dim>
 class Identity : public Function<dim>
 {
 public:
-  Identity() : Function<dim>(dim)
+  Identity()
+    : Function<dim>(dim)
   {}
 
   double
@@ -124,16 +125,21 @@ main(int argc, char **argv)
   IndexSet locally_relevant_position_dofs;
   DoFTools::extract_locally_relevant_dofs(native_position_dh,
                                           locally_relevant_position_dofs);
-  auto native_position_partitioner = std::make_shared<Utilities::MPI::Partitioner>
-    (native_position_dh.locally_owned_dofs(),
-     locally_relevant_position_dofs,
-     mpi_comm);
-  LinearAlgebra::distributed::Vector<double> native_initial_position
-    (native_position_partitioner);
-  LinearAlgebra::distributed::Vector<double> native_current_position
-    (native_position_partitioner);
-  VectorTools::interpolate(native_position_dh, Identity<2>(), native_initial_position);
-  VectorTools::interpolate(native_position_dh, Displace<2>(), native_current_position);
+  auto native_position_partitioner =
+    std::make_shared<Utilities::MPI::Partitioner>(
+      native_position_dh.locally_owned_dofs(),
+      locally_relevant_position_dofs,
+      mpi_comm);
+  LinearAlgebra::distributed::Vector<double> native_initial_position(
+    native_position_partitioner);
+  LinearAlgebra::distributed::Vector<double> native_current_position(
+    native_position_partitioner);
+  VectorTools::interpolate(native_position_dh,
+                           Identity<2>(),
+                           native_initial_position);
+  VectorTools::interpolate(native_position_dh,
+                           Displace<2>(),
+                           native_current_position);
   native_initial_position.update_ghost_values();
   native_current_position.update_ghost_values();
   // TODO: get the rest of this pipeline working with the displaced field.
@@ -157,7 +163,7 @@ main(int argc, char **argv)
 
   // set up the overlap tria:
   fdl::OverlapTriangulation<2> overlap_tria(native_tria, fe_pred);
-  DoFHandler<2> overlap_position_dh(overlap_tria);
+  DoFHandler<2>                overlap_position_dh(overlap_tria);
   overlap_position_dh.distribute_dofs(position_fe);
 
   Vector<double> overlap_current_position(overlap_position_dh.n_dofs());
@@ -169,7 +175,8 @@ main(int argc, char **argv)
   fdl::Scatter<double> position_scatter(overlap_to_native_position,
                                         native_position_dh.locally_owned_dofs(),
                                         mpi_comm);
-  position_scatter.global_to_overlap_start(native_current_position, 0,
+  position_scatter.global_to_overlap_start(native_current_position,
+                                           0,
                                            overlap_current_position);
   position_scatter.global_to_overlap_finish(native_current_position,
                                             overlap_current_position);

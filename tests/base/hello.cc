@@ -2,8 +2,9 @@
 
 // Basic test verifying the test suite is running correctly
 
-int main()
+int
+main()
 {
-    std::ofstream out("output");
-    out << "hello, world\n";
+  std::ofstream out("output");
+  out << "hello, world\n";
 }

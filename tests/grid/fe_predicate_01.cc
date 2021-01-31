@@ -1,3 +1,9 @@
+#include <fiddle/grid/intersection_predicate.h>
+#include <fiddle/grid/overlap_tria.h>
+
+#include <fiddle/transfer/overlap_partitioning_tools.h>
+#include <fiddle/transfer/scatter.h>
+
 #include <deal.II/base/bounding_box_data_out.h>
 #include <deal.II/base/function_lib.h>
 #include <deal.II/base/index_set.h>
@@ -21,12 +27,6 @@
 
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
-
-#include <fiddle/grid/intersection_predicate.h>
-#include <fiddle/grid/overlap_tria.h>
-
-#include <fiddle/transfer/overlap_partitioning_tools.h>
-#include <fiddle/transfer/scatter.h>
 
 #include <cmath>
 #include <fstream>
@@ -104,13 +104,16 @@ main(int argc, char **argv)
   IndexSet locally_relevant_position_dofs;
   DoFTools::extract_locally_relevant_dofs(native_position_dh,
                                           locally_relevant_position_dofs);
-  auto native_position_partitioner = std::make_shared<Utilities::MPI::Partitioner>
-    (native_position_dh.locally_owned_dofs(),
-     locally_relevant_position_dofs,
-     mpi_comm);
-  LinearAlgebra::distributed::Vector<double> native_current_position
-    (native_position_partitioner);
-  VectorTools::interpolate(native_position_dh, Displace<2>(), native_current_position);
+  auto native_position_partitioner =
+    std::make_shared<Utilities::MPI::Partitioner>(
+      native_position_dh.locally_owned_dofs(),
+      locally_relevant_position_dofs,
+      mpi_comm);
+  LinearAlgebra::distributed::Vector<double> native_current_position(
+    native_position_partitioner);
+  VectorTools::interpolate(native_position_dh,
+                           Displace<2>(),
+                           native_current_position);
   native_current_position.update_ghost_values();
 
   MappingFEField<2, 2, decltype(native_current_position)> native_mapping(
@@ -125,7 +128,7 @@ main(int argc, char **argv)
     BoundingBoxDataOut<2> bbox_data_out;
     bbox_data_out.build_patches(fe_pred.active_cell_bboxes);
     // TODO: generalize so we can run this in parallel
-    std::ofstream out("output");
+    std::ofstream         out("output");
     DataOutBase::VtkFlags flags;
     flags.print_date_and_time = false;
     bbox_data_out.set_flags(flags);

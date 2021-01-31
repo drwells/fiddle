@@ -67,8 +67,10 @@ IncludeCategories:
 # fiddle headers should be first:
   - Regex:    "fiddle/grid/.*\\.h"
     Priority: 10
-  - Regex:    "fiddle/transfer/.*\\.h"
+  - Regex:    "fiddle/interaction/.*\\.h"
     Priority: 20
+  - Regex:    "fiddle/transfer/.*\\.h"
+    Priority: 30
 # deal.II folders in sorted order:
   - Regex:    "deal.II/algorithms/.*\\.h"
     Priority: 110
@@ -119,13 +121,27 @@ IncludeCategories:
 # put boost right after deal:
   - Regex: "<boost.*>"
     Priority: 500
+# IBAMR after boost:
+  - Regex: "ibamr/.*\\.h.$"
+    Priority: 600
+  - Regex: "ibtk/.*\\.h.$"
+    Priority: 700
+# for some reason this needs to be here, otherwise it gets lumped under SAMRAI
+  - Regex: "<mpi.h>$"
+    Priority: 2500
+# SAMRAI (which goes after IBAMR). This is last since we have headers that are
+# not in a folder starting with the library's name:
+  - Regex: "<[A-Z].*\\.h>$"
+    Priority: 1000
+  - Regex: "<tbox/[A-Z][A-Za-z_]*\\.h>$"
+    Priority: 1100
 # try to group PETSc headers:
   - Regex: "<petsc.*\\.h>"
-    Priority: 1000
+    Priority: 2000
 # try to catch all third party headers and put them after deal.II but before
 # standard headers:
   - Regex: "<.*\\.(h|hpp|hxx)>"
-    Priority: 2000
+    Priority: 3000
 # match all standard headers. Things like '#include <armadillo>' should be
 # surrounded by #ifdef checks (which will not be merged by clang-format) so they
 # should not be caught here

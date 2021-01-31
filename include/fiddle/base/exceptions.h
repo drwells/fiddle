@@ -5,9 +5,9 @@
 
 namespace fdl
 {
-    DeclExceptionMsg(ExcFDLInternalError,
-                     "The program entered a state which was not anticipated "
-                     "and will now abort. This an internal error.");
+  DeclExceptionMsg(ExcFDLInternalError,
+                   "The program entered a state which was not anticipated "
+                   "and will now abort. This an internal error.");
 }
 
 #endif

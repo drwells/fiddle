@@ -17,9 +17,10 @@ namespace fdl
    */
   template <int spacedim, typename Number>
   void
-  tag_cells(const std::vector<BoundingBox<spacedim, Number>> &bboxes,
-            const int tag_index,
-            SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<spacedim>> patch_level);
+  tag_cells(
+    const std::vector<BoundingBox<spacedim, Number>> &        bboxes,
+    const int                                                 tag_index,
+    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<spacedim>> patch_level);
 } // namespace fdl
 
 #endif

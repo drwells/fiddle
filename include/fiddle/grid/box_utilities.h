@@ -3,8 +3,8 @@
 
 #include <deal.II/base/bounding_box.h>
 
-#include <Patch.h>
 #include <BasePatchLevel.h>
+#include <Patch.h>
 #include <PatchLevel.h>
 
 #include <vector>
@@ -29,30 +29,33 @@ namespace fdl
   template <int spacedim, typename Number = double>
   std::vector<BoundingBox<spacedim, Number>>
   compute_patch_bboxes(
-    const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>> &patches,
+    const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>>
+      &          patches,
     const double extra_ghost_cell_fraction = 0.0);
 
   /**
-   * Helper function for extracting locally owned patches from a base patch level.
+   * Helper function for extracting locally owned patches from a base patch
+   * level.
    */
   template <int spacedim>
   std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>>
-  extract_patches(SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchLevel<spacedim>> base_patch_level);
+  extract_patches(SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchLevel<spacedim>>
+                    base_patch_level);
 
   /**
    * Helper function for extracting locally owned patches from a patch level.
    */
   template <int spacedim>
   std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>>
-  extract_patches(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<spacedim>> patch_level);
+  extract_patches(
+    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<spacedim>> patch_level);
 
 
   // --------------------------- inline functions --------------------------- //
 
 
   template <int spacedim, typename Number1, typename Number2>
-  inline
-  bool
+  inline bool
   intersects(const BoundingBox<spacedim, Number1> &a,
              const BoundingBox<spacedim, Number2> &b)
   {

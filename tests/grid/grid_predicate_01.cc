@@ -1,3 +1,9 @@
+#include <fiddle/grid/intersection_predicate.h>
+#include <fiddle/grid/overlap_tria.h>
+
+#include <fiddle/transfer/overlap_partitioning_tools.h>
+#include <fiddle/transfer/scatter.h>
+
 #include <deal.II/base/bounding_box_data_out.h>
 #include <deal.II/base/function_lib.h>
 #include <deal.II/base/index_set.h>
@@ -22,12 +28,6 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 
-#include <fiddle/grid/intersection_predicate.h>
-#include <fiddle/grid/overlap_tria.h>
-
-#include <fiddle/transfer/overlap_partitioning_tools.h>
-#include <fiddle/transfer/scatter.h>
-
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -41,7 +41,7 @@ main(int argc, char **argv)
 {
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
   const auto                       mpi_comm = MPI_COMM_WORLD;
-  const auto rank = Utilities::MPI::this_mpi_process(mpi_comm);
+  const auto rank    = Utilities::MPI::this_mpi_process(mpi_comm);
   const auto n_procs = Utilities::MPI::n_mpi_processes(mpi_comm);
   parallel::shared::Triangulation<2> native_tria(mpi_comm);
   GridGenerator::hyper_ball(native_tria);
@@ -57,7 +57,8 @@ main(int argc, char **argv)
   switch (rank)
     {
       case 0:
-        bboxes.emplace_back(std::make_pair(Point<2>(0.0, 0.0), Point<2>(2.0, 2.0)));
+        bboxes.emplace_back(
+          std::make_pair(Point<2>(0.0, 0.0), Point<2>(2.0, 2.0)));
         DEAL_II_FALLTHROUGH;
       case 1:
         bboxes.emplace_back(
@@ -80,7 +81,7 @@ main(int argc, char **argv)
     }
 
   fdl::TriaIntersectionPredicate<2> tria_pred(bboxes);
-  fdl::OverlapTriangulation<2> overlap_tria(native_tria, tria_pred);
+  fdl::OverlapTriangulation<2>      overlap_tria(native_tria, tria_pred);
 
   {
     std::ofstream out("output-" + std::to_string(rank));
@@ -91,12 +92,12 @@ main(int argc, char **argv)
   MPI_Barrier(mpi_comm);
 
   if (rank == 0)
-  {
-    std::ofstream out("output");
-    for (unsigned int r = 0; r < n_procs; ++r)
     {
-      std::ifstream in("output-" + std::to_string(r));
-      out << in.rdbuf() << "\n";
+      std::ofstream out("output");
+      for (unsigned int r = 0; r < n_procs; ++r)
+        {
+          std::ifstream in("output-" + std::to_string(r));
+          out << in.rdbuf() << "\n";
+        }
     }
-  }
 }

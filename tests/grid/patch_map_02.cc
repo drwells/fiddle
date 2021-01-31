@@ -17,13 +17,14 @@
 
 #include <deal.II/numerics/rtree.h>
 
+#include <ibtk/AppInitializer.h>
+#include <ibtk/IBTKInit.h>
+
 #include <BergerRigoutsos.h>
 #include <CartesianGridGeometry.h>
 #include <GriddingAlgorithm.h>
 #include <LoadBalancer.h>
 #include <StandardTagAndInitialize.h>
-#include <ibtk/AppInitializer.h>
-#include <ibtk/IBTKInit.h>
 
 #include <fstream>
 
