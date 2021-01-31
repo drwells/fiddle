@@ -13,36 +13,32 @@ namespace fdl
       const Triangulation<dim, spacedim> &tria,
       std::vector<BoundingBox<spacedim>> &cell_bboxes)
       : patches(patches)
-
       {
         Assert(cell_bboxes.size() == tria.n_active_cells(),
                ExcMessage("each active cell should have a bounding box."));
 
-        const std::vector<BoundingBox<spacedim>> patch_bboxes =
-          compute_patch_bboxes(patches, extra_ghost_cell_fraction);
+        const std::vector<BoundingBox<spacedim, float>> patch_bboxes =
+          compute_patch_bboxes<spacedim, float>(patches, extra_ghost_cell_fraction);
         cells.resize(patches.size());
 
         // Speed up intersection by putting the patch bboxes in an rtree
-        auto rtree = pack_rtree_of_indices(patch_bboxes);
+        const auto rtree = pack_rtree_of_indices(patch_bboxes);
+        for (const auto &cell : tria.active_cell_iterators())
+          {
+            const BoundingBox<spacedim> &cell_bbox = cell_bboxes[cell->active_cell_index()];
 
-        for (const auto cell : tria.active_cell_iterators())
-          // TODO - if all cells are active or artificial, then we don't need this check
-          if (cell->is_locally_owned())
+            namespace bgi = boost::geometry::index;
+            for (const std::size_t patch_n : rtree | bgi::adaptors::queried(bgi::intersects(cell_bbox)))
             {
-              const BoundingBox<spacedim> &cell_bbox = cell_bboxes[cell->active_cell_index()];
-
-              namespace bgi = boost::geometry::index;
-              for (const std::size_t patch_n : rtree | bgi::adaptors::queried(bgi::intersects(cell_bbox)))
-              {
-                AssertIndexRange(patch_n, patches.size());
-                cells[patch_n].push_back(cell);
-              }
+              AssertIndexRange(patch_n, patches.size());
+              cells[patch_n].push_back(cell);
             }
+          }
       }
 
-  template class PatchMap<2, 2>;
+  // Since we depend on SAMRAI types (and SAMRAI uses 2D or 3D libraries) we
+  // instantiate based on NDIM (provided by IBTK)
 
-  template class PatchMap<2, 3>;
-
-  template class PatchMap<3, 3>;
+  template class PatchMap<NDIM - 1, NDIM>;
+  template class PatchMap<NDIM, NDIM>;
 }

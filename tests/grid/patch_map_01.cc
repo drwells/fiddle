@@ -1,3 +1,4 @@
+#include <fiddle/grid/box_utilities.h>
 #include <fiddle/grid/patch_map.h>
 #include <fiddle/grid/overlap_tria.h>
 
@@ -103,11 +104,7 @@ main(int argc, char **argv)
       // Output SAMRAI plotting information:
       visit_data_writer->writePlotData(patch_hierarchy, 0, 0.0);
 
-      std::vector<tbox::Pointer<hier::Patch<NDIM>>> patches;
-      tbox::Pointer<hier::PatchLevel<2> > level = patch_hierarchy->getPatchLevel(finest_level);
-      int local_patch_num = 0;
-      for (hier::PatchLevel<2>::Iterator p(level); p; p++)
-        patches.emplace_back(level->getPatch(p()));
+      const auto patches = fdl::extract_patches(patch_hierarchy->getPatchLevel(finest_level));
 
       // Set up deal.II and fiddle stuff
       {

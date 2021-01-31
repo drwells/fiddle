@@ -3,8 +3,9 @@
 
 #include <deal.II/base/bounding_box.h>
 
-#include <CartesianPatchGeometry.h>
 #include <Patch.h>
+#include <BasePatchLevel.h>
+#include <PatchLevel.h>
 
 #include <vector>
 
@@ -16,6 +17,41 @@ namespace fdl
    * Fast intersection check between two bounding boxes.
    */
   template <int spacedim, typename Number1, typename Number2>
+  bool
+  intersects(const BoundingBox<spacedim, Number1> &a,
+             const BoundingBox<spacedim, Number2> &b);
+
+  /**
+   * Extract the bounding boxes for a set of SAMRAI patches. In addition, if
+   * necessary, expand each bounding box by @p extra_ghost_cell_fraction times
+   * the length of a cell in each coordinate direction.
+   */
+  template <int spacedim, typename Number = double>
+  std::vector<BoundingBox<spacedim, Number>>
+  compute_patch_bboxes(
+    const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>> &patches,
+    const double extra_ghost_cell_fraction = 0.0);
+
+  /**
+   * Helper function for extracting locally owned patches from a base patch level.
+   */
+  template <int spacedim>
+  std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>>
+  extract_patches(SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchLevel<spacedim>> base_patch_level);
+
+  /**
+   * Helper function for extracting locally owned patches from a patch level.
+   */
+  template <int spacedim>
+  std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>>
+  extract_patches(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<spacedim>> patch_level);
+
+
+  // --------------------------- inline functions --------------------------- //
+
+
+  template <int spacedim, typename Number1, typename Number2>
+  inline
   bool
   intersects(const BoundingBox<spacedim, Number1> &a,
              const BoundingBox<spacedim, Number2> &b)
@@ -43,42 +79,8 @@ namespace fdl
             return false;
           }
       }
-
     return true;
   }
-
-  /**
-   * Extract the bounding boxes for a set of SAMRAI patches. In addition, if
-   * necessary, expand each bounding box by @p extra_ghost_cell_fraction times
-   * the length of a cell in each coordinate direction.
-   */
-  template <int spacedim>
-  std::vector<BoundingBox<spacedim>>
-  compute_patch_bboxes(const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>> &patches,
-                       const double extra_ghost_cell_fraction = 0.0)
-  {
-    Assert(extra_ghost_cell_fraction >= 0.0,
-           ExcMessage("The fraction of additional ghost cells to add must be positive."));
-    // Set up patch bounding boxes and put patches in patches_to_elements:
-    std::vector<BoundingBox<spacedim>> patch_bboxes;
-    for (const auto &patch_p : patches)
-    {
-      const SAMRAI::tbox::Pointer<SAMRAI::geom::CartesianPatchGeometry<NDIM> > pgeom =
-        patch_p->getPatchGeometry();
-      const double* const dx = pgeom->getDx();
-
-      BoundingBox<spacedim> bbox;
-      for (unsigned int d = 0; d < spacedim; ++d)
-      {
-        bbox.get_boundary_points().first[d] = pgeom->getXLower()[d] - extra_ghost_cell_fraction*dx[d];
-        bbox.get_boundary_points().second[d] = pgeom->getXUpper()[d] + extra_ghost_cell_fraction*dx[d];
-      }
-      patch_bboxes.emplace_back(bbox);
-    }
-
-    return patch_bboxes;
-  }
-
 } // namespace fdl
 
 #endif
