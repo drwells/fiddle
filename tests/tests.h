@@ -1,3 +1,5 @@
+#include <deal.II/base/exceptions.h>
+
 #include <Box.h>
 #include <PatchHierarchy.h>
 #include <tbox/SAMRAI_MPI.h>
@@ -7,6 +9,89 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <utility>
+
+// A utility function that does the normal SAMRAI initialization stuff.
+template <int spacedim>
+std::pair<SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<spacedim>>,
+          int>
+setup_hierarchy(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer,
+                SAMRAI::mesh::StandardTagAndInitStrategy<spacedim> *tag = nullptr)
+{
+  using namespace SAMRAI;
+
+  // Set up basic SAMRAI stuff:
+  tbox::Pointer<geom::CartesianGridGeometry<spacedim>> grid_geometry =
+    new geom::CartesianGridGeometry<spacedim>("CartesianGeometry",
+                                          app_initializer->getComponentDatabase(
+                                            "CartesianGeometry"));
+  tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy =
+    new hier::PatchHierarchy<spacedim>("PatchHierarchy", grid_geometry);
+  tbox::Pointer<mesh::StandardTagAndInitialize<spacedim>> error_detector =
+    new mesh::StandardTagAndInitialize<spacedim>(
+      "StandardTagAndInitialize",
+      tag,
+      app_initializer->getComponentDatabase("StandardTagAndInitialize"));
+
+  tbox::Pointer<mesh::BergerRigoutsos<spacedim>> box_generator =
+    new mesh::BergerRigoutsos<spacedim>();
+  tbox::Pointer<mesh::LoadBalancer<spacedim>> load_balancer =
+    new mesh::LoadBalancer<spacedim>(
+      "LoadBalancer", app_initializer->getComponentDatabase("LoadBalancer"));
+  tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_algorithm =
+    new mesh::GriddingAlgorithm<spacedim>("GriddingAlgorithm",
+                                      app_initializer->getComponentDatabase(
+                                        "GriddingAlgorithm"),
+                                      error_detector,
+                                      box_generator,
+                                      load_balancer);
+
+  // set up the SAMRAI grid:
+  gridding_algorithm->makeCoarsestLevel(patch_hierarchy, 0.0);
+  int level_number = 0;
+  while (gridding_algorithm->levelCanBeRefined(level_number))
+    {
+      gridding_algorithm->makeFinerLevel(patch_hierarchy, 0.0, 0.0, 1);
+      ++level_number;
+    }
+
+  // Set up a variable so that we can actually output the grid:
+  auto *var_db = hier::VariableDatabase<spacedim>::getDatabase();
+  tbox::Pointer<hier::VariableContext> ctx = var_db->getContext("context");
+  tbox::Pointer<pdat::CellVariable<spacedim, double>> u_cc_var =
+    new pdat::CellVariable<spacedim, double>("u_cc");
+  const int u_cc_idx =
+    var_db->registerVariableAndContext(u_cc_var,
+                                       ctx,
+                                       // need 3 for bspline 3 ghosts
+                                       hier::IntVector<spacedim>(3));
+
+  const int finest_level = patch_hierarchy->getFinestLevelNumber();
+  for (int ln = 0; ln <= finest_level; ++ln)
+    {
+      tbox::Pointer<hier::PatchLevel<spacedim>> level =
+        patch_hierarchy->getPatchLevel(ln);
+      level->allocatePatchData(u_cc_idx, 0.0);
+
+      // obviously this won't generalize well
+      auto patches = fdl::extract_patches(level);
+      for (auto &patch : patches)
+        {
+          tbox::Pointer<pdat::CellData<spacedim, double>> data =
+            patch->getPatchData(u_cc_idx);
+          Assert(data, dealii::ExcMessage("pointer should not be null"));
+          data->fillAll(42.0);
+        }
+    }
+
+  auto visit_data_writer = app_initializer->getVisItDataWriter();
+  TBOX_ASSERT(visit_data_writer);
+  visit_data_writer->registerPlotQuantity(u_cc_var->getName(),
+                                          "SCALAR",
+                                          u_cc_idx);
+
+  return std::make_pair(patch_hierarchy, u_cc_idx);
+}
 
 // A utility function that prints @p part_str to @p out by sending each string to
 // rank 0.
