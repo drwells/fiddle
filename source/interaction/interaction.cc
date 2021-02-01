@@ -29,7 +29,7 @@ namespace fdl
     std::vector<tbox::Pointer<pdat::CellData<spacedim, TYPE>>> tag_data;
     for (const auto &patch : patches)
       {
-        Assert(patch->getPatch, ExcMessage("should be a pointer here"));
+        Assert(patch->getPatchData(tag_index), ExcMessage("should be a pointer here"));
         tag_data.push_back(patch->getPatchData(tag_index));
       }
     const std::vector<BoundingBox<spacedim, float>> patch_bboxes =

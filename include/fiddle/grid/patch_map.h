@@ -28,12 +28,13 @@ namespace fdl
     /**
      * Constructor. Associates cells to patches from provided bounding boxes.
      */
+    template <typename Number>
     PatchMap(
       const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>>
         &                                 patches,
       const double                        extra_ghost_cell_fraction,
       const Triangulation<dim, spacedim> &tria,
-      std::vector<BoundingBox<spacedim>> &cell_bboxes);
+      std::vector<BoundingBox<spacedim, Number>> &cell_bboxes);
 
     /**
      * Return the number of patches.
