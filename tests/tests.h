@@ -1,5 +1,8 @@
 #include <deal.II/base/exceptions.h>
 
+#include <ibtk/HierarchyGhostCellInterpolation.h>
+#include <ibtk/muParserCartGridFunction.h>
+
 #include <Box.h>
 #include <PatchHierarchy.h>
 #include <tbox/SAMRAI_MPI.h>
@@ -20,65 +23,77 @@ setup_hierarchy(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer,
 {
   using namespace SAMRAI;
 
+  auto input_db = app_initializer->getInputDatabase();
+
   // Set up basic SAMRAI stuff:
   tbox::Pointer<geom::CartesianGridGeometry<spacedim>> grid_geometry =
-    new geom::CartesianGridGeometry<spacedim>("CartesianGeometry",
-                                          app_initializer->getComponentDatabase(
-                                            "CartesianGeometry"));
+    new geom::CartesianGridGeometry<spacedim>(
+      "CartesianGeometry", input_db->getDatabase("CartesianGeometry"));
+
+  // TODO: do we need this at all?
+  tbox::Pointer<xfer::RefineOperator<spacedim> > linear_refine =
+    new geom::CartesianCellDoubleLinearRefine<spacedim>();
+  grid_geometry->addSpatialRefineOperator(linear_refine);
+
   tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy =
     new hier::PatchHierarchy<spacedim>("PatchHierarchy", grid_geometry);
   tbox::Pointer<mesh::StandardTagAndInitialize<spacedim>> error_detector =
     new mesh::StandardTagAndInitialize<spacedim>(
       "StandardTagAndInitialize",
       tag,
-      app_initializer->getComponentDatabase("StandardTagAndInitialize"));
+      input_db->getDatabase("StandardTagAndInitialize"));
 
   tbox::Pointer<mesh::BergerRigoutsos<spacedim>> box_generator =
     new mesh::BergerRigoutsos<spacedim>();
   tbox::Pointer<mesh::LoadBalancer<spacedim>> load_balancer =
     new mesh::LoadBalancer<spacedim>(
-      "LoadBalancer", app_initializer->getComponentDatabase("LoadBalancer"));
+      "LoadBalancer", input_db->getDatabase("LoadBalancer"));
   tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_algorithm =
     new mesh::GriddingAlgorithm<spacedim>("GriddingAlgorithm",
-                                      app_initializer->getComponentDatabase(
+                                      input_db->getDatabase(
                                         "GriddingAlgorithm"),
                                       error_detector,
                                       box_generator,
                                       load_balancer);
 
-  // set up the SAMRAI grid:
-  gridding_algorithm->makeCoarsestLevel(patch_hierarchy, 0.0);
-  int level_number = 0;
-  while (gridding_algorithm->levelCanBeRefined(level_number))
-    {
-      gridding_algorithm->makeFinerLevel(patch_hierarchy, 0.0, 0.0, 1);
-      ++level_number;
-    }
-
-  // Set up a variable so that we can actually output the grid:
+  // Set up a variable so that we can actually output the grid. Note that this
+  // has to happen before we make any levels since this is where we set the
+  // maximum ghost width.
   auto *var_db = hier::VariableDatabase<spacedim>::getDatabase();
   tbox::Pointer<hier::VariableContext> ctx = var_db->getContext("context");
-  tbox::Pointer<pdat::CellVariable<spacedim, double>> u_cc_var =
-    new pdat::CellVariable<spacedim, double>("u_cc");
-  const int u_cc_idx =
-    var_db->registerVariableAndContext(u_cc_var,
+
+  const int n_F_components = input_db->getIntegerWithDefault("n_components", 1);
+  tbox::Pointer<pdat::CellVariable<spacedim, double>> f_cc_var =
+    new pdat::CellVariable<spacedim, double>(
+      "f_cc", n_F_components);
+  const int f_cc_idx =
+    var_db->registerVariableAndContext(f_cc_var,
                                        ctx,
                                        // need 3 for bspline 3 ghosts
                                        hier::IntVector<spacedim>(3));
 
+  // set up the SAMRAI grid:
+  gridding_algorithm->makeCoarsestLevel(patch_hierarchy, 0.0);
+  int level_number = 0;
+  const int tag_buffer = 1;
+  while (gridding_algorithm->levelCanBeRefined(level_number))
+    {
+      gridding_algorithm->makeFinerLevel(patch_hierarchy, 0.0, 0.0, tag_buffer);
+      ++level_number;
+    }
   const int finest_level = patch_hierarchy->getFinestLevelNumber();
   for (int ln = 0; ln <= finest_level; ++ln)
     {
       tbox::Pointer<hier::PatchLevel<spacedim>> level =
         patch_hierarchy->getPatchLevel(ln);
-      level->allocatePatchData(u_cc_idx, 0.0);
+      level->allocatePatchData(f_cc_idx, 0.0);
 
       // obviously this won't generalize well
       auto patches = fdl::extract_patches(level);
       for (auto &patch : patches)
         {
           tbox::Pointer<pdat::CellData<spacedim, double>> data =
-            patch->getPatchData(u_cc_idx);
+            patch->getPatchData(f_cc_idx);
           Assert(data, dealii::ExcMessage("pointer should not be null"));
           data->fillAll(42.0);
         }
@@ -86,11 +101,42 @@ setup_hierarchy(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer,
 
   auto visit_data_writer = app_initializer->getVisItDataWriter();
   TBOX_ASSERT(visit_data_writer);
-  visit_data_writer->registerPlotQuantity(u_cc_var->getName(),
-                                          "SCALAR",
-                                          u_cc_idx);
+  for (unsigned int d = 0; d < n_F_components; ++d)
+    {
+      visit_data_writer->registerPlotQuantity(f_cc_var->getName() + std::to_string(d), "SCALAR", f_cc_idx, d);
+    }
 
-  return std::make_pair(patch_hierarchy, u_cc_idx);
+  // If it exists, set up an initial condition
+  if (input_db->keyExists("f"))
+    {
+      IBTK::muParserCartGridFunction f_fcn(
+        "f",
+        input_db->getDatabase("f"),
+        patch_hierarchy->getGridGeometry());
+      auto* var_db = hier::VariableDatabase<spacedim>::getDatabase();
+      tbox::Pointer<hier::Variable<spacedim>> var;
+      var_db->mapIndexToVariable(f_cc_idx, var);
+      f_fcn.setDataOnPatchHierarchy(f_cc_idx,
+                                    var,
+                                    patch_hierarchy,
+                                    0.0);
+
+      using ITC = IBTK::HierarchyGhostCellInterpolation::InterpolationTransactionComponent;
+      std::vector<ITC> ghost_cell_components(1);
+      ghost_cell_components[0] = ITC(f_cc_idx,
+                                     "LINEAR_REFINE",
+                                     true,
+                                     "CONSERVATIVE_COARSEN",
+                                     "LINEAR",
+                                     false,
+                                     {}, // f_bc_coefs
+                                     nullptr);
+      IBTK::HierarchyGhostCellInterpolation ghost_fill_op;
+      ghost_fill_op.initializeOperatorState(ghost_cell_components, patch_hierarchy);
+      ghost_fill_op.fillData(/*time*/ 0.0);
+    }
+
+  return std::make_pair(patch_hierarchy, f_cc_idx);
 }
 
 // A utility function that prints @p part_str to @p out by sending each string to

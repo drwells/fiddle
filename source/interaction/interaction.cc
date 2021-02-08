@@ -154,7 +154,7 @@ namespace fdl
 
     const FiniteElement<dim, spacedim> &f_fe          = f_dof_handler.get_fe();
     const unsigned int                  dofs_per_cell = f_fe.dofs_per_cell;
-    Assert(f_fe.n_blocks() == 1, ExcNotImplemented());
+    // TODO - do we need to assume something about the block structure of the FE?
 
     // We probably don't need more than 16 quadrature rules
     //
