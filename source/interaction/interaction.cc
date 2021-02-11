@@ -17,6 +17,7 @@
 namespace fdl
 {
   using namespace dealii;
+  using namespace SAMRAI;
 
   template <int spacedim, typename Number, typename TYPE>
   void
@@ -281,6 +282,86 @@ namespace fdl
           }
       }
   }
+
+
+#if 0
+  template <int dim, int spacedim>
+  InteractionBase::InteractionBase(
+    const parallel::shared::Triangulation<dim, spacedim> &n_tria,
+    const std::vector<BoundingBox<spacedim, float>> &     active_cell_bboxes,
+    tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     p_hierarchy,
+    const int                                             l_number,
+    std::shared_ptr<IBTK::SAMRAIDataCache> e_data_cache)
+    : native_tria(&n_tria)
+    , patch_hierarchy(p_hierarchy)
+    , level_number(l_number)
+    , eulerian_data_cache(e_data_cache)
+  {
+    // Check inputs
+    Assert(active_cell_bboxes.size() == native_tria.n_active_cells(),
+           ExcMessage("There should be a bounding box for each active cell"));
+    Assert(patch_hierarchy,
+           ExcMessage("The provided pointer to a patch hierarchy should not be "
+                      "null."));
+    AssertIndexRange(l_number, patch_hierarchy->getNumberOfLevels());
+    Assert(eulerian_data_cache,
+           ExcMessage("The provided shared pointer to an Eulerian data cache "
+                      "should not be null."));
+
+    // TODO implement this class (somewhere between the two predicate classes we
+    // have now). This should probably replace the FE predicate class to keep
+    // with the general spirit of 'use bounding boxes' in this library
+    BoxIntersectionPredicate<dim, spacedim> predicate(native_tria,
+                                                      active_cell_bboxes);
+    overlap_tria.reinit(*native_tria, predicate);
+
+    auto patches = extract_patches(patch_hierarchy->getPatchLevel(level_number));
+
+    // TODO communicate bounding boxes from owning processes to overlap
+    // processes. It should be possible to do this without putting everything on
+    // each processor
+    std::vector<BoundingBox<spacedim, float>> overlap_bboxes(overlap_tria.size());
+    // TODO implement PatchMap::reinit
+    // TODO add the ghost cell width as an input argument to this class
+    patch_map.reinit(patches, 1.0, overlap_tria, overlap_bboxes);
+
+    // Some other things that should be established at this point:
+    //
+    // cell_index_scatter: we can figure out the indices by looping over the
+    //     triangulations and recording active cell indices
+  }
+
+
+
+  template <int dim, int spacedim>
+  void
+  InteractionBase::add_dof_handler(const DoFHandler<dim, spacedim> &native_dof_handler)
+  {
+    AssertThrow(&native_dof_handler.get_triangulation() == native_tria,
+                ExcMessage("The DoFHandler must use the underlying native "
+                           "triangulation."));
+    const auto ptr = &dof_handler;
+    if (std::find(native_dof_handlers.begin(), native_dof_handlers.end(), ptr)
+        != native_dof_handlers.end())
+    {
+      native_dof_handlers.emplace_back(ptr);
+      DoFHandler<dim, spacedim> overlap_dof_handler(overlap_tria);
+      overlap_dof_handler.distribute_dofs(native_dof_handler.get_fe_collection());
+
+      const std::vector<types::global_dof_index> overlap_to_native_dofs =
+        compute_overlap_to_native_dof_translation(overlap_tria,
+                                                  overlap_dof_handler,
+                                                  native_dof_handler);
+      scatters.emplace_back(overlap_to_native_dofs,
+                            native_dof_handler.locally_owned_dofs(),
+                            native_tria.get_communicator());
+      overlap_dof_handlers.emplace_back(std::move(overlap_dof_handler));
+    }
+  }
+#endif
+
+
+  // instantiations
 
   template void
   tag_cells(const std::vector<BoundingBox<NDIM, float>> &         bboxes,

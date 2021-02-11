@@ -192,7 +192,7 @@ namespace fdl
       const std::vector<BoundingBox<spacedim, float>> &     active_cell_bboxes,
       tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
       const int                                             level_number,
-      std::shared_ptr<IBTK::SAMRAIDataCache> eulerian_data_cache = {});
+      std::shared_ptr<IBTK::SAMRAIDataCache> eulerian_data_cache);
 
     /**
      * Reinitialize the object. Same as the constructor.
@@ -208,6 +208,8 @@ namespace fdl
     /**
      * Store a pointer to @p native_dof_handler and also compute the
      * equivalent DoFHandler on the overlapping partitioning.
+     *
+     * This call is collective over the communicator used by this class.
      */
     virtual void
     add_dof_handler(const DoFHandler<dim, spacedim> &native_dof_handler);
@@ -247,7 +249,7 @@ namespace fdl
     virtual
     std::unique_ptr<TransactionBase>
     compute_projection_rhs_intermediate(
-      std::unique_ptr<TransactionBase> transaction) const;
+      std::unique_ptr<TransactionBase> transaction) const = 0;
 
     /**
      * Finish the computation of the RHS vector corresponding to projecting @p
@@ -307,7 +309,7 @@ namespace fdl
     /**
      * Native triangulation, which is stored separately.
      */
-    SmartPointer<Triangulation<dim, spacedim>> native_tria;
+    SmartPointer<parallel::shared::Triangulation<dim, spacedim>> native_tria;
 
     /**
      * Overlap triangulation - i.e., the part of native_tria that intersects the
@@ -343,7 +345,7 @@ namespace fdl
      * Pointers to DoFHandlers using native_tria which have equivalent overlap
      * DoFHandlers.
      */
-    std::vector<SmartPointer<DoFHandler<dim, spacedim>>> native_dof_handlers;
+    std::vector<SmartPointer<const DoFHandler<dim, spacedim>>> native_dof_handlers;
 
     /**
      * DoFHandlers defined on the overlap tria, which are equivalent to those
@@ -380,27 +382,11 @@ namespace fdl
      */
 
     /**
-     * FE used for the piecewise constant field.
-     */
-    std::unique_ptr<FiniteElement<dim, spacedim>> constant_fe;
-
-    /**
-     * DoFHandler for the piecewise constant field on the native tria.
-     */
-    DoFHandler<dim, spacedim> native_constant_dof_handler;
-
-    /**
-     * DoFHandler for the piecewise constant field on the overlap tria.
-     */
-    DoFHandler<dim, spacedim> overlap_constant_dof_handler;
-
-    /**
-     * Scatter object for moving quadrature index data.
+     * Scatter object for moving cell data (computed as active cell indices).
      *
-     * @todo There is probably a more efficient way to implement this than by
-     * creating a finite element field.
+     * @todo There is probably a more efficient way to implement this.
      */
-    Scatter<float> constant_scatter;
+    Scatter<float> cell_index_scatter;
 
     /**
      * @}
