@@ -68,7 +68,7 @@ namespace fdl
   };
 
   /**
-   * Intersection predicate based on a displacement from a finite element field.
+   * Intersection predicate based on general bounding boxes for each cell.
    *
    * This class is intended for usage with parallel::shared::Triangulation. In
    * particular, the bounding boxes associated with all active cells will be
@@ -77,61 +77,17 @@ namespace fdl
    * arbitrary part of the Triangulation.
    */
   template <int dim, int spacedim = dim>
-  class FEIntersectionPredicate : public IntersectionPredicate<dim, spacedim>
+  class BoxIntersectionPredicate : public IntersectionPredicate<dim, spacedim>
   {
   public:
-    FEIntersectionPredicate(const std::vector<BoundingBox<spacedim>> &bboxes,
-                            const MPI_Comm &                 communicator,
-                            const DoFHandler<dim, spacedim> &dof_handler,
-                            const Mapping<dim, spacedim> &   mapping)
-      : tria(&dof_handler.get_triangulation())
-      , patch_bboxes(bboxes)
-    {
-      // TODO: support multiple FEs
-      const FiniteElement<dim> &fe = dof_handler.get_fe();
-      // TODO: also check bboxes by position of quadrature points instead of
-      // just nodes. Use QProjector to place points solely on cell boundaries.
-      const Quadrature<dim> nodal_quad(fe.get_unit_support_points());
-
-      FEValues<dim, spacedim> fe_values(mapping,
-                                        fe,
-                                        nodal_quad,
-                                        update_quadrature_points);
-
-      active_cell_bboxes.resize(
-        dof_handler.get_triangulation().n_active_cells());
-      for (const auto cell : dof_handler.active_cell_iterators())
-        if (cell->is_locally_owned())
-          {
-            fe_values.reinit(cell);
-            const BoundingBox<spacedim> dbox(fe_values.get_quadrature_points());
-            BoundingBox<spacedim, float> fbox;
-            fbox.get_boundary_points() = dbox.get_boundary_points();
-            active_cell_bboxes[cell->active_cell_index()] = fbox;
-          }
-
-      // TODO: use rtrees in parallel so that we don't need every bbox on every
-      // processor in this intermediate step
-      constexpr auto n_floats_per_bbox = spacedim * 2;
-      static_assert(sizeof(active_cell_bboxes[0]) ==
-                      sizeof(float) * n_floats_per_bbox,
-                    "packing failed");
-      const auto size = n_floats_per_bbox * active_cell_bboxes.size();
-      // TODO assert sizes are all equal and nonzero
-      const int ierr =
-        MPI_Allreduce(MPI_IN_PLACE,
-                      reinterpret_cast<float *>(&active_cell_bboxes[0]),
-                      size,
-                      MPI_FLOAT,
-                      MPI_SUM,
-                      communicator);
-      AssertThrowMPI(ierr);
-
-      for (const auto &bbox : active_cell_bboxes)
-        {
-          Assert(bbox.volume() > 0, ExcMessage("bboxes should not be empty"));
-        }
-    }
+    BoxIntersectionPredicate(
+      const std::vector<BoundingBox<spacedim, float>> &     a_cell_bboxes,
+      const std::vector<BoundingBox<spacedim>> &            p_bboxes,
+      const parallel::shared::Triangulation<dim, spacedim> &tria)
+      : tria(&tria)
+      , active_cell_bboxes(a_cell_bboxes)
+      , patch_bboxes(p_bboxes)
+    {}
 
     virtual bool
     operator()(const typename Triangulation<dim, spacedim>::cell_iterator &cell)
@@ -176,7 +132,7 @@ namespace fdl
 
     const SmartPointer<const Triangulation<dim, spacedim>> tria;
     const std::vector<BoundingBox<spacedim>>               patch_bboxes;
-    std::vector<BoundingBox<spacedim, float>>              active_cell_bboxes;
+    const std::vector<BoundingBox<spacedim, float>>        active_cell_bboxes;
   };
 } // namespace fdl
 

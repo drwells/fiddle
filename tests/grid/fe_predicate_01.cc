@@ -32,7 +32,7 @@
 #include <fstream>
 #include <iostream>
 
-// Test the bounding boxes per element computed by FEIntersectionPredicate
+// Test the bounding boxes per element formerly computed by fe_predicate and now by compute_cell_bboxes
 
 using namespace dealii;
 
@@ -119,14 +119,12 @@ main(int argc, char **argv)
   MappingFEField<2, 2, decltype(native_current_position)> native_mapping(
     native_position_dh, native_current_position);
 
-  fdl::FEIntersectionPredicate<2> fe_pred({bbox},
-                                          mpi_comm,
-                                          native_position_dh,
-                                          native_mapping);
+  const auto bboxes = fdl::compute_cell_bboxes<2, 2, float>(
+    mpi_comm, native_position_dh, native_mapping);
 
   {
     BoundingBoxDataOut<2> bbox_data_out;
-    bbox_data_out.build_patches(fe_pred.active_cell_bboxes);
+    bbox_data_out.build_patches(bboxes);
     // TODO: generalize so we can run this in parallel
     std::ofstream         out("output");
     DataOutBase::VtkFlags flags;

@@ -149,10 +149,14 @@ main(int argc, char **argv)
   MappingFEField<2, 2, decltype(native_current_position)> native_mapping(
     native_position_dh, native_current_position);
 
-  fdl::FEIntersectionPredicate<2> fe_pred({bbox},
-                                          mpi_comm,
-                                          native_position_dh,
-                                          native_mapping);
+  const auto local_cell_bboxes = fdl::compute_cell_bboxes<2, 2, float>(
+    mpi_comm, native_position_dh, native_mapping);
+  const auto global_cell_bboxes = fdl::collect_all_active_cell_bboxes(
+    native_tria, local_cell_bboxes);
+
+  fdl::BoxIntersectionPredicate<2> fe_pred(global_cell_bboxes,
+                                           {bbox},
+                                           native_tria);
 
   {
     BoundingBoxDataOut<2> bbox_data_out;

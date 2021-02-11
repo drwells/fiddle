@@ -3,9 +3,17 @@
 
 #include <deal.II/base/bounding_box.h>
 
+#include <deal.II/distributed/shared_tria.h>
+
+#include <deal.II/dofs/dof_handler.h>
+
+#include <deal.II/fe/fe_values.h>
+#include <deal.II/fe/mapping.h>
+
 #include <BasePatchLevel.h>
 #include <Patch.h>
 #include <PatchLevel.h>
+#include <fiddle/base/exceptions.h>
 
 #include <vector>
 
@@ -22,7 +30,7 @@ namespace fdl
              const BoundingBox<spacedim, Number2> &b);
 
   /**
-   * Extract the bounding boxes for a set of SAMRAI patches. In addition, if
+   * Compute the bounding boxes for a set of SAMRAI patches. In addition, if
    * necessary, expand each bounding box by @p extra_ghost_cell_fraction times
    * the length of a cell in each coordinate direction.
    */
@@ -32,6 +40,97 @@ namespace fdl
     const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>>
       &          patches,
     const double extra_ghost_cell_fraction = 0.0);
+
+  /**
+   * Compute the bounding boxes for all locally owned and active cells for a
+   * finite element field.
+   */
+  template <int dim, int spacedim = dim, typename Number = double>
+  std::vector<BoundingBox<spacedim, Number>>
+  compute_cell_bboxes(const MPI_Comm &                 communicator,
+                      const DoFHandler<dim, spacedim> &dof_handler,
+                      const Mapping<dim, spacedim> &   mapping)
+  {
+    // TODO: support multiple FEs
+    const FiniteElement<dim> &fe = dof_handler.get_fe();
+    // TODO: also check bboxes by position of quadrature points instead of
+    // just nodes. Use QProjector to place points solely on cell boundaries.
+    const Quadrature<dim> nodal_quad(fe.get_unit_support_points());
+
+    FEValues<dim, spacedim> fe_values(mapping,
+                                      fe,
+                                      nodal_quad,
+                                      update_quadrature_points);
+
+    std::vector<BoundingBox<spacedim, Number>> bboxes;
+    for (const auto cell : dof_handler.active_cell_iterators())
+      if (cell->is_locally_owned())
+        {
+          fe_values.reinit(cell);
+          const BoundingBox<spacedim> dbox(fe_values.get_quadrature_points());
+          // we have to do a conversion if Number != double
+          BoundingBox<spacedim, Number> fbox;
+          fbox.get_boundary_points() = dbox.get_boundary_points();
+          bboxes.push_back(fbox);
+        }
+    return bboxes;
+  }
+
+  template <int dim, int spacedim = dim, typename Number = double>
+  std::vector<BoundingBox<spacedim, Number>>
+  collect_all_active_cell_bboxes(
+    const parallel::shared::Triangulation<dim, spacedim> &tria,
+    const std::vector<BoundingBox<spacedim, Number>> &local_active_cell_bboxes)
+  {
+    std::vector<BoundingBox<spacedim, Number>> global_bboxes(
+      tria.n_active_cells());
+    unsigned int cell_n = 0;
+    for (const auto &cell : tria.active_cell_iterators())
+      if (cell->is_locally_owned())
+        {
+          global_bboxes[cell->active_cell_index()] =
+            local_active_cell_bboxes[cell_n];
+          ++cell_n;
+        }
+
+    MPI_Datatype   mpi_type  = {};
+    constexpr bool is_float  = std::is_same<Number, float>::value;
+    constexpr bool is_double = std::is_same<Number, double>::value;
+    static_assert(is_float || is_double, "Must be float or double");
+    if (is_float)
+      {
+        mpi_type = MPI_FLOAT;
+      }
+    else if (is_double)
+      {
+        mpi_type = MPI_DOUBLE;
+      }
+    else
+      {
+        AssertThrow(false, ExcFDLNotImplemented());
+      }
+
+    constexpr auto n_nums_per_bbox = spacedim * 2;
+    static_assert(sizeof(BoundingBox<spacedim, Number>) ==
+                    sizeof(Number) * n_nums_per_bbox,
+                  "packing failed");
+    const auto size = n_nums_per_bbox * global_bboxes.size();
+    // TODO assert sizes are all equal and nonzero
+    const int ierr =
+      MPI_Allreduce(MPI_IN_PLACE,
+                    reinterpret_cast<Number *>(&global_bboxes[0]),
+                    size,
+                    mpi_type,
+                    MPI_SUM,
+                    tria.get_communicator());
+    AssertThrowMPI(ierr);
+
+    for (const auto &bbox : global_bboxes)
+      {
+        Assert(bbox.volume() > 0, ExcMessage("bboxes should not be empty"));
+      }
+    return global_bboxes;
+  }
 
   /**
    * Helper function for extracting locally owned patches from a base patch
