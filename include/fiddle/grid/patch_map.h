@@ -11,6 +11,8 @@
 namespace fdl
 {
   using namespace dealii;
+  using namespace SAMRAI;
+
   /**
    * Mapping between patches and elements. Assumes that the Triangulation
    * associated with the position DoFHandler already intersects the patches in
@@ -29,12 +31,21 @@ namespace fdl
      * Constructor. Associates cells to patches from provided bounding boxes.
      */
     template <typename Number>
-    PatchMap(
-      const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>>
-        &                                 patches,
-      const double                        extra_ghost_cell_fraction,
-      const Triangulation<dim, spacedim> &tria,
-      const std::vector<BoundingBox<spacedim, Number>> &cell_bboxes);
+    PatchMap(const std::vector<tbox::Pointer<hier::Patch<spacedim>>> &patches,
+             const double                        extra_ghost_cell_fraction,
+             const Triangulation<dim, spacedim> &tria,
+             const std::vector<BoundingBox<spacedim, Number>> &cell_bboxes);
+
+    /**
+     * Same as the constructor.
+     */
+    template <typename Number>
+    void
+    reinit(const std::vector<tbox::Pointer<hier::Patch<spacedim>>> &patches,
+           const double                        extra_ghost_cell_fraction,
+           const Triangulation<dim, spacedim> &tria,
+           const std::vector<BoundingBox<spacedim, Number>> &cell_bboxes);
+
 
     /**
      * Return the number of patches.
@@ -122,14 +133,14 @@ namespace fdl
       friend class PatchMap;
     };
 
-    SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>> &
+    tbox::Pointer<hier::Patch<spacedim>> &
     get_patch(const std::size_t patch_n)
     {
       AssertIndexRange(patch_n, size());
       return patches[patch_n];
     }
 
-    const SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>> &
+    const tbox::Pointer<hier::Patch<spacedim>> &
     get_patch(const std::size_t patch_n) const
     {
       AssertIndexRange(patch_n, size());
@@ -151,7 +162,7 @@ namespace fdl
     }
 
   protected:
-    std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>> patches;
+    std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches;
 
     // TODO - we can really compress this down by instead storing
     //
