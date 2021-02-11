@@ -13,7 +13,7 @@ namespace fdl
       &                                         patches,
     const double                                extra_ghost_cell_fraction,
     const Triangulation<dim, spacedim> &        tria,
-    std::vector<BoundingBox<spacedim, Number>> &cell_bboxes)
+    const std::vector<BoundingBox<spacedim, Number>> &cell_bboxes)
     : patches(patches)
   {
     Assert(cell_bboxes.size() == tria.n_active_cells(),
@@ -50,13 +50,13 @@ namespace fdl
     const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>> &,
     const double,
     const Triangulation<NDIM - 1, NDIM> &,
-    std::vector<BoundingBox<NDIM, float>> &cell_bboxes);
+    const std::vector<BoundingBox<NDIM, float>> &cell_bboxes);
 
   template PatchMap<NDIM - 1, NDIM>::PatchMap(
     const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>> &,
     const double,
     const Triangulation<NDIM - 1, NDIM> &,
-    std::vector<BoundingBox<NDIM, double>> &cell_bboxes);
+    const std::vector<BoundingBox<NDIM, double>> &cell_bboxes);
 
   template class PatchMap<NDIM, NDIM>;
 
@@ -64,12 +64,12 @@ namespace fdl
     const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>> &,
     const double,
     const Triangulation<NDIM, NDIM> &,
-    std::vector<BoundingBox<NDIM, float>> &cell_bboxes);
+    const std::vector<BoundingBox<NDIM, float>> &cell_bboxes);
 
   template PatchMap<NDIM, NDIM>::PatchMap(
     const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>> &,
     const double,
     const Triangulation<NDIM, NDIM> &,
-    std::vector<BoundingBox<NDIM, double>> &cell_bboxes);
+    const std::vector<BoundingBox<NDIM, double>> &cell_bboxes);
 
 } // namespace fdl

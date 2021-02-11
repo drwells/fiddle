@@ -34,7 +34,7 @@ namespace fdl
         &                                 patches,
       const double                        extra_ghost_cell_fraction,
       const Triangulation<dim, spacedim> &tria,
-      std::vector<BoundingBox<spacedim, Number>> &cell_bboxes);
+      const std::vector<BoundingBox<spacedim, Number>> &cell_bboxes);
 
     /**
      * Return the number of patches.
