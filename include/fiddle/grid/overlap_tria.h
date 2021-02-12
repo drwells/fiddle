@@ -33,6 +33,8 @@ namespace fdl
       typename dealii::Triangulation<dim, spacedim>::cell_iterator;
 
   public:
+    OverlapTriangulation() = default;
+
     OverlapTriangulation(
       const parallel::shared::Triangulation<dim, spacedim> &shared_tria,
       const IntersectionPredicate<dim, spacedim> &          predicate);
