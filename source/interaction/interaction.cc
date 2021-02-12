@@ -155,7 +155,8 @@ namespace fdl
 
     const FiniteElement<dim, spacedim> &f_fe          = f_dof_handler.get_fe();
     const unsigned int                  dofs_per_cell = f_fe.dofs_per_cell;
-    // TODO - do we need to assume something about the block structure of the FE?
+    // TODO - do we need to assume something about the block structure of the
+    // FE?
 
     // We probably don't need more than 16 quadrature rules
     //
@@ -185,10 +186,10 @@ namespace fdl
           patch->getPatchData(f_data_idx);
         // Assert(f_data, ExcMessage("Only side-centered data is supported
         // ATM"));
-        Assert(f_data->getDepth() == f_fe.n_components(),
+        const unsigned int depth = f_data->getDepth();
+        Assert(depth == f_fe.n_components(),
                ExcMessage("The depth of the SAMRAI variable should equal the "
                           "number of components of the finite element."));
-        const unsigned int depth = f_data->getDepth();
 
         auto       iter = patch_map.begin(patch_n, f_dof_handler);
         const auto end  = patch_map.end(patch_n, f_dof_handler);
