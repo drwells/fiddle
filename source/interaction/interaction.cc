@@ -1,3 +1,5 @@
+#include <fiddle/transfer/overlap_partitioning_tools.h>
+
 #include <fiddle/grid/box_utilities.h>
 
 #include <fiddle/interaction/interaction.h>
@@ -285,11 +287,10 @@ namespace fdl
   }
 
 
-#if 0
   template <int dim, int spacedim>
-  InteractionBase::InteractionBase(
+  InteractionBase<dim, spacedim>::InteractionBase(
     const parallel::shared::Triangulation<dim, spacedim> &n_tria,
-    const std::vector<BoundingBox<spacedim, float>> &     active_cell_bboxes,
+    const std::vector<BoundingBox<spacedim, float>> &     global_active_cell_bboxes,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     p_hierarchy,
     const int                                             l_number,
     std::shared_ptr<IBTK::SAMRAIDataCache> e_data_cache)
@@ -299,7 +300,7 @@ namespace fdl
     , eulerian_data_cache(e_data_cache)
   {
     // Check inputs
-    Assert(active_cell_bboxes.size() == native_tria.n_active_cells(),
+    Assert(global_active_cell_bboxes.size() == native_tria->n_active_cells(),
            ExcMessage("There should be a bounding box for each active cell"));
     Assert(patch_hierarchy,
            ExcMessage("The provided pointer to a patch hierarchy should not be "
@@ -309,20 +310,23 @@ namespace fdl
            ExcMessage("The provided shared pointer to an Eulerian data cache "
                       "should not be null."));
 
-    // TODO implement this class (somewhere between the two predicate classes we
-    // have now). This should probably replace the FE predicate class to keep
-    // with the general spirit of 'use bounding boxes' in this library
-    BoxIntersectionPredicate<dim, spacedim> predicate(native_tria,
-                                                      active_cell_bboxes);
+    const auto patches = extract_patches(
+      patch_hierarchy->getPatchLevel(level_number));
+    // TODO we need to make extra ghost cell fraction a parameter
+    const std::vector<BoundingBox<spacedim>> patch_bboxes =
+    compute_patch_bboxes(patches, 1.0);
+    BoxIntersectionPredicate<dim, spacedim> predicate(
+      global_active_cell_bboxes, patch_bboxes, *native_tria);
     overlap_tria.reinit(*native_tria, predicate);
 
-    auto patches = extract_patches(patch_hierarchy->getPatchLevel(level_number));
+    std::vector<BoundingBox<spacedim, float>> overlap_bboxes;
+    for (const auto &cell : overlap_tria.active_cell_iterators())
+      {
+        auto native_cell = overlap_tria.get_native_cell(cell);
+        overlap_bboxes.push_back(
+          global_active_cell_bboxes[native_cell->active_cell_index()]);
+      }
 
-    // TODO communicate bounding boxes from owning processes to overlap
-    // processes. It should be possible to do this without putting everything on
-    // each processor
-    std::vector<BoundingBox<spacedim, float>> overlap_bboxes(overlap_tria.size());
-    // TODO implement PatchMap::reinit
     // TODO add the ghost cell width as an input argument to this class
     patch_map.reinit(patches, 1.0, overlap_tria, overlap_bboxes);
 
@@ -330,23 +334,75 @@ namespace fdl
     //
     // cell_index_scatter: we can figure out the indices by looping over the
     //     triangulations and recording active cell indices
+    //
+    // I think our nonuniform partitioner class can actually be used here
+    // instead for cell_index_scatter.
+  }
+
+
+
+  template <int dim, int spacedim>
+  DoFHandler<dim, spacedim> &
+  InteractionBase<dim, spacedim>::get_overlap_dof_handler(
+    const DoFHandler<dim, spacedim> &native_dof_handler)
+  {
+    auto iter = std::find(native_dof_handlers.begin(), native_dof_handlers.end(),
+                          &native_dof_handler);
+    AssertThrow(iter != native_dof_handlers.end(),
+                ExcMessage("The provided dof handler must already be "
+                           "registered with this class."));
+    return *overlap_dof_handlers[iter - native_dof_handlers.begin()];
+  }
+
+
+
+  template <int dim, int spacedim>
+  const DoFHandler<dim, spacedim> &
+  InteractionBase<dim, spacedim>::get_overlap_dof_handler(
+    const DoFHandler<dim, spacedim> &native_dof_handler) const
+  {
+    auto iter = std::find(native_dof_handlers.begin(), native_dof_handlers.end(),
+                          &native_dof_handler);
+    AssertThrow(iter != native_dof_handlers.end(),
+                ExcMessage("The provided dof handler must already be "
+                           "registered with this class."));
+    return *overlap_dof_handlers[iter - native_dof_handlers.begin()];
+  }
+
+
+
+  template <int dim, int spacedim>
+  Scatter<double> &
+  InteractionBase<dim, spacedim>::get_scatter(
+    const DoFHandler<dim, spacedim> &native_dof_handler)
+  {
+    auto iter = std::find(native_dof_handlers.begin(), native_dof_handlers.end(),
+                          &native_dof_handler);
+    AssertThrow(iter != native_dof_handlers.end(),
+                ExcMessage("The provided dof handler must already be "
+                           "registered with this class."));
+    return scatters[iter - native_dof_handlers.begin()];
   }
 
 
 
   template <int dim, int spacedim>
   void
-  InteractionBase::add_dof_handler(const DoFHandler<dim, spacedim> &native_dof_handler)
+  InteractionBase<dim, spacedim>::add_dof_handler(
+    const DoFHandler<dim, spacedim> &native_dof_handler)
   {
     AssertThrow(&native_dof_handler.get_triangulation() == native_tria,
                 ExcMessage("The DoFHandler must use the underlying native "
                            "triangulation."));
-    const auto ptr = &dof_handler;
+    const auto ptr = &native_dof_handler;
     if (std::find(native_dof_handlers.begin(), native_dof_handlers.end(), ptr)
         != native_dof_handlers.end())
     {
       native_dof_handlers.emplace_back(ptr);
-      DoFHandler<dim, spacedim> overlap_dof_handler(overlap_tria);
+      // TODO - implement a move ctor for DH in deal.II
+      overlap_dof_handlers.emplace_back(
+        std::make_unique<DoFHandler<dim, spacedim>>(overlap_tria));
+      auto &overlap_dof_handler = *overlap_dof_handlers.back();
       overlap_dof_handler.distribute_dofs(native_dof_handler.get_fe_collection());
 
       const std::vector<types::global_dof_index> overlap_to_native_dofs =
@@ -355,11 +411,106 @@ namespace fdl
                                                   native_dof_handler);
       scatters.emplace_back(overlap_to_native_dofs,
                             native_dof_handler.locally_owned_dofs(),
-                            native_tria.get_communicator());
-      overlap_dof_handlers.emplace_back(std::move(overlap_dof_handler));
+                            native_tria->get_communicator());
     }
   }
-#endif
+
+
+
+  template <int dim, int spacedim>
+  std::unique_ptr<TransactionBase>
+  InteractionBase<dim, spacedim>::compute_projection_rhs_start(
+    const int                                         f_data_idx,
+    const QuadratureFamily<dim> &                     quad_family,
+    const std::vector<unsigned char> &                quad_indices,
+    const DoFHandler<dim, spacedim> &                 X_dof_handler,
+    const LinearAlgebra::distributed::Vector<double> &X,
+    const DoFHandler<dim, spacedim> &                 F_dof_handler,
+    const Mapping<dim, spacedim> &                    F_mapping,
+    LinearAlgebra::distributed::Vector<double> &      F_rhs)
+  {
+    auto t_ptr = std::make_unique<Transaction<dim, spacedim>>();
+
+    Transaction<dim, spacedim> &transaction = *t_ptr;
+    // set up everything we will need later
+    transaction.current_f_data_idx  = f_data_idx;
+    transaction.quad_family         = &quad_family;
+    transaction.native_quad_indices = quad_indices;
+    transaction.overlap_quad_indices.resize(overlap_tria.n_active_cells());
+
+    // Setup X info:
+    transaction.native_X_dof_handler = &X_dof_handler;
+    transaction.native_X             = &X;
+    transaction.overlap_X_vec.reinit(
+      get_overlap_dof_handler(X_dof_handler).n_dofs());
+
+    // Setup F info:
+    transaction.native_F_dof_handler = &F_dof_handler;
+    transaction.F_mapping            = &F_mapping;
+    transaction.native_F_rhs         = &F_rhs;
+    transaction.overlap_F_rhs.reinit(
+      get_overlap_dof_handler(F_dof_handler).n_dofs());
+
+    // Setup state:
+    transaction.next_state = Transaction<dim, spacedim>::State::Intermediate;
+    transaction.operation  = Transaction<dim, spacedim>::Operation::Interpolation;
+
+    // OK, now start scattering:
+    Scatter<double> &X_scatter = get_scatter(X_dof_handler);
+
+    // TODO we really need a good way to get channels at this point so people
+    // can start multiple scatters at once
+    X_scatter.global_to_overlap_start(*transaction.native_X,
+                                      0,
+                                      transaction.overlap_X_vec);
+
+    // TODO scatter quad indices too
+
+    return t_ptr;
+  }
+
+
+
+  template<int dim, int spacedim>
+  std::unique_ptr<TransactionBase>
+  InteractionBase<dim, spacedim>::compute_projection_rhs_intermediate(
+    std::unique_ptr<TransactionBase> t_ptr)
+  {
+    auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
+    Assert((trans.operation == Transaction<dim, spacedim>::Operation::Interpolation),
+           ExcMessage("Transaction operation should be Interpolation"));
+    Assert((trans.next_state == Transaction<dim, spacedim>::State::Intermediate),
+           ExcMessage("Transaction state should be Intermediate"));
+
+    Scatter<double> &X_scatter = get_scatter(*trans.native_X_dof_handler);
+
+    X_scatter.global_to_overlap_finish(*trans.native_X,
+                                       trans.overlap_X_vec);
+
+    trans.next_state = Transaction<dim, spacedim>::State::Finish;
+
+    return t_ptr;
+  }
+
+
+
+  template <int dim, int spacedim>
+  void InteractionBase<dim, spacedim>::compute_projection_rhs_finish(
+    std::unique_ptr<TransactionBase> t_ptr)
+  {
+    auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
+    Assert((trans.operation == Transaction<dim, spacedim>::Operation::Interpolation),
+           ExcMessage("Transaction operation should be Interpolation"));
+    Assert((trans.next_state == Transaction<dim, spacedim>::State::Finish),
+           ExcMessage("Transaction state should be Finish"));
+
+    Scatter<double> &F_scatter = get_scatter(*trans.native_F_dof_handler);
+    F_scatter.overlap_to_global_finish(trans.overlap_F_rhs,
+                                       VectorOperation::add,
+                                       *trans.native_F_rhs);
+    trans.next_state = Transaction<dim, spacedim>::State::Done;
+  }
+
 
 
   // instantiations
@@ -393,5 +544,8 @@ namespace fdl
                          const DoFHandler<NDIM> &             f_dof_handler,
                          const Mapping<NDIM> &                f_mapping,
                          Vector<double> &                     f_rhs);
+
+  template class InteractionBase<NDIM - 1, NDIM>;
+  template class InteractionBase<NDIM, NDIM>;
 
 } // namespace fdl

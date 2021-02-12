@@ -95,11 +95,18 @@ namespace fdl
    *
    */
   struct TransactionBase
-  {};
+  {
+    virtual ~TransactionBase() = default;
+  };
 
   /**
    * Standard class for transactions - used by ElementalInteraction and
    * NodalInteraction.
+   *
+   * @note Several of the arrays owned by this class will be asynchronously
+   * written into by MPI - moving or resizing these arrays can result in program
+   * crashes. It should normally not be necessary for objects that do not set up
+   * a transaction to modify it.
    */
   template <int dim, int spacedim = dim>
   struct Transaction : public TransactionBase
@@ -108,10 +115,13 @@ namespace fdl
     int current_f_data_idx;
 
     /// Quadrature family.
-    SmartPointer<QuadratureFamily<dim>> quad_family;
+    SmartPointer<const QuadratureFamily<dim>> quad_family;
 
-    /// Quadrature indices (temporarily casted to floats - fix this later)
-    std::unique_ptr<Vector<float>> quad_indices;
+    /// Quadrature indices on native partitioning.
+    std::vector<unsigned char> native_quad_indices;
+
+    /// Quadrature indices on overlap partitioning.
+    std::vector<unsigned char> overlap_quad_indices;
 
     /// Native position DoFHandler.
     SmartPointer<const DoFHandler<dim, spacedim>> native_X_dof_handler;
@@ -120,26 +130,27 @@ namespace fdl
     SmartPointer<const LinearAlgebra::distributed::Vector<double>> native_X;
 
     /// Overlap-partitioned position.
-    std::unique_ptr<Vector<double>> overlap_X_vec;
+    Vector<double> overlap_X_vec;
 
     /// Native F DoFHandler.
     SmartPointer<const DoFHandler<dim, spacedim>> native_F_dof_handler;
+
+    /// Mapping to use for F.
+    SmartPointer<const Mapping<dim, spacedim>> F_mapping;
 
     /// Native-partitioned F_rhs.
     SmartPointer<LinearAlgebra::distributed::Vector<double>> native_F_rhs;
 
     /// Overlap-partitioned F.
-    std::unique_ptr<Vector<double>> overlap_F_vec;
-
-    /// Mapping to use for F.
-    SmartPointer<const Mapping<dim, spacedim>> F_mapping;
+    Vector<double> overlap_F_rhs;
 
     /// Possible states for a transaction.
     enum class State
     {
       Start,
       Intermediate,
-      Finish
+      Finish,
+      Done
     };
 
     /// Next state. Used for consistency checking.
@@ -148,8 +159,8 @@ namespace fdl
     /// Possible operations.
     enum class Operation
     {
-    interpolation,
-    spreading
+    Interpolation,
+    Spreading
     };
 
     /// Operation of the current transaction. Used for consistency checking.
@@ -239,17 +250,19 @@ namespace fdl
       const LinearAlgebra::distributed::Vector<double> &X,
       const DoFHandler<dim, spacedim> &                 F_dof_handler,
       const Mapping<dim, spacedim> &                    F_mapping,
-      LinearAlgebra::distributed::Vector<double> &      F_rhs) const;
-
+      LinearAlgebra::distributed::Vector<double> &      F_rhs);
 
     /**
-     * Middle part of velocity interpolation - performs the actual
-     * computations and does not communicate.
+     * Middle part of velocity interpolation - finalizes the forward scatters
+     * and then performs the actual computations.
+     *
+     * @note this function does not compute anything - inheriting classes should
+     * reimplement this method to set up the RHS in the desired way.
      */
     virtual
     std::unique_ptr<TransactionBase>
     compute_projection_rhs_intermediate(
-      std::unique_ptr<TransactionBase> transaction) const = 0;
+      std::unique_ptr<TransactionBase> transaction);
 
     /**
      * Finish the computation of the RHS vector corresponding to projecting @p
@@ -259,7 +272,7 @@ namespace fdl
      */
     virtual void
     compute_projection_rhs_finish(
-      std::unique_ptr<TransactionBase> transaction) const;
+      std::unique_ptr<TransactionBase> transaction);
 
 #if 0
     /**
@@ -302,6 +315,26 @@ namespace fdl
 
   protected:
     /**
+     * Return a reference to the overlap dof handler corresponding to the
+     * provided native dof handler.
+     */
+    DoFHandler<dim, spacedim> &
+    get_overlap_dof_handler(const DoFHandler<dim, spacedim> &native_dof_handler);
+
+    /**
+     * Return a constant reference to the corresponding overlap dof handler.
+     */
+    const DoFHandler<dim, spacedim> &
+    get_overlap_dof_handler(const DoFHandler<dim, spacedim> &native_dof_handler) const;
+
+    /**
+     * Return a reference to the scatter corresponding to the provided native
+     * dof handler.
+     */
+    Scatter<double> &
+    get_scatter(const DoFHandler<dim, spacedim> &native_dof_handler);
+
+    /**
      * @name Geometric data.
      * @{
      */
@@ -309,7 +342,7 @@ namespace fdl
     /**
      * Native triangulation, which is stored separately.
      */
-    SmartPointer<parallel::shared::Triangulation<dim, spacedim>> native_tria;
+    SmartPointer<const parallel::shared::Triangulation<dim, spacedim>> native_tria;
 
     /**
      * Overlap triangulation - i.e., the part of native_tria that intersects the
@@ -351,7 +384,7 @@ namespace fdl
      * DoFHandlers defined on the overlap tria, which are equivalent to those
      * stored by @p native_dof_handlers.
      */
-    std::vector<DoFHandler<dim, spacedim>> overlap_dof_handlers;
+    std::vector<std::unique_ptr<DoFHandler<dim, spacedim>>> overlap_dof_handlers;
 
     /**
      * Scatter objects for moving vectors between native and overlap
@@ -386,7 +419,7 @@ namespace fdl
      *
      * @todo There is probably a more efficient way to implement this.
      */
-    Scatter<float> cell_index_scatter;
+    // Scatter<float> cell_index_scatter;
 
     /**
      * @}
