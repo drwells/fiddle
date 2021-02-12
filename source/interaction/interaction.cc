@@ -301,6 +301,25 @@ namespace fdl
     , level_number(l_number)
     , eulerian_data_cache(e_data_cache)
   {
+    reinit(n_tria, global_active_cell_bboxes, p_hierarchy, l_number, e_data_cache);
+  }
+
+
+
+  template <int dim, int spacedim>
+  void
+  InteractionBase<dim, spacedim>::reinit(
+    const parallel::shared::Triangulation<dim, spacedim> &n_tria,
+    const std::vector<BoundingBox<spacedim, float>> &     global_active_cell_bboxes,
+    tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     p_hierarchy,
+    const int                                             l_number,
+    std::shared_ptr<IBTK::SAMRAIDataCache> e_data_cache)
+  {
+    native_tria = &n_tria;
+    patch_hierarchy = p_hierarchy;
+    level_number = l_number;
+    eulerian_data_cache = e_data_cache;
+
     // Check inputs
     Assert(global_active_cell_bboxes.size() == native_tria->n_active_cells(),
            ExcMessage("There should be a bounding box for each active cell"));
@@ -513,8 +532,6 @@ namespace fdl
     trans.next_state = Transaction<dim, spacedim>::State::Done;
   }
 
-
-
   // instantiations
 
   template void
@@ -549,5 +566,4 @@ namespace fdl
 
   template class InteractionBase<NDIM - 1, NDIM>;
   template class InteractionBase<NDIM, NDIM>;
-
 } // namespace fdl

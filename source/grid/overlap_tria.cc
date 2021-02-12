@@ -229,9 +229,6 @@ namespace fdl
       }
   }
 
-  template class OverlapTriangulation<2, 2>;
-
-  template class OverlapTriangulation<2, 3>;
-
-  template class OverlapTriangulation<3, 3>;
+  template class OverlapTriangulation<NDIM - 1, NDIM>;
+  template class OverlapTriangulation<NDIM, NDIM>;
 } // namespace fdl

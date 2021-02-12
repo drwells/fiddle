@@ -214,7 +214,7 @@ namespace fdl
       const std::vector<BoundingBox<spacedim, float>> &     active_cell_bboxes,
       tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
       const int                                             level_number,
-      std::shared_ptr<IBTK::SAMRAIDataCache> eulerian_data_cache = {});
+      std::shared_ptr<IBTK::SAMRAIDataCache> eulerian_data_cache);
 
     /**
      * Store a pointer to @p native_dof_handler and also compute the

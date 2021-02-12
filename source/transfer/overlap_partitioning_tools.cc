@@ -193,19 +193,13 @@ namespace fdl
 
   template std::vector<types::global_dof_index>
   compute_overlap_to_native_dof_translation(
-    const fdl::OverlapTriangulation<2, 2> &overlap_tria,
-    const DoFHandler<2, 2> &               overlap_dof_handler,
-    const DoFHandler<2, 2> &               native_dof_handler);
+    const fdl::OverlapTriangulation<NDIM - 1, NDIM> &overlap_tria,
+    const DoFHandler<NDIM - 1, NDIM> &               overlap_dof_handler,
+    const DoFHandler<NDIM - 1, NDIM> &               native_dof_handler);
 
   template std::vector<types::global_dof_index>
   compute_overlap_to_native_dof_translation(
-    const fdl::OverlapTriangulation<2, 3> &overlap_tria,
-    const DoFHandler<2, 3> &               overlap_dof_handler,
-    const DoFHandler<2, 3> &               native_dof_handler);
-
-  template std::vector<types::global_dof_index>
-  compute_overlap_to_native_dof_translation(
-    const fdl::OverlapTriangulation<3, 3> &overlap_tria,
-    const DoFHandler<3, 3> &               overlap_dof_handler,
-    const DoFHandler<3, 3> &               native_dof_handler);
+    const fdl::OverlapTriangulation<NDIM, NDIM> &overlap_tria,
+    const DoFHandler<NDIM, NDIM> &               overlap_dof_handler,
+    const DoFHandler<NDIM, NDIM> &               native_dof_handler);
 } // namespace fdl
