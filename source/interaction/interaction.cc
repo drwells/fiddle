@@ -124,6 +124,8 @@ namespace fdl
             else
               Assert(false, ExcNotImplemented());
 
+            // We just need an iterator to get a valid patch (so we can get a
+            // valid type), so we are done at this point
             break;
           }
       }
