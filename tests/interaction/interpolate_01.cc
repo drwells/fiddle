@@ -144,9 +144,13 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                       F_dof_handler,
                                       quadratures[0],
                                       mass_matrix);
-    SparseDirectUMFPACK sparse_direct;
-    sparse_direct.initialize(mass_matrix);
-    sparse_direct.solve(F_solution);
+
+    PreconditionIdentity preconditioner;
+    preconditioner.initialize(mass_matrix);
+
+    SolverControl control(100, 1e-14*F_rhs.l2_norm());
+    SolverCG<> cg(control);
+    cg.solve(mass_matrix, F_solution, F_rhs, preconditioner);
   }
 
   // scatter the overlap data back to the native data and solve the native
