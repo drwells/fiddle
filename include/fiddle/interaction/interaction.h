@@ -159,8 +159,8 @@ namespace fdl
     /// Possible operations.
     enum class Operation
     {
-    Interpolation,
-    Spreading
+      Interpolation,
+      Spreading
     };
 
     /// Operation of the current transaction. Used for consistency checking.
@@ -209,12 +209,11 @@ namespace fdl
      * Reinitialize the object. Same as the constructor.
      */
     virtual void
-    reinit(
-      const parallel::shared::Triangulation<dim, spacedim> &native_tria,
-      const std::vector<BoundingBox<spacedim, float>> &     active_cell_bboxes,
-      tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
-      const int                                             level_number,
-      std::shared_ptr<IBTK::SAMRAIDataCache> eulerian_data_cache);
+    reinit(const parallel::shared::Triangulation<dim, spacedim> &native_tria,
+           const std::vector<BoundingBox<spacedim, float>> & active_cell_bboxes,
+           tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
+           const int                                         level_number,
+           std::shared_ptr<IBTK::SAMRAIDataCache> eulerian_data_cache);
 
     /**
      * Store a pointer to @p native_dof_handler and also compute the
@@ -240,8 +239,7 @@ namespace fdl
      * of the input arguments. Those pointers must remain valid until after
      * compute_projection_rhs_finish is called.
      */
-    virtual
-    std::unique_ptr<TransactionBase>
+    virtual std::unique_ptr<TransactionBase>
     compute_projection_rhs_start(
       const int                                         f_data_idx,
       const QuadratureFamily<dim> &                     quad_family,
@@ -259,8 +257,7 @@ namespace fdl
      * @note this function does not compute anything - inheriting classes should
      * reimplement this method to set up the RHS in the desired way.
      */
-    virtual
-    std::unique_ptr<TransactionBase>
+    virtual std::unique_ptr<TransactionBase>
     compute_projection_rhs_intermediate(
       std::unique_ptr<TransactionBase> transaction);
 
@@ -271,8 +268,7 @@ namespace fdl
      * representation back to the native representation.
      */
     virtual void
-    compute_projection_rhs_finish(
-      std::unique_ptr<TransactionBase> transaction);
+    compute_projection_rhs_finish(std::unique_ptr<TransactionBase> transaction);
 
 #if 0
     /**
@@ -319,13 +315,15 @@ namespace fdl
      * provided native dof handler.
      */
     DoFHandler<dim, spacedim> &
-    get_overlap_dof_handler(const DoFHandler<dim, spacedim> &native_dof_handler);
+    get_overlap_dof_handler(
+      const DoFHandler<dim, spacedim> &native_dof_handler);
 
     /**
      * Return a constant reference to the corresponding overlap dof handler.
      */
     const DoFHandler<dim, spacedim> &
-    get_overlap_dof_handler(const DoFHandler<dim, spacedim> &native_dof_handler) const;
+    get_overlap_dof_handler(
+      const DoFHandler<dim, spacedim> &native_dof_handler) const;
 
     /**
      * Return a reference to the scatter corresponding to the provided native
@@ -342,7 +340,8 @@ namespace fdl
     /**
      * Native triangulation, which is stored separately.
      */
-    SmartPointer<const parallel::shared::Triangulation<dim, spacedim>> native_tria;
+    SmartPointer<const parallel::shared::Triangulation<dim, spacedim>>
+      native_tria;
 
     /**
      * Overlap triangulation - i.e., the part of native_tria that intersects the
@@ -378,13 +377,15 @@ namespace fdl
      * Pointers to DoFHandlers using native_tria which have equivalent overlap
      * DoFHandlers.
      */
-    std::vector<SmartPointer<const DoFHandler<dim, spacedim>>> native_dof_handlers;
+    std::vector<SmartPointer<const DoFHandler<dim, spacedim>>>
+      native_dof_handlers;
 
     /**
      * DoFHandlers defined on the overlap tria, which are equivalent to those
      * stored by @p native_dof_handlers.
      */
-    std::vector<std::unique_ptr<DoFHandler<dim, spacedim>>> overlap_dof_handlers;
+    std::vector<std::unique_ptr<DoFHandler<dim, spacedim>>>
+      overlap_dof_handlers;
 
     /**
      * Scatter objects for moving vectors between native and overlap
@@ -439,8 +440,7 @@ namespace fdl
      * Middle part of velocity interpolation - performs the actual
      * computations and does not communicate.
      */
-    virtual
-    std::unique_ptr<TransactionBase>
+    virtual std::unique_ptr<TransactionBase>
     compute_projection_rhs_intermediate(
       std::unique_ptr<TransactionBase> transaction) const override;
 
@@ -488,8 +488,7 @@ namespace fdl
     /**
      * TODO
      */
-    virtual
-    std::unique_ptr<TransactionBase>
+    virtual std::unique_ptr<TransactionBase>
     compute_projection_rhs_intermediate(
       std::unique_ptr<TransactionBase> transaction) const override;
 

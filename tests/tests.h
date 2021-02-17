@@ -1,10 +1,16 @@
-#include <deal.II/base/exceptions.h>
-
 #include <ibtk/HierarchyGhostCellInterpolation.h>
 #include <ibtk/muParserCartGridFunction.h>
 
+#include <deal.II/base/exceptions.h>
+
+#include <BergerRigoutsos.h>
 #include <Box.h>
+#include <CartesianGridGeometry.h>
+#include <GriddingAlgorithm.h>
+#include <LoadBalancer.h>
 #include <PatchHierarchy.h>
+#include <StandardTagAndInitialize.h>
+
 #include <tbox/SAMRAI_MPI.h>
 
 #include <mpi.h>

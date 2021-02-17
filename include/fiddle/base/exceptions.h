@@ -11,6 +11,6 @@ namespace fdl
 
   DeclExceptionMsg(ExcFDLNotImplemented,
                    "The requested feature is not yet implemented.");
-}
+} // namespace fdl
 
 #endif

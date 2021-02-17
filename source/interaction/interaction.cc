@@ -1,8 +1,11 @@
-#include <fiddle/transfer/overlap_partitioning_tools.h>
-
 #include <fiddle/grid/box_utilities.h>
 
 #include <fiddle/interaction/interaction.h>
+
+#include <fiddle/transfer/overlap_partitioning_tools.h>
+
+#include <deal.II/base/array_view.h>
+#include <deal.II/base/mpi_noncontiguous_partitioner.templates.h>
 
 #include <deal.II/fe/fe_values.h>
 
@@ -292,16 +295,17 @@ namespace fdl
   template <int dim, int spacedim>
   InteractionBase<dim, spacedim>::InteractionBase(
     const parallel::shared::Triangulation<dim, spacedim> &n_tria,
-    const std::vector<BoundingBox<spacedim, float>> &     global_active_cell_bboxes,
-    tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     p_hierarchy,
-    const int                                             l_number,
-    std::shared_ptr<IBTK::SAMRAIDataCache> e_data_cache)
+    const std::vector<BoundingBox<spacedim, float>> & global_active_cell_bboxes,
+    tbox::Pointer<hier::BasePatchHierarchy<spacedim>> p_hierarchy,
+    const int                                         l_number,
+    std::shared_ptr<IBTK::SAMRAIDataCache>            e_data_cache)
     : native_tria(&n_tria)
     , patch_hierarchy(p_hierarchy)
     , level_number(l_number)
     , eulerian_data_cache(e_data_cache)
   {
-    reinit(n_tria, global_active_cell_bboxes, p_hierarchy, l_number, e_data_cache);
+    reinit(
+      n_tria, global_active_cell_bboxes, p_hierarchy, l_number, e_data_cache);
   }
 
 
@@ -310,14 +314,14 @@ namespace fdl
   void
   InteractionBase<dim, spacedim>::reinit(
     const parallel::shared::Triangulation<dim, spacedim> &n_tria,
-    const std::vector<BoundingBox<spacedim, float>> &     global_active_cell_bboxes,
-    tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     p_hierarchy,
-    const int                                             l_number,
-    std::shared_ptr<IBTK::SAMRAIDataCache> e_data_cache)
+    const std::vector<BoundingBox<spacedim, float>> & global_active_cell_bboxes,
+    tbox::Pointer<hier::BasePatchHierarchy<spacedim>> p_hierarchy,
+    const int                                         l_number,
+    std::shared_ptr<IBTK::SAMRAIDataCache>            e_data_cache)
   {
-    native_tria = &n_tria;
-    patch_hierarchy = p_hierarchy;
-    level_number = l_number;
+    native_tria         = &n_tria;
+    patch_hierarchy     = p_hierarchy;
+    level_number        = l_number;
     eulerian_data_cache = e_data_cache;
 
     // Check inputs
@@ -367,7 +371,8 @@ namespace fdl
   InteractionBase<dim, spacedim>::get_overlap_dof_handler(
     const DoFHandler<dim, spacedim> &native_dof_handler)
   {
-    auto iter = std::find(native_dof_handlers.begin(), native_dof_handlers.end(),
+    auto iter = std::find(native_dof_handlers.begin(),
+                          native_dof_handlers.end(),
                           &native_dof_handler);
     AssertThrow(iter != native_dof_handlers.end(),
                 ExcMessage("The provided dof handler must already be "
@@ -382,7 +387,8 @@ namespace fdl
   InteractionBase<dim, spacedim>::get_overlap_dof_handler(
     const DoFHandler<dim, spacedim> &native_dof_handler) const
   {
-    auto iter = std::find(native_dof_handlers.begin(), native_dof_handlers.end(),
+    auto iter = std::find(native_dof_handlers.begin(),
+                          native_dof_handlers.end(),
                           &native_dof_handler);
     AssertThrow(iter != native_dof_handlers.end(),
                 ExcMessage("The provided dof handler must already be "
@@ -397,7 +403,8 @@ namespace fdl
   InteractionBase<dim, spacedim>::get_scatter(
     const DoFHandler<dim, spacedim> &native_dof_handler)
   {
-    auto iter = std::find(native_dof_handlers.begin(), native_dof_handlers.end(),
+    auto iter = std::find(native_dof_handlers.begin(),
+                          native_dof_handlers.end(),
                           &native_dof_handler);
     AssertThrow(iter != native_dof_handlers.end(),
                 ExcMessage("The provided dof handler must already be "
@@ -516,11 +523,13 @@ namespace fdl
 
 
   template <int dim, int spacedim>
-  void InteractionBase<dim, spacedim>::compute_projection_rhs_finish(
+  void
+  InteractionBase<dim, spacedim>::compute_projection_rhs_finish(
     std::unique_ptr<TransactionBase> t_ptr)
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
-    Assert((trans.operation == Transaction<dim, spacedim>::Operation::Interpolation),
+    Assert((trans.operation ==
+            Transaction<dim, spacedim>::Operation::Interpolation),
            ExcMessage("Transaction operation should be Interpolation"));
     Assert((trans.next_state == Transaction<dim, spacedim>::State::Finish),
            ExcMessage("Transaction state should be Finish"));
