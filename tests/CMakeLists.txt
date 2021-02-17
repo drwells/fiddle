@@ -53,7 +53,11 @@ SETUP(grid patch_map_02.cc fiddle2d)
 
 SETUP(grid tag_cells_01.cc fiddle2d)
 
+# interaction:
 SETUP(interaction interpolate_01.cc fiddle2d)
+
+SETUP(interaction interaction_base_01.cc fiddle2d)
+
 ADD_CUSTOM_COMMAND(TARGET tests
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/attest ${CMAKE_BINARY_DIR}/attest)

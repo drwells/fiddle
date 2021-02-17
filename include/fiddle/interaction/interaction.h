@@ -1,14 +1,13 @@
 #ifndef included_fiddle_interaction_interaction_h
 #define included_fiddle_interaction_interaction_h
 
-#include <fiddle/base/quadrature_family.h>
-
 #include <fiddle/grid/overlap_tria.h>
 #include <fiddle/grid/patch_map.h>
 
 #include <fiddle/transfer/scatter.h>
 
 #include <deal.II/base/bounding_box.h>
+#include <deal.II/base/mpi_noncontiguous_partitioner.h>
 #include <deal.II/base/quadrature.h>
 
 #include <deal.II/distributed/shared_tria.h>
@@ -23,6 +22,7 @@
 #include <ibtk/SAMRAIGhostDataAccumulator.h>
 
 #include <PatchLevel.h>
+#include <fiddle/base/quadrature_family.h>
 
 #include <memory>
 #include <vector>
@@ -122,6 +122,12 @@ namespace fdl
 
     /// Quadrature indices on overlap partitioning.
     std::vector<unsigned char> overlap_quad_indices;
+
+    /// Temporary vector used to communicate quadrature indices.
+    std::vector<unsigned char> quad_indices_work;
+
+    /// MPI_Request objects associated with the quad index update.
+    std::vector<MPI_Request> quad_indices_requests;
 
     /// Native position DoFHandler.
     SmartPointer<const DoFHandler<dim, spacedim>> native_X_dof_handler;
@@ -411,16 +417,25 @@ namespace fdl
      */
 
     /**
-     * @name Data structures used for internal communication.
+     * @name Data structures used for communication of other internal values.
      * @{
      */
 
     /**
-     * Scatter object for moving cell data (computed as active cell indices).
-     *
-     * @todo There is probably a more efficient way to implement this.
+     * Object for moving cell data (computed as active cell indices).
      */
-    // Scatter<float> cell_index_scatter;
+    Utilities::MPI::NoncontiguousPartitioner active_cell_index_partitioner;
+
+    /**
+     * Size of the quadrature index work array.
+     */
+    std::size_t quad_index_work_size;
+
+    /**
+     * Number of MPI_Request objects to set up when communicating quadrature
+     * indices.
+     */
+    std::size_t n_quad_index_requests;
 
     /**
      * @}
