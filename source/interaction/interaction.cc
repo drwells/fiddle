@@ -331,6 +331,19 @@ namespace fdl
       AssertThrowMPI(ierr);
     }
 
+#ifdef DEBUG
+    {
+      int result = 0;
+      int ierr = MPI_Comm_compare(communicator,
+                                  tbox::SAMRAI_MPI::getCommunicator(),
+                                  &result);
+      AssertThrowMPI(ierr);
+      Assert(result == MPI_CONGRUENT || result == MPI_IDENT,
+             ExcMessage("The same communicator should be used for the "
+                        "triangulation (from deal.II) and in SAMRAI"));
+    }
+#endif
+
     native_tria         = &n_tria;
     patch_hierarchy     = p_hierarchy;
     level_number        = l_number;
@@ -504,6 +517,21 @@ namespace fdl
     Assert(quad_indices.size() == native_tria->n_locally_owned_active_cells(),
            ExcMessage("Each locally owned active cell should have a "
                       "quadrature index"));
+#ifdef DEBUG
+    {
+      int result = 0;
+      int ierr = MPI_Comm_compare(communicator, X.get_mpi_communicator(), &result);
+      AssertThrowMPI(ierr);
+      Assert(result == MPI_CONGRUENT,
+             ExcMessage("The same communicator should be used for X and the "
+                        "input triangulation"));
+      ierr = MPI_Comm_compare(communicator, F_rhs.get_mpi_communicator(), &result);
+      AssertThrowMPI(ierr);
+      Assert(result == MPI_CONGRUENT,
+             ExcMessage("The same communicator should be used for F_rhs and "
+                        "the input triangulation"));
+    }
+#endif
 
     auto t_ptr = std::make_unique<Transaction<dim, spacedim>>();
 
