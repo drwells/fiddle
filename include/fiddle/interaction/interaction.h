@@ -222,6 +222,12 @@ namespace fdl
            std::shared_ptr<IBTK::SAMRAIDataCache> eulerian_data_cache);
 
     /**
+     * Destructor.
+     */
+    virtual
+    ~InteractionBase();
+
+    /**
      * Store a pointer to @p native_dof_handler and also compute the
      * equivalent DoFHandler on the overlapping partitioning.
      *
@@ -316,6 +322,23 @@ namespace fdl
 #endif
 
   protected:
+    /**
+     * One difficulty with the way communication is implemented in deal.II is
+     * that there are some hard-coded limits on the number of messages that can
+     * be posted at once - for example, we can only use 200 channels in
+     * LA::d::Vector. A second difficulty is that since that communication
+     * happens inside this object we have no way of picking globally unique
+     * channel values.
+     *
+     * Sidestep this completely by doing all the communication for this object
+     * over our own communicator. While creating thousands of communicators is
+     * likely to be problematic (long set up times, running out of communicator
+     * IDs in some MPI implementations, etc.) we will probably not create more
+     * than a few dozen of these objects over the course of a simulator run so
+     * its unlikely to be a problem.
+     */
+    MPI_Comm communicator;
+
     /**
      * Return a reference to the overlap dof handler corresponding to the
      * provided native dof handler.

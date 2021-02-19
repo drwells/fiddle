@@ -292,6 +292,7 @@ namespace fdl
   }
 
 
+
   template <int dim, int spacedim>
   InteractionBase<dim, spacedim>::InteractionBase(
     const parallel::shared::Triangulation<dim, spacedim> &n_tria,
@@ -299,7 +300,8 @@ namespace fdl
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> p_hierarchy,
     const int                                         l_number,
     std::shared_ptr<IBTK::SAMRAIDataCache>            e_data_cache)
-    : native_tria(&n_tria)
+    : communicator(MPI_COMM_NULL)
+    , native_tria(&n_tria)
     , patch_hierarchy(p_hierarchy)
     , level_number(l_number)
     , eulerian_data_cache(e_data_cache)
@@ -319,6 +321,16 @@ namespace fdl
     const int                                         l_number,
     std::shared_ptr<IBTK::SAMRAIDataCache>            e_data_cache)
   {
+    // We don't need to create a communicator unless its the first time we are
+    // here or if we, for some reason, get reinitialized with a totally new
+    // Triangulation with a new network
+    if (communicator == MPI_COMM_NULL
+        || native_tria->get_communicator() != n_tria.get_communicator())
+    {
+      const int ierr = MPI_Comm_dup(n_tria.get_communicator(), &communicator);
+      AssertThrowMPI(ierr);
+    }
+
     native_tria         = &n_tria;
     patch_hierarchy     = p_hierarchy;
     level_number        = l_number;
@@ -375,7 +387,7 @@ namespace fdl
 
       active_cell_index_partitioner.reinit(locally_owned_active_cell_indices,
                                            ghost_active_cell_indices,
-                                           native_tria->get_communicator());
+                                           communicator);
 
       quad_index_work_size =
         active_cell_index_partitioner.temporary_storage_size();
@@ -383,6 +395,15 @@ namespace fdl
       const auto n_targets  = active_cell_index_partitioner.n_targets();
       n_quad_index_requests = n_targets.first + n_targets.second;
     }
+  }
+
+
+
+  template <int dim, int spacedim>
+  InteractionBase<dim, spacedim>::~InteractionBase()
+  {
+    int ierr = MPI_Comm_free(&communicator);
+    AssertNothrow(ierr == 0, ExcMessage("Unable to free the MPI communicator"));
   }
 
 
@@ -462,7 +483,7 @@ namespace fdl
                                                     native_dof_handler);
         scatters.emplace_back(overlap_to_native_dofs,
                               native_dof_handler.locally_owned_dofs(),
-                              native_tria->get_communicator());
+                              communicator);
       }
   }
 
@@ -518,16 +539,16 @@ namespace fdl
     // OK, now start scattering:
     Scatter<double> &X_scatter = get_scatter(X_dof_handler);
 
-    // TODO we really need a good way to get channels at this point so people
-    // can start multiple scatters at once
-    int tag = 0;
+    // Since we set up our own communicator in this object we can fearlessly use
+    // channels 0 and 1 to guarantee traffic is not accidentally mingled
+    int channel = 0;
     X_scatter.global_to_overlap_start(*transaction.native_X,
-                                      tag,
+                                      channel,
                                       transaction.overlap_X_vec);
-    ++tag;
+    ++channel;
 
     active_cell_index_partitioner.export_to_ghosted_array_start<unsigned char>(
-      tag,
+      channel,
       make_const_array_view(transaction.native_quad_indices),
       make_array_view(transaction.quad_indices_work),
       transaction.quad_indices_requests);
@@ -560,6 +581,17 @@ namespace fdl
       trans.quad_indices_requests);
 
     // this is the point at which a base class would normally do computations.
+
+    // After we compute we begin the scatter back to the native partitioning:
+    Scatter<double> &F_scatter = get_scatter(*trans.native_F_dof_handler);
+
+    // This object *cannot* get here without the first two scatters finishing so
+    // using channel 0 again is fine
+    int channel = 0;
+    F_scatter.overlap_to_global_start(trans.overlap_F_rhs,
+                                      VectorOperation::add,
+                                      channel,
+                                      *trans.native_F_rhs);
 
     trans.next_state = Transaction<dim, spacedim>::State::Finish;
 
