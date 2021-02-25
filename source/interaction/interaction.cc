@@ -326,10 +326,8 @@ namespace fdl
     // Triangulation with a new network
     if (communicator == MPI_COMM_NULL
         || native_tria->get_communicator() != n_tria.get_communicator())
-    {
-      const int ierr = MPI_Comm_dup(n_tria.get_communicator(), &communicator);
-      AssertThrowMPI(ierr);
-    }
+      communicator = Utilities::MPI::duplicate_communicator(
+        n_tria.get_communicator());
 
 #ifdef DEBUG
     {
