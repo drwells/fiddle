@@ -1,7 +1,7 @@
 #include <fiddle/grid/overlap_tria.h>
 #include <fiddle/grid/patch_map.h>
 
-#include <fiddle/interaction/interaction.h>
+#include <fiddle/interaction/interaction_utilities.h>
 
 #include <fiddle/transfer/overlap_partitioning_tools.h>
 #include <fiddle/transfer/scatter.h>
