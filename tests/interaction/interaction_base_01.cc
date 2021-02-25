@@ -219,7 +219,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
   // plot native solution:
   {
-#if 0 // TODO plot quad indices
+#if 0
     DataOut<dim> native_data_out;
     native_data_out.attach_dof_handler(F_dof_handler);
     native_solution.update_ghost_values();
