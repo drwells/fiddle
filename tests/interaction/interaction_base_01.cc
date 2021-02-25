@@ -16,6 +16,7 @@
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/mapping_q.h>
+#include <deal.II/fe/mapping_fe_field.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/tria.h>
@@ -42,6 +43,7 @@ using namespace dealii;
 // First test driver for InteractionBase. Used to test
 //
 // 1. quadrature index scattering
+// 2. element coordinate scattering
 
 template <int dim>
 class Identity : public Function<dim>
@@ -77,7 +79,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   // setup SAMRAI stuff (its always the same):
   auto pair            = setup_hierarchy<spacedim>(app_initializer);
   auto patch_hierarchy = pair.first;
-  auto u_cc_idx        = pair.second;
+  auto f_cc_idx        = pair.second;
 
   // Now set up fiddle things for the test:
   std::vector<BoundingBox<spacedim, float>> cell_bboxes;
@@ -142,7 +144,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   LinearAlgebra::distributed::Vector<double> F_rhs(F_partitioner);
 
   auto transaction =
-    interaction_base.compute_projection_rhs_start(u_cc_idx,
+    interaction_base.compute_projection_rhs_start(f_cc_idx,
                                                   single_quad,
                                                   quadrature_indices,
                                                   X_dof_handler,
@@ -191,14 +193,36 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                         << " quad index = "
                         << quad_indices[cell->active_cell_index()] << '\n';
           }
-
-        print_strings_on_0(this_output.str(), output);
       }
 
     if (input_db->getBoolWithDefault("write_mapped_cell_centers", false))
       {
         // TODO - implement this test to verify that the X scatter works.
+        std::vector<types::global_dof_index> X_dofs(X_fe.dofs_per_cell);
+        QMidpoint<dim> quadrature;
+        MappingFEField<dim, dim, Vector<double>>
+          X_map(X_overlap_dof_handler, trans.overlap_X_vec);
+        FEValues<dim> fe_values(X_map, X_fe, quadrature, update_quadrature_points);
+
+        for (const auto &cell : X_overlap_dof_handler.active_cell_iterators())
+          {
+            fe_values.reinit(cell);
+
+            const auto center = cell->center();
+            const auto mapped_center = fe_values.get_quadrature_points()[0];
+
+            this_output << "center = "
+                        << cell->center()
+                        << " mapped center = "
+                        << fe_values.get_quadrature_points()[0]
+                        << " equality = "
+                        << std::boolalpha
+                        << (center.distance(mapped_center) < 1e-12)
+                        << '\n';
+          }
       }
+
+    print_strings_on_0(this_output.str(), output);
 
     DataOut<dim> data_out;
     data_out.attach_dof_handler(X_overlap_dof_handler);
