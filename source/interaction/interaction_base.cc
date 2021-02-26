@@ -285,7 +285,7 @@ namespace fdl
     transaction.native_F_dof_handler = &F_dof_handler;
     transaction.F_mapping            = &F_mapping;
     transaction.native_F_rhs         = &F_rhs;
-    transaction.overlap_F_rhs.reinit(
+    transaction.overlap_F.reinit(
       get_overlap_dof_handler(F_dof_handler).n_dofs());
 
     // Setup state:
@@ -345,7 +345,7 @@ namespace fdl
     // This object *cannot* get here without the first two scatters finishing so
     // using channel 0 again is fine
     int channel = 0;
-    F_scatter.overlap_to_global_start(trans.overlap_F_rhs,
+    F_scatter.overlap_to_global_start(trans.overlap_F,
                                       VectorOperation::add,
                                       channel,
                                       *trans.native_F_rhs);
@@ -370,9 +370,150 @@ namespace fdl
            ExcMessage("Transaction state should be Finish"));
 
     Scatter<double> &F_scatter = get_scatter(*trans.native_F_dof_handler);
-    F_scatter.overlap_to_global_finish(trans.overlap_F_rhs,
+    F_scatter.overlap_to_global_finish(trans.overlap_F,
                                        VectorOperation::add,
                                        *trans.native_F_rhs);
+    trans.next_state = Transaction<dim, spacedim>::State::Done;
+  }
+
+
+
+  template <int dim, int spacedim>
+  std::unique_ptr<TransactionBase>
+  InteractionBase<dim, spacedim>::compute_spread_start(
+    const int                                         f_data_idx,
+    const QuadratureFamily<dim> &                     quad_family,
+    const std::vector<unsigned char> &                quad_indices,
+    const LinearAlgebra::distributed::Vector<double> &X,
+    const DoFHandler<dim, spacedim> &                 X_dof_handler,
+    const Mapping<dim, spacedim> &                    F_mapping,
+    const DoFHandler<dim, spacedim> &                 F_dof_handler,
+    const LinearAlgebra::distributed::Vector<double> &F)
+  {
+    Assert(quad_indices.size() == native_tria->n_locally_owned_active_cells(),
+           ExcMessage("Each locally owned active cell should have a "
+                      "quadrature index"));
+#ifdef DEBUG
+    {
+      int result = 0;
+      int ierr = MPI_Comm_compare(communicator, X.get_mpi_communicator(), &result);
+      AssertThrowMPI(ierr);
+      Assert(result == MPI_CONGRUENT,
+             ExcMessage("The same communicator should be used for X and the "
+                        "input triangulation"));
+      ierr = MPI_Comm_compare(communicator, F.get_mpi_communicator(), &result);
+      AssertThrowMPI(ierr);
+      Assert(result == MPI_CONGRUENT,
+             ExcMessage("The same communicator should be used for F and the "
+                        "input triangulation"));
+    }
+#endif
+
+    auto t_ptr = std::make_unique<Transaction<dim, spacedim>>();
+
+    Transaction<dim, spacedim> &transaction = *t_ptr;
+    // set up everything we will need later
+    transaction.current_f_data_idx = f_data_idx;
+
+    // Setup quadrature info:
+    transaction.quad_family         = &quad_family;
+    transaction.native_quad_indices = quad_indices;
+    transaction.overlap_quad_indices.resize(overlap_tria.n_active_cells());
+    transaction.quad_indices_work.resize(quad_index_work_size);
+    transaction.quad_indices_requests.resize(n_quad_index_requests);
+
+    // Setup X info:
+    transaction.native_X_dof_handler = &X_dof_handler;
+    transaction.native_X             = &X;
+    transaction.overlap_X_vec.reinit(
+      get_overlap_dof_handler(X_dof_handler).n_dofs());
+
+    // Setup F info:
+    transaction.native_F_dof_handler   = &F_dof_handler;
+    transaction.F_mapping              = &F_mapping;
+    transaction.native_F               = &F;
+    transaction.overlap_F.reinit(
+      get_overlap_dof_handler(F_dof_handler).n_dofs());
+
+    // Setup state:
+    transaction.next_state = Transaction<dim, spacedim>::State::Intermediate;
+    transaction.operation = Transaction<dim, spacedim>::Operation::Spreading;
+
+    // OK, now start scattering:
+
+    // Since we set up our own communicator in this object we can fearlessly use
+    // channels 0, 1, and 2 to guarantee traffic is not accidentally mingled
+    int channel = 0;
+    Scatter<double> &X_scatter = get_scatter(X_dof_handler);
+    X_scatter.global_to_overlap_start(*transaction.native_X,
+                                      channel,
+                                      transaction.overlap_X_vec);
+    ++channel;
+
+    active_cell_index_partitioner.export_to_ghosted_array_start<unsigned char>(
+      channel,
+      make_const_array_view(transaction.native_quad_indices),
+      make_array_view(transaction.quad_indices_work),
+      transaction.quad_indices_requests);
+    ++channel;
+
+    Scatter<double> &F_scatter = get_scatter(F_dof_handler);
+    F_scatter.global_to_overlap_start(*transaction.native_F,
+                                      channel,
+                                      transaction.overlap_F);
+
+    return t_ptr;
+  }
+
+
+
+  template <int dim, int spacedim>
+  std::unique_ptr<TransactionBase>
+  InteractionBase<dim, spacedim>::compute_spread_intermediate(
+    std::unique_ptr<TransactionBase> t_ptr)
+  {
+    auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
+    Assert((trans.operation ==
+            Transaction<dim, spacedim>::Operation::Spreading),
+           ExcMessage("Transaction operation should be Spreading"));
+    Assert((trans.next_state ==
+            Transaction<dim, spacedim>::State::Intermediate),
+           ExcMessage("Transaction state should be Intermediate"));
+
+    Scatter<double> &X_scatter = get_scatter(*trans.native_X_dof_handler);
+    X_scatter.global_to_overlap_finish(*trans.native_X, trans.overlap_X_vec);
+
+    active_cell_index_partitioner.export_to_ghosted_array_finish<unsigned char>(
+      make_const_array_view(trans.quad_indices_work),
+      make_array_view(trans.overlap_quad_indices),
+      trans.quad_indices_requests);
+
+    Scatter<double> &F_scatter = get_scatter(*trans.native_F_dof_handler);
+    F_scatter.global_to_overlap_finish(*trans.native_F, trans.overlap_F);
+
+    // this is the point at which a base class would normally do computations.
+
+    trans.next_state = Transaction<dim, spacedim>::State::Finish;
+
+    return t_ptr;
+  }
+
+
+
+  template <int dim, int spacedim>
+  void
+  InteractionBase<dim, spacedim>::compute_spread_finish(
+    std::unique_ptr<TransactionBase> t_ptr)
+  {
+    auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
+    Assert((trans.operation ==
+            Transaction<dim, spacedim>::Operation::Interpolation),
+           ExcMessage("Transaction operation should be Spreading"));
+    Assert((trans.next_state == Transaction<dim, spacedim>::State::Finish),
+           ExcMessage("Transaction state should be Finish"));
+
+    // since no data is moved there is nothing else to do here
+
     trans.next_state = Transaction<dim, spacedim>::State::Done;
   }
 

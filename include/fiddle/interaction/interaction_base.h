@@ -49,8 +49,8 @@ namespace fdl
   };
 
   /**
-   * Standard class for transactions - used by ElementalInteraction and
-   * NodalInteraction.
+   * Standard class for transactions - used by InteractionBase,
+   * ElementalInteraction and NodalInteraction.
    *
    * @note Several of the arrays owned by this class will be asynchronously
    * written into by MPI - moving or resizing these arrays can result in program
@@ -93,11 +93,14 @@ namespace fdl
     /// Mapping to use for F.
     SmartPointer<const Mapping<dim, spacedim>> F_mapping;
 
-    /// Native-partitioned F_rhs.
+    /// Native-partitioned F used for assembly.
     SmartPointer<LinearAlgebra::distributed::Vector<double>> native_F_rhs;
 
+    /// Native-partitioned F used for spreading.
+    SmartPointer<const LinearAlgebra::distributed::Vector<double>> native_F;
+
     /// Overlap-partitioned F.
-    Vector<double> overlap_F_rhs;
+    Vector<double> overlap_F;
 
     /// Possible states for a transaction.
     enum class State
@@ -231,10 +234,16 @@ namespace fdl
     virtual void
     compute_projection_rhs_finish(std::unique_ptr<TransactionBase> transaction);
 
-#if 0
     /**
-     * Start spreading forces from the provided finite element field @p F by
-     * adding them onto the SAMRAI data index @p f_data_idx.
+     * Start spreading from the provided finite element field @p F by adding
+     * them onto the SAMRAI data index @p f_data_idx.
+     *
+     * Since, for multi-part models, many different objects may add forces into
+     * @p f_data_idx, at the end of the three spread functions forces may be
+     * spread into ghost regions (both between patches and outside the physical
+     * domain). The caller must use, e.g., IBTK::RobinPhysBdryPatchStrategy and
+     * IBTK::SAMRAIGhostDataAccumulator (in that order) to communicate spread
+     * values onto their owning cells.
      *
      * @warning The Transaction returned by this method stores pointers to all
      * of the input arguments. Those pointers must remain valid until after
@@ -242,33 +251,30 @@ namespace fdl
      */
     virtual
     std::unique_ptr<TransactionBase>
-    spread_force_start(const int                              f_data_idx,
-                       const QuadratureFamily<dim, spacedim> &quad_family,
-                       const std::vector<unsigned char> &     quad_indices,
-                       const LinearAlgebra::distributed::Vector<double> &X,
-                       const DoFHandler<dim, spacedim> &X_dof_handler,
-                       const Mapping<dim, spacedim> &   F_mapping,
-                       const DoFHandler<dim, spacedim> &F_dof_handler,
-                       // TODO - we need something that can accumulate forces
-                       // spread outside the domain in spread_force_finish
-                       const LinearAlgebra::distributed::Vector<double> &F);
+    compute_spread_start(const int                              f_data_idx,
+                         const QuadratureFamily<dim> &          quad_family,
+                         const std::vector<unsigned char> &     quad_indices,
+                         const LinearAlgebra::distributed::Vector<double> &X,
+                         const DoFHandler<dim, spacedim> &X_dof_handler,
+                         const Mapping<dim, spacedim> &   F_mapping,
+                         const DoFHandler<dim, spacedim> &F_dof_handler,
+                         const LinearAlgebra::distributed::Vector<double> &F);
 
     /**
-     * Middle part of force spreading - performs the actual computations and
-     * does not communicate.
+     * Middle part of spreading - performs the actual computations and does not
+     * communicate.
      */
     virtual
     std::unique_ptr<TransactionBase>
-    spread_force_intermediate(std::unique_ptr<TransactionBase> spread_transaction);
+    compute_spread_intermediate(std::unique_ptr<TransactionBase> spread_transaction);
 
     /**
-     * Finish spreading forces from the provided finite element field @p F by
-     * adding them onto the SAMRAI data index @p f_data_idx.
+     * Finish spreading from the provided finite element field @p F by adding
+     * them onto the SAMRAI data index @p f_data_idx.
      */
     virtual
-    std::unique_ptr<TransactionBase>
-    spread_force_finish(std::unique_ptr<TransactionBase> spread_transaction);
-#endif
+    void
+    compute_spread_finish(std::unique_ptr<TransactionBase> spread_transaction);
 
   protected:
     /**
