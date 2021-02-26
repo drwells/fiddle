@@ -1,6 +1,8 @@
 #ifndef included_fiddle_interaction_elemental_interaction_h
 #define included_fiddle_interaction_elemental_interaction_h
 
+#include <fiddle/base/quadrature_family.h>
+
 #include <fiddle/grid/overlap_tria.h>
 #include <fiddle/grid/patch_map.h>
 
@@ -22,7 +24,6 @@
 #include <ibtk/SAMRAIGhostDataAccumulator.h>
 
 #include <PatchLevel.h>
-#include <fiddle/base/quadrature_family.h>
 
 #include <memory>
 #include <vector>

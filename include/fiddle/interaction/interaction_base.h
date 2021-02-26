@@ -172,8 +172,7 @@ namespace fdl
     /**
      * Destructor.
      */
-    virtual
-    ~InteractionBase();
+    virtual ~InteractionBase();
 
     /**
      * Store a pointer to @p native_dof_handler and also compute the
@@ -245,11 +244,10 @@ namespace fdl
      * of the input arguments. Those pointers must remain valid until after
      * compute_projection_rhs_finish is called.
      */
-    virtual
-    std::unique_ptr<TransactionBase>
-    compute_spread_start(const int                              f_data_idx,
-                         const QuadratureFamily<dim> &          quad_family,
-                         const std::vector<unsigned char> &     quad_indices,
+    virtual std::unique_ptr<TransactionBase>
+    compute_spread_start(const int                         f_data_idx,
+                         const QuadratureFamily<dim> &     quad_family,
+                         const std::vector<unsigned char> &quad_indices,
                          const LinearAlgebra::distributed::Vector<double> &X,
                          const DoFHandler<dim, spacedim> &X_dof_handler,
                          const Mapping<dim, spacedim> &   F_mapping,
@@ -260,16 +258,15 @@ namespace fdl
      * Middle part of spreading - performs the actual computations and does not
      * communicate.
      */
-    virtual
-    std::unique_ptr<TransactionBase>
-    compute_spread_intermediate(std::unique_ptr<TransactionBase> spread_transaction);
+    virtual std::unique_ptr<TransactionBase>
+    compute_spread_intermediate(
+      std::unique_ptr<TransactionBase> spread_transaction);
 
     /**
      * Finish spreading from the provided finite element field @p F by adding
      * them onto the SAMRAI data index @p f_data_idx.
      */
-    virtual
-    void
+    virtual void
     compute_spread_finish(std::unique_ptr<TransactionBase> spread_transaction);
 
   protected:

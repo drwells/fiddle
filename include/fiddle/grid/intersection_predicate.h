@@ -1,6 +1,8 @@
 #ifndef included_fiddle_intersection_predicate_h
 #define included_fiddle_intersection_predicate_h
 
+#include <fiddle/base/exceptions.h>
+
 #include <fiddle/grid/box_utilities.h>
 
 #include <deal.II/base/bounding_box.h>
@@ -8,8 +10,6 @@
 #include <deal.II/dofs/dof_handler.h>
 
 #include <deal.II/grid/tria.h>
-
-#include <fiddle/base/exceptions.h>
 
 #include <mpi.h>
 

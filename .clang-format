@@ -65,12 +65,14 @@ FixNamespaceComments: true
 IncludeBlocks: Regroup
 IncludeCategories:
 # fiddle headers should be first:
-  - Regex:    "fiddle/grid/.*\\.h"
+  - Regex:    "fiddle/base/.*\\.h"
     Priority: 10
-  - Regex:    "fiddle/interaction/.*\\.h"
+  - Regex:    "fiddle/grid/.*\\.h"
     Priority: 20
-  - Regex:    "fiddle/transfer/.*\\.h"
+  - Regex:    "fiddle/interaction/.*\\.h"
     Priority: 30
+  - Regex:    "fiddle/transfer/.*\\.h"
+    Priority: 40
 # deal.II folders in sorted order:
   - Regex:    "deal.II/algorithms/.*\\.h"
     Priority: 110

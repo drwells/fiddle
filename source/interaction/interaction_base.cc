@@ -35,8 +35,7 @@ namespace fdl
     , patch_hierarchy(p_hierarchy)
     , level_number(l_number)
   {
-    reinit(
-      n_tria, global_active_cell_bboxes, p_hierarchy, l_number);
+    reinit(n_tria, global_active_cell_bboxes, p_hierarchy, l_number);
   }
 
 
@@ -52,15 +51,15 @@ namespace fdl
     // We don't need to create a communicator unless its the first time we are
     // here or if we, for some reason, get reinitialized with a totally new
     // Triangulation with a new network
-    if (communicator == MPI_COMM_NULL
-        || native_tria->get_communicator() != n_tria.get_communicator())
-      communicator = Utilities::MPI::duplicate_communicator(
-        n_tria.get_communicator());
+    if (communicator == MPI_COMM_NULL ||
+        native_tria->get_communicator() != n_tria.get_communicator())
+      communicator =
+        Utilities::MPI::duplicate_communicator(n_tria.get_communicator());
 
 #ifdef DEBUG
     {
       int result = 0;
-      int ierr = MPI_Comm_compare(communicator,
+      int ierr   = MPI_Comm_compare(communicator,
                                   tbox::SAMRAI_MPI::getCommunicator(),
                                   &result);
       AssertThrowMPI(ierr);
@@ -70,9 +69,9 @@ namespace fdl
     }
 #endif
 
-    native_tria         = &n_tria;
-    patch_hierarchy     = p_hierarchy;
-    level_number        = l_number;
+    native_tria     = &n_tria;
+    patch_hierarchy = p_hierarchy;
+    level_number    = l_number;
 
     // Check inputs
     Assert(global_active_cell_bboxes.size() == native_tria->n_active_cells(),
@@ -242,12 +241,14 @@ namespace fdl
 #ifdef DEBUG
     {
       int result = 0;
-      int ierr = MPI_Comm_compare(communicator, X.get_mpi_communicator(), &result);
+      int ierr =
+        MPI_Comm_compare(communicator, X.get_mpi_communicator(), &result);
       AssertThrowMPI(ierr);
       Assert(result == MPI_CONGRUENT,
              ExcMessage("The same communicator should be used for X and the "
                         "input triangulation"));
-      ierr = MPI_Comm_compare(communicator, F_rhs.get_mpi_communicator(), &result);
+      ierr =
+        MPI_Comm_compare(communicator, F_rhs.get_mpi_communicator(), &result);
       AssertThrowMPI(ierr);
       Assert(result == MPI_CONGRUENT,
              ExcMessage("The same communicator should be used for F_rhs and "
@@ -389,7 +390,8 @@ namespace fdl
 #ifdef DEBUG
     {
       int result = 0;
-      int ierr = MPI_Comm_compare(communicator, X.get_mpi_communicator(), &result);
+      int ierr =
+        MPI_Comm_compare(communicator, X.get_mpi_communicator(), &result);
       AssertThrowMPI(ierr);
       Assert(result == MPI_CONGRUENT,
              ExcMessage("The same communicator should be used for X and the "
@@ -422,21 +424,21 @@ namespace fdl
       get_overlap_dof_handler(X_dof_handler).n_dofs());
 
     // Setup F info:
-    transaction.native_F_dof_handler   = &F_dof_handler;
-    transaction.F_mapping              = &F_mapping;
-    transaction.native_F               = &F;
+    transaction.native_F_dof_handler = &F_dof_handler;
+    transaction.F_mapping            = &F_mapping;
+    transaction.native_F             = &F;
     transaction.overlap_F.reinit(
       get_overlap_dof_handler(F_dof_handler).n_dofs());
 
     // Setup state:
     transaction.next_state = Transaction<dim, spacedim>::State::Intermediate;
-    transaction.operation = Transaction<dim, spacedim>::Operation::Spreading;
+    transaction.operation  = Transaction<dim, spacedim>::Operation::Spreading;
 
     // OK, now start scattering:
 
     // Since we set up our own communicator in this object we can fearlessly use
     // channels 0, 1, and 2 to guarantee traffic is not accidentally mingled
-    int channel = 0;
+    int              channel   = 0;
     Scatter<double> &X_scatter = get_scatter(X_dof_handler);
     X_scatter.global_to_overlap_start(*transaction.native_X,
                                       channel,

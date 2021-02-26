@@ -1,6 +1,8 @@
 #ifndef included_fiddle_overlap_tria_h
 #define included_fiddle_overlap_tria_h
 
+#include <fiddle/base/exceptions.h>
+
 #include <fiddle/grid/intersection_predicate.h>
 
 #include <deal.II/base/subscriptor.h>
@@ -8,8 +10,6 @@
 #include <deal.II/distributed/shared_tria.h>
 
 #include <deal.II/grid/tria.h>
-
-#include <fiddle/base/exceptions.h>
 
 #include <vector>
 

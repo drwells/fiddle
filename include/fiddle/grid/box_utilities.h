@@ -1,6 +1,8 @@
 #ifndef included_fiddle_grid_box_utilities_h
 #define included_fiddle_grid_box_utilities_h
 
+#include <fiddle/base/exceptions.h>
+
 #include <deal.II/base/bounding_box.h>
 
 #include <deal.II/distributed/shared_tria.h>
@@ -13,7 +15,6 @@
 #include <BasePatchLevel.h>
 #include <Patch.h>
 #include <PatchLevel.h>
-#include <fiddle/base/exceptions.h>
 
 #include <vector>
 
