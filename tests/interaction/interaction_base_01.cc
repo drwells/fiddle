@@ -90,16 +90,12 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
       cell_bboxes.push_back(fbbox);
     }
 
-  auto eulerian_data_cache = std::make_shared<IBTK::SAMRAIDataCache>();
-  eulerian_data_cache->setPatchHierarchy(patch_hierarchy);
   const auto level_number = patch_hierarchy->getFinestLevelNumber();
-  eulerian_data_cache->resetLevels(level_number, level_number);
   fdl::InteractionBase<dim, spacedim> interaction_base(
     native_tria,
     cell_bboxes,
     patch_hierarchy,
-    patch_hierarchy->getFinestLevelNumber(),
-    eulerian_data_cache);
+    level_number);
 
   const fdl::SingleQuadrature<dim> single_quad(QGauss<dim>(2));
   // for this test set the cell index

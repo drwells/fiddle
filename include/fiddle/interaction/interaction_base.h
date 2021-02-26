@@ -20,9 +20,7 @@
 
 #include <deal.II/lac/vector.h>
 
-#include <ibtk/SAMRAIDataCache.h>
-#include <ibtk/SAMRAIGhostDataAccumulator.h>
-
+#include <BasePatchHierarchy.h>
 #include <PatchLevel.h>
 
 #include <memory>
@@ -160,8 +158,7 @@ namespace fdl
       const parallel::shared::Triangulation<dim, spacedim> &native_tria,
       const std::vector<BoundingBox<spacedim, float>> &     active_cell_bboxes,
       tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
-      const int                                             level_number,
-      std::shared_ptr<IBTK::SAMRAIDataCache> eulerian_data_cache);
+      const int                                             level_number);
 
     /**
      * Reinitialize the object. Same as the constructor.
@@ -170,8 +167,7 @@ namespace fdl
     reinit(const parallel::shared::Triangulation<dim, spacedim> &native_tria,
            const std::vector<BoundingBox<spacedim, float>> & active_cell_bboxes,
            tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
-           const int                                         level_number,
-           std::shared_ptr<IBTK::SAMRAIDataCache> eulerian_data_cache);
+           const int                                         level_number);
 
     /**
      * Destructor.
@@ -376,19 +372,6 @@ namespace fdl
      * representations.
      */
     std::vector<Scatter<double>> scatters;
-
-    /**
-     * Pointer to the (possibly shared) cache of Eulerian data (i.e., the object
-     * that keeps track of scratch patch indices).
-     *
-     * TODO finish this when we implement spreading
-     */
-    std::shared_ptr<IBTK::SAMRAIDataCache> eulerian_data_cache;
-
-    /**
-     * TODO finish this when we implement spreading
-     */
-    std::unique_ptr<IBTK::SAMRAIGhostDataAccumulator> ghost_data_accumulator;
 
     /**
      * @}

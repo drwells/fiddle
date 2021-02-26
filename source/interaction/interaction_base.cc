@@ -29,16 +29,14 @@ namespace fdl
     const parallel::shared::Triangulation<dim, spacedim> &n_tria,
     const std::vector<BoundingBox<spacedim, float>> & global_active_cell_bboxes,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> p_hierarchy,
-    const int                                         l_number,
-    std::shared_ptr<IBTK::SAMRAIDataCache>            e_data_cache)
+    const int                                         l_number)
     : communicator(MPI_COMM_NULL)
     , native_tria(&n_tria)
     , patch_hierarchy(p_hierarchy)
     , level_number(l_number)
-    , eulerian_data_cache(e_data_cache)
   {
     reinit(
-      n_tria, global_active_cell_bboxes, p_hierarchy, l_number, e_data_cache);
+      n_tria, global_active_cell_bboxes, p_hierarchy, l_number);
   }
 
 
@@ -49,8 +47,7 @@ namespace fdl
     const parallel::shared::Triangulation<dim, spacedim> &n_tria,
     const std::vector<BoundingBox<spacedim, float>> & global_active_cell_bboxes,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> p_hierarchy,
-    const int                                         l_number,
-    std::shared_ptr<IBTK::SAMRAIDataCache>            e_data_cache)
+    const int                                         l_number)
   {
     // We don't need to create a communicator unless its the first time we are
     // here or if we, for some reason, get reinitialized with a totally new
@@ -76,7 +73,6 @@ namespace fdl
     native_tria         = &n_tria;
     patch_hierarchy     = p_hierarchy;
     level_number        = l_number;
-    eulerian_data_cache = e_data_cache;
 
     // Check inputs
     Assert(global_active_cell_bboxes.size() == native_tria->n_active_cells(),
@@ -85,9 +81,6 @@ namespace fdl
            ExcMessage("The provided pointer to a patch hierarchy should not be "
                       "null."));
     AssertIndexRange(l_number, patch_hierarchy->getNumberOfLevels());
-    Assert(eulerian_data_cache,
-           ExcMessage("The provided shared pointer to an Eulerian data cache "
-                      "should not be null."));
 
     // Set up the patch map:
     {
