@@ -140,14 +140,14 @@ namespace fdl
                          const Mapping<dim, spacedim> &      X_mapping,
                          const std::vector<unsigned char> &  quadrature_indices,
                          const std::vector<Quadrature<dim>> &quadratures,
-                         const DoFHandler<dim, spacedim> &   f_dof_handler,
-                         const Mapping<dim, spacedim> &      f_mapping,
-                         Vector<double> &                    f_rhs)
+                         const DoFHandler<dim, spacedim> &   F_dof_handler,
+                         const Mapping<dim, spacedim> &      F_mapping,
+                         Vector<double> &                    F_rhs)
   {
     using namespace SAMRAI;
 
     Assert(quadrature_indices.size() ==
-             f_dof_handler.get_triangulation().n_active_cells(),
+             F_dof_handler.get_triangulation().n_active_cells(),
            ExcMessage(
              "There should be exactly one quadrature rule per active cell."));
     if (quadrature_indices.size() > 0)
@@ -157,7 +157,7 @@ namespace fdl
                ExcMessage("Not enough quadrature rules"));
       }
 
-    const FiniteElement<dim, spacedim> &f_fe          = f_dof_handler.get_fe();
+    const FiniteElement<dim, spacedim> &f_fe          = F_dof_handler.get_fe();
     const unsigned int                  dofs_per_cell = f_fe.dofs_per_cell;
     // TODO - do we need to assume something about the block structure of the
     // FE?
@@ -176,7 +176,7 @@ namespace fdl
         all_X_fe_values.emplace_back(std::make_unique<FEValues<dim, spacedim>>(
           X_mapping, f_fe, quad, update_quadrature_points));
         all_F_fe_values.emplace_back(std::make_unique<FEValues<dim, spacedim>>(
-          f_mapping, f_fe, quad, update_JxW_values | update_values));
+          F_mapping, f_fe, quad, update_JxW_values | update_values));
       }
 
     Vector<double>      cell_rhs(dofs_per_cell);
@@ -195,8 +195,8 @@ namespace fdl
                ExcMessage("The depth of the SAMRAI variable should equal the "
                           "number of components of the finite element."));
 
-        auto       iter = patch_map.begin(patch_n, f_dof_handler);
-        const auto end  = patch_map.end(patch_n, f_dof_handler);
+        auto       iter = patch_map.begin(patch_n, F_dof_handler);
+        const auto end  = patch_map.end(patch_n, F_dof_handler);
         for (; iter != end; ++iter)
           {
             const auto cell = *iter;
@@ -283,7 +283,7 @@ namespace fdl
                   }
               }
 
-            f_rhs.add(dof_indices, cell_rhs);
+            F_rhs.add(dof_indices, cell_rhs);
           }
       }
   }
@@ -306,9 +306,9 @@ namespace fdl
                          const Mapping<NDIM - 1, NDIM> &   X_mapping,
                          const std::vector<unsigned char> &quadrature_indices,
                          const std::vector<Quadrature<NDIM - 1>> &quadratures,
-                         const DoFHandler<NDIM - 1, NDIM> &       f_dof_handler,
-                         const Mapping<NDIM - 1, NDIM> &          f_mapping,
-                         Vector<double> &                         f_rhs);
+                         const DoFHandler<NDIM - 1, NDIM> &       F_dof_handler,
+                         const Mapping<NDIM - 1, NDIM> &          F_mapping,
+                         Vector<double> &                         F_rhs);
 
   template void
   compute_projection_rhs(const int                         f_data_idx,
@@ -316,7 +316,7 @@ namespace fdl
                          const Mapping<NDIM> &             X_mapping,
                          const std::vector<unsigned char> &quadrature_indices,
                          const std::vector<Quadrature<NDIM>> &quadratures,
-                         const DoFHandler<NDIM> &             f_dof_handler,
-                         const Mapping<NDIM> &                f_mapping,
-                         Vector<double> &                     f_rhs);
+                         const DoFHandler<NDIM> &             F_dof_handler,
+                         const Mapping<NDIM> &                F_mapping,
+                         Vector<double> &                     F_rhs);
 } // namespace fdl

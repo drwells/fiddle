@@ -28,6 +28,10 @@
 #include <memory>
 #include <vector>
 
+// This file contains the functions that do all the actual interaction work -
+// these are typically called by InteractionBase and its descendants and not
+// directly by user code.
+
 namespace fdl
 {
   using namespace dealii;
@@ -47,27 +51,29 @@ namespace fdl
    * Compute the right-hand side used to project the velocity from Eulerian to
    * Lagrangian representation.
    *
-   * @param[in] data_idx the SAMRAI patch data index we are interpolating. The
+   * @param[in] f_data_idx the SAMRAI patch data index we are interpolating. The
    * depth of the variable must match the number of components of the finite
    * element.
    *
    * @param[in] patch_map The mapping between SAMRAI patches and deal.II cells
    * which we will use for interpolation.
    *
-   * @param[in] position_mapping Mapping from the reference configuration to the
+   * @param[in] X_mapping Mapping from the reference configuration to the
    * current configuration of the mesh.
    *
    * @param[in] quadrature_indices This vector is indexed by the active cell
    * index - the value is the index into @p quadratures corresponding to the
    * correct quadrature rule on that cell.
    *
-   * @param[in] f_dof_handler DoFHandler for the finite element we are
+   * @param[in] quadratures The vector of quadratures we use to interpolate.
+   *
+   * @param[in] F_dof_handler DoFHandler for the finite element we are
    * interpolating onto.
    *
-   * @param[in] f_mapping Mapping for computing values of the finite element
+   * @param[in] F_mapping Mapping for computing values of the finite element
    * field on the reference configuration.
    *
-   * @param[out] f_rhs The load vector populated by this operation.
+   * @param[out] F_rhs The load vector populated by this operation.
    *
    * @note In general, an OverlappingTriangulation has no knowledge of whether
    * or not DoFs on its boundaries should be constrained. Hence information must
@@ -78,12 +84,12 @@ namespace fdl
   void
   compute_projection_rhs(const int                           f_data_idx,
                          const PatchMap<dim, spacedim> &     patch_map,
-                         const Mapping<dim, spacedim> &      position_mapping,
+                         const Mapping<dim, spacedim> &      X_mapping,
                          const std::vector<unsigned char> &  quadrature_indices,
                          const std::vector<Quadrature<dim>> &quadratures,
-                         const DoFHandler<dim, spacedim> &   f_dof_handler,
-                         const Mapping<dim, spacedim> &      f_mapping,
-                         Vector<double> &                    f_rhs);
+                         const DoFHandler<dim, spacedim> &   F_dof_handler,
+                         const Mapping<dim, spacedim> &      F_mapping,
+                         Vector<double> &                    F_rhs);
 
 } // namespace fdl
 #endif
