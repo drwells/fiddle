@@ -91,5 +91,46 @@ namespace fdl
                          const Mapping<dim, spacedim> &      F_mapping,
                          Vector<double> &                    F_rhs);
 
+  /**
+   * Compute (by adding into the patch index @p f_data_idx) the forces on the
+   * Eulerian grid corresponding to the Lagrangian field F.
+   *
+   * @param[in] f_data_idx the SAMRAI patch data index into which we are
+   * spreading. The depth of the variable must match the number of components of
+   * the finite element.
+   *
+   * @param[inout] patch_map The mapping between SAMRAI patches and deal.II
+   * cells. Though we do not modify this object directly, it is logically
+   * non-const because we will modify the patches owned by the patch hierarchy
+   * to which this object stores pointers.
+   *
+   * @param[in] X_mapping Mapping from the reference configuration to the
+   * current configuration of the mesh.
+   *
+   * @param[in] quadrature_indices This vector is indexed by the active cell
+   * index - the value is the index into @p quadratures corresponding to the
+   * correct quadrature rule on that cell.
+   *
+   * @param[in] quadratures The vector of quadratures we use to interpolate.
+   *
+   * @param[in] F_dof_handler DoFHandler for the finite element we are
+   * spreading from.
+   *
+   * @param[in] F_mapping Mapping for computing values of the finite element
+   * field on the reference configuration.
+   *
+   * @param[in] F The finite element field we are spreading from.
+   */
+  template <int dim, int spacedim>
+  void
+  compute_spread(const int                           f_data_idx,
+                 PatchMap<dim, spacedim> &           patch_map,
+                 const Mapping<dim, spacedim> &      X_mapping,
+                 const std::vector<unsigned char> &  quadrature_indices,
+                 const std::vector<Quadrature<dim>> &quadratures,
+                 const DoFHandler<dim, spacedim> &   F_dof_handler,
+                 const Mapping<dim, spacedim> &      F_mapping,
+                 const Vector<double> &              F);
+
 } // namespace fdl
 #endif

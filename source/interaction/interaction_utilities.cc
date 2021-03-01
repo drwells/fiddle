@@ -288,6 +288,114 @@ namespace fdl
       }
   }
 
+
+  template <int dim, int spacedim>
+  void
+  compute_spread(const int                           f_data_idx,
+                 PatchMap<dim, spacedim> &           patch_map,
+                 const Mapping<dim, spacedim> &      X_mapping,
+                 const std::vector<unsigned char> &  quadrature_indices,
+                 const std::vector<Quadrature<dim>> &quadratures,
+                 const DoFHandler<dim, spacedim> &   F_dof_handler,
+                 const Mapping<dim, spacedim> &      F_mapping,
+                 const Vector<double> &              F)
+  {
+    using namespace SAMRAI;
+
+    Assert(quadrature_indices.size() ==
+             F_dof_handler.get_triangulation().n_active_cells(),
+           ExcMessage(
+             "There should be exactly one quadrature rule per active cell."));
+    if (quadrature_indices.size() > 0)
+      {
+        Assert(*std::max_element(quadrature_indices.begin(),
+                                 quadrature_indices.end()) < quadratures.size(),
+               ExcMessage("Not enough quadrature rules"));
+      }
+
+    const FiniteElement<dim, spacedim> &f_fe          = F_dof_handler.get_fe();
+    const unsigned int                  dofs_per_cell = f_fe.dofs_per_cell;
+    // TODO - do we need to assume something about the block structure of the
+    // FE?
+
+    // We probably don't need more than 16 quadrature rules
+    boost::container::small_vector<std::unique_ptr<FEValues<dim, spacedim>>, 16>
+      all_X_fe_values;
+    boost::container::small_vector<std::unique_ptr<FEValues<dim, spacedim>>, 16>
+      all_F_fe_values;
+    for (const Quadrature<dim> &quad : quadratures)
+      {
+        all_X_fe_values.emplace_back(std::make_unique<FEValues<dim, spacedim>>(
+          X_mapping, f_fe, quad, update_quadrature_points));
+        all_F_fe_values.emplace_back(std::make_unique<FEValues<dim, spacedim>>(
+          F_mapping, f_fe, quad, update_JxW_values | update_values));
+      }
+
+    // TODO support spreading vectors. The value_type of this vector should be a
+    // template parameter
+    std::vector<double> F_values;
+
+    for (unsigned int patch_n = 0; patch_n < patch_map.size(); ++patch_n)
+      {
+        auto patch = patch_map.get_patch(patch_n);
+        // TODO find a better way to make this generic than the stupid solutions
+        // SAMRAI provides
+        tbox::Pointer<pdat::CellData<spacedim, double>> f_data =
+          patch->getPatchData(f_data_idx);
+        Assert(f_data, ExcMessage("Only side-centered data is supported ATM"));
+        const unsigned int depth = f_data->getDepth();
+        Assert(depth == 1, ExcNotImplemented());
+        Assert(depth == f_fe.n_components(),
+               ExcMessage("The depth of the SAMRAI variable should equal the "
+                          "number of components of the finite element."));
+
+        auto       iter = patch_map.begin(patch_n, F_dof_handler);
+        const auto end  = patch_map.end(patch_n, F_dof_handler);
+        for (; iter != end; ++iter)
+          {
+            const auto cell = *iter;
+            const auto quad_index =
+              quadrature_indices[cell->active_cell_index()];
+
+            // Reinitialize:
+            FEValues<dim, spacedim> &F_fe_values = *all_F_fe_values[quad_index];
+            FEValues<dim, spacedim> &X_fe_values = *all_X_fe_values[quad_index];
+            F_fe_values.reinit(cell);
+            X_fe_values.reinit(cell);
+            Assert(F_fe_values.get_quadrature() == X_fe_values.get_quadrature(),
+                   ExcFDLInternalError());
+
+            const std::vector<Point<spacedim>> &q_points =
+              X_fe_values.get_quadrature_points();
+            const unsigned int n_q_points = q_points.size();
+            F_values.resize(depth * n_q_points);
+
+            // get forces:
+            std::fill(F_values.begin(), F_values.end(), 0.0);
+            F_fe_values.get_function_values(F, F_values);
+            for (unsigned int qp = 0; qp < n_q_points; ++qp)
+              F_values[qp] *= F_fe_values.JxW(qp);
+            // TODO reimplement zeroExteriorValues here
+
+            // spread at quadrature points:
+            static_assert(sizeof(Point<spacedim>) == sizeof(double) * spacedim,
+                          "FORTRAN routines assume we are packed");
+            const auto X_data =
+              reinterpret_cast<const double *>(q_points.data());
+            IBTK::LEInteractor::spread(f_data,
+                                       F_values.data(),
+                                       F_values.size(),
+                                       depth,
+                                       X_data,
+                                       n_q_points * spacedim,
+                                       spacedim,
+                                       patch,
+                                       patch->getBox(),
+                                       "BSPLINE_3");
+          }
+      }
+  }
+
   // instantiations
 
   template void
@@ -319,4 +427,24 @@ namespace fdl
                          const DoFHandler<NDIM> &             F_dof_handler,
                          const Mapping<NDIM> &                F_mapping,
                          Vector<double> &                     F_rhs);
+
+  template void
+  compute_spread(const int                                f_data_idx,
+                 PatchMap<NDIM - 1, NDIM> &               patch_map,
+                 const Mapping<NDIM - 1, NDIM> &          X_mapping,
+                 const std::vector<unsigned char> &       quadrature_indices,
+                 const std::vector<Quadrature<NDIM - 1>> &quadratures,
+                 const DoFHandler<NDIM - 1, NDIM> &       F_dof_handler,
+                 const Mapping<NDIM - 1, NDIM> &          F_mapping,
+                 const Vector<double> &                   F);
+
+  template void
+  compute_spread(const int                            f_data_idx,
+                 PatchMap<NDIM, NDIM> &               patch_map,
+                 const Mapping<NDIM, NDIM> &          X_mapping,
+                 const std::vector<unsigned char> &   quadrature_indices,
+                 const std::vector<Quadrature<NDIM>> &quadratures,
+                 const DoFHandler<NDIM, NDIM> &       F_dof_handler,
+                 const Mapping<NDIM, NDIM> &          F_mapping,
+                 const Vector<double> &               F);
 } // namespace fdl
