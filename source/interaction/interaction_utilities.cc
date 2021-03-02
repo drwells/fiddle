@@ -1,3 +1,5 @@
+#include <fiddle/base/samrai_utilities.h>
+
 #include <fiddle/grid/box_utilities.h>
 
 #include <fiddle/interaction/interaction_utilities.h>
@@ -133,16 +135,17 @@ namespace fdl
 
 
 
-  template <int dim, int spacedim>
+  template <int dim, int spacedim, typename patch_type>
   void
-  compute_projection_rhs(const int                           f_data_idx,
-                         const PatchMap<dim, spacedim> &     patch_map,
-                         const Mapping<dim, spacedim> &      X_mapping,
-                         const std::vector<unsigned char> &  quadrature_indices,
-                         const std::vector<Quadrature<dim>> &quadratures,
-                         const DoFHandler<dim, spacedim> &   F_dof_handler,
-                         const Mapping<dim, spacedim> &      F_mapping,
-                         Vector<double> &                    F_rhs)
+  compute_projection_rhs_internal(
+    const int                           f_data_idx,
+    const PatchMap<dim, spacedim> &     patch_map,
+    const Mapping<dim, spacedim> &      X_mapping,
+    const std::vector<unsigned char> &  quadrature_indices,
+    const std::vector<Quadrature<dim>> &quadratures,
+    const DoFHandler<dim, spacedim> &   F_dof_handler,
+    const Mapping<dim, spacedim> &      F_mapping,
+    Vector<double> &                    F_rhs)
   {
     using namespace SAMRAI;
 
@@ -185,12 +188,9 @@ namespace fdl
     std::vector<types::global_dof_index> dof_indices(f_fe.dofs_per_cell);
     for (unsigned int patch_n = 0; patch_n < patch_map.size(); ++patch_n)
       {
-        auto patch = patch_map.get_patch(patch_n);
-        tbox::Pointer<pdat::CellData<spacedim, double>> f_data =
-          patch->getPatchData(f_data_idx);
-        // Assert(f_data, ExcMessage("Only side-centered data is supported
-        // ATM"));
-        const unsigned int depth = f_data->getDepth();
+        auto                      patch  = patch_map.get_patch(patch_n);
+        tbox::Pointer<patch_type> f_data = patch->getPatchData(f_data_idx);
+        const unsigned int        depth  = f_data->getDepth();
         Assert(depth == f_fe.n_components(),
                ExcMessage("The depth of the SAMRAI variable should equal the "
                           "number of components of the finite element."));
@@ -229,6 +229,7 @@ namespace fdl
                           "FORTRAN routines assume we are packed");
             const auto X_data =
               reinterpret_cast<const double *>(q_points.data());
+
             std::fill(F_values.begin(), F_values.end(), 0.0);
             IBTK::LEInteractor::interpolate(F_values.data(),
                                             F_values.size(),
@@ -289,16 +290,103 @@ namespace fdl
   }
 
 
+
   template <int dim, int spacedim>
   void
-  compute_spread(const int                           f_data_idx,
-                 PatchMap<dim, spacedim> &           patch_map,
-                 const Mapping<dim, spacedim> &      X_mapping,
-                 const std::vector<unsigned char> &  quadrature_indices,
-                 const std::vector<Quadrature<dim>> &quadratures,
-                 const DoFHandler<dim, spacedim> &   F_dof_handler,
-                 const Mapping<dim, spacedim> &      F_mapping,
-                 const Vector<double> &              F)
+  compute_projection_rhs(const int                           f_data_idx,
+                         const PatchMap<dim, spacedim> &     patch_map,
+                         const Mapping<dim, spacedim> &      X_mapping,
+                         const std::vector<unsigned char> &  quadrature_indices,
+                         const std::vector<Quadrature<dim>> &quadratures,
+                         const DoFHandler<dim, spacedim> &   F_dof_handler,
+                         const Mapping<dim, spacedim> &      F_mapping,
+                         Vector<double> &                    F_rhs)
+  {
+#define ARGUMENTS                                                    \
+  f_data_idx, patch_map, X_mapping, quadrature_indices, quadratures, \
+    F_dof_handler, F_mapping, F_rhs
+    if (patch_map.size() != 0)
+      {
+        auto patch_data = patch_map.get_patch(0)->getPatchData(f_data_idx);
+        auto pair       = extract_types(patch_data);
+
+        AssertThrow(pair.second == SAMRAIFieldType::Double,
+                    ExcNotImplemented());
+        switch (pair.first)
+          {
+            case SAMRAIPatchType::Edge:
+              compute_projection_rhs_internal<dim,
+                                              spacedim,
+                                              pdat::EdgeData<spacedim, double>>(
+                ARGUMENTS);
+              break;
+
+            case SAMRAIPatchType::Cell:
+              compute_projection_rhs_internal<dim,
+                                              spacedim,
+                                              pdat::CellData<spacedim, double>>(
+                ARGUMENTS);
+              break;
+
+            case SAMRAIPatchType::Side:
+              compute_projection_rhs_internal<dim,
+                                              spacedim,
+                                              pdat::SideData<spacedim, double>>(
+                ARGUMENTS);
+              break;
+
+            case SAMRAIPatchType::Node:
+              compute_projection_rhs_internal<dim,
+                                              spacedim,
+                                              pdat::NodeData<spacedim, double>>(
+                ARGUMENTS);
+              break;
+          }
+      }
+#undef ARGUMENTS
+  }
+
+
+  // Generic function for retrieving scalar or vector-valued finite element
+  // fields
+  template <int dim, int spacedim, typename value_type>
+  void
+  compute_values_generic(const FEValues<dim, spacedim> &fe_values,
+                         const Vector<double>           fe_solution,
+                         std::vector<value_type> &      F_values)
+  {
+    Assert(false, ExcNotImplemented());
+  }
+
+  template <int dim, int spacedim>
+  void
+  compute_values_generic(const FEValues<dim, spacedim> &fe_values,
+                         const Vector<double>           fe_solution,
+                         std::vector<double> &          F_values)
+  {
+    fe_values.get_function_values(fe_solution, F_values);
+  }
+
+  template <int dim, int spacedim>
+  void
+  compute_values_generic(const FEValues<dim, spacedim> &   fe_values,
+                         const Vector<double>              fe_solution,
+                         std::vector<Tensor<1, spacedim>> &F_values)
+  {
+    const FEValuesExtractors::Vector vec(0);
+    fe_values[vec].get_function_values(fe_solution, F_values);
+  }
+
+  template <int dim, int spacedim, typename value_type, typename patch_type>
+  void
+  compute_spread_internal(const int                         f_data_idx,
+                          PatchMap<dim, spacedim> &         patch_map,
+                          const Mapping<dim, spacedim> &    X_mapping,
+                          const std::vector<unsigned char> &quadrature_indices,
+                          const std::vector<Quadrature<dim>> &quadratures,
+                          const DoFHandler<dim, spacedim> &   F_dof_handler,
+                          const Mapping<dim, spacedim> &      F_mapping,
+                          const Vector<double> &              F)
   {
     using namespace SAMRAI;
 
@@ -315,8 +403,6 @@ namespace fdl
 
     const FiniteElement<dim, spacedim> &f_fe          = F_dof_handler.get_fe();
     const unsigned int                  dofs_per_cell = f_fe.dofs_per_cell;
-    // TODO - do we need to assume something about the block structure of the
-    // FE?
 
     // We probably don't need more than 16 quadrature rules
     boost::container::small_vector<std::unique_ptr<FEValues<dim, spacedim>>, 16>
@@ -331,20 +417,14 @@ namespace fdl
           F_mapping, f_fe, quad, update_JxW_values | update_values));
       }
 
-    // TODO support spreading vectors. The value_type of this vector should be a
-    // template parameter
-    std::vector<double> F_values;
+    std::vector<value_type> F_values;
 
     for (unsigned int patch_n = 0; patch_n < patch_map.size(); ++patch_n)
       {
-        auto patch = patch_map.get_patch(patch_n);
-        // TODO find a better way to make this generic than the stupid solutions
-        // SAMRAI provides
-        tbox::Pointer<pdat::CellData<spacedim, double>> f_data =
-          patch->getPatchData(f_data_idx);
-        Assert(f_data, ExcMessage("Only side-centered data is supported ATM"));
-        const unsigned int depth = f_data->getDepth();
-        Assert(depth == 1, ExcNotImplemented());
+        auto                      patch  = patch_map.get_patch(patch_n);
+        tbox::Pointer<patch_type> f_data = patch->getPatchData(f_data_idx);
+        Assert(f_data, ExcMessage("Type mismatch"));
+        const int depth = f_data->getDepth();
         Assert(depth == f_fe.n_components(),
                ExcMessage("The depth of the SAMRAI variable should equal the "
                           "number of components of the finite element."));
@@ -368,13 +448,14 @@ namespace fdl
             const std::vector<Point<spacedim>> &q_points =
               X_fe_values.get_quadrature_points();
             const unsigned int n_q_points = q_points.size();
-            F_values.resize(depth * n_q_points);
+            F_values.resize(n_q_points);
 
             // get forces:
-            std::fill(F_values.begin(), F_values.end(), 0.0);
-            F_fe_values.get_function_values(F, F_values);
+            std::fill(F_values.begin(), F_values.end(), value_type());
+            compute_values_generic(F_fe_values, F, F_values);
             for (unsigned int qp = 0; qp < n_q_points; ++qp)
               F_values[qp] *= F_fe_values.JxW(qp);
+
             // TODO reimplement zeroExteriorValues here
 
             // spread at quadrature points:
@@ -382,8 +463,15 @@ namespace fdl
                           "FORTRAN routines assume we are packed");
             const auto X_data =
               reinterpret_cast<const double *>(q_points.data());
+            // we check depth at run time - its supposed to be set a level up
+            // and is not explicitly available as a template argument here
+            AssertThrow(sizeof(value_type) == sizeof(double) * depth,
+                        ExcMessage("FORTRAN routines assume we are packed"));
+            const auto F_data =
+              reinterpret_cast<const double *>(F_values.data());
+
             IBTK::LEInteractor::spread(f_data,
-                                       F_values.data(),
+                                       F_data,
                                        F_values.size(),
                                        depth,
                                        X_data,
@@ -394,6 +482,123 @@ namespace fdl
                                        "BSPLINE_3");
           }
       }
+  }
+
+
+
+  template <int dim, int spacedim>
+  void
+  compute_spread(const int                           f_data_idx,
+                 PatchMap<dim, spacedim> &           patch_map,
+                 const Mapping<dim, spacedim> &      X_mapping,
+                 const std::vector<unsigned char> &  quadrature_indices,
+                 const std::vector<Quadrature<dim>> &quadratures,
+                 const DoFHandler<dim, spacedim> &   F_dof_handler,
+                 const Mapping<dim, spacedim> &      F_mapping,
+                 const Vector<double> &              F)
+  {
+#define ARGUMENTS                                                    \
+  f_data_idx, patch_map, X_mapping, quadrature_indices, quadratures, \
+    F_dof_handler, F_mapping, F
+    if (patch_map.size() != 0)
+      {
+        auto patch_data = patch_map.get_patch(0)->getPatchData(f_data_idx);
+        auto pair       = extract_types(patch_data);
+
+        AssertThrow(pair.second == SAMRAIFieldType::Double,
+                    ExcNotImplemented());
+        switch (pair.first)
+          {
+            case SAMRAIPatchType::Edge:
+              switch (extract_depth(patch_data))
+                {
+                  case 1:
+                    compute_spread_internal<dim,
+                                            spacedim,
+                                            double,
+                                            pdat::EdgeData<spacedim, double>>(
+                      ARGUMENTS);
+                    break;
+                  case spacedim:
+                    compute_spread_internal<dim,
+                                            spacedim,
+                                            Tensor<1, spacedim>,
+                                            pdat::EdgeData<spacedim, double>>(
+                      ARGUMENTS);
+                    break;
+                  default:
+                    AssertThrow(false, ExcNotImplemented());
+                }
+              break;
+
+            case SAMRAIPatchType::Cell:
+              switch (extract_depth(patch_data))
+                {
+                  case 1:
+                    compute_spread_internal<dim,
+                                            spacedim,
+                                            double,
+                                            pdat::CellData<spacedim, double>>(
+                      ARGUMENTS);
+                    break;
+                  case spacedim:
+                    compute_spread_internal<dim,
+                                            spacedim,
+                                            Tensor<1, spacedim>,
+                                            pdat::CellData<spacedim, double>>(
+                      ARGUMENTS);
+                    break;
+                  default:
+                    AssertThrow(false, ExcNotImplemented());
+                }
+              break;
+
+            case SAMRAIPatchType::Side:
+              switch (extract_depth(patch_data))
+                {
+                  case 1:
+                    compute_spread_internal<dim,
+                                            spacedim,
+                                            double,
+                                            pdat::SideData<spacedim, double>>(
+                      ARGUMENTS);
+                    break;
+                  case spacedim:
+                    compute_spread_internal<dim,
+                                            spacedim,
+                                            Tensor<1, spacedim>,
+                                            pdat::SideData<spacedim, double>>(
+                      ARGUMENTS);
+                    break;
+                  default:
+                    AssertThrow(false, ExcNotImplemented());
+                }
+              break;
+
+            case SAMRAIPatchType::Node:
+              switch (extract_depth(patch_data))
+                {
+                  case 1:
+                    compute_spread_internal<dim,
+                                            spacedim,
+                                            double,
+                                            pdat::NodeData<spacedim, double>>(
+                      ARGUMENTS);
+                    break;
+                  case spacedim:
+                    compute_spread_internal<dim,
+                                            spacedim,
+                                            Tensor<1, spacedim>,
+                                            pdat::NodeData<spacedim, double>>(
+                      ARGUMENTS);
+                    break;
+                  default:
+                    AssertThrow(false, ExcNotImplemented());
+                }
+              break;
+          }
+      }
+#undef ARGUMENTS
   }
 
   // instantiations

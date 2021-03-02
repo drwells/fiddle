@@ -1,0 +1,129 @@
+#ifndef included_fiddle_base_samrai_utilities_h
+#define included_fiddle_base_samrai_utilities_h
+
+#include <deal.II/base/exceptions.h>
+
+#include <CellData.h>
+#include <EdgeData.h>
+#include <NodeData.h>
+#include <SideData.h>
+
+#include <utility>
+
+// Collect the various hacks needed to work around common problems in SAMRAI.
+
+namespace fdl
+{
+  using namespace SAMRAI;
+
+  /**
+   * Several of SAMRAI's class hierarchies are poorly designed - in many
+   * places you cannot access type-generic information without downcasting,
+   * which requires knowledge of which class one should downcast to. For
+   * example - every SAMRAI class inheriting from PatchData has a getDepth()
+   * member function, but PatchData (despite introducing the concept of depth)
+   * does not.
+   *
+   * This enum works around this mismatch between information needed at
+   * compile time (the derived type, needed to access depth and other
+   * attributes) and information available at run time. It can also be used to
+   * template code.
+   */
+  enum class SAMRAIPatchType
+  {
+    Edge,
+    Cell,
+    Node,
+    Side
+  };
+
+  /**
+   * Similarly, SAMRAI doesn't propagate the type of the stored data up to
+   * PatchData (even though every derived class has to implement this as a
+   * template parameter), so convert it to an enum here:
+   */
+  enum class SAMRAIFieldType
+  {
+    Int,
+    Float,
+    Double
+    // no support yet for complex
+  };
+
+  template <int spacedim>
+  std::pair<SAMRAIPatchType, SAMRAIFieldType>
+  extract_types(const tbox::Pointer<hier::PatchData<spacedim>> &p)
+  {
+    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, int>>(p))
+      return {SAMRAIPatchType::Edge, SAMRAIFieldType::Int};
+    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, float>>(p))
+      return {SAMRAIPatchType::Edge, SAMRAIFieldType::Float};
+    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, double>>(p))
+      return {SAMRAIPatchType::Edge, SAMRAIFieldType::Double};
+
+    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, int>>(p))
+      return {SAMRAIPatchType::Cell, SAMRAIFieldType::Int};
+    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, float>>(p))
+      return {SAMRAIPatchType::Cell, SAMRAIFieldType::Float};
+    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, double>>(p))
+      return {SAMRAIPatchType::Cell, SAMRAIFieldType::Double};
+
+    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, int>>(p))
+      return {SAMRAIPatchType::Node, SAMRAIFieldType::Int};
+    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, float>>(p))
+      return {SAMRAIPatchType::Node, SAMRAIFieldType::Float};
+    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, double>>(p))
+      return {SAMRAIPatchType::Node, SAMRAIFieldType::Double};
+
+    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, int>>(p))
+      return {SAMRAIPatchType::Side, SAMRAIFieldType::Int};
+    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, float>>(p))
+      return {SAMRAIPatchType::Side, SAMRAIFieldType::Float};
+    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, double>>(p))
+      return {SAMRAIPatchType::Side, SAMRAIFieldType::Double};
+
+    AssertThrow(false, dealii::ExcNotImplemented());
+    return {};
+  }
+
+
+
+  template <int spacedim>
+  int
+  extract_depth(const tbox::Pointer<hier::PatchData<spacedim>> &p)
+  {
+    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, int>>(p))
+      return p2->getDepth();
+    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, float>>(p))
+      return p2->getDepth();
+    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, double>>(p))
+      return p2->getDepth();
+
+    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, int>>(p))
+      return p2->getDepth();
+    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, float>>(p))
+      return p2->getDepth();
+    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, double>>(p))
+      return p2->getDepth();
+
+    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, int>>(p))
+      return p2->getDepth();
+    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, float>>(p))
+      return p2->getDepth();
+    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, double>>(p))
+      return p2->getDepth();
+
+    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, int>>(p))
+      return p2->getDepth();
+    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, float>>(p))
+      return p2->getDepth();
+    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, double>>(p))
+      return p2->getDepth();
+
+    AssertThrow(false, dealii::ExcNotImplemented());
+    return {};
+  }
+
+} // namespace fdl
+
+#endif
