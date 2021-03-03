@@ -191,9 +191,23 @@ namespace fdl
         auto                      patch  = patch_map.get_patch(patch_n);
         tbox::Pointer<patch_type> f_data = patch->getPatchData(f_data_idx);
         const unsigned int        depth  = f_data->getDepth();
-        Assert(depth == f_fe.n_components(),
-               ExcMessage("The depth of the SAMRAI variable should equal the "
-                          "number of components of the finite element."));
+
+        // There is no clean way to check this since we treat side-centered
+        // data in a different way
+        if (std::is_same<patch_type, pdat::SideData<spacedim, double>>::value)
+          {
+            Assert(depth * spacedim == f_fe.n_components(),
+                   ExcMessage(
+                     "The depth of the SAMRAI variable should equal the "
+                     "number of components of the finite element."));
+          }
+        else
+          {
+            Assert(depth == f_fe.n_components(),
+                   ExcMessage(
+                     "The depth of the SAMRAI variable should equal the "
+                     "number of components of the finite element."));
+          }
 
         auto       iter = patch_map.begin(patch_n, F_dof_handler);
         const auto end  = patch_map.end(patch_n, F_dof_handler);
@@ -217,7 +231,7 @@ namespace fdl
             const std::vector<Point<spacedim>> &q_points =
               X_fe_values.get_quadrature_points();
             const unsigned int n_q_points = q_points.size();
-            F_values.resize(depth * n_q_points);
+            F_values.resize(f_fe.n_components() * n_q_points);
 
 
             // Interpolate at quadrature points:
@@ -233,7 +247,7 @@ namespace fdl
             std::fill(F_values.begin(), F_values.end(), 0.0);
             IBTK::LEInteractor::interpolate(F_values.data(),
                                             F_values.size(),
-                                            depth,
+                                            f_fe.n_components(),
                                             X_data,
                                             q_points.size() * spacedim,
                                             spacedim,
@@ -247,7 +261,7 @@ namespace fdl
 
             for (unsigned int qp_n = 0; qp_n < n_q_points; ++qp_n)
               {
-                if (depth == 1)
+                if (f_fe.n_components() == 1)
                   {
                     AssertIndexRange(qp_n, F_values.size());
                     const double F_qp = F_values[qp_n];
@@ -258,7 +272,7 @@ namespace fdl
                                        F_fe_values.JxW(qp_n);
                       }
                   }
-                else if (depth == spacedim)
+                else if (f_fe.n_components() == spacedim)
                   {
                     Tensor<1, spacedim> F_qp;
                     for (unsigned int d = 0; d < spacedim; ++d)

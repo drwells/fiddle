@@ -3,6 +3,7 @@
 
 #include <deal.II/base/exceptions.h>
 
+#include <ibtk/CartSideDoubleSpecializedLinearRefine.h>
 #include <ibtk/HierarchyGhostCellInterpolation.h>
 #include <ibtk/muParserCartGridFunction.h>
 
@@ -58,10 +59,12 @@ setup_hierarchy(
     new geom::CartesianGridGeometry<spacedim>(
       "CartesianGeometry", input_db->getDatabase("CartesianGeometry"));
 
-  // TODO: do we need this at all?
-  tbox::Pointer<xfer::RefineOperator<spacedim>> linear_refine =
-    new geom::CartesianCellDoubleLinearRefine<spacedim>();
-  grid_geometry->addSpatialRefineOperator(linear_refine);
+  // More questionable SAMRAI design decisions - we have to register refine
+  // operations associated with different variables with the grid geometry class
+  grid_geometry->addSpatialRefineOperator(
+    new geom::CartesianCellDoubleLinearRefine<spacedim>());
+  grid_geometry->addSpatialRefineOperator(
+    new IBTK::CartSideDoubleSpecializedLinearRefine());
 
   tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy =
     new hier::PatchHierarchy<spacedim>("PatchHierarchy", grid_geometry);
@@ -98,7 +101,17 @@ setup_hierarchy(
   if (f_data_type == "CELL")
     f_var = new pdat::CellVariable<spacedim, double>("f_cc", n_f_components);
   else if (f_data_type == "SIDE")
-    f_var = new pdat::SideVariable<spacedim, double>("f_sc", n_f_components);
+    // This one is different since side-centered data already has implicitly
+    // spacedim 'depth' in a different sense
+    //
+    // TODO this should probably be clarified somehow
+    {
+      AssertThrow(n_f_components == spacedim,
+                  dealii::ExcMessage("The only supported number of components "
+                                     "for side-centered data is the spatial "
+                                     "dimension"));
+      f_var = new pdat::SideVariable<spacedim, double>("f_sc", 1);
+    }
   else if (f_data_type == "NODE")
     f_var = new pdat::SideVariable<spacedim, double>("f_nc", n_f_components);
   else
@@ -135,9 +148,42 @@ setup_hierarchy(
 
   auto visit_data_writer = app_initializer->getVisItDataWriter();
   TBOX_ASSERT(visit_data_writer);
-  for (unsigned int d = 0; d < n_f_components; ++d)
-    visit_data_writer->registerPlotQuantity(
-      f_var->getName() + std::to_string(d), "SCALAR", f_idx, d);
+  // Yet another SAMRAI bug - non-cell data cannot be plotted
+  int                                     plot_cc_idx = 0;
+  tbox::Pointer<hier::Variable<spacedim>> plot_cc_var;
+  if (f_data_type == "CELL")
+    for (unsigned int d = 0; d < n_f_components; ++d)
+      visit_data_writer->registerPlotQuantity(
+        f_var->getName() + std::to_string(d), "SCALAR", f_idx, d);
+  else
+    {
+      plot_cc_var =
+        new pdat::CellVariable<spacedim, double>("f_cc", n_f_components);
+      plot_cc_idx =
+        var_db->registerVariableAndContext(plot_cc_var,
+                                           ctx,
+                                           hier::IntVector<spacedim>(0));
+
+      for (int ln = 0; ln <= finest_level; ++ln)
+        {
+          tbox::Pointer<hier::PatchLevel<spacedim>> level =
+            patch_hierarchy->getPatchLevel(ln);
+          level->allocatePatchData(plot_cc_idx, 0.0);
+
+          auto patches = fdl::extract_patches(level);
+          for (auto &patch : patches)
+            fdl::fill_all(patch->getPatchData(plot_cc_idx), 0);
+        }
+
+      for (unsigned int d = 0; d < n_f_components; ++d)
+        {
+          visit_data_writer->registerPlotQuantity(plot_cc_var->getName() +
+                                                    std::to_string(d),
+                                                  "SCALAR",
+                                                  plot_cc_idx,
+                                                  d);
+        }
+    }
 
   // If it exists, set up an initial condition
   if (test_db->keyExists("f"))
@@ -150,8 +196,11 @@ setup_hierarchy(
       using ITC = IBTK::HierarchyGhostCellInterpolation::
         InterpolationTransactionComponent;
       std::vector<ITC> ghost_cell_components(1);
+      // TODO - the way to select ghost filling algorithms is a horrible mess
+      const std::string refine_type =
+        f_data_type == "CELL" ? "LINEAR_REFINE" : "SPECIALIZED_LINEAR_REFINE";
       ghost_cell_components[0] = ITC(f_idx,
-                                     "LINEAR_REFINE",
+                                     refine_type,
                                      true,
                                      "CONSERVATIVE_COARSEN",
                                      "LINEAR",
