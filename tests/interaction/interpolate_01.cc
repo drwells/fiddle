@@ -8,8 +8,8 @@
 #include <fiddle/transfer/overlap_partitioning_tools.h>
 #include <fiddle/transfer/scatter.h>
 
-#include <deal.II/base/mpi.h>
 #include <deal.II/base/function_parser.h>
+#include <deal.II/base/mpi.h>
 #include <deal.II/base/quadrature_lib.h>
 
 #include <deal.II/dofs/dof_handler.h>
@@ -35,7 +35,6 @@
 
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/matrix_tools.h>
-
 #include <deal.II/numerics/vector_tools_integrate_difference.h>
 
 #include <ibtk/AppInitializer.h>
@@ -102,25 +101,26 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   // set up what we need for computing the RHS of the projection:
   const MappingQ<dim>                X_map(1);
   const std::vector<Quadrature<dim>> quadratures({QGauss<dim>(2)});
-  const std::vector<unsigned char> quadrature_indices(overlap_tria.n_active_cells());
+  const std::vector<unsigned char>   quadrature_indices(
+    overlap_tria.n_active_cells());
 
-  const int n_F_components = input_db->getIntegerWithDefault("n_components", 1);
+  const int n_F_components = get_n_f_components(input_db);
   // TODO - it would be nice to make this work with n_F_components = 1, but that
   // messes up some MatrixFree implementation details
   std::unique_ptr<FiniteElement<dim>> fe;
   if (n_F_components == 1)
-  {
-    fe = std::make_unique<FE_Q<dim>>(1);
-  }
+    {
+      fe = std::make_unique<FE_Q<dim>>(1);
+    }
   else
-  {
-    fe = std::make_unique<FESystem<dim>>(FE_Q<dim>(1), n_F_components);
-  }
+    {
+      fe = std::make_unique<FESystem<dim>>(FE_Q<dim>(1), n_F_components);
+    }
 
   DoFHandler<dim, spacedim> F_dof_handler(overlap_tria);
   F_dof_handler.distribute_dofs(*fe);
   const MappingQ<dim, spacedim> F_map(1);
-  Vector<double>          F_rhs(F_dof_handler.n_dofs());
+  Vector<double>                F_rhs(F_dof_handler.n_dofs());
 
   compute_projection_rhs(u_cc_idx,
                          patch_map,
@@ -148,8 +148,8 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     PreconditionIdentity preconditioner;
     preconditioner.initialize(mass_matrix);
 
-    SolverControl control(100, 1e-14*F_rhs.l2_norm());
-    SolverCG<> cg(control);
+    SolverControl control(100, 1e-14 * F_rhs.l2_norm());
+    SolverCG<>    cg(control);
     cg.solve(mass_matrix, F_solution, F_rhs, preconditioner);
   }
 
@@ -185,22 +185,22 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     // TODO - we need some utility functions for converting input parameters to
     // template parameters
     switch (n_F_components)
-    {
-      case 1:
-        mass_operator
-          = std::make_unique<MatrixFreeOperators::MassOperator<dim, 1, 2, 1>>();
-        break;
-      case 2:
-        mass_operator
-          = std::make_unique<MatrixFreeOperators::MassOperator<dim, 1, 2, 2>>();
-        break;
-      case 3:
-        mass_operator
-          = std::make_unique<MatrixFreeOperators::MassOperator<dim, 1, 2, 3>>();
-        break;
-      default:
-        Assert(false, fdl::ExcFDLNotImplemented());
-    }
+      {
+        case 1:
+          mass_operator =
+            std::make_unique<MatrixFreeOperators::MassOperator<dim, 1, 2, 1>>();
+          break;
+        case 2:
+          mass_operator =
+            std::make_unique<MatrixFreeOperators::MassOperator<dim, 1, 2, 2>>();
+          break;
+        case 3:
+          mass_operator =
+            std::make_unique<MatrixFreeOperators::MassOperator<dim, 1, 2, 3>>();
+          break;
+        default:
+          Assert(false, fdl::ExcFDLNotImplemented());
+      }
 
     mass_operator->initialize(matrix_free);
     mass_operator->compute_diagonal();
@@ -208,7 +208,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     PreconditionIdentity preconditioner;
     preconditioner.initialize(*mass_operator);
 
-    SolverControl control(100, 1e-14*native_rhs.l2_norm());
+    SolverControl control(100, 1e-14 * native_rhs.l2_norm());
     SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
     cg.solve(*mass_operator, native_solution, native_rhs, preconditioner);
   }
@@ -227,7 +227,9 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
   // write SAMRAI data:
   {
-    app_initializer->getVisItDataWriter()->writePlotData(patch_hierarchy, 0, 0.0);
+    app_initializer->getVisItDataWriter()->writePlotData(patch_hierarchy,
+                                                         0,
+                                                         0.0);
   }
 
   // plot native solution:
@@ -250,7 +252,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
   // save output:
   {
-    auto fp_db = app_initializer->getComponentDatabase("f");
+    auto        fp_db = input_db->getDatabase("test")->getDatabase("f");
     std::string fp_string;
     if (n_F_components == 1)
       {
@@ -266,11 +268,10 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
           }
       }
 
-    FunctionParser<spacedim> fp(
-      fp_string,
-      "PI=" + std::to_string(numbers::PI),
-      "X_0,X_1");
-    Vector<float> error(native_tria.n_active_cells());
+    FunctionParser<spacedim> fp(fp_string,
+                                "PI=" + std::to_string(numbers::PI),
+                                "X_0,X_1");
+    Vector<float>            error(native_tria.n_active_cells());
     VectorTools::integrate_difference(F_native_dof_handler,
                                       native_solution,
                                       fp,
@@ -278,9 +279,9 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                       quadratures[0],
                                       VectorTools::L2_norm);
     const double global_error =
-    VectorTools::compute_global_error(native_tria,
-                                      error,
-                                      VectorTools::L2_norm);
+      VectorTools::compute_global_error(native_tria,
+                                        error,
+                                        VectorTools::L2_norm);
     if (rank == 0)
       output << "global error = " << global_error << std::endl;
   }

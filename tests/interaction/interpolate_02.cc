@@ -15,12 +15,13 @@
 #include <deal.II/dofs/dof_tools.h>
 
 #include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/fe_simplex_p.h>
 #include <deal.II/fe/mapping_q.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_in.h>
-#include <deal.II/grid/tria.h>
 #include <deal.II/grid/reference_cell.h>
+#include <deal.II/grid/tria.h>
 
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/la_parallel_vector.h>
@@ -35,8 +36,6 @@
 
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/matrix_tools.h>
-
-#include <deal.II/fe/fe_simplex_p.h>
 
 #include <ibtk/AppInitializer.h>
 #include <ibtk/IBTKInit.h>
@@ -124,12 +123,13 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   // test:
   std::vector<BoundingBox<spacedim, float>> all_cell_bboxes;
   {
-      TimerOutput::Scope t(computing_timer, "all_bboxes");
-      for (const auto cell : native_tria.active_cell_iterators())
+    TimerOutput::Scope t(computing_timer, "all_bboxes");
+    for (const auto cell : native_tria.active_cell_iterators())
       {
-          BoundingBox<spacedim, float> fbbox;
-          fbbox.get_boundary_points() = cell->bounding_box().get_boundary_points();
-          all_cell_bboxes.push_back(fbbox);
+        BoundingBox<spacedim, float> fbbox;
+        fbbox.get_boundary_points() =
+          cell->bounding_box().get_boundary_points();
+        all_cell_bboxes.push_back(fbbox);
       }
   }
   TestTag<spacedim> test_tag(all_cell_bboxes);
@@ -166,18 +166,18 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   if (rank == 0)
     output.open("output");
 
-  const Mapping<dim, spacedim> &X_map = get_default_linear_mapping
-      <dim, spacedim>(overlap_tria);
+  const Mapping<dim, spacedim> &X_map =
+    get_default_linear_mapping<dim, spacedim>(overlap_tria);
   std::vector<Quadrature<dim>> quadratures;
   quadratures.push_back(QGaussSimplex<dim>(2));
   std::vector<unsigned char> quadrature_indices(overlap_tria.n_active_cells());
 
-  FE_SimplexP<dim>        fe(1);
+  FE_SimplexP<dim>          fe(1);
   DoFHandler<dim, spacedim> F_dof_handler(overlap_tria);
   F_dof_handler.distribute_dofs(fe);
-  const Mapping<dim, spacedim> &F_map = get_default_linear_mapping
-      <dim, spacedim>(overlap_tria);
-  Vector<double>          F_rhs(F_dof_handler.n_dofs());
+  const Mapping<dim, spacedim> &F_map =
+    get_default_linear_mapping<dim, spacedim>(overlap_tria);
+  Vector<double> F_rhs(F_dof_handler.n_dofs());
 
   {
     TimerOutput::Scope cprt(computing_timer, "compute_projection_rhs");
