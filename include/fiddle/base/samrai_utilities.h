@@ -87,7 +87,10 @@ namespace fdl
   }
 
 
-
+  /**
+   * Each class inheriting from PatchData implements getDepth() but we need to
+   * downcast to call it.
+   */
   template <int spacedim>
   int
   extract_depth(const tbox::Pointer<hier::PatchData<spacedim>> &p)
@@ -122,6 +125,87 @@ namespace fdl
 
     AssertThrow(false, dealii::ExcNotImplemented());
     return {};
+  }
+
+
+  /**
+   * Like depth, each class inheriting from PatchData implements fillAll and is
+   * templated on type, but none of this information is available without
+   * explicitly downcasting.
+   *
+   * The input type defaults to integers since that can be reasonably cast to
+   * floats and doubles.
+   */
+  template <int spacedim, typename field_type = int>
+  void
+  fill_all(tbox::Pointer<hier::PatchData<spacedim>> p,
+           const field_type                         value = 0)
+  {
+    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, int>>(p))
+      {
+        p2->fillAll(value);
+        return;
+      }
+    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, float>>(p))
+      {
+        p2->fillAll(value);
+        return;
+      }
+    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, double>>(p))
+      {
+        p2->fillAll(value);
+        return;
+      }
+
+    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, int>>(p))
+      {
+        p2->fillAll(value);
+        return;
+      }
+    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, float>>(p))
+      {
+        p2->fillAll(value);
+        return;
+      }
+    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, double>>(p))
+      {
+        p2->fillAll(value);
+        return;
+      }
+
+    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, int>>(p))
+      {
+        p2->fillAll(value);
+        return;
+      }
+    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, float>>(p))
+      {
+        p2->fillAll(value);
+        return;
+      }
+    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, double>>(p))
+      {
+        p2->fillAll(value);
+        return;
+      }
+
+    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, int>>(p))
+      {
+        p2->fillAll(value);
+        return;
+      }
+    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, float>>(p))
+      {
+        p2->fillAll(value);
+        return;
+      }
+    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, double>>(p))
+      {
+        p2->fillAll(value);
+        return;
+      }
+
+    AssertThrow(false, dealii::ExcNotImplemented());
   }
 
 } // namespace fdl

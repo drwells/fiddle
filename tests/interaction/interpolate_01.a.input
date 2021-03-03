@@ -1,11 +1,14 @@
 // Another interpolation test, but with a vector-valued function
 
-f {
-   function_0 = "sin(2*PI*(X_0-0.1234))*sin(2*PI*(X_1-0.1234))"
-   function_1 = "X_0*X_0 + cos(2*PI*(X_0-0.2468))*sin(2*PI*(X_1-0.1234))"
+// generic test settings read by setup_hierarchy
+test
+{
+  f
+  {
+    function_0 = "sin(2*PI*(X_0-0.1234))*sin(2*PI*(X_1-0.1234))"
+    function_1 = "X_0*X_0 + cos(2*PI*(X_0-0.2468))*sin(2*PI*(X_1-0.1234))"
+  }
 }
-
-n_components = 2
 
 Main {
    log_file_name = "output"
