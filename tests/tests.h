@@ -38,6 +38,27 @@ get_n_f_components(SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> input_db)
   return n_f_components;
 }
 
+std::string
+extract_fp_string(SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> f_db)
+{
+  std::string fp_string;
+  const int   n_F_components = f_db->getAllKeys().getSize();
+  if (n_F_components == 1)
+    {
+      fp_string += f_db->getString("function");
+    }
+  else
+    {
+      for (int c = 0; c < n_F_components; ++c)
+        {
+          fp_string += f_db->getString("function_" + std::to_string(c));
+          if (c != n_F_components - 1)
+            fp_string += ';';
+        }
+    }
+  return fp_string;
+}
+
 // A utility function that does the normal SAMRAI initialization stuff.
 template <int spacedim>
 std::pair<SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<spacedim>>, int>

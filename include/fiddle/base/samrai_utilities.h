@@ -4,9 +4,18 @@
 #include <deal.II/base/exceptions.h>
 
 #include <CellData.h>
+#include <CellVariable.h>
 #include <EdgeData.h>
+#include <EdgeVariable.h>
+#include <HierarchyCellDataOpsReal.h>
+#include <HierarchyDataOpsReal.h>
+#include <HierarchyEdgeDataOpsReal.h>
+#include <HierarchyNodeDataOpsReal.h>
+#include <HierarchySideDataOpsReal.h>
 #include <NodeData.h>
+#include <NodeVariable.h>
 #include <SideData.h>
+#include <SideVariable.h>
 
 #include <utility>
 
@@ -208,6 +217,31 @@ namespace fdl
     AssertThrow(false, dealii::ExcNotImplemented());
   }
 
+  /**
+   * Like elsewhere, SAMRAI doesn't provide any way to actually subtract two
+   * sets of data in a generic way, so we need to implement our own lookup code.
+   */
+  template <int spacedim>
+  tbox::Pointer<math::HierarchyDataOpsReal<spacedim, double>>
+  extract_hierarchy_data_ops(
+    const tbox::Pointer<hier::Variable<spacedim>> p,
+    tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy)
+  {
+    if (auto p2 = tbox::Pointer<pdat::EdgeVariable<spacedim, double>>(p))
+      return new math::HierarchyEdgeDataOpsReal<spacedim, double>(
+        patch_hierarchy);
+    else if (auto p2 = tbox::Pointer<pdat::CellVariable<spacedim, double>>(p))
+      return new math::HierarchyCellDataOpsReal<spacedim, double>(
+        patch_hierarchy);
+    else if (auto p2 = tbox::Pointer<pdat::NodeVariable<spacedim, double>>(p))
+      return new math::HierarchyNodeDataOpsReal<spacedim, double>(
+        patch_hierarchy);
+    else if (auto p2 = tbox::Pointer<pdat::SideVariable<spacedim, double>>(p))
+      return new math::HierarchySideDataOpsReal<spacedim, double>(
+        patch_hierarchy);
+
+    AssertThrow(false, dealii::ExcNotImplemented());
+  }
 } // namespace fdl
 
 #endif

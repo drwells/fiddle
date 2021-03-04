@@ -16,12 +16,58 @@
 #include <ibtk/LEInteractor.h>
 
 #include <memory>
+#include <type_traits>
 #include <vector>
 
 namespace fdl
 {
   using namespace dealii;
   using namespace SAMRAI;
+
+  namespace
+  {
+    // There is no clean way to check this since we treat side-centered
+    // data in a different way
+    template <int dim, int spacedim, typename patch_type>
+    void
+    check_depth(const tbox::Pointer<patch_type> &   f_data,
+                const FiniteElement<dim, spacedim> &fe)
+    {
+      const int depth = f_data->getDepth();
+      if (std::is_same<patch_type, pdat::SideData<spacedim, double>>::value)
+        {
+          Assert(depth * spacedim == fe.n_components(),
+                 ExcMessage("The depth of the SAMRAI variable should equal the "
+                            "number of components of the finite element."));
+        }
+      else
+        {
+          Assert(depth == fe.n_components(),
+                 ExcMessage("The depth of the SAMRAI variable should equal the "
+                            "number of components of the finite element."));
+        }
+    }
+
+    template <int dim, int spacedim>
+    void
+    check_quadratures(const std::vector<unsigned char> &  quadrature_indices,
+                      const std::vector<Quadrature<dim>> &quadratures,
+                      const DoFHandler<dim, spacedim> &   F_dof_handler)
+    {
+      Assert(quadrature_indices.size() ==
+               F_dof_handler.get_triangulation().n_active_cells(),
+             ExcMessage(
+               "There should be exactly one quadrature rule per active cell."));
+      if (quadrature_indices.size() > 0)
+        {
+          Assert(*std::max_element(quadrature_indices.begin(),
+                                   quadrature_indices.end()) <
+                   quadratures.size(),
+                 ExcMessage("Not enough quadrature rules"));
+        }
+    }
+  } // namespace
+
 
   template <int spacedim, typename Number, typename TYPE>
   void
@@ -147,19 +193,7 @@ namespace fdl
     const Mapping<dim, spacedim> &      F_mapping,
     Vector<double> &                    F_rhs)
   {
-    using namespace SAMRAI;
-
-    Assert(quadrature_indices.size() ==
-             F_dof_handler.get_triangulation().n_active_cells(),
-           ExcMessage(
-             "There should be exactly one quadrature rule per active cell."));
-    if (quadrature_indices.size() > 0)
-      {
-        Assert(*std::max_element(quadrature_indices.begin(),
-                                 quadrature_indices.end()) < quadratures.size(),
-               ExcMessage("Not enough quadrature rules"));
-      }
-
+    check_quadratures(quadrature_indices, quadratures, F_dof_handler);
     const FiniteElement<dim, spacedim> &f_fe          = F_dof_handler.get_fe();
     const unsigned int                  dofs_per_cell = f_fe.dofs_per_cell;
     // TODO - do we need to assume something about the block structure of the
@@ -190,24 +224,7 @@ namespace fdl
       {
         auto                      patch  = patch_map.get_patch(patch_n);
         tbox::Pointer<patch_type> f_data = patch->getPatchData(f_data_idx);
-        const unsigned int        depth  = f_data->getDepth();
-
-        // There is no clean way to check this since we treat side-centered
-        // data in a different way
-        if (std::is_same<patch_type, pdat::SideData<spacedim, double>>::value)
-          {
-            Assert(depth * spacedim == f_fe.n_components(),
-                   ExcMessage(
-                     "The depth of the SAMRAI variable should equal the "
-                     "number of components of the finite element."));
-          }
-        else
-          {
-            Assert(depth == f_fe.n_components(),
-                   ExcMessage(
-                     "The depth of the SAMRAI variable should equal the "
-                     "number of components of the finite element."));
-          }
+        check_depth(f_data, f_fe);
 
         auto       iter = patch_map.begin(patch_n, F_dof_handler);
         const auto end  = patch_map.end(patch_n, F_dof_handler);
@@ -402,19 +419,7 @@ namespace fdl
                           const Mapping<dim, spacedim> &      F_mapping,
                           const Vector<double> &              F)
   {
-    using namespace SAMRAI;
-
-    Assert(quadrature_indices.size() ==
-             F_dof_handler.get_triangulation().n_active_cells(),
-           ExcMessage(
-             "There should be exactly one quadrature rule per active cell."));
-    if (quadrature_indices.size() > 0)
-      {
-        Assert(*std::max_element(quadrature_indices.begin(),
-                                 quadrature_indices.end()) < quadratures.size(),
-               ExcMessage("Not enough quadrature rules"));
-      }
-
+    check_quadratures(quadrature_indices, quadratures, F_dof_handler);
     const FiniteElement<dim, spacedim> &f_fe          = F_dof_handler.get_fe();
     const unsigned int                  dofs_per_cell = f_fe.dofs_per_cell;
 
@@ -438,10 +443,7 @@ namespace fdl
         auto                      patch  = patch_map.get_patch(patch_n);
         tbox::Pointer<patch_type> f_data = patch->getPatchData(f_data_idx);
         Assert(f_data, ExcMessage("Type mismatch"));
-        const int depth = f_data->getDepth();
-        Assert(depth == f_fe.n_components(),
-               ExcMessage("The depth of the SAMRAI variable should equal the "
-                          "number of components of the finite element."));
+        check_depth(f_data, f_fe);
 
         auto       iter = patch_map.begin(patch_n, F_dof_handler);
         const auto end  = patch_map.end(patch_n, F_dof_handler);
@@ -477,17 +479,18 @@ namespace fdl
                           "FORTRAN routines assume we are packed");
             const auto X_data =
               reinterpret_cast<const double *>(q_points.data());
-            // we check depth at run time - its supposed to be set a level up
-            // and is not explicitly available as a template argument here
-            AssertThrow(sizeof(value_type) == sizeof(double) * depth,
+            // the number of components is determined at run time so use a
+            // normal assertion
+            AssertThrow(sizeof(value_type) ==
+                          sizeof(double) * f_fe.n_components(),
                         ExcMessage("FORTRAN routines assume we are packed"));
             const auto F_data =
               reinterpret_cast<const double *>(F_values.data());
 
             IBTK::LEInteractor::spread(f_data,
                                        F_data,
-                                       F_values.size(),
-                                       depth,
+                                       F_values.size() * f_fe.n_components(),
+                                       f_fe.n_components(),
                                        X_data,
                                        n_q_points * spacedim,
                                        spacedim,
@@ -568,25 +571,13 @@ namespace fdl
               break;
 
             case SAMRAIPatchType::Side:
-              switch (extract_depth(patch_data))
-                {
-                  case 1:
-                    compute_spread_internal<dim,
-                                            spacedim,
-                                            double,
-                                            pdat::SideData<spacedim, double>>(
-                      ARGUMENTS);
-                    break;
-                  case spacedim:
-                    compute_spread_internal<dim,
-                                            spacedim,
-                                            Tensor<1, spacedim>,
-                                            pdat::SideData<spacedim, double>>(
-                      ARGUMENTS);
-                    break;
-                  default:
-                    AssertThrow(false, ExcNotImplemented());
-                }
+              // We only support depth == 1 for side-centered
+              Assert(extract_depth(patch_data) == 1, ExcFDLNotImplemented());
+              compute_spread_internal<dim,
+                                      spacedim,
+                                      Tensor<1, spacedim>,
+                                      pdat::SideData<spacedim, double>>(
+                ARGUMENTS);
               break;
 
             case SAMRAIPatchType::Node:
