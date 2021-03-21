@@ -23,6 +23,11 @@ namespace fdl
    * with the provided set of bounding boxes. In general, these subsets will
    * overlap (i.e., a cell can be assigned to an arbitrary number of
    * processors).
+   *
+   * This class is inherently serial (i.e., a single processor) since the cells
+   * it stores have no notion of ghost cells of cells belonging to off-processor
+   * overlap triangulations. Hence the communicator it stores is still
+   * <code>MPI_COMM_SELF</code>.
    */
   template <int dim, int spacedim = dim>
   class OverlapTriangulation : public dealii::Triangulation<dim, spacedim>
