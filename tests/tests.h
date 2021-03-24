@@ -1,6 +1,8 @@
 #include <fiddle/base/exceptions.h>
 #include <fiddle/base/samrai_utilities.h>
 
+#include <fiddle/interaction/interaction_utilities.h>
+
 #include <deal.II/base/exceptions.h>
 
 #include <ibtk/CartSideDoubleSpecializedLinearRefine.h>
