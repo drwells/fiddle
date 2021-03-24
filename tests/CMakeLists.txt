@@ -1,6 +1,6 @@
 ADD_CUSTOM_TARGET(tests)
 
-SET(TEST_DIRECTORIES base grid interaction)
+SET(TEST_DIRECTORIES base grid interaction mechanics)
 
 FOREACH(_dir ${TEST_DIRECTORIES})
   ADD_CUSTOM_TARGET("tests-${_dir}")
@@ -60,6 +60,9 @@ SETUP(interaction interpolate_02.cc fiddle3d)
 SETUP(interaction spread_01.cc fiddle2d)
 
 SETUP(interaction interaction_base_01.cc fiddle2d)
+
+# mechanics:
+SETUP(mechanics me_values_01 fiddle2d)
 
 ADD_CUSTOM_COMMAND(TARGET tests
   POST_BUILD
