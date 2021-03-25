@@ -13,35 +13,11 @@
 #include <deal.II/numerics/vector_tools_interpolate.h>
 
 #include <fiddle/mechanics/mechanics_values.h>
+#include <fiddle/mechanics/force_contribution.h>
 
 namespace fdl
 {
   using namespace dealii;
-
-  /**
-   * Interface class for force contributions from various sources to Parts.
-   */
-  template <int dim, int spacedim = dim, typename Number = double>
-  class ForceContribution
-  {
-  public:
-    /**
-     * Compute forces at quadrature points. Should work regardless of whether
-     * we are on the surface of the element or inside it.
-     */
-    virtual void
-    compute_force(const FEValuesBase<dim, spacedim> &   fe_values,
-                  const MechanicsValues<dim, spacedim> &m_values,
-                  // TODO - figure out an API for passing in the cell iterator
-                  // so that inheriting classes can do the right thing for their
-                  // own storned FE fields (e.g., fibers)
-                  ArrayView<Tensor<1, spacedim, Number>> &forces) = 0;
-
-    // TODO: we need another API for comparing quadrature rules so that we can
-    // skip creating one FEValues object for each force. Returning the
-    // quadrature rule here (and then using std::partition later) will
-    // probably suffice.
-  };
 
   /**
    * Class encapsulating a single structure - essentially a wrapper that stores
