@@ -49,14 +49,16 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   {
     const auto &dof_handler = part.get_dof_handler();
 
-    MappingQGeneric<dim, spacedim>      mapping(1);
-    QGauss<dim>                         quadrature(fe.degree + 1);
-    FEValues<dim, spacedim>             fe_values(mapping,
+    MappingQGeneric<dim, spacedim> mapping(1);
+    QGauss<dim>                    quadrature(fe.degree + 1);
+
+    FEValues<dim, spacedim> fe_values(mapping,
                                       fe,
                                       quadrature,
                                       update_values | update_gradients);
-    fdl::MechanicsValues<dim, spacedim> mechanics_values(fe_values,
-                                                         part.get_position());
+
+    fdl::MechanicsValues<dim, spacedim> mechanics_values(
+      fe_values, part.get_position(), part.get_velocity(), fdl::update_FF | fdl::update_det_FF);
 
     std::ofstream out("output");
     for (const auto &cell : dof_handler.active_cell_iterators())
