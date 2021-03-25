@@ -197,6 +197,9 @@ namespace fdl
 
     VectorTools::interpolate(dof_handler, initial_position, position);
     VectorTools::interpolate(dof_handler, initial_velocity, velocity);
+
+    position.update_ghost_values();
+    velocity.update_ghost_values();
   }
 
   // Functions for getting and setting state vectors
