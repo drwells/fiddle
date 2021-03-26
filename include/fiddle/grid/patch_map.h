@@ -139,6 +139,13 @@ namespace fdl
       friend class PatchMap;
     };
 
+    /**
+     * Get a patch stored by the patch map.
+     *
+     * @note Unlike SAMRAI's patch indexing, patch numbers here are local -
+     * i.e., patch 42 on processor 0 is completely unrelated to patch 42 on
+     * processor 1.
+     */
     tbox::Pointer<hier::Patch<spacedim>> &
     get_patch(const std::size_t patch_n)
     {
