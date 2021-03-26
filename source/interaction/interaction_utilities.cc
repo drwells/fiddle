@@ -6,6 +6,7 @@
 
 #include <fiddle/transfer/overlap_partitioning_tools.h>
 
+#include <deal.II/fe/fe_nothing.h>
 #include <deal.II/fe/fe_values.h>
 
 #include <deal.II/numerics/rtree.h>
@@ -172,6 +173,117 @@ namespace fdl
             // valid type), so we are done at this point
             break;
           }
+      }
+  }
+
+
+
+  template <int dim, int spacedim, typename TYPE>
+  void
+  count_quadrature_points_internal(
+    const int                           qp_data_idx,
+    PatchMap<dim, spacedim> &           patch_map,
+    const Mapping<dim, spacedim> &      X_mapping,
+    const std::vector<unsigned char> &  quadrature_indices,
+    const std::vector<Quadrature<dim>> &quadratures)
+  {
+    check_quadratures(quadrature_indices,
+                      quadratures,
+                      patch_map.get_triangulation());
+
+    // We probably don't need more than 16 quadrature rules
+    boost::container::small_vector<std::unique_ptr<FEValues<dim, spacedim>>, 16>
+      all_X_fe_values;
+    // PatchMap only supports looping over DoFHandler iterators, so we need to
+    // make one and never use it explicitly
+    const Triangulation<dim, spacedim> &tria = patch_map.get_triangulation();
+    // No mixed meshes yet
+    Assert(tria.get_reference_cells().size() == 1, ExcNotImplemented());
+    const ReferenceCell reference_cell = tria.get_reference_cells().front();
+    FE_Nothing<dim, spacedim> fe_nothing(reference_cell);
+    DoFHandler<dim, spacedim> dof_handler(tria);
+    dof_handler.distribute_dofs(fe_nothing);
+    for (const Quadrature<dim> &quad : quadratures)
+      {
+        all_X_fe_values.emplace_back(std::make_unique<FEValues<dim, spacedim>>(
+          X_mapping, fe_nothing, quad, update_quadrature_points));
+      }
+
+    for (unsigned int patch_n = 0; patch_n < patch_map.size(); ++patch_n)
+      {
+        auto patch = patch_map.get_patch(patch_n);
+        tbox::Pointer<pdat::CellData<spacedim, TYPE>> qp_data =
+          patch->getPatchData(qp_data_idx);
+        Assert(qp_data, ExcMessage("Type mismatch"));
+        Assert(qp_data->getDepth() == 1, ExcMessage("depth should be 1"));
+        const hier::Box<spacedim> &patch_box = patch->getBox();
+        tbox::Pointer<geom::CartesianPatchGeometry<spacedim>> patch_geom =
+          patch->getPatchGeometry();
+        Assert(patch_geom, ExcMessage("Type mismatch"));
+
+        auto       iter = patch_map.begin(patch_n, dof_handler);
+        const auto end  = patch_map.end(patch_n, dof_handler);
+        for (; iter != end; ++iter)
+          {
+            const auto cell = *iter;
+            const auto quad_index =
+              quadrature_indices[cell->active_cell_index()];
+
+            FEValues<dim, spacedim> &X_fe_values = *all_X_fe_values[quad_index];
+            X_fe_values.reinit(cell);
+            for (const Point<spacedim> &q_point :
+                 X_fe_values.get_quadrature_points())
+              {
+                const hier::Index<spacedim> i =
+                  IBTK::IndexUtilities::getCellIndex(q_point,
+                                                     patch_geom,
+                                                     patch_box);
+                if (patch_box.contains(i))
+                  (*qp_data)(i) += TYPE(1);
+              }
+          }
+      }
+  }
+
+
+
+  template <int dim, int spacedim>
+  void
+  count_quadrature_points(const int                         qp_data_idx,
+                          PatchMap<dim, spacedim> &         patch_map,
+                          const Mapping<dim, spacedim> &    X_mapping,
+                          const std::vector<unsigned char> &quadrature_indices,
+                          const std::vector<Quadrature<dim>> &quadratures)
+  {
+    // SAMRAI doesn't offer a way to dispatch on data type so we have to do it
+    // ourselves
+    if (patch_map.size() == 0)
+      {
+        return;
+      }
+    else
+      {
+        const tbox::Pointer<hier::Patch<spacedim>> patch =
+          patch_map.get_patch(0);
+
+        const tbox::Pointer<pdat::CellData<spacedim, int>> int_data =
+          patch->getPatchData(qp_data_idx);
+        const tbox::Pointer<pdat::CellData<spacedim, float>> float_data =
+          patch->getPatchData(qp_data_idx);
+        const tbox::Pointer<pdat::CellData<spacedim, double>> double_data =
+          patch->getPatchData(qp_data_idx);
+
+        if (int_data)
+          count_quadrature_points_internal<dim, spacedim, int>(
+            qp_data_idx, patch_map, X_mapping, quadrature_indices, quadratures);
+        else if (float_data)
+          count_quadrature_points_internal<dim, spacedim, float>(
+            qp_data_idx, patch_map, X_mapping, quadrature_indices, quadratures);
+        else if (double_data)
+          count_quadrature_points_internal<dim, spacedim, double>(
+            qp_data_idx, patch_map, X_mapping, quadrature_indices, quadratures);
+        else
+          Assert(false, ExcNotImplemented());
       }
   }
 
@@ -617,6 +729,20 @@ namespace fdl
   tag_cells(const std::vector<BoundingBox<NDIM, double>> &        bboxes,
             const int                                             tag_index,
             SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> patch_level);
+
+  template void
+  count_quadrature_points(const int                         qp_data_idx,
+                          PatchMap<NDIM - 1, NDIM> &        patch_map,
+                          const Mapping<NDIM - 1, NDIM> &   X_mapping,
+                          const std::vector<unsigned char> &quadrature_indices,
+                          const std::vector<Quadrature<NDIM - 1>> &quadratures);
+
+  template void
+  count_quadrature_points(const int                         qp_data_idx,
+                          PatchMap<NDIM, NDIM> &            patch_map,
+                          const Mapping<NDIM, NDIM> &       X_mapping,
+                          const std::vector<unsigned char> &quadrature_indices,
+                          const std::vector<Quadrature<NDIM>> &quadratures);
 
   template void
   compute_projection_rhs(const int                         f_data_idx,

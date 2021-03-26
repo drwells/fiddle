@@ -48,6 +48,39 @@ namespace fdl
             tbox::Pointer<hier::PatchLevel<spacedim>>         patch_level);
 
   /**
+   * Add the number of quadrature points.
+   *
+   * @param[in] qp_data_idx the SAMRAI patch data index - the values in the
+   * cells will be set to the number of quadrature points intersecting that
+   * cell. The corresponding variable should be cell-centered, have a depth of
+   * 1, and have either int, float, or double type.
+   *
+   * @param[in] patch_map The mapping between SAMRAI patches and deal.II cells
+   * which we will use for counting quadrature points. This is logically not
+   * const because we need to modify the SAMRAI data accessed through a pointer
+   * owned by this class.
+   *
+   * @param[in] X_mapping Mapping from the reference configuration to the
+   * current configuration of the mesh.
+   *
+   * @param[in] quadrature_indices This vector is indexed by the active cell
+   * index - the value is the index into @p quadratures corresponding to the
+   * correct quadrature rule on that cell.
+   *
+   * @param[in] quadratures The vector of quadratures we use for interaction.
+   *
+   * @note This is a purely local operation since we always assume a PatchMap
+   * stores every element that intersects with the interior of a patch.
+   */
+  template <int dim, int spacedim = dim>
+  void
+  count_quadrature_points(const int                         qp_data_idx,
+                          PatchMap<dim, spacedim> &         patch_map,
+                          const Mapping<dim, spacedim> &    X_mapping,
+                          const std::vector<unsigned char> &quadrature_indices,
+                          const std::vector<Quadrature<dim>> &quadratures);
+
+  /**
    * Compute the right-hand side used to project the velocity from Eulerian to
    * Lagrangian representation.
    *

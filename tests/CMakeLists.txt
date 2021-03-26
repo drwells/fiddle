@@ -54,6 +54,8 @@ SETUP(grid patch_map_02.cc fiddle2d)
 SETUP(grid tag_cells_01.cc fiddle2d)
 
 # interaction:
+SETUP(interaction count_quadrature_points_01.cc fiddle2d)
+
 SETUP(interaction interpolate_01.cc fiddle2d)
 SETUP(interaction interpolate_02.cc fiddle3d)
 
