@@ -54,6 +54,12 @@ namespace fdl
     size() const;
 
     /**
+     * Return a constant reference to the Triangulation.
+     */
+    const Triangulation<dim, spacedim> &
+    get_triangulation() const;
+
+    /**
      * Iterator class for looping over cells of a DoFHandler corresponding to
      * the stored triangulation.
      */
@@ -162,6 +168,8 @@ namespace fdl
     }
 
   protected:
+    SmartPointer<const Triangulation<dim, spacedim>> tria;
+
     std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches;
 
     // TODO - we can really compress this down by instead storing
@@ -182,6 +190,15 @@ namespace fdl
   PatchMap<dim, spacedim>::size() const
   {
     return patches.size();
+  }
+
+
+
+  template <int dim, int spacedim>
+  const Triangulation<dim, spacedim> &
+  PatchMap<dim, spacedim>::get_triangulation() const
+  {
+    return *tria;
   }
 
 

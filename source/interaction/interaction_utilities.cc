@@ -52,10 +52,9 @@ namespace fdl
     void
     check_quadratures(const std::vector<unsigned char> &  quadrature_indices,
                       const std::vector<Quadrature<dim>> &quadratures,
-                      const DoFHandler<dim, spacedim> &   F_dof_handler)
+                      const Triangulation<dim, spacedim> &tria)
     {
-      Assert(quadrature_indices.size() ==
-               F_dof_handler.get_triangulation().n_active_cells(),
+      Assert(quadrature_indices.size() == tria.n_active_cells(),
              ExcMessage(
                "There should be exactly one quadrature rule per active cell."));
       if (quadrature_indices.size() > 0)
@@ -193,7 +192,9 @@ namespace fdl
     const Mapping<dim, spacedim> &      F_mapping,
     Vector<double> &                    F_rhs)
   {
-    check_quadratures(quadrature_indices, quadratures, F_dof_handler);
+    check_quadratures(quadrature_indices,
+                      quadratures,
+                      F_dof_handler.get_triangulation());
     const FiniteElement<dim, spacedim> &f_fe          = F_dof_handler.get_fe();
     const unsigned int                  dofs_per_cell = f_fe.dofs_per_cell;
     // TODO - do we need to assume something about the block structure of the
@@ -419,7 +420,9 @@ namespace fdl
                           const Mapping<dim, spacedim> &      F_mapping,
                           const Vector<double> &              F)
   {
-    check_quadratures(quadrature_indices, quadratures, F_dof_handler);
+    check_quadratures(quadrature_indices,
+                      quadratures,
+                      F_dof_handler.get_triangulation());
     const FiniteElement<dim, spacedim> &f_fe          = F_dof_handler.get_fe();
     const unsigned int                  dofs_per_cell = f_fe.dofs_per_cell;
 
