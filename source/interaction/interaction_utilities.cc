@@ -75,8 +75,6 @@ namespace fdl
     const int                                                 tag_index,
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<spacedim>> patch_level)
   {
-    using namespace SAMRAI;
-
     const tbox::Pointer<geom::CartesianGridGeometry<spacedim>> grid_geom =
       patch_level->getGridGeometry();
     const hier::IntVector<spacedim> ratio = patch_level->getRatio();
@@ -135,7 +133,6 @@ namespace fdl
   {
     // SAMRAI doesn't offer a way to dispatch on data type so we have to do it
     // ourselves
-    using namespace SAMRAI;
 
     if (patch_level->getNumberOfPatches() == 0)
       {
