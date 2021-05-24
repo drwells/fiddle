@@ -86,20 +86,23 @@ namespace fdl
     const std::vector<BoundingBox<spacedim, Number>> &local_active_cell_bboxes)
   {
     Assert(tria.n_active_cells() == local_active_cell_bboxes.size(),
-           ExcMessage("There should be a local bbox for each local active cell"));
+           ExcMessage(
+             "There should be a local bbox for each local active cell"));
     std::vector<BoundingBox<spacedim, Number>> global_bboxes(
       tria.n_active_cells());
     unsigned int cell_n = 0;
     for (const auto &cell : tria.active_cell_iterators())
       if (cell->is_locally_owned())
         {
-          AssertIndexRange(cell->active_cell_index(), local_active_cell_bboxes.size());
+          AssertIndexRange(cell->active_cell_index(),
+                           local_active_cell_bboxes.size());
           global_bboxes[cell->active_cell_index()] =
             local_active_cell_bboxes[cell_n];
           ++cell_n;
         }
     Assert(cell_n == local_active_cell_bboxes.size(),
-           ExcMessage("There should be a bounding box for every locally owned cell"));
+           ExcMessage(
+             "There should be a bounding box for every locally owned cell"));
 
     MPI_Datatype   mpi_type  = {};
     constexpr bool is_float  = std::is_same<Number, float>::value;

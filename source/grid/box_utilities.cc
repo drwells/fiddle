@@ -81,8 +81,7 @@ namespace fdl
       }
     else if (multi_patch_level)
       {
-        for (int block_n = 0;
-             block_n < multi_patch_level->getNumberOfBlocks();
+        for (int block_n = 0; block_n < multi_patch_level->getNumberOfBlocks();
              ++block_n)
           {
             get_patches(multi_patch_level->getPatchLevelForBlock(block_n));

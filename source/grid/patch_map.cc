@@ -27,7 +27,7 @@ namespace fdl
     const Triangulation<dim, spacedim> &              tria,
     const std::vector<BoundingBox<spacedim, Number>> &cell_bboxes)
   {
-    this->tria = &tria;
+    this->tria    = &tria;
     this->patches = patches;
     Assert(cell_bboxes.size() == tria.n_active_cells(),
            ExcMessage("each active cell should have a bounding box."));

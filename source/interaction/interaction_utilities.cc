@@ -532,7 +532,7 @@ namespace fdl
     check_quadratures(quadrature_indices,
                       quadratures,
                       F_dof_handler.get_triangulation());
-    const FiniteElement<dim, spacedim> &f_fe          = F_dof_handler.get_fe();
+    const FiniteElement<dim, spacedim> &f_fe = F_dof_handler.get_fe();
 
     // We probably don't need more than 16 quadrature rules
     boost::container::small_vector<std::unique_ptr<FEValues<dim, spacedim>>, 16>
