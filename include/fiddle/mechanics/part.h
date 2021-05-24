@@ -1,7 +1,10 @@
 #ifndef included_fiddle_mechanics_part_h
 #define included_fiddle_mechanics_part_h
 
+#include <fiddle/base/exceptions.h>
+
 #include <deal.II/base/bounding_box.h>
+#include <deal.II/base/function.h>
 
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_tools.h>
@@ -12,8 +15,11 @@
 
 #include <deal.II/numerics/vector_tools_interpolate.h>
 
-#include <fiddle/mechanics/mechanics_values.h>
 #include <fiddle/mechanics/force_contribution.h>
+#include <fiddle/mechanics/mechanics_values.h>
+
+#include <memory>
+#include <vector>
 
 namespace fdl
 {
@@ -23,6 +29,13 @@ namespace fdl
    * Class encapsulating a single structure - essentially a wrapper that stores
    * the current position and velocity and can also compute the interior force
    * density.
+   *
+   * @todo In the future we should add an API that allows users to merge in
+   * their own constraints to the position, force, or displacement systems. This
+   * class also needs to learn how to set up hanging node constraints. This
+   * might not be trivial - if we constrain the position space then that implies
+   * constraints on the velocity space. This might also raise adjointness
+   * concerns.
    */
   template <int dim, int spacedim = dim>
   class Part
@@ -41,6 +54,11 @@ namespace fdl
            Functions::ZeroFunction<spacedim>(spacedim));
 
     /**
+     * Move constructor.
+     */
+    Part(Part<dim, spacedim> &&part) = default;
+
+    /**
      * Get a constant reference to the Triangulation.
      */
     const Triangulation<dim, spacedim> &
@@ -51,13 +69,23 @@ namespace fdl
     }
 
     /**
+     * Get a copy of the communicator.
+     */
+    MPI_Comm
+    get_communicator() const
+    {
+      Assert(tria, ExcFDLInternalError());
+      return tria->get_communicator();
+    }
+
+    /**
      * Get a constant reference to the DoFHandler used for the position,
      * velocity, and force.
      */
     const DoFHandler<dim, spacedim> &
     get_dof_handler() const
     {
-      return dof_handler;
+      return *dof_handler;
     }
 
     /**
@@ -124,8 +152,10 @@ namespace fdl
 
     /**
      * DoFHandler for the position, velocity, and force.
+     *
+     * @todo Implement a move constructor for this so we don't need a pointer.
      */
-    DoFHandler<dim, spacedim> dof_handler;
+    std::unique_ptr<DoFHandler<dim, spacedim>> dof_handler;
 
     /**
      * Partitioner for the position, velocity, and force vectors.
@@ -154,25 +184,27 @@ namespace fdl
     const Function<spacedim> &initial_velocity)
     : tria(&tria)
     , fe(&fe)
-    , dof_handler(tria)
+    , dof_handler(std::make_unique<DoFHandler<dim, spacedim>>(tria))
+    , force_contributions(std::move(force_contributions))
   {
     Assert(fe.n_components() == spacedim,
            ExcMessage("The finite element should have spacedim components "
                       "since it will represent the position, velocity and "
                       "force of the part."));
-    dof_handler.distribute_dofs(*this->fe);
+    dof_handler->distribute_dofs(*this->fe);
     IndexSet locally_relevant_dofs;
-    DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
+    DoFTools::extract_locally_relevant_dofs(*dof_handler,
+                                            locally_relevant_dofs);
 
     partitioner = std::make_shared<Utilities::MPI::Partitioner>(
-      dof_handler.locally_owned_dofs(),
+      dof_handler->locally_owned_dofs(),
       locally_relevant_dofs,
       tria.get_communicator());
     position.reinit(partitioner);
     velocity.reinit(partitioner);
 
-    VectorTools::interpolate(dof_handler, initial_position, position);
-    VectorTools::interpolate(dof_handler, initial_velocity, velocity);
+    VectorTools::interpolate(*dof_handler, initial_position, position);
+    VectorTools::interpolate(*dof_handler, initial_velocity, velocity);
 
     position.update_ghost_values();
     velocity.update_ghost_values();
