@@ -35,8 +35,8 @@ namespace fdl
      * Get the update flags this force contribution requires for MechanicsValues
      * objects.
      */
-    virtual MechanicsValuesFlags
-    get_mechanics_values_flags() const = 0;
+    virtual MechanicsUpdateFlags
+    get_mechanics_update_flags() const = 0;
 
     /**
      * Get the update flags this force contribution requires for FEValues
@@ -45,18 +45,38 @@ namespace fdl
     virtual UpdateFlags
     get_update_flags() const = 0;
 
+    virtual bool
+    is_stress() const
+    {
+      return false;
+    }
+
+    virtual bool
+    is_boundary_force() const
+    {
+      return false;
+    }
+
+    virtual bool
+    is_volume_force() const
+    {
+      return false;
+    }
 
     /**
      * Compute forces at quadrature points. Should work regardless of whether
      * we are on the surface of the element or inside it.
      */
     virtual void
-    compute_force(const MechanicsValues<dim, spacedim> &  m_values,
-                  ArrayView<Tensor<1, spacedim, Number>> &forces) // = 0 TODO fix this
+    compute_force(
+      const MechanicsValues<dim, spacedim> &  m_values,
+      ArrayView<Tensor<1, spacedim, Number>> &forces) // = 0 TODO fix this
     {
       // It shouldn't be possible to get here but since compute_surface_force
       // and compute_volume_force both call this function we need it to make the
       // linker happy
+      (void)m_values;
+      (void)forces;
       Assert(false, ExcFDLInternalError());
     }
 
@@ -66,8 +86,9 @@ namespace fdl
     virtual void
     compute_surface_force(
       const MechanicsValues<dim, spacedim> &m_values,
-      const typename Triangulation<dim, spacedim>::active_face_iterator &face,
-      ArrayView<Tensor<1, spacedim, Number>> &                           forces)
+      const typename Triangulation<dim, spacedim>::active_face_iterator
+        & /*face*/,
+      ArrayView<Tensor<1, spacedim, Number>> &forces)
     {
       compute_force(m_values, forces);
     }
@@ -78,8 +99,9 @@ namespace fdl
     virtual void
     compute_volume_force(
       const MechanicsValues<dim, spacedim> &m_values,
-      const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
-      ArrayView<Tensor<1, spacedim, Number>> &                           forces)
+      const typename Triangulation<dim, spacedim>::active_cell_iterator
+        & /*cell*/,
+      ArrayView<Tensor<1, spacedim, Number>> &forces)
     {
       compute_force(m_values, forces);
     }
