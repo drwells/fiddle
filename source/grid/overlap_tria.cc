@@ -110,7 +110,7 @@ namespace fdl
 
             if (dim == 2)
               {
-                for (const auto face : cell->face_iterators())
+                for (const auto &face : cell->face_iterators())
                   {
                     CellData<1> boundary_line;
                     extract_subcell(face, boundary_line);
@@ -120,7 +120,7 @@ namespace fdl
               }
             else if (dim == 3)
               {
-                for (const auto face : cell->face_iterators())
+                for (const auto &face : cell->face_iterators())
                   {
                     CellData<2> boundary_quad;
                     extract_subcell(face, boundary_quad);

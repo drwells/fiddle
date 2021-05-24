@@ -37,13 +37,13 @@ namespace fdl
       const int depth = f_data->getDepth();
       if (std::is_same<patch_type, pdat::SideData<spacedim, double>>::value)
         {
-          Assert(depth * spacedim == fe.n_components(),
+          Assert(depth * spacedim == int(fe.n_components()),
                  ExcMessage("The depth of the SAMRAI variable should equal the "
                             "number of components of the finite element."));
         }
       else
         {
-          Assert(depth == fe.n_components(),
+          Assert(depth == int(fe.n_components()),
                  ExcMessage("The depth of the SAMRAI variable should equal the "
                             "number of components of the finite element."));
         }
@@ -533,7 +533,6 @@ namespace fdl
                       quadratures,
                       F_dof_handler.get_triangulation());
     const FiniteElement<dim, spacedim> &f_fe          = F_dof_handler.get_fe();
-    const unsigned int                  dofs_per_cell = f_fe.dofs_per_cell;
 
     // We probably don't need more than 16 quadrature rules
     boost::container::small_vector<std::unique_ptr<FEValues<dim, spacedim>>, 16>

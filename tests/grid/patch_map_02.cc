@@ -117,7 +117,6 @@ main(int argc, char **argv)
     std::vector<tbox::Pointer<hier::Patch<NDIM>>> patches;
     tbox::Pointer<hier::PatchLevel<NDIM>>         level =
       patch_hierarchy->getPatchLevel(finest_level);
-    int local_patch_num = 0;
     for (hier::PatchLevel<NDIM>::Iterator p(level); p; p++)
       patches.emplace_back(level->getPatch(p()));
 
@@ -135,7 +134,7 @@ main(int argc, char **argv)
       fdl::OverlapTriangulation<NDIM>      overlap_tria(native_tria, tria_pred);
 
       std::vector<BoundingBox<NDIM>> cell_bboxes;
-      for (const auto cell : overlap_tria.active_cell_iterators())
+      for (const auto &cell : overlap_tria.active_cell_iterators())
         cell_bboxes.push_back(cell->bounding_box());
 
       // Set up the relevant fiddle class:

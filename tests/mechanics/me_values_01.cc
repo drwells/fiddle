@@ -67,11 +67,11 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
         mechanics_values.reinit();
 
         out << "J:\n";
-        for (const double J : mechanics_values.get_det_FF())
+        for (const double &J : mechanics_values.get_det_FF())
           out << J << '\n';
 
         out << "FF:\n";
-        for (const Tensor<2, spacedim> FF : mechanics_values.get_FF())
+        for (const Tensor<2, spacedim> &FF : mechanics_values.get_FF())
           out << FF << '\n';
       }
   }

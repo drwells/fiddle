@@ -175,7 +175,7 @@ setup_hierarchy(
   int                                     plot_cc_idx = 0;
   tbox::Pointer<hier::Variable<spacedim>> plot_cc_var;
   if (f_data_type == "CELL")
-    for (unsigned int d = 0; d < n_f_components; ++d)
+    for (int d = 0; d < n_f_components; ++d)
       visit_data_writer->registerPlotQuantity(
         f_var->getName() + std::to_string(d), "SCALAR", f_idx, d);
   else
@@ -198,7 +198,7 @@ setup_hierarchy(
             fdl::fill_all(patch->getPatchData(plot_cc_idx), 0);
         }
 
-      for (unsigned int d = 0; d < n_f_components; ++d)
+      for (int d = 0; d < n_f_components; ++d)
         {
           visit_data_writer->registerPlotQuantity(plot_cc_var->getName() +
                                                     std::to_string(d),

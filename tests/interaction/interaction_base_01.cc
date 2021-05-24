@@ -83,7 +83,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
   // Now set up fiddle things for the test:
   std::vector<BoundingBox<spacedim, float>> cell_bboxes;
-  for (const auto cell : native_tria.active_cell_iterators())
+  for (const auto &cell : native_tria.active_cell_iterators())
     {
       BoundingBox<spacedim, float> fbbox;
       fbbox.get_boundary_points() = cell->bounding_box().get_boundary_points();
@@ -182,7 +182,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     if (input_db->getBoolWithDefault("write_quad_indices", false))
       {
         this_output << "rank = " << rank << '\n';
-        for (const auto cell : overlap_tria.active_cell_iterators())
+        for (const auto &cell : overlap_tria.active_cell_iterators())
           {
             this_output << "barycenter = " << cell->barycenter()
                         << " quad index = "

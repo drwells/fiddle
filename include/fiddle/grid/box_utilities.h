@@ -48,12 +48,11 @@ namespace fdl
    */
   template <int dim, int spacedim = dim, typename Number = double>
   std::vector<BoundingBox<spacedim, Number>>
-  compute_cell_bboxes(const MPI_Comm &                 communicator,
-                      const DoFHandler<dim, spacedim> &dof_handler,
+  compute_cell_bboxes(const DoFHandler<dim, spacedim> &dof_handler,
                       const Mapping<dim, spacedim> &   mapping)
   {
     // TODO: support multiple FEs
-    const FiniteElement<dim> &fe = dof_handler.get_fe();
+    const FiniteElement<dim, spacedim> &fe = dof_handler.get_fe();
     // TODO: also check bboxes by position of quadrature points instead of
     // just nodes. Use QProjector to place points solely on cell boundaries.
     const Quadrature<dim> nodal_quad(fe.get_unit_support_points());
@@ -64,7 +63,7 @@ namespace fdl
                                       update_quadrature_points);
 
     std::vector<BoundingBox<spacedim, Number>> bboxes;
-    for (const auto cell : dof_handler.active_cell_iterators())
+    for (const auto &cell : dof_handler.active_cell_iterators())
       if (cell->is_locally_owned())
         {
           fe_values.reinit(cell);
@@ -77,22 +76,30 @@ namespace fdl
     return bboxes;
   }
 
+  /**
+   * Collect all bounding boxes on all processors.
+   */
   template <int dim, int spacedim = dim, typename Number = double>
   std::vector<BoundingBox<spacedim, Number>>
   collect_all_active_cell_bboxes(
     const parallel::shared::Triangulation<dim, spacedim> &tria,
     const std::vector<BoundingBox<spacedim, Number>> &local_active_cell_bboxes)
   {
+    Assert(tria.n_active_cells() == local_active_cell_bboxes.size(),
+           ExcMessage("There should be a local bbox for each local active cell"));
     std::vector<BoundingBox<spacedim, Number>> global_bboxes(
       tria.n_active_cells());
     unsigned int cell_n = 0;
     for (const auto &cell : tria.active_cell_iterators())
       if (cell->is_locally_owned())
         {
+          AssertIndexRange(cell->active_cell_index(), local_active_cell_bboxes.size());
           global_bboxes[cell->active_cell_index()] =
             local_active_cell_bboxes[cell_n];
           ++cell_n;
         }
+    Assert(cell_n == local_active_cell_bboxes.size(),
+           ExcMessage("There should be a bounding box for every locally owned cell"));
 
     MPI_Datatype   mpi_type  = {};
     constexpr bool is_float  = std::is_same<Number, float>::value;
@@ -116,7 +123,7 @@ namespace fdl
                     sizeof(Number) * n_nums_per_bbox,
                   "packing failed");
     const auto size = n_nums_per_bbox * global_bboxes.size();
-    // TODO assert sizes are all equal and nonzero
+    // TODO MPI_Allgather would be MUCH better here
     const int ierr =
       MPI_Allreduce(MPI_IN_PLACE,
                     reinterpret_cast<Number *>(&global_bboxes[0]),

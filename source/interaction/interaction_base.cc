@@ -109,13 +109,13 @@ namespace fdl
       IndexSet locally_owned_active_cell_indices(native_tria->n_active_cells());
       IndexSet ghost_active_cell_indices(native_tria->n_active_cells());
 
-      for (const auto cell : native_tria->active_cell_iterators())
+      for (const auto &cell : native_tria->active_cell_iterators())
         if (cell->is_locally_owned())
           locally_owned_active_cell_indices.add_index(
             cell->active_cell_index());
 
       // overlap cells are either locally owned or marked as artificial
-      for (const auto cell : overlap_tria.active_cell_iterators())
+      for (const auto &cell : overlap_tria.active_cell_iterators())
         ghost_active_cell_indices.add_index(
           overlap_tria.get_native_cell(cell)->active_cell_index());
 

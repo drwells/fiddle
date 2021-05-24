@@ -83,7 +83,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   fdl::TriaIntersectionPredicate<spacedim> tria_pred(patch_bboxes);
   fdl::OverlapTriangulation<spacedim>      overlap_tria(native_tria, tria_pred);
   std::vector<BoundingBox<spacedim, float>> cell_bboxes;
-  for (const auto cell : overlap_tria.active_cell_iterators())
+  for (const auto &cell : overlap_tria.active_cell_iterators())
     {
       BoundingBox<spacedim, float> fbbox;
       fbbox.get_boundary_points() = cell->bounding_box().get_boundary_points();

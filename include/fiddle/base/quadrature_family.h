@@ -34,7 +34,7 @@ namespace fdl
     {}
 
     virtual const Quadrature<dim> &
-    operator[](const unsigned char n_points_1D) const
+    operator[](const unsigned char /*n_points_1D*/) const
     {
       return single_quad;
     }

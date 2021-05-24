@@ -214,9 +214,9 @@ namespace fdl
   typename PatchMap<dim, spacedim>::iterator::value_type
   PatchMap<dim, spacedim>::iterator::operator*() const
   {
-    Assert(0 <= index && index <= cells->size(),
+    Assert(0 <= index && index <= std::ptrdiff_t(cells->size()),
            ExcMessage("invalid iterator"));
-    if (index == cells->size())
+    if (index == std::ptrdiff_t(cells->size()))
       return dh->end();
 
     return typename DoFHandler<dim, spacedim>::active_cell_iterator(

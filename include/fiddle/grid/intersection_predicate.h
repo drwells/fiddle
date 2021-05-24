@@ -131,8 +131,8 @@ namespace fdl
     }
 
     const SmartPointer<const Triangulation<dim, spacedim>> tria;
-    const std::vector<BoundingBox<spacedim>>               patch_bboxes;
     const std::vector<BoundingBox<spacedim, float>>        active_cell_bboxes;
+    const std::vector<BoundingBox<spacedim>>               patch_bboxes;
   };
 } // namespace fdl
 

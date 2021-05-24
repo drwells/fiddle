@@ -126,7 +126,7 @@ main(int argc, char **argv)
       tria.refine_global(2);
 
       std::vector<BoundingBox<2>> cell_bboxes;
-      for (const auto cell : tria.active_cell_iterators())
+      for (const auto &cell : tria.active_cell_iterators())
         cell_bboxes.push_back(cell->bounding_box());
 
       // Set up the relevant fiddle class:

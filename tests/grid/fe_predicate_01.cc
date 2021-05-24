@@ -120,8 +120,7 @@ main(int argc, char **argv)
   MappingFEField<2, 2, decltype(native_current_position)> native_mapping(
     native_position_dh, native_current_position);
 
-  const auto bboxes = fdl::compute_cell_bboxes<2, 2, float>(mpi_comm,
-                                                            native_position_dh,
+  const auto bboxes = fdl::compute_cell_bboxes<2, 2, float>(native_position_dh,
                                                             native_mapping);
 
   {
