@@ -40,6 +40,23 @@ MACRO(SETUP_2D _dir _src)
   ADD_DEPENDENCIES("tests-${_dir}" ${_target})
 ENDMACRO()
 
+MACRO(SETUP_3D _dir _src)
+  GET_FILENAME_COMPONENT(_dest "${_src}" NAME_WE)
+  SET(_out_name "${_dest}_3d")
+  SET(_target "tests-${_dir}_${_out_name}")
+  ADD_EXECUTABLE(${_target} EXCLUDE_FROM_ALL "${_dir}/${_src}")
+  SET_TARGET_PROPERTIES(${_target}
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY
+    "${CMAKE_BINARY_DIR}/tests/${_dir}"
+    OUTPUT_NAME
+    ${_out_name}
+    )
+  TARGET_COMPILE_OPTIONS(${_target} PUBLIC -DSOURCE_DIR="${CMAKE_SOURCE_DIR}/tests/${_dir}/")
+  TARGET_LINK_LIBRARIES(${_target} PRIVATE fiddle3d)
+  ADD_DEPENDENCIES("tests-${_dir}" ${_target})
+ENDMACRO()
+
 # test definitions:
 
 # base:
@@ -55,6 +72,9 @@ SETUP(grid tag_cells_01.cc fiddle2d)
 
 # interaction:
 SETUP(interaction count_quadrature_points_01.cc fiddle2d)
+
+SETUP_2D(interaction ifed_tag.cc)
+SETUP_3D(interaction ifed_tag.cc)
 
 SETUP(interaction interpolate_01.cc fiddle2d)
 SETUP(interaction interpolate_02.cc fiddle3d)

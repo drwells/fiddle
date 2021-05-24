@@ -1,0 +1,16 @@
+rank: 0 level: 0 boxes:
+[(0,0,0),(15,31,15)]
+rank: 0 level: 1 boxes:
+[(18,12,12),(37,31,51)]
+rank: 1 level: 0 boxes:
+[(0,0,16),(15,31,31)]
+rank: 1 level: 1 boxes:
+[(18,32,12),(37,51,51)]
+rank: 2 level: 0 boxes:
+[(16,0,0),(31,31,15)]
+rank: 2 level: 1 boxes:
+[(38,12,12),(57,31,51)]
+rank: 3 level: 0 boxes:
+[(16,0,16),(31,31,31)]
+rank: 3 level: 1 boxes:
+[(38,32,12),(57,51,51)]
