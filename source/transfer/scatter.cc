@@ -79,7 +79,7 @@ namespace fdl
       scatterer = 0.0;
     else
       {
-        const auto size = scatterer.local_size() +
+        const auto size = scatterer.locally_owned_size() +
                           scatterer.get_partitioner()->n_ghost_indices();
         for (std::size_t i = 0; i < size; ++i)
           scatterer.local_element(i) = std::numeric_limits<T>::min();
@@ -120,7 +120,7 @@ namespace fdl
                                           VectorOperation::max;
     scatterer.compress_finish(actual_op);
 
-    for (std::size_t i = 0; i < scatterer.local_size(); ++i)
+    for (std::size_t i = 0; i < scatterer.locally_owned_size(); ++i)
       output.local_element(i) = scatterer.local_element(i);
   }
 
@@ -139,8 +139,8 @@ namespace fdl
            ExcMessage("The output vector should have the same number of dofs "
                       "as were provided to the constructor in local"));
 
-    scatterer.zero_out_ghosts();
-    for (std::size_t i = 0; i < scatterer.local_size(); ++i)
+    scatterer.zero_out_ghost_values();
+    for (std::size_t i = 0; i < scatterer.locally_owned_size(); ++i)
       scatterer.local_element(i) = input.local_element(i);
 
     scatterer.update_ghost_values_start(channel);
