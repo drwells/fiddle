@@ -64,7 +64,7 @@ SETUP(interaction spread_01.cc fiddle2d)
 SETUP(interaction interaction_base_01.cc fiddle2d)
 
 # mechanics:
-SETUP(mechanics me_values_01 fiddle2d)
+SETUP(mechanics me_values_01.cc fiddle2d)
 
 ADD_CUSTOM_COMMAND(TARGET tests
   POST_BUILD
