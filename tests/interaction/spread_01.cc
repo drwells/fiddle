@@ -75,9 +75,9 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   native_tria.refine_global(std::log2(input_db->getInteger("N")));
 
   // setup SAMRAI stuff (its always the same):
-  auto pair            = setup_hierarchy<spacedim>(app_initializer);
-  auto patch_hierarchy = pair.first;
-  auto f_idx           = pair.second;
+  auto tuple           = setup_hierarchy<spacedim>(app_initializer);
+  auto patch_hierarchy = std::get<0>(tuple);
+  auto f_idx           = std::get<5>(tuple);
 
   // Now set up fiddle things for the test:
   auto patches = fdl::extract_patches(

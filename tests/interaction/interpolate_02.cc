@@ -135,9 +135,10 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   TestTag<spacedim> test_tag(all_cell_bboxes);
 
   // setup SAMRAI stuff (its always the same)
-  auto pair            = setup_hierarchy<spacedim>(app_initializer, &test_tag);
-  auto patch_hierarchy = pair.first;
-  auto u_cc_idx        = pair.second;
+    auto tuple           = setup_hierarchy<spacedim>(app_initializer);
+  auto patch_hierarchy = std::get<0>(tuple);
+  auto f_idx           = std::get<5>(tuple);
+
 
   // Now set up fiddle things for the test:
   const auto patches = fdl::extract_patches(
@@ -181,7 +182,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
   {
     TimerOutput::Scope cprt(computing_timer, "compute_projection_rhs");
-    compute_projection_rhs(u_cc_idx,
+    compute_projection_rhs(f_idx,
                            patch_map,
                            X_map,
                            quadrature_indices,

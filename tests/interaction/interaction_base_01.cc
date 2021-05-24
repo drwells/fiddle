@@ -77,9 +77,10 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   native_tria.refine_global(3);
 
   // setup SAMRAI stuff (its always the same):
-  auto pair            = setup_hierarchy<spacedim>(app_initializer);
-  auto patch_hierarchy = pair.first;
-  auto f_cc_idx        = pair.second;
+  auto tuple           = setup_hierarchy<spacedim>(app_initializer);
+  auto patch_hierarchy = std::get<0>(tuple);
+  auto f_idx           = std::get<5>(tuple);
+
 
   // Now set up fiddle things for the test:
   std::vector<BoundingBox<spacedim, float>> cell_bboxes;
@@ -139,7 +140,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   LinearAlgebra::distributed::Vector<double> F_rhs(F_partitioner);
 
   auto transaction =
-    interaction_base.compute_projection_rhs_start(f_cc_idx,
+    interaction_base.compute_projection_rhs_start(f_idx,
                                                   single_quad,
                                                   quadrature_indices,
                                                   X_dof_handler,

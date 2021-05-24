@@ -71,9 +71,9 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   native_tria.refine_global(4);
 
   // setup SAMRAI stuff (its always the same):
-  auto pair            = setup_hierarchy<spacedim>(app_initializer);
-  auto patch_hierarchy = pair.first;
-  auto u_cc_idx        = pair.second;
+  auto tuple           = setup_hierarchy<spacedim>(app_initializer);
+  auto patch_hierarchy = std::get<0>(tuple);
+  auto f_idx           = std::get<5>(tuple);
 
   // Now set up fiddle things for the test:
   const auto patches = fdl::extract_patches(
@@ -122,7 +122,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   const MappingQ<dim, spacedim> F_map(1);
   Vector<double>                F_rhs(F_dof_handler.n_dofs());
 
-  compute_projection_rhs(u_cc_idx,
+  compute_projection_rhs(f_idx,
                          patch_map,
                          X_map,
                          quadrature_indices,
