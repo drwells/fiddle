@@ -1,4 +1,3 @@
-SET(TARGET "fiddle")
 CMAKE_MINIMUM_REQUIRED(VERSION 3.15.0)
 
 SET(FIDDLE_DIMENSIONS "2" "3")
@@ -24,11 +23,12 @@ FIND_PACKAGE(IBAMR 0.8.0 REQUIRED HINTS ${IBAMR_DIR} $ENV{IBAMR_DIR})
 #
 # set up the library:
 #
-SET(FIDDLE_SRC ${TARGET}.cc
+SET(FIDDLE_SRC
   source/grid/overlap_tria.cc
   source/grid/patch_map.cc
   source/grid/box_utilities.cc
 
+  source/interaction/ifed_method.cc
   source/interaction/interaction_base.cc
   source/interaction/interaction_utilities.cc
 
@@ -45,19 +45,11 @@ FOREACH(_d ${FIDDLE_DIMENSIONS})
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include/>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/include/>)
 
+  # TODO - support multiple build types
   TARGET_LINK_LIBRARIES(${_lib} PUBLIC ${DEAL_II_LIBRARIES_DEBUG})
   TARGET_INCLUDE_DIRECTORIES(${_lib} PUBLIC ${DEAL_II_INCLUDE_DIRS})
 
   TARGET_LINK_LIBRARIES(${_lib} PUBLIC "IBAMR::IBAMR${_d}d")
-ENDFOREACH()
-
-#
-# setup the executable
-#
-FOREACH(_d ${FIDDLE_DIMENSIONS})
-  SET(_exec "fiddle${_d}")
-  ADD_EXECUTABLE(${_exec} "fiddle.cc")
-  TARGET_LINK_LIBRARIES(${_exec} PUBLIC "fiddle${_d}d")
 ENDFOREACH()
 
 ADD_SUBDIRECTORY(tests)
