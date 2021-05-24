@@ -168,6 +168,7 @@ namespace fdl
     // Velocity.
     LinearAlgebra::distributed::Vector<double> velocity;
 
+    // All the functions that compute part of the force.
     std::vector<std::unique_ptr<ForceContribution<dim, spacedim>>>
       force_contributions;
   };
