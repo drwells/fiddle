@@ -85,17 +85,36 @@ namespace fdl
     const parallel::shared::Triangulation<dim, spacedim> &tria,
     const std::vector<BoundingBox<spacedim, Number>> &local_active_cell_bboxes)
   {
-    Assert(tria.n_active_cells() == local_active_cell_bboxes.size(),
+    Assert(tria.n_locally_owned_active_cells() == local_active_cell_bboxes.size(),
            ExcMessage(
              "There should be a local bbox for each local active cell"));
+
+    MPI_Datatype   mpi_type  = {};
+    constexpr bool is_float  = std::is_same<Number, float>::value;
+    constexpr bool is_double = std::is_same<Number, double>::value;
+    static_assert(is_float || is_double, "Must be float or double");
+    if (is_float)
+      mpi_type = MPI_FLOAT;
+    else if (is_double)
+      mpi_type = MPI_DOUBLE;
+    else
+      AssertThrow(false, ExcFDLNotImplemented());
+
+    constexpr auto n_nums_per_bbox = spacedim * 2;
+    static_assert(sizeof(BoundingBox<spacedim, Number>) ==
+                    sizeof(Number) * n_nums_per_bbox,
+                  "packing failed");
+
     std::vector<BoundingBox<spacedim, Number>> global_bboxes(
       tria.n_active_cells());
     unsigned int cell_n = 0;
     for (const auto &cell : tria.active_cell_iterators())
       if (cell->is_locally_owned())
         {
-          AssertIndexRange(cell->active_cell_index(),
+          AssertIndexRange(cell_n,
                            local_active_cell_bboxes.size());
+          AssertIndexRange(cell->active_cell_index(),
+                           global_bboxes.size());
           global_bboxes[cell->active_cell_index()] =
             local_active_cell_bboxes[cell_n];
           ++cell_n;
@@ -104,33 +123,10 @@ namespace fdl
            ExcMessage(
              "There should be a bounding box for every locally owned cell"));
 
-    MPI_Datatype   mpi_type  = {};
-    constexpr bool is_float  = std::is_same<Number, float>::value;
-    constexpr bool is_double = std::is_same<Number, double>::value;
-    static_assert(is_float || is_double, "Must be float or double");
-    if (is_float)
-      {
-        mpi_type = MPI_FLOAT;
-      }
-    else if (is_double)
-      {
-        mpi_type = MPI_DOUBLE;
-      }
-    else
-      {
-        AssertThrow(false, ExcFDLNotImplemented());
-      }
-
-    constexpr auto n_nums_per_bbox = spacedim * 2;
-    static_assert(sizeof(BoundingBox<spacedim, Number>) ==
-                    sizeof(Number) * n_nums_per_bbox,
-                  "packing failed");
-    const auto size = n_nums_per_bbox * global_bboxes.size();
-    // TODO MPI_Allgather would be MUCH better here
     const int ierr =
       MPI_Allreduce(MPI_IN_PLACE,
                     reinterpret_cast<Number *>(&global_bboxes[0]),
-                    size,
+                    n_nums_per_bbox * global_bboxes.size(),
                     mpi_type,
                     MPI_SUM,
                     tria.get_communicator());
