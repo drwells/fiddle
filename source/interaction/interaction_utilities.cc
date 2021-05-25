@@ -104,22 +104,6 @@ namespace fdl
     // loop over element bboxes...
     for (const auto &bbox : bboxes)
       {
-        const hier::Index<spacedim> i_lower =
-          IBTK::IndexUtilities::getCellIndex(bbox.get_boundary_points().first,
-                                             grid_geom->getXLower(),
-                                             grid_geom->getXUpper(),
-                                             dx.data(),
-                                             domain_box.lower(),
-                                             domain_box.upper());
-        const hier::Index<spacedim> i_upper =
-          IBTK::IndexUtilities::getCellIndex(bbox.get_boundary_points().second,
-                                             grid_geom->getXLower(),
-                                             grid_geom->getXUpper(),
-                                             dx.data(),
-                                             domain_box.lower(),
-                                             domain_box.upper());
-        const hier::Box<spacedim> box(i_lower, i_upper);
-
         // and determine which patches each intersects.
         namespace bgi = boost::geometry::index;
         // TODO: this still allocates memory. We should use something else to
@@ -129,6 +113,25 @@ namespace fdl
              rtree | bgi::adaptors::queried(bgi::intersects(bbox)))
           {
             AssertIndexRange(patch_n, patches.size());
+
+            const hier::Index<spacedim> i_lower =
+              IBTK::IndexUtilities::getCellIndex(
+                bbox.get_boundary_points().first,
+                grid_geom->getXLower(),
+                grid_geom->getXUpper(),
+                dx.data(),
+                domain_box.lower(),
+                domain_box.upper());
+            const hier::Index<spacedim> i_upper =
+              IBTK::IndexUtilities::getCellIndex(
+                bbox.get_boundary_points().second,
+                grid_geom->getXLower(),
+                grid_geom->getXUpper(),
+                dx.data(),
+                domain_box.lower(),
+                domain_box.upper());
+            const hier::Box<spacedim> box(i_lower, i_upper);
+
             tag_data[patch_n]->fillAll(TYPE(1), box);
           }
       }
