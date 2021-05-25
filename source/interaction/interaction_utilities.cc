@@ -76,9 +76,16 @@ namespace fdl
     const int                                                 tag_index,
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<spacedim>> patch_level)
   {
+    // extract what we need for getCellIndex:
+    const hier::IntVector<spacedim> ratio = patch_level->getRatio();
     const tbox::Pointer<geom::CartesianGridGeometry<spacedim>> grid_geom =
       patch_level->getGridGeometry();
-    const hier::IntVector<spacedim> ratio = patch_level->getRatio();
+    const double *const          dx0 = grid_geom->getDx();
+    std::array<double, spacedim> dx;
+    for (unsigned int d = 0; d < spacedim; ++d)
+      dx[d] = dx0[d] / double(ratio(d));
+    const auto domain_box =
+      hier::Box<spacedim>::refine(grid_geom->getPhysicalDomain()[0], ratio);
 
     const std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches =
       extract_patches(patch_level);
@@ -99,12 +106,18 @@ namespace fdl
       {
         const hier::Index<spacedim> i_lower =
           IBTK::IndexUtilities::getCellIndex(bbox.get_boundary_points().first,
-                                             grid_geom,
-                                             ratio);
+                                             grid_geom->getXLower(),
+                                             grid_geom->getXUpper(),
+                                             dx.data(),
+                                             domain_box.lower(),
+                                             domain_box.upper());
         const hier::Index<spacedim> i_upper =
           IBTK::IndexUtilities::getCellIndex(bbox.get_boundary_points().second,
-                                             grid_geom,
-                                             ratio);
+                                             grid_geom->getXLower(),
+                                             grid_geom->getXUpper(),
+                                             dx.data(),
+                                             domain_box.lower(),
+                                             domain_box.upper());
         const hier::Box<spacedim> box(i_lower, i_upper);
 
         // and determine which patches each intersects.
