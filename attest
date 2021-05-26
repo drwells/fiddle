@@ -346,6 +346,8 @@ def main():
     # all parallelization is done with MPI.
     os.environ['OMP_NUM_THREADS'] = "1"
     os.environ['OMP_THREAD_LIMIT'] = "1"
+    # c. in case we use deal.II make sure its threading is disabled
+    os.environ['DEAL_II_NUM_THREADS'] = "1"
     config_file = configparser.ConfigParser()
     config_file['attest'] = {'jobs': '1',
                              'keep_work_directories': 'False',
