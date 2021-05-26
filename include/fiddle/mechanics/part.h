@@ -205,7 +205,11 @@ namespace fdl
     velocity.reinit(partitioner);
 
     VectorTools::interpolate(*dof_handler, initial_position, position);
-    VectorTools::interpolate(*dof_handler, initial_velocity, velocity);
+    // The initial velocity is probably zero:
+    if (dynamic_cast<const Functions::ZeroFunction<dim> *>(&initial_velocity))
+      velocity = 0.0;
+    else
+      VectorTools::interpolate(*dof_handler, initial_velocity, velocity);
 
     position.update_ghost_values();
     velocity.update_ghost_values();
