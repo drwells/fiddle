@@ -156,7 +156,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   std::ofstream output;
   if (rank == 0)
     output.open("output");
-  print_strings_on_0(out.str(), output);
+  print_strings_on_0(out.str(), tbox::SAMRAI_MPI::getCommunicator(), output);
 }
 
 int

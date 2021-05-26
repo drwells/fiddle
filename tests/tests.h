@@ -5,6 +5,7 @@
 
 #include <deal.II/base/exceptions.h>
 
+#include <ibtk/AppInitializer.h>
 #include <ibtk/CartSideDoubleSpecializedLinearRefine.h>
 #include <ibtk/HierarchyGhostCellInterpolation.h>
 #include <ibtk/muParserCartGridFunction.h>
@@ -253,11 +254,12 @@ setup_hierarchy(
 // A utility function that prints @p part_str to @p out by sending each string to
 // rank 0.
 inline void
-print_strings_on_0(const std::string &part_str, std::ofstream &out)
+print_strings_on_0(const std::string &part_str, MPI_Comm comm, std::ofstream &out)
 {
-  using namespace SAMRAI::tbox;
-  const int                  n_nodes = SAMRAI_MPI::getNodes();
-  std::vector<unsigned long> string_sizes(n_nodes);
+  using namespace dealii;
+  const int                  n_procs = Utilities::MPI::n_mpi_processes(comm);
+  const int                  rank = Utilities::MPI::this_mpi_process(comm);
+  std::vector<unsigned long> string_sizes(n_procs);
 
   const unsigned long size = part_str.size();
 
@@ -268,15 +270,15 @@ print_strings_on_0(const std::string &part_str, std::ofstream &out)
                         1,
                         MPI_UNSIGNED_LONG,
                         0,
-                        SAMRAI_MPI::getCommunicator());
-  TBOX_ASSERT(ierr == 0);
+                        comm);
+  AssertThrowMPI(ierr);
 
   // MPI_Gatherv would be more efficient, but this just a test so its
   // not too important
-  if (SAMRAI_MPI::getRank() == 0)
+  if (rank == 0)
     {
       out << part_str;
-      for (int r = 1; r < n_nodes; ++r)
+      for (int r = 1; r < n_procs; ++r)
         {
           std::string input;
           input.resize(string_sizes[r]);
@@ -285,15 +287,15 @@ print_strings_on_0(const std::string &part_str, std::ofstream &out)
                           MPI_CHAR,
                           r,
                           0,
-                          SAMRAI_MPI::getCommunicator(),
+                          comm,
                           MPI_STATUS_IGNORE);
-          TBOX_ASSERT(ierr == 0);
+          AssertThrowMPI(ierr);
           out << input;
         }
     }
   else
     MPI_Send(
-      part_str.data(), size, MPI_CHAR, 0, 0, SAMRAI_MPI::getCommunicator());
+      part_str.data(), size, MPI_CHAR, 0, 0, comm);
 }
 
 /**
@@ -324,5 +326,5 @@ print_partitioning_on_0(
           part_steam << box << '\n';
         }
     }
-  print_strings_on_0(part_steam.str(), out);
+  print_strings_on_0(part_steam.str(), tbox::SAMRAI_MPI::getCommunicator(), out);
 }

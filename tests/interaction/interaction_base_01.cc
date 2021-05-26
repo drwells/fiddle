@@ -217,7 +217,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
           }
       }
 
-    print_strings_on_0(this_output.str(), output);
+    print_strings_on_0(this_output.str(), mpi_comm, output);
 
     DataOut<dim> data_out;
     data_out.attach_dof_handler(X_overlap_dof_handler);
