@@ -31,6 +31,8 @@ SET(FIDDLE_SRC
   source/interaction/interaction_base.cc
   source/interaction/interaction_utilities.cc
 
+  source/mechanics/part.cc
+
   source/transfer/overlap_partitioning_tools.cc
   source/transfer/scatter.cc
   )

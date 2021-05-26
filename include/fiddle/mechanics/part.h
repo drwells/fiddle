@@ -7,13 +7,8 @@
 #include <deal.II/base/function.h>
 
 #include <deal.II/dofs/dof_handler.h>
-#include <deal.II/dofs/dof_tools.h>
-
-#include <deal.II/fe/fe_values.h>
 
 #include <deal.II/grid/tria.h>
-
-#include <deal.II/numerics/vector_tools_interpolate.h>
 
 #include <fiddle/mechanics/force_contribution.h>
 #include <fiddle/mechanics/mechanics_values.h>
@@ -62,31 +57,20 @@ namespace fdl
      * Get a constant reference to the Triangulation.
      */
     const Triangulation<dim, spacedim> &
-    get_triangulation() const
-    {
-      Assert(tria, ExcFDLInternalError());
-      return *tria;
-    }
+    get_triangulation() const;
 
     /**
      * Get a copy of the communicator.
      */
     MPI_Comm
-    get_communicator() const
-    {
-      Assert(tria, ExcFDLInternalError());
-      return tria->get_communicator();
-    }
+    get_communicator() const;
 
     /**
      * Get a constant reference to the DoFHandler used for the position,
      * velocity, and force.
      */
     const DoFHandler<dim, spacedim> &
-    get_dof_handler() const
-    {
-      return *dof_handler;
-    }
+    get_dof_handler() const;
 
     /**
      * Get the shared vector partitioner for the position, velocity, and force.
@@ -94,10 +78,7 @@ namespace fdl
      * data layout for these finite element spaces.
      */
     std::shared_ptr<const Utilities::MPI::Partitioner>
-    get_partitioner() const
-    {
-      return partitioner;
-    }
+    get_partitioner() const;
 
     /**
      * Get the current position of the structure.
@@ -173,47 +154,37 @@ namespace fdl
       force_contributions;
   };
 
-  // Constructor
+  // ----------------------------- inline functions ----------------------------
 
   template <int dim, int spacedim>
-  Part<dim, spacedim>::Part(
-    const Triangulation<dim, spacedim> &tria,
-    const FiniteElement<dim, spacedim> &fe,
-    std::vector<std::unique_ptr<ForceContribution<dim, spacedim>>>
-                              force_contributions,
-    const Function<spacedim> &initial_position,
-    const Function<spacedim> &initial_velocity)
-    : tria(&tria)
-    , fe(&fe)
-    , dof_handler(std::make_unique<DoFHandler<dim, spacedim>>(tria))
-    , force_contributions(std::move(force_contributions))
-  {
-    Assert(fe.n_components() == spacedim,
-           ExcMessage("The finite element should have spacedim components "
-                      "since it will represent the position, velocity and "
-                      "force of the part."));
-    dof_handler->distribute_dofs(*this->fe);
-    IndexSet locally_relevant_dofs;
-    DoFTools::extract_locally_relevant_dofs(*dof_handler,
-                                            locally_relevant_dofs);
+    const Triangulation<dim, spacedim> &
+  Part<dim, spacedim>::get_triangulation() const
+    {
+      Assert(tria, ExcFDLInternalError());
+      return *tria;
+    }
 
-    partitioner = std::make_shared<Utilities::MPI::Partitioner>(
-      dof_handler->locally_owned_dofs(),
-      locally_relevant_dofs,
-      tria.get_communicator());
-    position.reinit(partitioner);
-    velocity.reinit(partitioner);
+  template <int dim, int spacedim>
+    MPI_Comm
+    Part<dim, spacedim>::get_communicator() const
+    {
+      Assert(tria, ExcFDLInternalError());
+      return tria->get_communicator();
+    }
 
-    VectorTools::interpolate(*dof_handler, initial_position, position);
-    // The initial velocity is probably zero:
-    if (dynamic_cast<const Functions::ZeroFunction<dim> *>(&initial_velocity))
-      velocity = 0.0;
-    else
-      VectorTools::interpolate(*dof_handler, initial_velocity, velocity);
+  template <int dim, int spacedim>
+    const DoFHandler<dim, spacedim> &
+    Part<dim, spacedim>::get_dof_handler() const
+    {
+      return *dof_handler;
+    }
 
-    position.update_ghost_values();
-    velocity.update_ghost_values();
-  }
+  template <int dim, int spacedim>
+    std::shared_ptr<const Utilities::MPI::Partitioner>
+    Part<dim, spacedim>::get_partitioner() const
+    {
+      return partitioner;
+    }
 
   // Functions for getting and setting state vectors
 
