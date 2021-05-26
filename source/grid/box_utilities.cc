@@ -1,6 +1,3 @@
-#ifndef included_fiddle_grid_box_utilities_h
-#define included_fiddle_grid_box_utilities_h
-
 #include <fiddle/grid/box_utilities.h>
 
 #include <deal.II/base/bounding_box.h>
@@ -55,9 +52,127 @@ namespace fdl
     return patch_bboxes;
   }
 
+  template <int dim, int spacedim, typename Number>
+  std::vector<BoundingBox<spacedim, Number>>
+  compute_cell_bboxes(const DoFHandler<dim, spacedim> &dof_handler,
+                      const Mapping<dim, spacedim> &   mapping)
+  {
+    // TODO: support multiple FEs
+    const FiniteElement<dim, spacedim> &fe = dof_handler.get_fe();
+    // TODO: also check bboxes by position of quadrature points instead of
+    // just nodes. Use QProjector to place points solely on cell boundaries.
+    const Quadrature<dim> nodal_quad(fe.get_unit_support_points());
+
+    FEValues<dim, spacedim> fe_values(mapping,
+                                      fe,
+                                      nodal_quad,
+                                      update_quadrature_points);
+
+    std::vector<BoundingBox<spacedim, Number>> bboxes;
+    for (const auto &cell : dof_handler.active_cell_iterators())
+      if (cell->is_locally_owned())
+        {
+          fe_values.reinit(cell);
+          const BoundingBox<spacedim> dbox(fe_values.get_quadrature_points());
+          // we have to do a conversion if Number != double
+          BoundingBox<spacedim, Number> fbox;
+          fbox.get_boundary_points() = dbox.get_boundary_points();
+          bboxes.push_back(fbox);
+        }
+    return bboxes;
+  }
+
+  template <int dim, int spacedim, typename Number>
+  std::vector<BoundingBox<spacedim, Number>>
+  collect_all_active_cell_bboxes(
+    const parallel::shared::Triangulation<dim, spacedim> &tria,
+    const std::vector<BoundingBox<spacedim, Number>> &local_active_cell_bboxes)
+  {
+    Assert(
+      tria.n_locally_owned_active_cells() == local_active_cell_bboxes.size(),
+      ExcMessage("There should be a local bbox for each local active cell"));
+
+    MPI_Datatype   mpi_type  = {};
+    constexpr bool is_float  = std::is_same<Number, float>::value;
+    constexpr bool is_double = std::is_same<Number, double>::value;
+    static_assert(is_float || is_double, "Must be float or double");
+    if (is_float)
+      mpi_type = MPI_FLOAT;
+    else if (is_double)
+      mpi_type = MPI_DOUBLE;
+    else
+      AssertThrow(false, ExcFDLNotImplemented());
+
+    constexpr auto n_nums_per_bbox = spacedim * 2;
+    static_assert(sizeof(BoundingBox<spacedim, Number>) ==
+                    sizeof(Number) * n_nums_per_bbox,
+                  "packing failed");
+
+    std::vector<BoundingBox<spacedim, Number>> global_bboxes(
+      tria.n_active_cells());
+
+    MPI_Comm comm = tria.get_communicator();
+    // Exchange number of cells:
+    const int        n_procs = Utilities::MPI::n_mpi_processes(comm);
+    std::vector<int> bbox_entries_per_proc(n_procs);
+    const int        bbox_entries_on_this_proc =
+      tria.n_locally_owned_active_cells() * n_nums_per_bbox;
+    int ierr = MPI_Allgather(&bbox_entries_on_this_proc,
+                             1,
+                             MPI_INT,
+                             &bbox_entries_per_proc[0],
+                             1,
+                             MPI_INT,
+                             comm);
+    AssertThrowMPI(ierr);
+    Assert(std::accumulate(bbox_entries_per_proc.begin(),
+                           bbox_entries_per_proc.end(),
+                           0u) == (tria.n_active_cells() * n_nums_per_bbox),
+           ExcMessage("Should be a partition"));
+
+    // Determine indices into temporary array:
+    std::vector<int> offsets(n_procs);
+    offsets[0] = 0;
+    std::partial_sum(bbox_entries_per_proc.begin(),
+                     bbox_entries_per_proc.end() - 1,
+                     offsets.begin() + 1);
+    // Communicate bboxes:
+    std::vector<BoundingBox<spacedim, Number>> temp_bboxes(
+      tria.n_active_cells());
+    ierr = MPI_Allgatherv(reinterpret_cast<const Number *>(
+                            local_active_cell_bboxes.data()),
+                          bbox_entries_on_this_proc,
+                          mpi_type,
+                          temp_bboxes.data(),
+                          bbox_entries_per_proc.data(),
+                          offsets.data(),
+                          mpi_type,
+                          comm);
+    AssertThrowMPI(ierr);
+
+    // Copy to the correct ordering. Keep track of how many cells we have copied
+    // from each processor:
+    std::vector<int> current_proc_cell_n(n_procs);
+    for (const auto &cell : tria.active_cell_iterators())
+      {
+        const types::subdomain_id this_cell_proc_n = cell->subdomain_id();
+        global_bboxes[cell->active_cell_index()] =
+          temp_bboxes[offsets[this_cell_proc_n] / n_nums_per_bbox +
+                      current_proc_cell_n[this_cell_proc_n]];
+        ++current_proc_cell_n[this_cell_proc_n];
+      }
+
+    for (const auto &bbox : global_bboxes)
+      {
+        Assert(bbox.volume() > 0, ExcMessage("bboxes should not be empty"));
+      }
+    return global_bboxes;
+  }
+
   // these depend on SAMRAI types, and SAMRAI only has 2D and 3D libraries, so
   // use whatever IBTK is using
 
+  // compute_patch_bboxes:
   template std::vector<BoundingBox<NDIM, float>>
   compute_patch_bboxes(
     const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>>
@@ -69,6 +184,42 @@ namespace fdl
     const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>>
       &          patches,
     const double extra_ghost_cell_fraction);
-} // namespace fdl
 
-#endif
+  // compute_cell_bboxes:
+  template std::vector<BoundingBox<NDIM, float>>
+  compute_cell_bboxes(const DoFHandler<NDIM - 1, NDIM> &dof_handler,
+                      const Mapping<NDIM - 1, NDIM> &   mapping);
+
+  template std::vector<BoundingBox<NDIM, float>>
+  compute_cell_bboxes(const DoFHandler<NDIM, NDIM> &dof_handler,
+                      const Mapping<NDIM, NDIM> &   mapping);
+
+  template std::vector<BoundingBox<NDIM, double>>
+  compute_cell_bboxes(const DoFHandler<NDIM - 1, NDIM> &dof_handler,
+                      const Mapping<NDIM - 1, NDIM> &   mapping);
+
+  template std::vector<BoundingBox<NDIM, double>>
+  compute_cell_bboxes(const DoFHandler<NDIM, NDIM> &dof_handler,
+                      const Mapping<NDIM, NDIM> &   mapping);
+
+  // collect_all_active_cell_bboxes:
+  template std::vector<BoundingBox<NDIM, float>>
+  collect_all_active_cell_bboxes(
+    const parallel::shared::Triangulation<NDIM - 1, NDIM> &tria,
+    const std::vector<BoundingBox<NDIM, float>> &local_active_cell_bboxes);
+
+  template std::vector<BoundingBox<NDIM, float>>
+  collect_all_active_cell_bboxes(
+    const parallel::shared::Triangulation<NDIM, NDIM> &tria,
+    const std::vector<BoundingBox<NDIM, float>> &local_active_cell_bboxes);
+
+  template std::vector<BoundingBox<NDIM, double>>
+  collect_all_active_cell_bboxes(
+    const parallel::shared::Triangulation<NDIM - 1, NDIM> &tria,
+    const std::vector<BoundingBox<NDIM, double>> &local_active_cell_bboxes);
+
+  template std::vector<BoundingBox<NDIM, double>>
+  collect_all_active_cell_bboxes(
+    const parallel::shared::Triangulation<NDIM, NDIM> &tria,
+    const std::vector<BoundingBox<NDIM, double>> &local_active_cell_bboxes);
+} // namespace fdl
