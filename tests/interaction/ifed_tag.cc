@@ -40,10 +40,9 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   auto input_db = app_initializer->getInputDatabase();
 
   const auto mpi_comm = MPI_COMM_WORLD;
-  const auto rank     = Utilities::MPI::this_mpi_process(mpi_comm);
 
   // setup deal.II stuff:
-  parallel::shared::Triangulation<dim, spacedim> native_tria(MPI_COMM_WORLD);
+  parallel::shared::Triangulation<dim, spacedim> native_tria(mpi_comm);
   Point<dim> center;
   center[0] = 0.6;
   center[1] = 0.5;
@@ -142,9 +141,6 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
       tbox::pout << "+++++++++++++++++++++++++++++++++++++++++++++++++++\n";
       tbox::pout << "\n";
 
-      // At specified intervals, write visualization and restart files,
-      // print out timer data, and store hierarchy data for post
-      // processing.
       iteration_num += 1;
       const bool last_step = !time_integrator->stepsRemaining();
       if (last_step || iteration_num % 10 == 0)
