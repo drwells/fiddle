@@ -1,3 +1,5 @@
+#include <fiddle/base/samrai_utilities.h>
+
 #include <fiddle/grid/box_utilities.h>
 
 #include <fiddle/interaction/interaction_base.h>

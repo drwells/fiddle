@@ -1,29 +1,37 @@
 #ifndef included_fiddle_base_samrai_utilities_h
 #define included_fiddle_base_samrai_utilities_h
 
-#include <deal.II/base/exceptions.h>
-
-#include <CellData.h>
-#include <CellVariable.h>
-#include <EdgeData.h>
-#include <EdgeVariable.h>
-#include <HierarchyCellDataOpsReal.h>
+#include <BasePatchLevel.h>
+#include <PatchLevel.h>
+#include <PatchData.h>
+#include <PatchHierarchy.h>
 #include <HierarchyDataOpsReal.h>
-#include <HierarchyEdgeDataOpsReal.h>
-#include <HierarchyNodeDataOpsReal.h>
-#include <HierarchySideDataOpsReal.h>
-#include <NodeData.h>
-#include <NodeVariable.h>
-#include <SideData.h>
-#include <SideVariable.h>
+#include <Variable.h>
 
 #include <utility>
+#include <vector>
 
 // Collect the various hacks needed to work around common problems in SAMRAI.
 
 namespace fdl
 {
   using namespace SAMRAI;
+
+  /**
+   * Helper function for extracting locally owned patches from a base patch
+   * level.
+   */
+  template <int spacedim>
+  std::vector<tbox::Pointer<hier::Patch<spacedim>>>
+  extract_patches(tbox::Pointer<hier::BasePatchLevel<spacedim>>
+                    base_patch_level);
+
+  /**
+   * Helper function for extracting locally owned patches from a patch level.
+   */
+  template <int spacedim>
+  std::vector<tbox::Pointer<hier::Patch<spacedim>>>
+  extract_patches(tbox::Pointer<hier::PatchLevel<spacedim>> patch_level);
 
   /**
    * Several of SAMRAI's class hierarchies are poorly designed - in many
@@ -61,40 +69,7 @@ namespace fdl
 
   template <int spacedim>
   std::pair<SAMRAIPatchType, SAMRAIFieldType>
-  extract_types(const tbox::Pointer<hier::PatchData<spacedim>> &p)
-  {
-    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, int>>(p))
-      return {SAMRAIPatchType::Edge, SAMRAIFieldType::Int};
-    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, float>>(p))
-      return {SAMRAIPatchType::Edge, SAMRAIFieldType::Float};
-    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, double>>(p))
-      return {SAMRAIPatchType::Edge, SAMRAIFieldType::Double};
-
-    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, int>>(p))
-      return {SAMRAIPatchType::Cell, SAMRAIFieldType::Int};
-    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, float>>(p))
-      return {SAMRAIPatchType::Cell, SAMRAIFieldType::Float};
-    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, double>>(p))
-      return {SAMRAIPatchType::Cell, SAMRAIFieldType::Double};
-
-    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, int>>(p))
-      return {SAMRAIPatchType::Node, SAMRAIFieldType::Int};
-    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, float>>(p))
-      return {SAMRAIPatchType::Node, SAMRAIFieldType::Float};
-    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, double>>(p))
-      return {SAMRAIPatchType::Node, SAMRAIFieldType::Double};
-
-    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, int>>(p))
-      return {SAMRAIPatchType::Side, SAMRAIFieldType::Int};
-    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, float>>(p))
-      return {SAMRAIPatchType::Side, SAMRAIFieldType::Float};
-    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, double>>(p))
-      return {SAMRAIPatchType::Side, SAMRAIFieldType::Double};
-
-    AssertThrow(false, dealii::ExcNotImplemented());
-    return {};
-  }
-
+  extract_types(const tbox::Pointer<hier::PatchData<spacedim>> &p);
 
   /**
    * Each class inheriting from PatchData implements getDepth() but we need to
@@ -102,40 +77,7 @@ namespace fdl
    */
   template <int spacedim>
   int
-  extract_depth(const tbox::Pointer<hier::PatchData<spacedim>> &p)
-  {
-    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, int>>(p))
-      return p2->getDepth();
-    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, float>>(p))
-      return p2->getDepth();
-    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, double>>(p))
-      return p2->getDepth();
-
-    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, int>>(p))
-      return p2->getDepth();
-    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, float>>(p))
-      return p2->getDepth();
-    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, double>>(p))
-      return p2->getDepth();
-
-    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, int>>(p))
-      return p2->getDepth();
-    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, float>>(p))
-      return p2->getDepth();
-    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, double>>(p))
-      return p2->getDepth();
-
-    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, int>>(p))
-      return p2->getDepth();
-    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, float>>(p))
-      return p2->getDepth();
-    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, double>>(p))
-      return p2->getDepth();
-
-    AssertThrow(false, dealii::ExcNotImplemented());
-    return {};
-  }
-
+  extract_depth(const tbox::Pointer<hier::PatchData<spacedim>> &p);
 
   /**
    * Like depth, each class inheriting from PatchData implements fillAll and is
@@ -148,74 +90,7 @@ namespace fdl
   template <int spacedim, typename field_type = int>
   void
   fill_all(tbox::Pointer<hier::PatchData<spacedim>> p,
-           const field_type                         value = 0)
-  {
-    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, int>>(p))
-      {
-        p2->fillAll(value);
-        return;
-      }
-    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, float>>(p))
-      {
-        p2->fillAll(value);
-        return;
-      }
-    if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, double>>(p))
-      {
-        p2->fillAll(value);
-        return;
-      }
-
-    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, int>>(p))
-      {
-        p2->fillAll(value);
-        return;
-      }
-    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, float>>(p))
-      {
-        p2->fillAll(value);
-        return;
-      }
-    if (auto p2 = tbox::Pointer<pdat::CellData<spacedim, double>>(p))
-      {
-        p2->fillAll(value);
-        return;
-      }
-
-    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, int>>(p))
-      {
-        p2->fillAll(value);
-        return;
-      }
-    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, float>>(p))
-      {
-        p2->fillAll(value);
-        return;
-      }
-    if (auto p2 = tbox::Pointer<pdat::NodeData<spacedim, double>>(p))
-      {
-        p2->fillAll(value);
-        return;
-      }
-
-    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, int>>(p))
-      {
-        p2->fillAll(value);
-        return;
-      }
-    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, float>>(p))
-      {
-        p2->fillAll(value);
-        return;
-      }
-    if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, double>>(p))
-      {
-        p2->fillAll(value);
-        return;
-      }
-
-    AssertThrow(false, dealii::ExcNotImplemented());
-  }
+           const field_type                         value = 0);
 
   /**
    * Like elsewhere, SAMRAI doesn't provide any way to actually subtract two
@@ -225,23 +100,7 @@ namespace fdl
   tbox::Pointer<math::HierarchyDataOpsReal<spacedim, double>>
   extract_hierarchy_data_ops(
     const tbox::Pointer<hier::Variable<spacedim>> p,
-    tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy)
-  {
-    if (auto p2 = tbox::Pointer<pdat::EdgeVariable<spacedim, double>>(p))
-      return new math::HierarchyEdgeDataOpsReal<spacedim, double>(
-        patch_hierarchy);
-    else if (auto p2 = tbox::Pointer<pdat::CellVariable<spacedim, double>>(p))
-      return new math::HierarchyCellDataOpsReal<spacedim, double>(
-        patch_hierarchy);
-    else if (auto p2 = tbox::Pointer<pdat::NodeVariable<spacedim, double>>(p))
-      return new math::HierarchyNodeDataOpsReal<spacedim, double>(
-        patch_hierarchy);
-    else if (auto p2 = tbox::Pointer<pdat::SideVariable<spacedim, double>>(p))
-      return new math::HierarchySideDataOpsReal<spacedim, double>(
-        patch_hierarchy);
-
-    AssertThrow(false, dealii::ExcNotImplemented());
-  }
+    tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy);
 } // namespace fdl
 
 #endif

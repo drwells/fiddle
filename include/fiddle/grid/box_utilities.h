@@ -160,24 +160,6 @@ namespace fdl
     return global_bboxes;
   }
 
-  /**
-   * Helper function for extracting locally owned patches from a base patch
-   * level.
-   */
-  template <int spacedim>
-  std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>>
-  extract_patches(SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchLevel<spacedim>>
-                    base_patch_level);
-
-  /**
-   * Helper function for extracting locally owned patches from a patch level.
-   */
-  template <int spacedim>
-  std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>>
-  extract_patches(
-    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<spacedim>> patch_level);
-
-
   // --------------------------- inline functions --------------------------- //
 
 

@@ -55,60 +55,6 @@ namespace fdl
     return patch_bboxes;
   }
 
-  /**
-   * Another helper function since MultiblockPatchLevel and PatchLevel have
-   * slightly different interfaces
-   */
-  template <int spacedim>
-  std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>>
-  extract_patches(SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchLevel<spacedim>>
-                    base_patch_level)
-  {
-    using namespace SAMRAI;
-    tbox::Pointer<hier::PatchLevel<spacedim>> patch_level(base_patch_level);
-    tbox::Pointer<hier::MultiblockPatchLevel<spacedim>> multi_patch_level(
-      base_patch_level);
-
-    std::vector<tbox::Pointer<hier::Patch<spacedim>>> result;
-    auto get_patches = [&](tbox::Pointer<hier::PatchLevel<spacedim>> level) {
-      for (typename hier::PatchLevel<spacedim>::Iterator p(level); p; p++)
-        result.emplace_back(level->getPatch(p()));
-    };
-
-    if (patch_level)
-      {
-        get_patches(patch_level);
-      }
-    else if (multi_patch_level)
-      {
-        for (int block_n = 0; block_n < multi_patch_level->getNumberOfBlocks();
-             ++block_n)
-          {
-            get_patches(multi_patch_level->getPatchLevelForBlock(block_n));
-          }
-      }
-    else
-      {
-        Assert(false, ExcNotImplemented());
-      }
-
-    return result;
-  }
-
-  /**
-   * Helper function for extracting locally owned patches from a patch level.
-   */
-  template <int spacedim>
-  std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>>
-  extract_patches(
-    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<spacedim>> patch_level)
-  {
-    // Downcast and move to the more general function
-    SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchLevel<spacedim>>
-      base_patch_level(patch_level);
-    return extract_patches(base_patch_level);
-  }
-
   // these depend on SAMRAI types, and SAMRAI only has 2D and 3D libraries, so
   // use whatever IBTK is using
 
@@ -123,14 +69,6 @@ namespace fdl
     const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>>
       &          patches,
     const double extra_ghost_cell_fraction);
-
-  template std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>>
-  extract_patches(
-    SAMRAI::tbox::Pointer<SAMRAI::hier::BasePatchLevel<NDIM>> patch_level);
-
-  template std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>>
-  extract_patches(
-    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> patch_level);
 } // namespace fdl
 
 #endif
