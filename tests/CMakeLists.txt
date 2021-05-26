@@ -63,6 +63,9 @@ ENDMACRO()
 SETUP(base hello.cc fiddle2d)
 
 # grid:
+SETUP_2D(grid collect_bboxes_01.cc)
+SETUP_3D(grid collect_bboxes_01.cc)
+
 SETUP(grid fe_predicate_01.cc fiddle2d)
 SETUP(grid grid_predicate_01.cc fiddle2d)
 SETUP(grid patch_map_01.cc fiddle2d)
