@@ -2,10 +2,10 @@
 #define included_fiddle_base_samrai_utilities_h
 
 #include <BasePatchLevel.h>
-#include <PatchLevel.h>
+#include <HierarchyDataOpsReal.h>
 #include <PatchData.h>
 #include <PatchHierarchy.h>
-#include <HierarchyDataOpsReal.h>
+#include <PatchLevel.h>
 #include <Variable.h>
 
 #include <utility>
@@ -23,8 +23,8 @@ namespace fdl
    */
   template <int spacedim>
   std::vector<tbox::Pointer<hier::Patch<spacedim>>>
-  extract_patches(tbox::Pointer<hier::BasePatchLevel<spacedim>>
-                    base_patch_level);
+  extract_patches(
+    tbox::Pointer<hier::BasePatchLevel<spacedim>> base_patch_level);
 
   /**
    * Helper function for extracting locally owned patches from a patch level.

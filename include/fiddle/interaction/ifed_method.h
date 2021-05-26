@@ -3,9 +3,9 @@
 
 #include <fiddle/base/exceptions.h>
 
-#include <ibtk/LEInteractor.h>
-
 #include <ibamr/IBStrategy.h>
+
+#include <ibtk/LEInteractor.h>
 
 #include <fiddle/mechanics/part.h>
 
@@ -159,10 +159,11 @@ namespace fdl
     {
       // Like elsewhere, we are hard-coding in bspline 3 for now
       const std::string kernel_name = "BSPLINE_3";
-      const int ghost_width = IBTK::LEInteractor::getMinimumGhostWidth(kernel_name);
+      const int         ghost_width =
+        IBTK::LEInteractor::getMinimumGhostWidth(kernel_name);
       static hier::IntVector<spacedim> gcw;
       for (int i = 0; i < spacedim; ++i)
-          gcw[i] = ghost_width;
+        gcw[i] = ghost_width;
       return gcw;
     }
     /**

@@ -135,7 +135,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   TestTag<spacedim> test_tag(all_cell_bboxes);
 
   // setup SAMRAI stuff (its always the same)
-    auto tuple           = setup_hierarchy<spacedim>(app_initializer);
+  auto tuple           = setup_hierarchy<spacedim>(app_initializer);
   auto patch_hierarchy = std::get<0>(tuple);
   auto f_idx           = std::get<5>(tuple);
 

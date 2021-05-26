@@ -56,14 +56,14 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
   const auto mpi_comm = MPI_COMM_WORLD;
   const auto rank     = Utilities::MPI::this_mpi_process(mpi_comm);
-  const auto n_procs = Utilities::MPI::n_mpi_processes(mpi_comm);
+  const auto n_procs  = Utilities::MPI::n_mpi_processes(mpi_comm);
 
   // setup deal.II stuff:
   parallel::shared::Triangulation<dim, spacedim> native_tria(MPI_COMM_WORLD);
   GridGenerator::hyper_ball(native_tria);
   // Even though we are periodic in both directions we don't ever need to
   // actually enforce this in the finite element code as far as spreading goes
-  native_tria.refine_global(std::log2(input_db->getInteger("N")/2));
+  native_tria.refine_global(std::log2(input_db->getInteger("N") / 2));
 
   // setup SAMRAI stuff (its always the same):
   auto tuple           = setup_hierarchy<spacedim>(app_initializer);
@@ -98,11 +98,8 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   const std::vector<unsigned char>   quadrature_indices(
     overlap_tria.n_active_cells());
 
-  fdl::count_quadrature_points(f_idx,
-                               patch_map,
-                               X_map,
-                               quadrature_indices,
-                               quadratures);
+  fdl::count_quadrature_points(
+    f_idx, patch_map, X_map, quadrature_indices, quadratures);
 
   {
     std::ofstream out("output-" + std::to_string(rank));
@@ -121,7 +118,8 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   std::ostringstream out;
   {
     const int ln = patch_hierarchy->getFinestLevelNumber();
-    tbox::Pointer<hier::PatchLevel<spacedim> > level = patch_hierarchy->getPatchLevel(ln);
+    tbox::Pointer<hier::PatchLevel<spacedim>> level =
+      patch_hierarchy->getPatchLevel(ln);
 
     // We don't need to print this if we are running in serial
     if (n_procs != 1)
@@ -130,26 +128,28 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
       }
     for (typename hier::PatchLevel<spacedim>::Iterator p(level); p; p++)
       {
-        bool printed_value = false;
+        bool               printed_value = false;
         std::ostringstream patch_out;
         patch_out << "patch number " << p() << '\n';
-        tbox::Pointer<hier::Patch<spacedim> > patch = level->getPatch(p());
-        tbox::Pointer<pdat::CellData<spacedim, double> > f_data = patch->getPatchData(f_idx);
+        tbox::Pointer<hier::Patch<spacedim>> patch = level->getPatch(p());
+        tbox::Pointer<pdat::CellData<spacedim, double>> f_data =
+          patch->getPatchData(f_idx);
         const hier::Box<spacedim> patch_box = patch->getBox();
 
         // elide zero values
-        const pdat::ArrayData<spacedim, double>& data = f_data->getArrayData();
+        const pdat::ArrayData<spacedim, double> &data = f_data->getArrayData();
         for (pdat::CellIterator<spacedim> i(patch_box); i; i++)
-        {
-          const int depth = 0;
-          const double value = data(i(), depth);
-          if (std::abs(value) > 0)
-            {
-              patch_out << "array" << i() << " = " << int(value) << '\n';
-              printed_value = true;
-            }
-        }
-        if (printed_value) out << patch_out.str();
+          {
+            const int    depth = 0;
+            const double value = data(i(), depth);
+            if (std::abs(value) > 0)
+              {
+                patch_out << "array" << i() << " = " << int(value) << '\n';
+                printed_value = true;
+              }
+          }
+        if (printed_value)
+          out << patch_out.str();
       }
   }
 
@@ -157,7 +157,6 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   if (rank == 0)
     output.open("output");
   print_strings_on_0(out.str(), output);
-
 }
 
 int

@@ -57,8 +57,11 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                       quadrature,
                                       update_values | update_gradients);
 
-    fdl::MechanicsValues<dim, spacedim> mechanics_values(
-      fe_values, part.get_position(), part.get_velocity(), fdl::update_FF | fdl::update_det_FF);
+    fdl::MechanicsValues<dim, spacedim> mechanics_values(fe_values,
+                                                         part.get_position(),
+                                                         part.get_velocity(),
+                                                         fdl::update_FF |
+                                                           fdl::update_det_FF);
 
     std::ofstream out("output");
     for (const auto &cell : dof_handler.active_cell_iterators())

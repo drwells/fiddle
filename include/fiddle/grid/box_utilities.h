@@ -85,9 +85,9 @@ namespace fdl
     const parallel::shared::Triangulation<dim, spacedim> &tria,
     const std::vector<BoundingBox<spacedim, Number>> &local_active_cell_bboxes)
   {
-    Assert(tria.n_locally_owned_active_cells() == local_active_cell_bboxes.size(),
-           ExcMessage(
-             "There should be a local bbox for each local active cell"));
+    Assert(
+      tria.n_locally_owned_active_cells() == local_active_cell_bboxes.size(),
+      ExcMessage("There should be a local bbox for each local active cell"));
 
     MPI_Datatype   mpi_type  = {};
     constexpr bool is_float  = std::is_same<Number, float>::value;
@@ -110,16 +110,21 @@ namespace fdl
 
     MPI_Comm comm = tria.get_communicator();
     // Exchange number of cells:
-    const int n_procs = Utilities::MPI::n_mpi_processes(comm);
+    const int        n_procs = Utilities::MPI::n_mpi_processes(comm);
     std::vector<int> bbox_entries_per_proc(n_procs);
-    const int bbox_entries_on_this_proc = tria.n_locally_owned_active_cells()
-      *n_nums_per_bbox;
-    int ierr = MPI_Allgather(&bbox_entries_on_this_proc, 1, MPI_INT,
-                             &bbox_entries_per_proc[0], 1, MPI_INT, comm);
+    const int        bbox_entries_on_this_proc =
+      tria.n_locally_owned_active_cells() * n_nums_per_bbox;
+    int ierr = MPI_Allgather(&bbox_entries_on_this_proc,
+                             1,
+                             MPI_INT,
+                             &bbox_entries_per_proc[0],
+                             1,
+                             MPI_INT,
+                             comm);
     AssertThrowMPI(ierr);
     Assert(std::accumulate(bbox_entries_per_proc.begin(),
-                           bbox_entries_per_proc.end(), 0u)
-           == (tria.n_active_cells() * n_nums_per_bbox),
+                           bbox_entries_per_proc.end(),
+                           0u) == (tria.n_active_cells() * n_nums_per_bbox),
            ExcMessage("Should be a partition"));
 
     // Determine indices into temporary array:
@@ -131,7 +136,8 @@ namespace fdl
     // Communicate bboxes:
     std::vector<BoundingBox<spacedim, Number>> temp_bboxes(
       tria.n_active_cells());
-    ierr = MPI_Allgatherv(reinterpret_cast<const Number *>(local_active_cell_bboxes.data()),
+    ierr = MPI_Allgatherv(reinterpret_cast<const Number *>(
+                            local_active_cell_bboxes.data()),
                           bbox_entries_on_this_proc,
                           mpi_type,
                           temp_bboxes.data(),
@@ -145,13 +151,13 @@ namespace fdl
     // from each processor:
     std::vector<int> current_proc_cell_n(n_procs);
     for (const auto &cell : tria.active_cell_iterators())
-    {
-      const types::subdomain_id this_cell_proc_n = cell->subdomain_id();
-      global_bboxes[cell->active_cell_index()] = temp_bboxes[
-        offsets[this_cell_proc_n] / n_nums_per_bbox
-        + current_proc_cell_n[this_cell_proc_n]];
-      ++current_proc_cell_n[this_cell_proc_n];
-    }
+      {
+        const types::subdomain_id this_cell_proc_n = cell->subdomain_id();
+        global_bboxes[cell->active_cell_index()] =
+          temp_bboxes[offsets[this_cell_proc_n] / n_nums_per_bbox +
+                      current_proc_cell_n[this_cell_proc_n]];
+        ++current_proc_cell_n[this_cell_proc_n];
+      }
 
     for (const auto &bbox : global_bboxes)
       {

@@ -63,12 +63,13 @@ extract_fp_string(SAMRAI::tbox::Pointer<SAMRAI::tbox::Database> f_db)
 
 // A utility function that does the normal SAMRAI initialization stuff.
 template <int spacedim>
-std::tuple<SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<spacedim>>,
-           SAMRAI::tbox::Pointer<SAMRAI::mesh::StandardTagAndInitialize<spacedim>>,
-           SAMRAI::tbox::Pointer<SAMRAI::mesh::BergerRigoutsos<spacedim>>,
-           SAMRAI::tbox::Pointer<SAMRAI::mesh::LoadBalancer<spacedim>>,
-           SAMRAI::tbox::Pointer<SAMRAI::mesh::GriddingAlgorithm<spacedim>>,
-           int>
+std::tuple<
+  SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<spacedim>>,
+  SAMRAI::tbox::Pointer<SAMRAI::mesh::StandardTagAndInitialize<spacedim>>,
+  SAMRAI::tbox::Pointer<SAMRAI::mesh::BergerRigoutsos<spacedim>>,
+  SAMRAI::tbox::Pointer<SAMRAI::mesh::LoadBalancer<spacedim>>,
+  SAMRAI::tbox::Pointer<SAMRAI::mesh::GriddingAlgorithm<spacedim>>,
+  int>
 setup_hierarchy(
   SAMRAI::tbox::Pointer<IBTK::AppInitializer>         app_initializer,
   SAMRAI::mesh::StandardTagAndInitStrategy<spacedim> *tag = nullptr)
@@ -241,8 +242,12 @@ setup_hierarchy(
       ghost_fill_op.fillData(/*time*/ 0.0);
     }
 
-  return std::make_tuple(patch_hierarchy, error_detector, box_generator,
-                         load_balancer, gridding_algorithm, f_idx);
+  return std::make_tuple(patch_hierarchy,
+                         error_detector,
+                         box_generator,
+                         load_balancer,
+                         gridding_algorithm,
+                         f_idx);
 }
 
 // A utility function that prints @p part_str to @p out by sending each string to
