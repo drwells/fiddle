@@ -107,30 +107,51 @@ namespace fdl
 
     std::vector<BoundingBox<spacedim, Number>> global_bboxes(
       tria.n_active_cells());
-    unsigned int cell_n = 0;
-    for (const auto &cell : tria.active_cell_iterators())
-      if (cell->is_locally_owned())
-        {
-          AssertIndexRange(cell_n,
-                           local_active_cell_bboxes.size());
-          AssertIndexRange(cell->active_cell_index(),
-                           global_bboxes.size());
-          global_bboxes[cell->active_cell_index()] =
-            local_active_cell_bboxes[cell_n];
-          ++cell_n;
-        }
-    Assert(cell_n == local_active_cell_bboxes.size(),
-           ExcMessage(
-             "There should be a bounding box for every locally owned cell"));
 
-    const int ierr =
-      MPI_Allreduce(MPI_IN_PLACE,
-                    reinterpret_cast<Number *>(&global_bboxes[0]),
-                    n_nums_per_bbox * global_bboxes.size(),
-                    mpi_type,
-                    MPI_SUM,
-                    tria.get_communicator());
+    MPI_Comm comm = tria.get_communicator();
+    // Exchange number of cells:
+    const int n_procs = Utilities::MPI::n_mpi_processes(comm);
+    std::vector<int> bbox_entries_per_proc(n_procs);
+    const int bbox_entries_on_this_proc = tria.n_locally_owned_active_cells()
+      *n_nums_per_bbox;
+    int ierr = MPI_Allgather(&bbox_entries_on_this_proc, 1, MPI_INT,
+                             &bbox_entries_per_proc[0], 1, MPI_INT, comm);
     AssertThrowMPI(ierr);
+    Assert(std::accumulate(bbox_entries_per_proc.begin(),
+                           bbox_entries_per_proc.end(), 0u)
+           == (tria.n_active_cells() * n_nums_per_bbox),
+           ExcMessage("Should be a partition"));
+
+    // Determine indices into temporary array:
+    std::vector<int> offsets(n_procs);
+    offsets[0] = 0;
+    std::partial_sum(bbox_entries_per_proc.begin(),
+                     bbox_entries_per_proc.end() - 1,
+                     offsets.begin() + 1);
+    // Communicate bboxes:
+    std::vector<BoundingBox<spacedim, Number>> temp_bboxes(
+      tria.n_active_cells());
+    ierr = MPI_Allgatherv(reinterpret_cast<const Number *>(local_active_cell_bboxes.data()),
+                          bbox_entries_on_this_proc,
+                          mpi_type,
+                          temp_bboxes.data(),
+                          bbox_entries_per_proc.data(),
+                          offsets.data(),
+                          mpi_type,
+                          comm);
+    AssertThrowMPI(ierr);
+
+    // Copy to the correct ordering. Keep track of how many cells we have copied
+    // from each processor:
+    std::vector<int> current_proc_cell_n(n_procs);
+    for (const auto &cell : tria.active_cell_iterators())
+    {
+      const types::subdomain_id this_cell_proc_n = cell->subdomain_id();
+      global_bboxes[cell->active_cell_index()] = temp_bboxes[
+        offsets[this_cell_proc_n] / n_nums_per_bbox
+        + current_proc_cell_n[this_cell_proc_n]];
+      ++current_proc_cell_n[this_cell_proc_n];
+    }
 
     for (const auto &bbox : global_bboxes)
       {
