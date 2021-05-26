@@ -52,7 +52,7 @@ namespace fdl
       }
     else
       {
-        Assert(false, ExcNotImplemented());
+        Assert(false, ExcFDLNotImplemented());
       }
 
     return result;
@@ -102,7 +102,7 @@ namespace fdl
     if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, double>>(p))
       return {SAMRAIPatchType::Side, SAMRAIFieldType::Double};
 
-    AssertThrow(false, dealii::ExcNotImplemented());
+    AssertThrow(false, ExcFDLNotImplemented());
     return {};
   }
 
@@ -138,7 +138,7 @@ namespace fdl
     if (auto p2 = tbox::Pointer<pdat::SideData<spacedim, double>>(p))
       return p2->getDepth();
 
-    AssertThrow(false, dealii::ExcNotImplemented());
+    AssertThrow(false, ExcFDLNotImplemented());
     return {};
   }
 
