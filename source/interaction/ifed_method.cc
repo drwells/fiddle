@@ -14,6 +14,60 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
+  IFEDMethod<dim, spacedim>::initializePatchHierarchy(
+    tbox::Pointer<hier::PatchHierarchy<spacedim>>    hierarchy,
+    tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg,
+    int /*u_data_idx*/,
+    const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>>
+      & /*u_synch_scheds*/,
+    const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
+      & /*u_ghost_fill_scheds*/,
+    int /*integrator_step*/,
+    double /*init_data_time*/,
+    bool /*initial_time*/)
+  {
+#if 0
+      primary_hierarchy = hierarchy;
+      gridding_algorithm = gridding_alg;
+
+      secondary_hierarchy->reinit(hierarchy->getFinestLevelNumber(), hierarchy->getFinestLevelNumber(), hierarchy);
+#endif
+  }
+
+  template <int dim, int spacedim>
+  void
+  IFEDMethod<dim, spacedim>::interpolateVelocity(
+    int u_data_idx,
+    const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>>
+      &u_synch_scheds,
+    const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
+      &    u_ghost_fill_scheds,
+    double data_time)
+  {
+    (void)u_data_idx;
+    (void)u_synch_scheds;
+    (void)u_ghost_fill_scheds;
+    (void)data_time;
+  }
+
+  template <int dim, int spacedim>
+  void
+  IFEDMethod<dim, spacedim>::spreadForce(
+    int                               f_data_idx,
+    IBTK::RobinPhysBdryPatchStrategy *f_phys_bdry_op,
+    const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
+      &    f_prolongation_scheds,
+    double data_time)
+  {
+    (void)f_data_idx;
+    (void)f_phys_bdry_op;
+    (void)f_prolongation_scheds;
+    (void)data_time;
+  }
+
+
+  template <int dim, int spacedim>
+  void
   IFEDMethod<dim, spacedim>::applyGradientDetector(
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> hierarchy,
     int                                               level_number,

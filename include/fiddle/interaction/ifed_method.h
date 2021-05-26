@@ -16,10 +16,20 @@ namespace fdl
   using namespace dealii;
   using namespace SAMRAI;
 
+  /**
+   * Class implementing the volumetric IFED method.
+   *
+   * @note This class only makes sense when spacedim (the template parameter) is
+   * equal to NDIM (the IBAMR spatial dimension macro). Like elsewhere in the
+   * library, since template parameters are preferrable to macros, while the two
+   * are equal we use spacedim whenever possible.
+   */
   template <int dim, int spacedim = dim>
   class IFEDMethod : public IBAMR::IBStrategy
   {
   public:
+    static_assert(spacedim == NDIM, "Only available for spacedim == NDIM");
+
     /**
      * @name Constructors.
      * @{
@@ -37,6 +47,32 @@ namespace fdl
      */
 
     /**
+     * @name Initialization.
+     * @{
+     */
+
+    /**
+     * Initialize Lagrangian data corresponding to the given AMR patch hierarchy
+     * at the start of a computation. This may involve reading restart data.
+     */
+    virtual void
+    initializePatchHierarchy(
+      tbox::Pointer<hier::PatchHierarchy<spacedim>>    hierarchy,
+      tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg,
+      int                                              u_data_idx,
+      const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>>
+        &u_synch_scheds,
+      const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
+        &    u_ghost_fill_scheds,
+      int    integrator_step,
+      double init_data_time,
+      bool   initial_time) override;
+
+    /**
+     * @}
+     */
+
+    /**
      * @name fluid-structure interaction.
      * @{
      */
@@ -47,26 +83,14 @@ namespace fdl
         &u_synch_scheds,
       const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
         &    u_ghost_fill_scheds,
-      double data_time) override
-    {
-      (void)u_data_idx;
-      (void)u_synch_scheds;
-      (void)u_ghost_fill_scheds;
-      (void)data_time;
-    }
+      double data_time) override;
 
     virtual void
     spreadForce(int                               f_data_idx,
                 IBTK::RobinPhysBdryPatchStrategy *f_phys_bdry_op,
                 const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
                   &    f_prolongation_scheds,
-                double data_time) override
-    {
-      (void)f_data_idx;
-      (void)f_phys_bdry_op;
-      (void)f_prolongation_scheds;
-      (void)data_time;
-    }
+                double data_time) override;
 
     /**
      * Tag cells in @p hierarchy that intersect with the structure.
