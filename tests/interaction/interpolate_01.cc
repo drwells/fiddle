@@ -52,8 +52,8 @@
 
 // Test velocity interpolation
 
-using namespace SAMRAI;
 using namespace dealii;
+using namespace SAMRAI;
 
 template <int dim, int spacedim = dim>
 void

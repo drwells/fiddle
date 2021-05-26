@@ -23,8 +23,8 @@
 
 // Test basic mechanics values stuff. Happens to use Part too.
 
-using namespace SAMRAI;
 using namespace dealii;
+using namespace SAMRAI;
 
 template <int dim, int spacedim = dim>
 void

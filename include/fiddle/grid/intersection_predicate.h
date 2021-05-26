@@ -7,11 +7,9 @@
 
 #include <deal.II/base/bounding_box.h>
 
-#include <deal.II/dofs/dof_handler.h>
-
 #include <deal.II/grid/tria.h>
 
-#include <mpi.h>
+#include <vector>
 
 namespace fdl
 {

@@ -9,8 +9,8 @@
 
 namespace fdl
 {
-  using namespace SAMRAI;
   using namespace dealii;
+  using namespace SAMRAI;
 
   template <int dim, int spacedim>
   void

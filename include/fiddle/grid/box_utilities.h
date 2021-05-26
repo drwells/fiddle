@@ -1,26 +1,22 @@
 #ifndef included_fiddle_grid_box_utilities_h
 #define included_fiddle_grid_box_utilities_h
 
-#include <fiddle/base/exceptions.h>
-
 #include <deal.II/base/bounding_box.h>
 
 #include <deal.II/distributed/shared_tria.h>
 
 #include <deal.II/dofs/dof_handler.h>
 
-#include <deal.II/fe/fe_values.h>
 #include <deal.II/fe/mapping.h>
 
-#include <BasePatchLevel.h>
 #include <Patch.h>
-#include <PatchLevel.h>
 
 #include <vector>
 
 namespace fdl
 {
   using namespace dealii;
+  using namespace SAMRAI;
 
   /**
    * Fast intersection check between two bounding boxes.
@@ -38,8 +34,7 @@ namespace fdl
   template <int spacedim, typename Number = double>
   std::vector<BoundingBox<spacedim, Number>>
   compute_patch_bboxes(
-    const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>>
-      &          patches,
+    const std::vector<tbox::Pointer<hier::Patch<spacedim>>> &patches,
     const double extra_ghost_cell_fraction = 0.0);
 
   /**

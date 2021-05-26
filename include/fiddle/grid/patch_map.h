@@ -1,9 +1,6 @@
 #ifndef included_fiddle_grid_patch_map_h
 #define included_fiddle_grid_patch_map_h
 
-#include <fiddle/grid/box_utilities.h>
-#include <fiddle/grid/intersection_predicate.h>
-
 #include <deal.II/dofs/dof_handler.h>
 
 #include <Patch.h>

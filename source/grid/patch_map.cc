@@ -1,3 +1,4 @@
+#include <fiddle/grid/box_utilities.h>
 #include <fiddle/grid/patch_map.h>
 
 #include <deal.II/numerics/rtree.h>

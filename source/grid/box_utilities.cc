@@ -1,6 +1,11 @@
+#include <fiddle/base/exceptions.h>
+
 #include <fiddle/grid/box_utilities.h>
 
 #include <deal.II/base/bounding_box.h>
+#include <deal.II/base/quadrature.h>
+
+#include <deal.II/fe/fe_values.h>
 
 #include <CartesianPatchGeometry.h>
 #include <MultiblockPatchLevel.h>
@@ -8,7 +13,6 @@
 #include <PatchLevel.h>
 
 #include <vector>
-
 
 namespace fdl
 {

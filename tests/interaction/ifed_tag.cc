@@ -30,8 +30,8 @@
 
 // Test tagging when combined with all the IBAMR stuff
 
-using namespace SAMRAI;
 using namespace dealii;
+using namespace SAMRAI;
 
 template <int dim, int spacedim = dim>
 void

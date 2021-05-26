@@ -30,8 +30,8 @@
 
 // Test cell tagging
 
-using namespace SAMRAI;
 using namespace dealii;
+using namespace SAMRAI;
 
 template <int spacedim>
 class TestTag : public mesh::StandardTagAndInitStrategy<spacedim>

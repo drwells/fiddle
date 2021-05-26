@@ -45,8 +45,8 @@
 
 // Test count_quadrature_points
 
-using namespace SAMRAI;
 using namespace dealii;
+using namespace SAMRAI;
 
 template <int dim, int spacedim = dim>
 void

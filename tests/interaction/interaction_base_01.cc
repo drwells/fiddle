@@ -37,8 +37,8 @@
 
 #include "../tests.h"
 
-using namespace SAMRAI;
 using namespace dealii;
+using namespace SAMRAI;
 
 // First test driver for InteractionBase. Used to test
 //
