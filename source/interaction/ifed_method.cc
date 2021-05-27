@@ -34,36 +34,41 @@ namespace fdl
 #endif
   }
 
+
+
   template <int dim, int spacedim>
   void
   IFEDMethod<dim, spacedim>::interpolateVelocity(
-    int u_data_idx,
+    int u_data_index,
     const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>>
       &u_synch_scheds,
     const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
       &    u_ghost_fill_scheds,
     double data_time)
   {
-    (void)u_data_idx;
+    (void)u_data_index;
     (void)u_synch_scheds;
     (void)u_ghost_fill_scheds;
     (void)data_time;
   }
 
+
+
   template <int dim, int spacedim>
   void
   IFEDMethod<dim, spacedim>::spreadForce(
-    int                               f_data_idx,
+    int                               f_data_index,
     IBTK::RobinPhysBdryPatchStrategy *f_phys_bdry_op,
     const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
       &    f_prolongation_scheds,
     double data_time)
   {
-    (void)f_data_idx;
+    (void)f_data_index;
     (void)f_phys_bdry_op;
     (void)f_prolongation_scheds;
     (void)data_time;
   }
+
 
 
   template <int dim, int spacedim>

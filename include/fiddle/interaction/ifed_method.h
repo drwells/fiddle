@@ -59,7 +59,7 @@ namespace fdl
     initializePatchHierarchy(
       tbox::Pointer<hier::PatchHierarchy<spacedim>>    hierarchy,
       tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg,
-      int                                              u_data_idx,
+      int                                              u_data_index,
       const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>>
         &u_synch_scheds,
       const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
@@ -67,7 +67,6 @@ namespace fdl
       int    integrator_step,
       double init_data_time,
       bool   initial_time) override;
-
     /**
      * @}
      */
@@ -78,7 +77,7 @@ namespace fdl
      */
     virtual void
     interpolateVelocity(
-      int u_data_idx,
+      int u_data_index,
       const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>>
         &u_synch_scheds,
       const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
@@ -86,7 +85,7 @@ namespace fdl
       double data_time) override;
 
     virtual void
-    spreadForce(int                               f_data_idx,
+    spreadForce(int                               f_data_index,
                 IBTK::RobinPhysBdryPatchStrategy *f_phys_bdry_op,
                 const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
                   &    f_prolongation_scheds,
