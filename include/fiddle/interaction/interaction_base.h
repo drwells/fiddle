@@ -146,9 +146,9 @@ namespace fdl
      *            element fields. This class will use the same MPI communicator
      *            as the one used by this Triangulation.
      *
-     * @param[in] active_cell_bboxes Bounding box for each active cell on the
-     *            current processor. This should be computed with the finite
-     *            element description of the displacement.
+     * @param[in] active_cell_bboxes Bounding box for each active cell (not just
+     *            cells owned by the current processor). This should be computed
+     *            with the finite element description of the displacement.
      *
      * @param[inout] patch_hierarchy The patch hierarchy with which we will
      *               interact (i.e., for spreading and interpolation).
