@@ -92,7 +92,8 @@ namespace fdl
                        spacedim,
                        LinearAlgebra::distributed::Vector<double>>
                    mapping(dof_handler, part.get_position());
-        const auto local_bboxes = compute_cell_bboxes(dof_handler, mapping);
+        const auto local_bboxes =
+          compute_cell_bboxes<dim, spacedim, float>(dof_handler, mapping);
         // Like most other things this only works with p::S::T now
         const auto &tria =
           dynamic_cast<const parallel::shared::Triangulation<dim, spacedim> &>(
