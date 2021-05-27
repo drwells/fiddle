@@ -82,68 +82,86 @@ namespace fdl
       }
 
   found_coarsest_level:
-    Assert(coarsest_level_n != numbers::invalid_unsigned_int,
-           ExcFDLInternalError());
-    for (const auto &cell :
-         native_tria->cell_iterators_on_level(coarsest_level_n))
+    if (coarsest_level_n != numbers::invalid_unsigned_int)
       {
-        if (predicate(cell))
+        for (const auto &cell :
+             native_tria->cell_iterators_on_level(coarsest_level_n))
           {
-            CellData<dim> cell_data;
-            cell_data.manifold_id = cell->manifold_id();
-            // Temporarily refer to native cells with the material id
-            cell_data.material_id = add_native_cell(cell);
-
-            cell_data.vertices.clear();
-            for (const auto &index : cell->vertex_indices())
-              cell_data.vertices.push_back(cell->vertex_index(index));
-            cells.push_back(std::move(cell_data));
-
-            // set up subcell data:
-            auto extract_subcell = [](const auto &iter, auto &cell_data) {
-              cell_data.vertices.clear();
-              for (const auto &index : iter->vertex_indices())
-                cell_data.vertices.push_back(iter->vertex_index(index));
-              cell_data.manifold_id = iter->manifold_id();
-              cell_data.boundary_id = iter->boundary_id();
-            };
-
-            if (dim == 2)
+            if (predicate(cell))
               {
-                for (const auto &face : cell->face_iterators())
-                  {
-                    CellData<1> boundary_line;
-                    extract_subcell(face, boundary_line);
-                    subcell_data.boundary_lines.push_back(
-                      std::move(boundary_line));
-                  }
-              }
-            else if (dim == 3)
-              {
-                for (const auto &face : cell->face_iterators())
-                  {
-                    CellData<2> boundary_quad;
-                    extract_subcell(face, boundary_quad);
-                    subcell_data.boundary_quads.push_back(
-                      std::move(boundary_quad));
+                CellData<dim> cell_data;
+                cell_data.manifold_id = cell->manifold_id();
+                // Temporarily refer to native cells with the material id
+                cell_data.material_id = add_native_cell(cell);
 
-                    for (unsigned int line_n = 0; line_n < face->n_lines();
-                         ++line_n)
+                cell_data.vertices.clear();
+                for (const auto &index : cell->vertex_indices())
+                  cell_data.vertices.push_back(cell->vertex_index(index));
+                cells.push_back(std::move(cell_data));
+
+                // set up subcell data:
+                auto extract_subcell = [](const auto &iter, auto &cell_data) {
+                  cell_data.vertices.clear();
+                  for (const auto &index : iter->vertex_indices())
+                    cell_data.vertices.push_back(iter->vertex_index(index));
+                  cell_data.manifold_id = iter->manifold_id();
+                  cell_data.boundary_id = iter->boundary_id();
+                };
+
+                if (dim == 2)
+                  {
+                    for (const auto &face : cell->face_iterators())
                       {
                         CellData<1> boundary_line;
-                        extract_subcell(face->line(line_n), boundary_line);
+                        extract_subcell(face, boundary_line);
                         subcell_data.boundary_lines.push_back(
                           std::move(boundary_line));
+                      }
+                  }
+                else if (dim == 3)
+                  {
+                    for (const auto &face : cell->face_iterators())
+                      {
+                        CellData<2> boundary_quad;
+                        extract_subcell(face, boundary_quad);
+                        subcell_data.boundary_quads.push_back(
+                          std::move(boundary_quad));
+
+                        for (unsigned int line_n = 0; line_n < face->n_lines();
+                             ++line_n)
+                          {
+                            CellData<1> boundary_line;
+                            extract_subcell(face->line(line_n), boundary_line);
+                            subcell_data.boundary_lines.push_back(
+                              std::move(boundary_line));
+                          }
                       }
                   }
               }
           }
       }
+    else
+      {
+        // We don't intersect with any cells, which is a problem - deal.II does
+        // not support setting up serial Triangulation objects with zero cells.
+        // Add just the first active cell to get around this issue:
+        coarsest_level_n = native_tria->n_levels() - 1;
+        const auto cell  = native_tria->begin_active(coarsest_level_n);
 
+        CellData<dim> cell_data;
+        cell_data.manifold_id = cell->manifold_id();
+        cell_data.material_id = add_native_cell(cell);
+        cell_data.vertices.clear();
+        for (const auto &index : cell->vertex_indices())
+          cell_data.vertices.push_back(cell->vertex_index(index));
+        cells.push_back(std::move(cell_data));
+        // TODO - should we bother setting up boundary data?
+      }
     // Set up the coarsest level of the new overlap triangulation:
     this->create_triangulation(native_tria->get_vertices(),
                                cells,
                                subcell_data);
+
     for (auto &cell : this->active_cell_iterators())
       {
         // switch the material id for the user index so that native cell

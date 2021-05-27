@@ -68,6 +68,7 @@ SETUP_3D(grid collect_bboxes_01.cc)
 
 SETUP(grid fe_predicate_01.cc fiddle2d)
 SETUP(grid grid_predicate_01.cc fiddle2d)
+SETUP(grid overlap_tria_01.cc fiddle2d)
 SETUP(grid patch_map_01.cc fiddle2d)
 SETUP(grid patch_map_02.cc fiddle2d)
 
