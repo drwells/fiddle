@@ -107,6 +107,24 @@ namespace fdl
       }
   }
 
+
+
+  template <int dim, int spacedim>
+  const hier::IntVector<spacedim> &
+  IFEDMethod<dim, spacedim>::getMinimumGhostCellWidth() const
+  {
+    // Like elsewhere, we are hard-coding in bspline 3 for now
+    const std::string kernel_name = "BSPLINE_3";
+    const int         ghost_width =
+      IBTK::LEInteractor::getMinimumGhostWidth(kernel_name);
+    static hier::IntVector<spacedim> gcw;
+    for (int i = 0; i < spacedim; ++i)
+      gcw[i] = ghost_width;
+    return gcw;
+  }
+
+
+
   template class IFEDMethod<NDIM - 1, NDIM>;
   template class IFEDMethod<NDIM, NDIM>;
 } // namespace fdl
