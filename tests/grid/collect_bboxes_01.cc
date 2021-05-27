@@ -19,17 +19,18 @@ convert(const dealii::BoundingBox<spacedim, Number2> &input)
   dealii::Point<spacedim, Number1> p0;
   dealii::Point<spacedim, Number1> p1;
   for (unsigned int d = 0; d < spacedim; ++d)
-  {
-    p0[d] = input.get_boundary_points().first[d];
-    p1[d] = input.get_boundary_points().second[d];
-  }
+    {
+      p0[d] = input.get_boundary_points().first[d];
+      p1[d] = input.get_boundary_points().second[d];
+    }
 
   return dealii::BoundingBox<spacedim, Number1>(std::make_pair(p0, p1));
 }
 
 // Test collect_bboxes in parallel
 template <int spacedim, typename Number>
-void test()
+void
+test()
 {
   using namespace dealii;
 
@@ -45,17 +46,18 @@ void test()
 
   for (const auto &cell : tria.active_cell_iterators())
     if (cell->is_locally_owned())
-      bboxes.emplace_back(convert<spacedim, Number, double>(cell->bounding_box()));
+      bboxes.emplace_back(
+        convert<spacedim, Number, double>(cell->bounding_box()));
 
   auto all_bboxes = fdl::collect_all_active_cell_bboxes(tria, bboxes);
 
   for (const auto &cell : tria.active_cell_iterators())
-  {
-    // we can skip the locality check now
-    AssertThrow((convert<spacedim, Number, double>(cell->bounding_box()) ==
-                 all_bboxes[cell->active_cell_index()]),
-                ExcMessage("should be equal"));
-  }
+    {
+      // we can skip the locality check now
+      AssertThrow((convert<spacedim, Number, double>(cell->bounding_box()) ==
+                   all_bboxes[cell->active_cell_index()]),
+                  ExcMessage("should be equal"));
+    }
 
   std::ostringstream this_proc_out;
   this_proc_out << "Rank = " << rank << '\n';
@@ -63,29 +65,29 @@ void test()
   DataOutBase::VtkFlags flags;
   flags.print_date_and_time = false;
   {
-      this_proc_out << "Local bounding boxes:\n";
-      BoundingBoxDataOut<spacedim> bbox_data_out;
-      bbox_data_out.set_flags(flags);
-      bbox_data_out.build_patches(bboxes);
-      bbox_data_out.write_vtk(this_proc_out);
+    this_proc_out << "Local bounding boxes:\n";
+    BoundingBoxDataOut<spacedim> bbox_data_out;
+    bbox_data_out.set_flags(flags);
+    bbox_data_out.build_patches(bboxes);
+    bbox_data_out.write_vtk(this_proc_out);
   }
 
   this_proc_out << "\n\n\n";
 
   {
-      this_proc_out << "All bounding boxes:\n";
-      BoundingBoxDataOut<spacedim> bbox_data_out;
-      bbox_data_out.set_flags(flags);
-      bbox_data_out.build_patches(all_bboxes);
-      bbox_data_out.write_vtk(this_proc_out);
+    this_proc_out << "All bounding boxes:\n";
+    BoundingBoxDataOut<spacedim> bbox_data_out;
+    bbox_data_out.set_flags(flags);
+    bbox_data_out.build_patches(all_bboxes);
+    bbox_data_out.write_vtk(this_proc_out);
   }
 
   if (rank != n_procs - 1)
-      this_proc_out << '\n';
+    this_proc_out << '\n';
 
   std::ofstream output;
   if (rank == 0)
-      output.open("output");
+    output.open("output");
 
   print_strings_on_0(this_proc_out.str(), mpi_comm, output);
 }

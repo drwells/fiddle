@@ -254,11 +254,13 @@ setup_hierarchy(
 // A utility function that prints @p part_str to @p out by sending each string to
 // rank 0.
 inline void
-print_strings_on_0(const std::string &part_str, MPI_Comm comm, std::ofstream &out)
+print_strings_on_0(const std::string &part_str,
+                   MPI_Comm           comm,
+                   std::ofstream &    out)
 {
   using namespace dealii;
   const int                  n_procs = Utilities::MPI::n_mpi_processes(comm);
-  const int                  rank = Utilities::MPI::this_mpi_process(comm);
+  const int                  rank    = Utilities::MPI::this_mpi_process(comm);
   std::vector<unsigned long> string_sizes(n_procs);
 
   const unsigned long size = part_str.size();
@@ -294,8 +296,7 @@ print_strings_on_0(const std::string &part_str, MPI_Comm comm, std::ofstream &ou
         }
     }
   else
-    MPI_Send(
-      part_str.data(), size, MPI_CHAR, 0, 0, comm);
+    MPI_Send(part_str.data(), size, MPI_CHAR, 0, 0, comm);
 }
 
 /**
@@ -326,5 +327,7 @@ print_partitioning_on_0(
           part_steam << box << '\n';
         }
     }
-  print_strings_on_0(part_steam.str(), tbox::SAMRAI_MPI::getCommunicator(), out);
+  print_strings_on_0(part_steam.str(),
+                     tbox::SAMRAI_MPI::getCommunicator(),
+                     out);
 }

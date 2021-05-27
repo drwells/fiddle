@@ -3,15 +3,15 @@
 
 #include <fiddle/base/exceptions.h>
 
+#include <fiddle/mechanics/force_contribution.h>
+#include <fiddle/mechanics/mechanics_values.h>
+
 #include <deal.II/base/bounding_box.h>
 #include <deal.II/base/function.h>
 
 #include <deal.II/dofs/dof_handler.h>
 
 #include <deal.II/grid/tria.h>
-
-#include <fiddle/mechanics/force_contribution.h>
-#include <fiddle/mechanics/mechanics_values.h>
 
 #include <memory>
 #include <vector>
@@ -157,34 +157,34 @@ namespace fdl
   // ----------------------------- inline functions ----------------------------
 
   template <int dim, int spacedim>
-    const Triangulation<dim, spacedim> &
+  const Triangulation<dim, spacedim> &
   Part<dim, spacedim>::get_triangulation() const
-    {
-      Assert(tria, ExcFDLInternalError());
-      return *tria;
-    }
+  {
+    Assert(tria, ExcFDLInternalError());
+    return *tria;
+  }
 
   template <int dim, int spacedim>
-    MPI_Comm
-    Part<dim, spacedim>::get_communicator() const
-    {
-      Assert(tria, ExcFDLInternalError());
-      return tria->get_communicator();
-    }
+  MPI_Comm
+  Part<dim, spacedim>::get_communicator() const
+  {
+    Assert(tria, ExcFDLInternalError());
+    return tria->get_communicator();
+  }
 
   template <int dim, int spacedim>
-    const DoFHandler<dim, spacedim> &
-    Part<dim, spacedim>::get_dof_handler() const
-    {
-      return *dof_handler;
-    }
+  const DoFHandler<dim, spacedim> &
+  Part<dim, spacedim>::get_dof_handler() const
+  {
+    return *dof_handler;
+  }
 
   template <int dim, int spacedim>
-    std::shared_ptr<const Utilities::MPI::Partitioner>
-    Part<dim, spacedim>::get_partitioner() const
-    {
-      return partitioner;
-    }
+  std::shared_ptr<const Utilities::MPI::Partitioner>
+  Part<dim, spacedim>::get_partitioner() const
+  {
+    return partitioner;
+  }
 
   // Functions for getting and setting state vectors
 

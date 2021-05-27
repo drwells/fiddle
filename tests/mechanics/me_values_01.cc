@@ -1,5 +1,8 @@
 #include <fiddle/base/exceptions.h>
 
+#include <fiddle/mechanics/mechanics_values.h>
+#include <fiddle/mechanics/part.h>
+
 #include <deal.II/base/function_parser.h>
 
 #include <deal.II/distributed/shared_tria.h>
@@ -13,9 +16,6 @@
 
 #include <ibtk/AppInitializer.h>
 #include <ibtk/IBTKInit.h>
-
-#include <fiddle/mechanics/mechanics_values.h>
-#include <fiddle/mechanics/part.h>
 
 #include <fstream>
 

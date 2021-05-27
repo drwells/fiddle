@@ -1,11 +1,11 @@
 #ifndef included_fiddle_mechanics_force_contribution_h
 #define included_fiddle_mechanics_force_contribution_h
 
+#include <fiddle/mechanics/mechanics_values.h>
+
 #include <deal.II/base/quadrature.h>
 
 #include <deal.II/fe/fe_update_flags.h>
-
-#include <fiddle/mechanics/mechanics_values.h>
 
 namespace fdl
 {

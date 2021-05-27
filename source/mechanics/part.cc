@@ -46,6 +46,6 @@ namespace fdl
     velocity.update_ghost_values();
   }
 
-    template class Part<NDIM - 1, NDIM>;
-    template class Part<NDIM, NDIM>;
-}
+  template class Part<NDIM - 1, NDIM>;
+  template class Part<NDIM, NDIM>;
+} // namespace fdl
