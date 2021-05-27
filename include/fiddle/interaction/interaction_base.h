@@ -135,6 +135,11 @@ namespace fdl
   {
   public:
     /**
+     * Default constructor. Sets up an empty object.
+     */
+    InteractionBase();
+
+    /**
      * Constructor. This call is collective.
      *
      * @param[in] native_tria The Triangulation used to define the finite
@@ -369,7 +374,6 @@ namespace fdl
      * representations.
      */
     std::vector<Scatter<double>> scatters;
-
     /**
      * @}
      */

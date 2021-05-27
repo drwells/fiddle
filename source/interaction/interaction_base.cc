@@ -27,6 +27,12 @@ namespace fdl
   using namespace SAMRAI;
 
   template <int dim, int spacedim>
+  InteractionBase<dim, spacedim>::InteractionBase()
+    : communicator(MPI_COMM_NULL)
+    , level_number(std::numeric_limits<int>::max())
+  {}
+
+  template <int dim, int spacedim>
   InteractionBase<dim, spacedim>::InteractionBase(
     const parallel::shared::Triangulation<dim, spacedim> &n_tria,
     const std::vector<BoundingBox<spacedim, float>> & global_active_cell_bboxes,
