@@ -27,6 +27,7 @@ SET(FIDDLE_SRC
   source/grid/patch_map.cc
   source/grid/box_utilities.cc
 
+  source/interaction/elemental_interaction.cc
   source/interaction/ifed_method.cc
   source/interaction/interaction_base.cc
   source/interaction/interaction_utilities.cc

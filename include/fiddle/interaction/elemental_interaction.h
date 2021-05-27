@@ -6,6 +6,8 @@
 #include <fiddle/grid/overlap_tria.h>
 #include <fiddle/grid/patch_map.h>
 
+#include <fiddle/interaction/interaction_base.h>
+
 #include <fiddle/transfer/scatter.h>
 
 #include <deal.II/base/bounding_box.h>
@@ -48,7 +50,7 @@ namespace fdl
      */
     virtual std::unique_ptr<TransactionBase>
     compute_projection_rhs_intermediate(
-      std::unique_ptr<TransactionBase> transaction) const override;
+      std::unique_ptr<TransactionBase> transaction) override;
 
 #if 0
     /**
