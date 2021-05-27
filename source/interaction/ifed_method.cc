@@ -1,5 +1,8 @@
+#include <fiddle/base/samrai_utilities.h>
+
 #include <fiddle/grid/box_utilities.h>
 
+#include <fiddle/interaction/elemental_interaction.h>
 #include <fiddle/interaction/ifed_method.h>
 #include <fiddle/interaction/interaction_utilities.h>
 
@@ -7,17 +10,34 @@
 
 #include <deal.II/fe/mapping_fe_field.h>
 
+#include <CellVariable.h>
+#include <IntVector.h>
+
 namespace fdl
 {
   using namespace dealii;
   using namespace SAMRAI;
 
   template <int dim, int spacedim>
+  IFEDMethod<dim, spacedim>::IFEDMethod(
+    tbox::Pointer<tbox::Database>      input_db,
+    std::vector<Part<dim, spacedim>> &&input_parts)
+    : input_db(input_db)
+    , parts(std::move(input_parts))
+    , secondary_hierarchy("ifed::secondary_hierarchy",
+                          input_db->getDatabase("GriddingAlgorithm"),
+                          input_db->getDatabase("LoadBalancer"))
+  {
+    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+      interactions.emplace_back(new ElementalInteraction<dim, spacedim>());
+  }
+
+  template <int dim, int spacedim>
   void
   IFEDMethod<dim, spacedim>::initializePatchHierarchy(
-    tbox::Pointer<hier::PatchHierarchy<spacedim>>    hierarchy,
-    tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg,
-    int /*u_data_idx*/,
+    tbox::Pointer<hier::PatchHierarchy<spacedim>> hierarchy,
+    tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/,
+    int /*u_data_index*/,
     const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>>
       & /*u_synch_scheds*/,
     const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
@@ -26,12 +46,13 @@ namespace fdl
     double /*init_data_time*/,
     bool /*initial_time*/)
   {
-#if 0
-      primary_hierarchy = hierarchy;
-      gridding_algorithm = gridding_alg;
+    primary_hierarchy = hierarchy;
 
-      secondary_hierarchy->reinit(hierarchy->getFinestLevelNumber(), hierarchy->getFinestLevelNumber(), hierarchy);
-#endif
+    secondary_hierarchy.reinit(primary_hierarchy->getFinestLevelNumber(),
+                               primary_hierarchy->getFinestLevelNumber(),
+                               primary_hierarchy);
+
+    reinit_interactions();
   }
 
 
@@ -107,6 +128,55 @@ namespace fdl
       }
   }
 
+  template <int dim, int spacedim>
+  void IFEDMethod<dim, spacedim>::beginDataRedistribution(
+    tbox::Pointer<hier::PatchHierarchy<spacedim>> /*hierarchy*/,
+    tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
+  {
+    // TODO - calculate a nonzero workload using the secondary hierarchy
+    const int ln = primary_hierarchy->getFinestLevelNumber();
+    tbox::Pointer<hier::PatchLevel<spacedim>> level =
+      primary_hierarchy->getPatchLevel(ln);
+    if (!level->checkAllocated(lagrangian_workload_current_index))
+      level->allocatePatchData(lagrangian_workload_current_index);
+
+    auto ops =
+      extract_hierarchy_data_ops(lagrangian_workload_var, primary_hierarchy);
+    ops->resetLevels(ln, ln);
+    ops->setToScalar(lagrangian_workload_current_index, 0.0);
+  }
+
+  template <int dim, int spacedim>
+  void IFEDMethod<dim, spacedim>::endDataRedistribution(
+    tbox::Pointer<hier::PatchHierarchy<spacedim>> /*hierarchy*/,
+    tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
+  {
+    secondary_hierarchy.reinit(primary_hierarchy->getFinestLevelNumber(),
+                               primary_hierarchy->getFinestLevelNumber(),
+                               primary_hierarchy,
+                               lagrangian_workload_current_index);
+
+    reinit_interactions();
+  }
+
+
+
+  template <int dim, int spacedim>
+  void
+  IFEDMethod<dim, spacedim>::registerEulerianVariables()
+  {
+    // we need ghosts for CONSERVATIVE_LINEAR_REFINE
+    const hier::IntVector<spacedim> ghosts = 1;
+    lagrangian_workload_var =
+      new pdat::CellVariable<spacedim, double>("::lagrangian_workload");
+    registerVariable(lagrangian_workload_current_index,
+                     lagrangian_workload_new_index,
+                     lagrangian_workload_scratch_index,
+                     lagrangian_workload_var,
+                     ghosts,
+                     "CONSERVATIVE_COARSEN",
+                     "CONSERVATIVE_LINEAR_REFINE");
+  }
 
 
   template <int dim, int spacedim>
@@ -123,6 +193,36 @@ namespace fdl
     return gcw;
   }
 
+
+
+  template <int dim, int spacedim>
+  void
+  IFEDMethod<dim, spacedim>::reinit_interactions()
+  {
+    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+      {
+        const Part<dim, spacedim> &part = parts[part_n];
+
+        const auto &tria =
+          dynamic_cast<const parallel::shared::Triangulation<dim, spacedim> &>(
+            part.get_triangulation());
+        const DoFHandler<dim, spacedim> &dof_handler = part.get_dof_handler();
+        MappingFEField<dim,
+                       spacedim,
+                       LinearAlgebra::distributed::Vector<double>>
+                   mapping(dof_handler, part.get_position());
+        const auto local_bboxes =
+          compute_cell_bboxes<dim, spacedim, float>(dof_handler, mapping);
+
+        const auto global_bboxes =
+          collect_all_active_cell_bboxes(tria, local_bboxes);
+
+        interactions[part_n]->reinit(tria,
+                                     global_bboxes,
+                                     secondary_hierarchy.d_secondary_hierarchy,
+                                     primary_hierarchy->getFinestLevelNumber());
+      }
+  }
 
 
   template class IFEDMethod<NDIM - 1, NDIM>;

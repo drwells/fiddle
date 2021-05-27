@@ -56,7 +56,8 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   std::vector<fdl::Part<dim>> parts;
   parts.emplace_back(native_tria, fe);
   tbox::Pointer<IBAMR::IBStrategy> ib_method_ops =
-    new fdl::IFEDMethod<dim>(std::move(parts));
+    new fdl::IFEDMethod<dim>(input_db->getDatabase("IFEDMethod"),
+                             std::move(parts));
 
   // Create major algorithm and data objects that comprise the
   // application.  These objects are configured from the input database

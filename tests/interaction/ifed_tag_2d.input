@@ -91,6 +91,43 @@ IBHierarchyIntegrator {
    enable_logging      = ENABLE_LOGGING
 }
 
+IFEDMethod {
+   GriddingAlgorithm
+   {
+       max_levels = MAX_LEVELS
+       ratio_to_coarser
+       {
+           level_1 = REF_RATIO,REF_RATIO
+           level_2 = REF_RATIO,REF_RATIO
+           level_3 = REF_RATIO,REF_RATIO
+           level_4 = REF_RATIO,REF_RATIO
+           level_5 = REF_RATIO,REF_RATIO
+       }
+
+       largest_patch_size
+       {
+           level_0 = 32,32
+       }
+
+       smallest_patch_size
+       {
+           level_0 = 8,8
+       }
+
+       efficiency_tolerance = 0.1e0  // min % of tag cells in new patch level
+       combine_efficiency   = 0.1e0  // chop box if sum of volumes of smaller boxes < efficiency * vol of large box
+
+       coalesce_boxes = TRUE
+   }
+
+   LoadBalancer
+   {
+      type                = "DEFAULT"
+      bin_pack_method     = "SPATIAL"
+      max_workload_factor = 0.0625
+   }
+}
+
 INSStaggeredHierarchyIntegrator {
    mu                            = MU
    rho                           = RHO

@@ -3,11 +3,14 @@
 
 #include <fiddle/base/exceptions.h>
 
+#include <fiddle/interaction/interaction_base.h>
+
+#include <fiddle/mechanics/part.h>
+
 #include <ibamr/IBStrategy.h>
 
 #include <ibtk/LEInteractor.h>
-
-#include <fiddle/mechanics/part.h>
+#include <ibtk/SecondaryHierarchy.h>
 
 #include <vector>
 
@@ -38,9 +41,8 @@ namespace fdl
     /**
      * Constructor. Assumes ownership of the provided parts.
      */
-    IFEDMethod(std::vector<Part<dim, spacedim>> &&input_parts)
-      : parts(std::move(input_parts))
-    {}
+    IFEDMethod(tbox::Pointer<tbox::Database>      input_db,
+               std::vector<Part<dim, spacedim>> &&input_parts);
 
     /**
      * @}
@@ -155,20 +157,12 @@ namespace fdl
     virtual void
     beginDataRedistribution(
       tbox::Pointer<hier::PatchHierarchy<spacedim>>    hierarchy,
-      tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg) override
-    {
-      (void)hierarchy;
-      (void)gridding_alg;
-    }
+      tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg) override;
 
     virtual void
     endDataRedistribution(
       tbox::Pointer<hier::PatchHierarchy<spacedim>>    hierarchy,
-      tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg) override
-    {
-      (void)hierarchy;
-      (void)gridding_alg;
-    }
+      tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg) override;
     /**
      * @}
      */
@@ -179,12 +173,65 @@ namespace fdl
      */
     virtual const hier::IntVector<spacedim> &
     getMinimumGhostCellWidth() const override;
+
+    void
+    registerEulerianVariables() override;
     /**
      * @}
      */
 
   protected:
+    /**
+     * Actually set up the interaction objects - will ultimately support nodal
+     * and elemental, but other interaction objects can be implemented here by
+     * overriding this function.
+     */
+    virtual void
+    reinit_interactions();
+
+    /**
+     * Book-keeping
+     * @{
+     */
+    tbox::Pointer<tbox::Database> input_db;
+    /**
+     * @}
+     */
+
+    /**
+     * Finite element data structures
+     * @{
+     */
     std::vector<Part<dim, spacedim>> parts;
+    /**
+     * @}
+     */
+
+    /**
+     * Finite difference data structures
+     * @{
+     */
+    tbox::Pointer<hier::PatchHierarchy<spacedim>> primary_hierarchy;
+
+    IBTK::SecondaryHierarchy secondary_hierarchy;
+
+    int lagrangian_workload_current_index = IBTK::invalid_index;
+    int lagrangian_workload_new_index     = IBTK::invalid_index;
+    int lagrangian_workload_scratch_index = IBTK::invalid_index;
+
+    tbox::Pointer<hier::Variable<spacedim>> lagrangian_workload_var;
+    /**
+     * @}
+     */
+
+    /**
+     * Interaction data structures
+     * @{
+     */
+    std::vector<std::unique_ptr<InteractionBase<dim, spacedim>>> interactions;
+    /**
+     * @}
+     */
   };
 } // namespace fdl
 
