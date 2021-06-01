@@ -22,6 +22,7 @@ FIND_PACKAGE(IBAMR 0.8.0 REQUIRED HINTS ${IBAMR_ROOT} $ENV{IBAMR_ROOT})
 #
 SET(FIDDLE_SRC
   source/base/samrai_utilities.cc
+  source/base/quadrature_family.cc
 
   source/grid/overlap_tria.cc
   source/grid/patch_map.cc

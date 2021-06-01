@@ -61,6 +61,7 @@ ENDMACRO()
 
 # base:
 SETUP(base hello.cc fiddle2d)
+SETUP(base qgauss_family_01.cc fiddle3d)
 
 # grid:
 SETUP_2D(grid collect_bboxes_01.cc)
