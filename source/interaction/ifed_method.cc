@@ -28,8 +28,11 @@ namespace fdl
                           input_db->getDatabase("GriddingAlgorithm"),
                           input_db->getDatabase("LoadBalancer"))
   {
+    // TODO: set up parameters correctly instead of hardcoding
+    const unsigned int n_points_1D = 2;
+    const double density = 1.0;
     for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
-      interactions.emplace_back(new ElementalInteraction<dim, spacedim>());
+      interactions.emplace_back(new ElementalInteraction<dim, spacedim>(n_points_1D, density));
   }
 
   template <int dim, int spacedim>

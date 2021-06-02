@@ -51,6 +51,8 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   GridGenerator::hyper_ball(native_tria, center, 0.2);
   native_tria.refine_global(std::log2(input_db->getInteger("N")));
 
+  tbox::pout << "Number of elements = " << native_tria.n_active_cells() << '\n';
+
   // fiddle stuff:
   FESystem<dim>               fe(FE_Q<dim>(1), dim);
   std::vector<fdl::Part<dim>> parts;
