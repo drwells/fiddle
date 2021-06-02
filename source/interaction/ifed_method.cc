@@ -136,17 +136,23 @@ namespace fdl
     tbox::Pointer<hier::PatchHierarchy<spacedim>> /*hierarchy*/,
     tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
   {
-    // TODO - calculate a nonzero workload using the secondary hierarchy
-    const int ln = primary_hierarchy->getFinestLevelNumber();
-    tbox::Pointer<hier::PatchLevel<spacedim>> level =
-      primary_hierarchy->getPatchLevel(ln);
-    if (!level->checkAllocated(lagrangian_workload_current_index))
-      level->allocatePatchData(lagrangian_workload_current_index);
+    // This function is called before initializePatchHierarchy is - in that case
+    // we don't have a hierarchy, so we don't have any data, and there is naught
+    // to do
+    if (primary_hierarchy)
+      {
+        // TODO - calculate a nonzero workload using the secondary hierarchy
+        const int ln = primary_hierarchy->getFinestLevelNumber();
+        tbox::Pointer<hier::PatchLevel<spacedim>> level =
+          primary_hierarchy->getPatchLevel(ln);
+        if (!level->checkAllocated(lagrangian_workload_current_index))
+          level->allocatePatchData(lagrangian_workload_current_index);
 
-    auto ops =
-      extract_hierarchy_data_ops(lagrangian_workload_var, primary_hierarchy);
-    ops->resetLevels(ln, ln);
-    ops->setToScalar(lagrangian_workload_current_index, 0.0);
+        auto ops = extract_hierarchy_data_ops(lagrangian_workload_var,
+                                              primary_hierarchy);
+        ops->resetLevels(ln, ln);
+        ops->setToScalar(lagrangian_workload_current_index, 0.0);
+      }
   }
 
   template <int dim, int spacedim>
@@ -154,12 +160,16 @@ namespace fdl
     tbox::Pointer<hier::PatchHierarchy<spacedim>> /*hierarchy*/,
     tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
   {
-    secondary_hierarchy.reinit(primary_hierarchy->getFinestLevelNumber(),
-                               primary_hierarchy->getFinestLevelNumber(),
-                               primary_hierarchy,
-                               lagrangian_workload_current_index);
+    // same as beginDataRedistribution
+    if (primary_hierarchy)
+      {
+        secondary_hierarchy.reinit(primary_hierarchy->getFinestLevelNumber(),
+                                   primary_hierarchy->getFinestLevelNumber(),
+                                   primary_hierarchy,
+                                   lagrangian_workload_current_index);
 
-    reinit_interactions();
+        reinit_interactions();
+      }
   }
 
 
