@@ -42,8 +42,7 @@ using namespace SAMRAI;
 
 // First test driver for InteractionBase. Used to test
 //
-// 1. quadrature index scattering
-// 2. element coordinate scattering
+// 1. element coordinate scattering
 
 template <int dim>
 class Identity : public Function<dim>
@@ -97,21 +96,6 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                                        patch_hierarchy,
                                                        level_number);
 
-  const fdl::SingleQuadrature<dim> single_quad(QGauss<dim>(2));
-  // for this test set the cell index
-  std::vector<unsigned char> quadrature_indices(
-    native_tria.n_locally_owned_active_cells());
-  unsigned int cell_n = 0;
-  for (const auto &cell : native_tria.active_cell_iterators())
-    if (cell->is_locally_owned())
-      {
-        const double x   = cell->barycenter()[0];
-        const double sgn = std::signbit(x) == 0 ? 1.0 : -1.0;
-        quadrature_indices[cell_n] =
-          100 + sgn * std::min(100.0, 100.0 * std::abs(x));
-        ++cell_n;
-      }
-
   FESystem<dim>             X_fe(FE_Q<dim>(1), dim);
   DoFHandler<dim, spacedim> X_dof_handler(native_tria);
   X_dof_handler.distribute_dofs(X_fe);
@@ -139,15 +123,8 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     F_dof_handler.locally_owned_dofs(), locally_relevant_F_dofs, mpi_comm);
   LinearAlgebra::distributed::Vector<double> F_rhs(F_partitioner);
 
-  auto transaction =
-    interaction_base.compute_projection_rhs_start(f_idx,
-                                                  single_quad,
-                                                  quadrature_indices,
-                                                  X_dof_handler,
-                                                  X,
-                                                  F_dof_handler,
-                                                  F_mapping,
-                                                  F_rhs);
+  auto transaction = interaction_base.compute_projection_rhs_start(
+    f_idx, X_dof_handler, X, F_dof_handler, F_mapping, F_rhs);
 
   transaction = interaction_base.compute_projection_rhs_intermediate(
     std::move(transaction));
@@ -172,25 +149,8 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
     DoFHandler<dim> X_overlap_dof_handler(overlap_tria);
     X_overlap_dof_handler.distribute_dofs(X_fe);
-    Vector<float> quad_indices(overlap_tria.n_active_cells());
-    Assert(quad_indices.size() == trans.overlap_quad_indices.size(),
-           ExcMessage("wrong size overlap quad indices"));
-    std::copy(trans.overlap_quad_indices.begin(),
-              trans.overlap_quad_indices.end(),
-              quad_indices.begin());
 
     std::ostringstream this_output;
-    if (input_db->getBoolWithDefault("write_quad_indices", false))
-      {
-        this_output << "rank = " << rank << '\n';
-        for (const auto &cell : overlap_tria.active_cell_iterators())
-          {
-            this_output << "barycenter = " << cell->barycenter()
-                        << " quad index = "
-                        << quad_indices[cell->active_cell_index()] << '\n';
-          }
-      }
-
     if (input_db->getBoolWithDefault("write_mapped_cell_centers", false))
       {
         // TODO - implement this test to verify that the X scatter works.
@@ -198,7 +158,8 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
         QMidpoint<dim>                           quadrature;
         MappingFEField<dim, dim, Vector<double>> X_map(X_overlap_dof_handler,
                                                        trans.overlap_X_vec);
-        FEValues<dim>                            fe_values(X_map,
+
+        FEValues<dim> fe_values(X_map,
                                 X_fe,
                                 quadrature,
                                 update_quadrature_points);
@@ -221,7 +182,6 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
     DataOut<dim> data_out;
     data_out.attach_dof_handler(X_overlap_dof_handler);
-    data_out.add_data_vector(quad_indices, "quadrature_indices");
     data_out.add_data_vector(trans.overlap_X_vec, "position");
     data_out.build_patches();
     std::ofstream data_out_stream("overlap-tria-" + std::to_string(rank) +

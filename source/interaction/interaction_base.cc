@@ -111,32 +111,6 @@ namespace fdl
       // TODO add the ghost cell width as an input argument to this class
       patch_map.reinit(patches, 1.0, overlap_tria, overlap_bboxes);
     }
-
-    // Set up the active cell index partitioner (for moving cell data):
-    {
-      IndexSet locally_owned_active_cell_indices(native_tria->n_active_cells());
-      IndexSet ghost_active_cell_indices(native_tria->n_active_cells());
-
-      for (const auto &cell : native_tria->active_cell_iterators())
-        if (cell->is_locally_owned())
-          locally_owned_active_cell_indices.add_index(
-            cell->active_cell_index());
-
-      // overlap cells are either locally owned or marked as artificial
-      for (const auto &cell : overlap_tria.active_cell_iterators())
-        ghost_active_cell_indices.add_index(
-          overlap_tria.get_native_cell(cell)->active_cell_index());
-
-      active_cell_index_partitioner.reinit(locally_owned_active_cell_indices,
-                                           ghost_active_cell_indices,
-                                           communicator);
-
-      quad_index_work_size =
-        active_cell_index_partitioner.temporary_storage_size();
-
-      const auto n_targets  = active_cell_index_partitioner.n_targets();
-      n_quad_index_requests = n_targets.first + n_targets.second;
-    }
   }
 
 
@@ -235,17 +209,12 @@ namespace fdl
   std::unique_ptr<TransactionBase>
   InteractionBase<dim, spacedim>::compute_projection_rhs_start(
     const int                                         f_data_idx,
-    const QuadratureFamily<dim> &                     quad_family,
-    const std::vector<unsigned char> &                quad_indices,
     const DoFHandler<dim, spacedim> &                 X_dof_handler,
     const LinearAlgebra::distributed::Vector<double> &X,
     const DoFHandler<dim, spacedim> &                 F_dof_handler,
     const Mapping<dim, spacedim> &                    F_mapping,
     LinearAlgebra::distributed::Vector<double> &      F_rhs)
   {
-    Assert(quad_indices.size() == native_tria->n_locally_owned_active_cells(),
-           ExcMessage("Each locally owned active cell should have a "
-                      "quadrature index"));
 #ifdef DEBUG
     {
       int result = 0;
@@ -269,13 +238,6 @@ namespace fdl
     Transaction<dim, spacedim> &transaction = *t_ptr;
     // set up everything we will need later
     transaction.current_f_data_idx = f_data_idx;
-
-    // Setup quadrature info:
-    transaction.quad_family         = &quad_family;
-    transaction.native_quad_indices = quad_indices;
-    transaction.overlap_quad_indices.resize(overlap_tria.n_active_cells());
-    transaction.quad_indices_work.resize(quad_index_work_size);
-    transaction.quad_indices_requests.resize(n_quad_index_requests);
 
     // Setup X info:
     transaction.native_X_dof_handler = &X_dof_handler;
@@ -306,12 +268,6 @@ namespace fdl
                                       transaction.overlap_X_vec);
     ++channel;
 
-    active_cell_index_partitioner.export_to_ghosted_array_start<unsigned char>(
-      channel,
-      make_const_array_view(transaction.native_quad_indices),
-      make_array_view(transaction.quad_indices_work),
-      transaction.quad_indices_requests);
-
     return t_ptr;
   }
 
@@ -333,11 +289,6 @@ namespace fdl
     Scatter<double> &X_scatter = get_scatter(*trans.native_X_dof_handler);
 
     X_scatter.global_to_overlap_finish(*trans.native_X, trans.overlap_X_vec);
-
-    active_cell_index_partitioner.export_to_ghosted_array_finish<unsigned char>(
-      make_const_array_view(trans.quad_indices_work),
-      make_array_view(trans.overlap_quad_indices),
-      trans.quad_indices_requests);
 
     // this is the point at which a base class would normally do computations.
 
@@ -384,17 +335,12 @@ namespace fdl
   std::unique_ptr<TransactionBase>
   InteractionBase<dim, spacedim>::compute_spread_start(
     const int                                         f_data_idx,
-    const QuadratureFamily<dim> &                     quad_family,
-    const std::vector<unsigned char> &                quad_indices,
     const LinearAlgebra::distributed::Vector<double> &X,
     const DoFHandler<dim, spacedim> &                 X_dof_handler,
     const Mapping<dim, spacedim> &                    F_mapping,
     const DoFHandler<dim, spacedim> &                 F_dof_handler,
     const LinearAlgebra::distributed::Vector<double> &F)
   {
-    Assert(quad_indices.size() == native_tria->n_locally_owned_active_cells(),
-           ExcMessage("Each locally owned active cell should have a "
-                      "quadrature index"));
 #ifdef DEBUG
     {
       int result = 0;
@@ -418,13 +364,6 @@ namespace fdl
     // set up everything we will need later
     transaction.current_f_data_idx = f_data_idx;
 
-    // Setup quadrature info:
-    transaction.quad_family         = &quad_family;
-    transaction.native_quad_indices = quad_indices;
-    transaction.overlap_quad_indices.resize(overlap_tria.n_active_cells());
-    transaction.quad_indices_work.resize(quad_index_work_size);
-    transaction.quad_indices_requests.resize(n_quad_index_requests);
-
     // Setup X info:
     transaction.native_X_dof_handler = &X_dof_handler;
     transaction.native_X             = &X;
@@ -445,19 +384,12 @@ namespace fdl
     // OK, now start scattering:
 
     // Since we set up our own communicator in this object we can fearlessly use
-    // channels 0, 1, and 2 to guarantee traffic is not accidentally mingled
+    // channels 0 and 1 to guarantee traffic is not accidentally mingled
     int              channel   = 0;
     Scatter<double> &X_scatter = get_scatter(X_dof_handler);
     X_scatter.global_to_overlap_start(*transaction.native_X,
                                       channel,
                                       transaction.overlap_X_vec);
-    ++channel;
-
-    active_cell_index_partitioner.export_to_ghosted_array_start<unsigned char>(
-      channel,
-      make_const_array_view(transaction.native_quad_indices),
-      make_array_view(transaction.quad_indices_work),
-      transaction.quad_indices_requests);
     ++channel;
 
     Scatter<double> &F_scatter = get_scatter(F_dof_handler);
@@ -485,11 +417,6 @@ namespace fdl
 
     Scatter<double> &X_scatter = get_scatter(*trans.native_X_dof_handler);
     X_scatter.global_to_overlap_finish(*trans.native_X, trans.overlap_X_vec);
-
-    active_cell_index_partitioner.export_to_ghosted_array_finish<unsigned char>(
-      make_const_array_view(trans.quad_indices_work),
-      make_array_view(trans.overlap_quad_indices),
-      trans.quad_indices_requests);
 
     Scatter<double> &F_scatter = get_scatter(*trans.native_F_dof_handler);
     F_scatter.global_to_overlap_finish(*trans.native_F, trans.overlap_F);

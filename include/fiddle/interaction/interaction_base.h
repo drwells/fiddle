@@ -1,16 +1,12 @@
 #ifndef included_fiddle_interaction_interaction_base_h
 #define included_fiddle_interaction_interaction_base_h
 
-#include <fiddle/base/quadrature_family.h>
-
 #include <fiddle/grid/overlap_tria.h>
 #include <fiddle/grid/patch_map.h>
 
 #include <fiddle/transfer/scatter.h>
 
 #include <deal.II/base/bounding_box.h>
-#include <deal.II/base/mpi_noncontiguous_partitioner.h>
-#include <deal.II/base/quadrature.h>
 
 #include <deal.II/distributed/shared_tria.h>
 
@@ -60,21 +56,6 @@ namespace fdl
   {
     /// Current patch index.
     int current_f_data_idx;
-
-    /// Quadrature family.
-    SmartPointer<const QuadratureFamily<dim>> quad_family;
-
-    /// Quadrature indices on native partitioning.
-    std::vector<unsigned char> native_quad_indices;
-
-    /// Quadrature indices on overlap partitioning.
-    std::vector<unsigned char> overlap_quad_indices;
-
-    /// Temporary vector used to communicate quadrature indices.
-    std::vector<unsigned char> quad_indices_work;
-
-    /// MPI_Request objects associated with the quad index update.
-    std::vector<MPI_Request> quad_indices_requests;
 
     /// Native position DoFHandler.
     SmartPointer<const DoFHandler<dim, spacedim>> native_X_dof_handler;
@@ -206,8 +187,6 @@ namespace fdl
     virtual std::unique_ptr<TransactionBase>
     compute_projection_rhs_start(
       const int                                         f_data_idx,
-      const QuadratureFamily<dim> &                     quad_family,
-      const std::vector<unsigned char> &                quad_indices,
       const DoFHandler<dim, spacedim> &                 X_dof_handler,
       const LinearAlgebra::distributed::Vector<double> &X,
       const DoFHandler<dim, spacedim> &                 F_dof_handler,
@@ -251,8 +230,6 @@ namespace fdl
      */
     virtual std::unique_ptr<TransactionBase>
     compute_spread_start(const int                         f_data_idx,
-                         const QuadratureFamily<dim> &     quad_family,
-                         const std::vector<unsigned char> &quad_indices,
                          const LinearAlgebra::distributed::Vector<double> &X,
                          const DoFHandler<dim, spacedim> &X_dof_handler,
                          const Mapping<dim, spacedim> &   F_mapping,
@@ -374,31 +351,6 @@ namespace fdl
      * representations.
      */
     std::vector<Scatter<double>> scatters;
-    /**
-     * @}
-     */
-
-    /**
-     * @name Data structures used for communication of other internal values.
-     * @{
-     */
-
-    /**
-     * Object for moving cell data (computed as active cell indices).
-     */
-    Utilities::MPI::NoncontiguousPartitioner active_cell_index_partitioner;
-
-    /**
-     * Size of the quadrature index work array.
-     */
-    std::size_t quad_index_work_size;
-
-    /**
-     * Number of MPI_Request objects to set up when communicating quadrature
-     * indices.
-     */
-    std::size_t n_quad_index_requests;
-
     /**
      * @}
      */
