@@ -39,20 +39,19 @@ namespace fdl
     /**
      * Constructor. Sets up an empty object.
      */
-      ElementalInteraction(
-      const unsigned int min_n_points_1D,
-      const double point_density);
+    ElementalInteraction(const unsigned int min_n_points_1D,
+                         const double       point_density);
 
     /**
      * Constructor.
      */
-      ElementalInteraction(
+    ElementalInteraction(
       const parallel::shared::Triangulation<dim, spacedim> &native_tria,
       const std::vector<BoundingBox<spacedim, float>> &     active_cell_bboxes,
       tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
       const int                                             level_number,
-      const unsigned int min_n_points_1D,
-      const double point_density);
+      const unsigned int                                    min_n_points_1D,
+      const double                                          point_density);
 
     /**
      * Reinitialize the object. Same as the constructor, except min_n_points_1D
@@ -62,7 +61,7 @@ namespace fdl
     reinit(const parallel::shared::Triangulation<dim, spacedim> &native_tria,
            const std::vector<BoundingBox<spacedim, float>> & active_cell_bboxes,
            tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
-           const int                                         level_number) override;
+           const int level_number) override;
 
     /**
      * Middle part of velocity interpolation - performs the actual
@@ -89,20 +88,20 @@ namespace fdl
 #endif
 
   protected:
-      unsigned int min_n_points_1D;
+    unsigned int min_n_points_1D;
 
-      double point_density;
+    double point_density;
 
-      /**
-       * Indices of the quadrature rules that should be used on each cell.
-       */
-      std::vector<unsigned char> quadrature_indices;
+    /**
+     * Indices of the quadrature rules that should be used on each cell.
+     */
+    std::vector<unsigned char> quadrature_indices;
 
-      /**
-       * Collection of quadrature rules which are suitable for the given
-       * triangulation.
-       */
-      std::unique_ptr<QuadratureFamily<dim>> quadrature_family;
+    /**
+     * Collection of quadrature rules which are suitable for the given
+     * triangulation.
+     */
+    std::unique_ptr<QuadratureFamily<dim>> quadrature_family;
   };
 } // namespace fdl
 #endif

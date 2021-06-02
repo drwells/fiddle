@@ -229,7 +229,7 @@ namespace fdl
      * compute_projection_rhs_finish is called.
      */
     virtual std::unique_ptr<TransactionBase>
-    compute_spread_start(const int                         f_data_idx,
+    compute_spread_start(const int f_data_idx,
                          const LinearAlgebra::distributed::Vector<double> &X,
                          const DoFHandler<dim, spacedim> &X_dof_handler,
                          const Mapping<dim, spacedim> &   F_mapping,
