@@ -118,6 +118,12 @@ namespace fdl
        * not invalidated.
        */
       mutable std::deque<Quadrature<dim>> quadratures;
+
+    /**
+     * Maximum distance between nearest neighbors of quadrature points. Cached
+     * here to make get_n_points_1D a lot faster.
+     */
+    mutable std::vector<double> max_point_distances;
   };
 } // namespace fdl
 
