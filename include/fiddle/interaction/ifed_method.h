@@ -132,6 +132,15 @@ namespace fdl
       this->new_time     = std::numeric_limits<double>::quiet_NaN();
       this->half_time    = std::numeric_limits<double>::quiet_NaN();
 
+      // update positions and velocities:
+      for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+        {
+          parts[part_n].set_position(std::move(new_position_vectors[part_n]));
+          parts[part_n].get_position().update_ghost_values();
+          parts[part_n].set_velocity(std::move(new_velocity_vectors[part_n]));
+          parts[part_n].get_velocity().update_ghost_values();
+        }
+
       half_position_vectors.clear();
       new_position_vectors.clear();
       half_velocity_vectors.clear();
@@ -141,8 +150,24 @@ namespace fdl
     virtual void
     forwardEulerStep(double current_time, double new_time) override
     {
-      (void)current_time;
-      (void)new_time;
+      const double dt = new_time - current_time;
+      half_position_vectors.resize(parts.size());
+      new_position_vectors.resize(parts.size());
+      for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+        {
+          // Set the position at the end time:
+          new_position_vectors[part_n] = parts[part_n].get_position();
+          new_position_vectors[part_n].add(dt, parts[part_n].get_velocity());
+          new_position_vectors[part_n].update_ghost_values();
+
+          // Set the position at the half time:
+          half_position_vectors[part_n].reinit(
+            parts[part_n].get_position(),
+            /*omit_zeroing_entries = */ true);
+          half_position_vectors[part_n].equ(0.5, parts[part_n].get_position());
+          half_position_vectors[part_n].add(0.5, new_position_vectors[part_n]);
+          half_position_vectors[part_n].update_ghost_values();
+        }
     }
 
     virtual void
@@ -150,13 +175,29 @@ namespace fdl
     {
       (void)current_time;
       (void)new_time;
+      Assert(false, ExcFDLNotImplemented());
     }
 
     virtual void
     midpointStep(double current_time, double new_time) override
     {
-      (void)current_time;
-      (void)new_time;
+      const double dt = new_time - current_time;
+      half_position_vectors.resize(parts.size());
+      new_position_vectors.resize(parts.size());
+      for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+        {
+          // Set the position at the end time:
+          new_position_vectors[part_n] = parts[part_n].get_position();
+          Assert(part_n < half_velocity_vectors.size(), ExcFDLInternalError());
+          new_position_vectors[part_n].add(dt, half_velocity_vectors[part_n]);
+
+          // Set the position at the half time:
+          half_position_vectors[part_n].reinit(
+            parts[part_n].get_position(),
+            /*omit_zeroing_entries = */ true);
+          half_position_vectors[part_n].equ(0.5, parts[part_n].get_position());
+          half_position_vectors[part_n].add(0.5, new_position_vectors[part_n]);
+        }
     }
 
     virtual void
@@ -164,6 +205,7 @@ namespace fdl
     {
       (void)current_time;
       (void)new_time;
+      Assert(false, ExcFDLNotImplemented());
     }
 
     virtual void
@@ -204,6 +246,13 @@ namespace fdl
     /**
      * @}
      */
+
+    const Part<dim, spacedim> &
+    get_part(const unsigned int part_n) const
+    {
+      Assert(part_n < parts.size(), ExcMessage("out of range"));
+      return parts[part_n];
+    }
 
   protected:
     /**

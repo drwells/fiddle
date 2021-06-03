@@ -10,8 +10,12 @@
 
 #include <deal.II/fe/mapping_fe_field.h>
 
+#include <ibamr/IBHierarchyIntegrator.h>
+
 #include <CellVariable.h>
 #include <IntVector.h>
+
+#include <deque>
 
 namespace fdl
 {
@@ -29,11 +33,14 @@ namespace fdl
                           input_db->getDatabase("LoadBalancer"))
   {
     // TODO: set up parameters correctly instead of hardcoding
-    const unsigned int n_points_1D = 2;
-    const double       density     = 1.0;
+    const double density = 1.0;
     for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
-      interactions.emplace_back(
-        new ElementalInteraction<dim, spacedim>(n_points_1D, density));
+      {
+        const unsigned int n_points_1D =
+          parts[part_n].get_dof_handler().get_fe().tensor_degree() + 1;
+        interactions.emplace_back(
+          new ElementalInteraction<dim, spacedim>(n_points_1D, density));
+      }
   }
 
   template <int dim, int spacedim>
@@ -59,8 +66,6 @@ namespace fdl
     reinit_interactions();
   }
 
-
-
   template <int dim, int spacedim>
   void
   IFEDMethod<dim, spacedim>::interpolateVelocity(
@@ -71,10 +76,72 @@ namespace fdl
       &    u_ghost_fill_scheds,
     double data_time)
   {
-    (void)u_data_index;
     (void)u_synch_scheds;
     (void)u_ghost_fill_scheds;
-    (void)data_time;
+
+    // Update the secondary hierarchy:
+    secondary_hierarchy
+      .getPrimaryToScratchSchedule(primary_hierarchy->getFinestLevelNumber(),
+                                   u_data_index,
+                                   u_data_index,
+                                   d_ib_solver->getVelocityPhysBdryOp())
+      .fillData(data_time);
+
+    std::vector<std::unique_ptr<TransactionBase>> transactions;
+    // we emplace_back so use a deque to keep pointers valid
+    std::deque<LinearAlgebra::distributed::Vector<double>> F_rhs_vecs;
+
+    // start:
+    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+      {
+        const Part<dim, spacedim> &part = parts[part_n];
+        F_rhs_vecs.emplace_back(part.get_partitioner());
+        transactions.emplace_back(
+          interactions[part_n]->compute_projection_rhs_start(
+            u_data_index,
+            part.get_dof_handler(),
+            get_position(part_n, data_time),
+            part.get_dof_handler(),
+            part.get_mapping(),
+            F_rhs_vecs[part_n]));
+      }
+
+    // Compute:
+    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+      transactions[part_n] =
+        interactions[part_n]->compute_projection_rhs_intermediate(
+          std::move(transactions[part_n]));
+
+    // Collect:
+    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+      interactions[part_n]->compute_projection_rhs_finish(
+        std::move(transactions[part_n]));
+
+    // Project:
+    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+      {
+        SolverControl control(1000, 1e-14 * F_rhs_vecs[part_n].l2_norm());
+        SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
+        LinearAlgebra::distributed::Vector<double>           velocity(
+          parts[part_n].get_partitioner());
+        // TODO - implement initial guess stuff here
+        cg.solve(parts[part_n].get_mass_operator(),
+                 velocity,
+                 F_rhs_vecs[part_n],
+                 parts[part_n].get_mass_preconditioner());
+        if (std::abs(data_time - half_time) < 1e-14)
+          {
+            half_velocity_vectors.resize(parts.size());
+            half_velocity_vectors[part_n] = std::move(velocity);
+          }
+        else if (std::abs(data_time - new_time) < 1e-14)
+          {
+            new_velocity_vectors.resize(parts.size());
+            new_velocity_vectors[part_n] = std::move(velocity);
+          }
+        else
+          Assert(false, ExcFDLNotImplemented());
+      }
   }
 
 
@@ -231,10 +298,15 @@ namespace fdl
         const auto global_bboxes =
           collect_all_active_cell_bboxes(tria, local_bboxes);
 
-        interactions[part_n]->reinit(tria,
-                                     global_bboxes,
-                                     secondary_hierarchy.d_secondary_hierarchy,
-                                     primary_hierarchy->getFinestLevelNumber());
+        interactions[part_n]->reinit(
+          tria,
+          global_bboxes,
+          // secondary_hierarchy.d_secondary_hierarchy,
+          primary_hierarchy,
+          primary_hierarchy->getFinestLevelNumber());
+        // TODO - we should probably add a reinit() function that sets up the
+        // DoFHandler we always need
+        interactions[part_n]->add_dof_handler(part.get_dof_handler());
       }
   }
 
