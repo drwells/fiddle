@@ -114,6 +114,31 @@ namespace fdl
      * @{
      */
     virtual void
+    preprocessIntegrateData(double current_time,
+                            double new_time,
+                            int /*num_cycles*/) override
+    {
+      this->current_time = current_time;
+      this->new_time     = new_time;
+      this->half_time    = current_time + 0.5 * (new_time - current_time);
+    }
+
+    virtual void
+    postprocessIntegrateData(double /*current_time*/,
+                             double /*new_time*/,
+                             int /*num_cycles*/) override
+    {
+      this->current_time = std::numeric_limits<double>::quiet_NaN();
+      this->new_time     = std::numeric_limits<double>::quiet_NaN();
+      this->half_time    = std::numeric_limits<double>::quiet_NaN();
+
+      half_position_vectors.clear();
+      new_position_vectors.clear();
+      half_velocity_vectors.clear();
+      new_velocity_vectors.clear();
+    }
+
+    virtual void
     forwardEulerStep(double current_time, double new_time) override
     {
       (void)current_time;
@@ -194,6 +219,60 @@ namespace fdl
      * @{
      */
     tbox::Pointer<tbox::Database> input_db;
+
+    // Get the correct temporary vector or (if time == current_time) the
+    // vector from the Part object
+    const LinearAlgebra::distributed::Vector<double> &
+    get_position(const unsigned int part_n, const double time)
+    {
+      if (std::abs(time - current_time) < 1e-12)
+        return parts[part_n].get_position();
+      if (std::abs(time - half_time) < 1e-12)
+        {
+          Assert(part_n < half_position_vectors.size(),
+                 ExcMessage(
+                   "The requested position vector has not been calculated."));
+          return half_position_vectors[part_n];
+        }
+      if (std::abs(time - new_time) < 1e-12)
+        {
+          Assert(part_n < new_position_vectors.size(),
+                 ExcMessage(
+                   "The requested position vector has not been calculated."));
+          return new_position_vectors[part_n];
+        }
+
+      Assert(false, ExcFDLInternalError());
+      return parts[part_n].get_position();
+    }
+
+    const LinearAlgebra::distributed::Vector<double> &
+    get_velocity(const unsigned int part_n, const double time)
+    {
+      if (std::abs(time - current_time) < 1e-12)
+        return parts[part_n].get_velocity();
+      if (std::abs(time - half_time) < 1e-12)
+        {
+          Assert(part_n < half_velocity_vectors.size(),
+                 ExcMessage(
+                   "The requested velocity vector has not been calculated."));
+          return half_velocity_vectors[part_n];
+        }
+      if (std::abs(time - new_time) < 1e-12)
+        {
+          Assert(part_n < new_velocity_vectors.size(),
+                 ExcMessage(
+                   "The requested velocity vector has not been calculated."));
+          return new_velocity_vectors[part_n];
+        }
+
+      Assert(false, ExcFDLInternalError());
+      return parts[part_n].get_position();
+    }
+
+    double current_time;
+    double half_time;
+    double new_time;
     /**
      * @}
      */
@@ -203,6 +282,19 @@ namespace fdl
      * @{
      */
     std::vector<Part<dim, spacedim>> parts;
+
+    std::vector<LinearAlgebra::distributed::Vector<double>>
+      half_position_vectors;
+    std::vector<LinearAlgebra::distributed::Vector<double>>
+      new_position_vectors;
+
+    std::vector<LinearAlgebra::distributed::Vector<double>>
+      half_velocity_vectors;
+    std::vector<LinearAlgebra::distributed::Vector<double>>
+      new_velocity_vectors;
+
+    std::vector<LinearAlgebra::distributed::Vector<double>> half_force_vectors;
+    std::vector<LinearAlgebra::distributed::Vector<double>> new_force_vectors;
     /**
      * @}
      */
