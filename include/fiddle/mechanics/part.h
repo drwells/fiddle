@@ -13,6 +13,14 @@
 
 #include <deal.II/grid/tria.h>
 
+#include <deal.II/lac/la_parallel_vector.h>
+#include <deal.II/lac/precondition.h>
+
+#include <deal.II/matrix_free/matrix_free.h>
+#include <deal.II/matrix_free/operators.h>
+
+#include <mpi.h>
+
 #include <memory>
 #include <vector>
 
@@ -24,6 +32,11 @@ namespace fdl
    * Class encapsulating a single structure - essentially a wrapper that stores
    * the current position and velocity and can also compute the interior force
    * density.
+   *
+   * The primary intent of this class it to encapsulate the state of the finite
+   * element discretization in a single place. This class is responsible for
+   * managing the current position and velocity of a structure, as well as all
+   * the finite element book-keeping (e.g., the mass operator).
    *
    * @todo In the future we should add an API that allows users to merge in
    * their own constraints to the position, force, or displacement systems. This
@@ -79,6 +92,30 @@ namespace fdl
      */
     std::shared_ptr<const Utilities::MPI::Partitioner>
     get_partitioner() const;
+
+    /**
+     * Return a reference to the quadrature used to set up the mass operator.
+     */
+    const Quadrature<dim> &
+    get_quadrature() const;
+
+    /**
+     * Return a reference to the mapping used to set up the mass operator.
+     */
+    const Mapping<dim, spacedim> &
+    get_mapping() const;
+
+    /**
+     * Get the mass operator.
+     */
+    const MatrixFreeOperators::Base<dim> &
+    get_mass_operator() const;
+
+    /**
+     * Get the preconditioner associated with the mass operator.
+     */
+    const PreconditionJacobi<MatrixFreeOperators::Base<dim>> &
+    get_mass_preconditioner() const;
 
     /**
      * Get the current position of the structure.
@@ -139,9 +176,29 @@ namespace fdl
     std::unique_ptr<DoFHandler<dim, spacedim>> dof_handler;
 
     /**
+     * Constraints on the position, velocity, and force. Presently empty.
+     */
+    AffineConstraints<double> constraints;
+
+    /**
      * Partitioner for the position, velocity, and force vectors.
      */
     std::shared_ptr<Utilities::MPI::Partitioner> partitioner;
+
+    // Quadrature used for the position, velocity, and force.
+    Quadrature<dim> quadrature;
+
+    // Mapping used for the position, velocity, and force.
+    std::unique_ptr<Mapping<dim, spacedim>> mapping;
+
+    // MatrixFree object.
+    std::shared_ptr<MatrixFree<dim, double>> matrix_free;
+
+    // Mass operator. Used for L2 projections.
+    std::unique_ptr<MatrixFreeOperators::Base<dim>> mass_operator;
+
+    // Preconditioner.
+    PreconditionJacobi<MatrixFreeOperators::Base<dim>> mass_preconditioner;
 
     // Position.
     LinearAlgebra::distributed::Vector<double> position;
@@ -155,6 +212,8 @@ namespace fdl
   };
 
   // ----------------------------- inline functions ----------------------------
+
+  // Functions for getting basic objects owned by the Part
 
   template <int dim, int spacedim>
   const Triangulation<dim, spacedim> &
@@ -184,6 +243,34 @@ namespace fdl
   Part<dim, spacedim>::get_partitioner() const
   {
     return partitioner;
+  }
+
+  template <int dim, int spacedim>
+  const Quadrature<dim> &
+  Part<dim, spacedim>::get_quadrature() const
+  {
+    return quadrature;
+  }
+
+  template <int dim, int spacedim>
+  const Mapping<dim, spacedim> &
+  Part<dim, spacedim>::get_mapping() const
+  {
+    return *mapping;
+  }
+
+  template <int dim, int spacedim>
+  const MatrixFreeOperators::Base<dim> &
+  Part<dim, spacedim>::get_mass_operator() const
+  {
+    return *mass_operator;
+  }
+
+  template <int dim, int spacedim>
+  const PreconditionJacobi<MatrixFreeOperators::Base<dim>> &
+  Part<dim, spacedim>::get_mass_preconditioner() const
+  {
+    return mass_preconditioner;
   }
 
   // Functions for getting and setting state vectors
