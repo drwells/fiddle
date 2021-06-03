@@ -102,6 +102,11 @@ namespace fdl
      * triangulation.
      */
     std::unique_ptr<QuadratureFamily<dim>> quadrature_family;
+
+    /**
+     * Vector of quadratures we will actually use for interaction.
+     */
+    std::vector<Quadrature<dim>> quadratures;
   };
 } // namespace fdl
 #endif

@@ -1,8 +1,11 @@
 #include <fiddle/base/samrai_utilities.h>
 
 #include <fiddle/interaction/elemental_interaction.h>
+#include <fiddle/interaction/interaction_utilities.h>
 
 #include <deal.II/base/mpi.h>
+
+#include <deal.II/fe/mapping_fe_field.h>
 
 #include <CartesianPatchGeometry.h>
 
@@ -67,6 +70,7 @@ namespace fdl
     const double eulerian_length =
       Utilities::MPI::min(patch_dx_min, this->communicator);
 
+    // Determine which quadrature rule we should use on each cell:
     quadrature_indices.resize(0);
     for (const auto &cell : this->overlap_tria.active_cell_iterators())
       {
@@ -83,17 +87,60 @@ namespace fdl
           quadrature_family->get_n_points_1D(eulerian_length,
                                              lagrangian_length));
       }
+
+    // Store quadratures in a vector:
+    unsigned char max_quadrature_index = 0;
+    if (quadrature_indices.size() > 0)
+      max_quadrature_index =
+        *std::max_element(quadrature_indices.begin(), quadrature_indices.end());
+    quadratures.resize(0);
+    for (unsigned char i = 0; i <= max_quadrature_index; ++i)
+      quadratures.push_back((*quadrature_family)[i]);
   }
 
   template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
   ElementalInteraction<dim, spacedim>::compute_projection_rhs_intermediate(
-    std::unique_ptr<TransactionBase> transaction)
+    std::unique_ptr<TransactionBase> t_ptr)
   {
-    // stub for now
-    (void)transaction;
+    auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
+    Assert((trans.operation ==
+            Transaction<dim, spacedim>::Operation::Interpolation),
+           ExcMessage("Transaction operation should be Interpolation"));
+    Assert((trans.next_state ==
+            Transaction<dim, spacedim>::State::Intermediate),
+           ExcMessage("Transaction state should be Intermediate"));
 
-    return {};
+    // Finish communication:
+    Scatter<double> &X_scatter = this->get_scatter(*trans.native_X_dof_handler);
+    X_scatter.global_to_overlap_finish(*trans.native_X, trans.overlap_X_vec);
+
+    MappingFEField<dim, spacedim, Vector<double>> X_mapping(
+      this->get_overlap_dof_handler(*trans.native_X_dof_handler),
+      trans.overlap_X_vec);
+
+    // Actually do the interpolation:
+    compute_projection_rhs(trans.current_f_data_idx,
+                           this->patch_map,
+                           X_mapping,
+                           quadrature_indices,
+                           quadratures,
+                           this->get_overlap_dof_handler(
+                             *trans.native_F_dof_handler),
+                           *trans.F_mapping,
+                           trans.overlap_F);
+
+    // After we compute we begin the scatter back to the native partitioning:
+    Scatter<double> &F_scatter = this->get_scatter(*trans.native_F_dof_handler);
+
+    F_scatter.overlap_to_global_start(trans.overlap_F,
+                                      VectorOperation::add,
+                                      /*channel = */ 0,
+                                      *trans.native_F_rhs);
+
+    trans.next_state = Transaction<dim, spacedim>::State::Finish;
+
+    return t_ptr;
   }
 
   // instantiations
