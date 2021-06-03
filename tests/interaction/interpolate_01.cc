@@ -252,21 +252,8 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
   // save output:
   {
-    auto        fp_db = input_db->getDatabase("test")->getDatabase("f");
-    std::string fp_string;
-    if (n_F_components == 1)
-      {
-        fp_string += fp_db->getString("function");
-      }
-    else
-      {
-        for (int c = 0; c < n_F_components; ++c)
-          {
-            fp_string += fp_db->getString("function_" + std::to_string(c));
-            if (c != n_F_components - 1)
-              fp_string += ';';
-          }
-      }
+    auto              fp_db = input_db->getDatabase("test")->getDatabase("f");
+    const std::string fp_string = extract_fp_string(fp_db);
 
     FunctionParser<spacedim> fp(fp_string,
                                 "PI=" + std::to_string(numbers::PI),
