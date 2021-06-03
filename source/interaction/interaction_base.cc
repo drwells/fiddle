@@ -111,6 +111,11 @@ namespace fdl
       // TODO add the ghost cell width as an input argument to this class
       patch_map.reinit(patches, 1.0, overlap_tria, overlap_bboxes);
     }
+
+    // clear old dof info:
+    native_dof_handlers.clear();
+    overlap_dof_handlers.clear();
+    scatters.clear();
   }
 
 
