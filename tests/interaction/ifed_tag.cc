@@ -33,6 +33,61 @@
 using namespace dealii;
 using namespace SAMRAI;
 
+// This test uses a pretty large mesh with over 100k DoFs - this means some
+// parts of IFEDMethod are pretty slow (like velocity interpolation) when the
+// only point of this test is to verify tagging. Get around that by turning off
+// most of IFEDMethod.
+
+template <int dim, int spacedim = dim>
+class IFEDMethod2 : public fdl::IFEDMethod<dim, spacedim>
+{
+  using fdl::IFEDMethod<dim, spacedim>::IFEDMethod;
+
+  virtual void
+  interpolateVelocity(
+    int,
+    const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>> &,
+    const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>> &,
+    double) override
+  {}
+
+  virtual void
+  spreadForce(
+    int,
+    IBTK::RobinPhysBdryPatchStrategy *,
+    const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>> &,
+    double) override
+  {}
+
+  virtual void
+  preprocessIntegrateData(double, double, int) override
+  {}
+
+  virtual void
+  postprocessIntegrateData(double, double, int) override
+  {}
+
+  virtual void
+  forwardEulerStep(double, double) override
+  {}
+
+  virtual void
+  backwardEulerStep(double, double) override
+  {}
+
+  virtual void
+  midpointStep(double, double) override
+  {}
+
+  virtual void
+  trapezoidalStep(double, double) override
+  {}
+
+  virtual void
+  computeLagrangianForce(double) override
+  {}
+};
+
 template <int dim, int spacedim = dim>
 void
 test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
@@ -58,8 +113,7 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   std::vector<fdl::Part<dim>> parts;
   parts.emplace_back(native_tria, fe);
   tbox::Pointer<IBAMR::IBStrategy> ib_method_ops =
-    new fdl::IFEDMethod<dim>(input_db->getDatabase("IFEDMethod"),
-                             std::move(parts));
+    new IFEDMethod2<dim>(input_db->getDatabase("IFEDMethod"), std::move(parts));
 
   // Create major algorithm and data objects that comprise the
   // application.  These objects are configured from the input database
