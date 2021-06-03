@@ -161,6 +161,8 @@ namespace fdl
     begin(const std::size_t patch_n, const DoFHandler<dim, spacedim> &dh) const
     {
       AssertIndexRange(patch_n, size());
+      Assert(&dh.get_triangulation() == &*tria,
+             ExcMessage("must use same Triangulation"));
       return iterator(0, dh, cells[patch_n]);
     }
 
@@ -168,6 +170,8 @@ namespace fdl
     end(const std::size_t patch_n, const DoFHandler<dim, spacedim> &dh) const
     {
       AssertIndexRange(patch_n, size());
+      Assert(&dh.get_triangulation() == &*tria,
+             ExcMessage("must use same Triangulation"));
       return iterator(cells[patch_n].size(), dh, cells[patch_n]);
     }
 

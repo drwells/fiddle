@@ -36,6 +36,7 @@ namespace fdl
     const std::vector<BoundingBox<spacedim, Number>> patch_bboxes =
       compute_patch_bboxes<spacedim, Number>(patches,
                                              extra_ghost_cell_fraction);
+    cells.clear();
     cells.resize(patches.size());
 
     // Speed up intersection by putting the patch bboxes in an rtree

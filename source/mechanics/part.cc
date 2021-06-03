@@ -93,7 +93,7 @@ namespace fdl
               mass_operator.reset(new MassOperator<dim, 3, 3 + 1, dim>());
               break;
             case 4:
-              mass_operator.reset(new MassOperator<dim, 5, 5 + 1, dim>());
+              mass_operator.reset(new MassOperator<dim, 4, 4 + 1, dim>());
               break;
             case 5:
               mass_operator.reset(new MassOperator<dim, 5, 5 + 1, dim>());
@@ -108,6 +108,7 @@ namespace fdl
 
         mass_operator->initialize(matrix_free);
         mass_operator->compute_diagonal();
+        mass_preconditioner.initialize(*mass_operator, 1.0);
       }
 
     // finally, FE fields:
