@@ -81,6 +81,8 @@ SETUP(interaction count_quadrature_points_01.cc fiddle2d)
 SETUP_2D(interaction ifed_tag.cc)
 SETUP_3D(interaction ifed_tag.cc)
 
+SETUP_2D(interaction ifed_interpolate_01.cc)
+
 SETUP_2D(interaction elemental_interpolate_01.cc)
 
 SETUP(interaction interpolate_01.cc fiddle2d)
