@@ -115,6 +115,7 @@ namespace fdl
     // clear old dof info:
     native_dof_handlers.clear();
     overlap_dof_handlers.clear();
+    overlap_to_native_dof_translations.clear();
     scatters.clear();
   }
 
@@ -162,7 +163,7 @@ namespace fdl
 
 
   template <int dim, int spacedim>
-  Scatter<double> &
+  Scatter<double>
   InteractionBase<dim, spacedim>::get_scatter(
     const DoFHandler<dim, spacedim> &native_dof_handler)
   {
@@ -172,7 +173,49 @@ namespace fdl
     AssertThrow(iter != native_dof_handlers.end(),
                 ExcMessage("The provided dof handler must already be "
                            "registered with this class."));
-    return scatters[iter - native_dof_handlers.begin()];
+
+    const std::size_t index = iter - native_dof_handlers.begin();
+    if (index >= scatters.size())
+      scatters.resize(index + 1);
+
+    std::vector<Scatter<double>> &this_dh_scatters = scatters[index];
+    if (this_dh_scatters.size() > 0)
+      {
+        Scatter<double> scatter = std::move(this_dh_scatters.back());
+        this_dh_scatters.pop_back();
+        return scatter;
+      }
+
+    Assert(index < overlap_to_native_dof_translations.size(),
+           ExcFDLInternalError());
+    Scatter<double> scatter(overlap_to_native_dof_translations[index],
+                            native_dof_handler.locally_owned_dofs(),
+                            communicator);
+    return scatter;
+  }
+
+
+
+  template <int dim, int spacedim>
+  void
+  InteractionBase<dim, spacedim>::return_scatter(
+    const DoFHandler<dim, spacedim> &native_dof_handler,
+    Scatter<double> &&               scatter)
+  {
+    auto iter = std::find(native_dof_handlers.begin(),
+                          native_dof_handlers.end(),
+                          &native_dof_handler);
+    AssertThrow(iter != native_dof_handlers.end(),
+                ExcMessage("The provided dof handler must already be "
+                           "registered with this class."));
+
+    // TODO - add some more checking here to verify that the given scatter
+    // corresponds to the given native_dof_handler
+    const std::size_t index = iter - native_dof_handlers.begin();
+    if (index >= scatters.size())
+      scatters.resize(index + 1);
+    std::vector<Scatter<double>> &this_dh_scatters = scatters[index];
+    this_dh_scatters.emplace_back(scatter);
   }
 
 
@@ -198,13 +241,12 @@ namespace fdl
         overlap_dof_handler.distribute_dofs(
           native_dof_handler.get_fe_collection());
 
-        const std::vector<types::global_dof_index> overlap_to_native_dofs =
+        std::vector<types::global_dof_index> overlap_to_native_dofs =
           compute_overlap_to_native_dof_translation(overlap_tria,
                                                     overlap_dof_handler,
                                                     native_dof_handler);
-        scatters.emplace_back(overlap_to_native_dofs,
-                              native_dof_handler.locally_owned_dofs(),
-                              communicator);
+        overlap_to_native_dof_translations.emplace_back(
+          std::move(overlap_to_native_dofs));
       }
   }
 
@@ -249,6 +291,7 @@ namespace fdl
     transaction.native_X             = &X;
     transaction.overlap_X_vec.reinit(
       get_overlap_dof_handler(X_dof_handler).n_dofs());
+    transaction.X_scatter = get_scatter(X_dof_handler);
 
     // Setup F info:
     transaction.native_F_dof_handler = &F_dof_handler;
@@ -256,22 +299,16 @@ namespace fdl
     transaction.native_F_rhs         = &F_rhs;
     transaction.overlap_F.reinit(
       get_overlap_dof_handler(F_dof_handler).n_dofs());
+    transaction.F_scatter = get_scatter(F_dof_handler);
 
     // Setup state:
     transaction.next_state = Transaction<dim, spacedim>::State::Intermediate;
     transaction.operation =
       Transaction<dim, spacedim>::Operation::Interpolation;
 
-    // OK, now start scattering:
-    Scatter<double> &X_scatter = get_scatter(X_dof_handler);
-
-    // Since we set up our own communicator in this object we can fearlessly use
-    // channels 0 and 1 to guarantee traffic is not accidentally mingled
-    int channel = 0;
-    X_scatter.global_to_overlap_start(*transaction.native_X,
-                                      channel,
-                                      transaction.overlap_X_vec);
-    ++channel;
+    transaction.X_scatter.global_to_overlap_start(*transaction.native_X,
+                                                  0,
+                                                  transaction.overlap_X_vec);
 
     return t_ptr;
   }
@@ -291,22 +328,19 @@ namespace fdl
             Transaction<dim, spacedim>::State::Intermediate),
            ExcMessage("Transaction state should be Intermediate"));
 
-    Scatter<double> &X_scatter = get_scatter(*trans.native_X_dof_handler);
-
-    X_scatter.global_to_overlap_finish(*trans.native_X, trans.overlap_X_vec);
+    trans.X_scatter.global_to_overlap_finish(*trans.native_X,
+                                             trans.overlap_X_vec);
 
     // this is the point at which a base class would normally do computations.
 
     // After we compute we begin the scatter back to the native partitioning:
-    Scatter<double> &F_scatter = get_scatter(*trans.native_F_dof_handler);
 
-    // This object *cannot* get here without the first two scatters finishing so
+    // This object *cannot* get here without the first scatter finishing so
     // using channel 0 again is fine
-    int channel = 0;
-    F_scatter.overlap_to_global_start(trans.overlap_F,
-                                      VectorOperation::add,
-                                      channel,
-                                      *trans.native_F_rhs);
+    trans.F_scatter.overlap_to_global_start(trans.overlap_F,
+                                            VectorOperation::add,
+                                            0,
+                                            *trans.native_F_rhs);
 
     trans.next_state = Transaction<dim, spacedim>::State::Finish;
 
@@ -327,11 +361,13 @@ namespace fdl
     Assert((trans.next_state == Transaction<dim, spacedim>::State::Finish),
            ExcMessage("Transaction state should be Finish"));
 
-    Scatter<double> &F_scatter = get_scatter(*trans.native_F_dof_handler);
-    F_scatter.overlap_to_global_finish(trans.overlap_F,
-                                       VectorOperation::add,
-                                       *trans.native_F_rhs);
+    trans.F_scatter.overlap_to_global_finish(trans.overlap_F,
+                                             VectorOperation::add,
+                                             *trans.native_F_rhs);
     trans.next_state = Transaction<dim, spacedim>::State::Done;
+
+    return_scatter(*trans.native_X_dof_handler, std::move(trans.X_scatter));
+    return_scatter(*trans.native_F_dof_handler, std::move(trans.F_scatter));
   }
 
 
@@ -371,12 +407,14 @@ namespace fdl
 
     // Setup X info:
     transaction.native_X_dof_handler = &X_dof_handler;
+    transaction.X_scatter            = get_scatter(X_dof_handler);
     transaction.native_X             = &X;
     transaction.overlap_X_vec.reinit(
       get_overlap_dof_handler(X_dof_handler).n_dofs());
 
     // Setup F info:
     transaction.native_F_dof_handler = &F_dof_handler;
+    transaction.F_scatter            = get_scatter(F_dof_handler);
     transaction.F_mapping            = &F_mapping;
     transaction.native_F             = &F;
     transaction.overlap_F.reinit(
@@ -390,17 +428,13 @@ namespace fdl
 
     // Since we set up our own communicator in this object we can fearlessly use
     // channels 0 and 1 to guarantee traffic is not accidentally mingled
-    int              channel   = 0;
-    Scatter<double> &X_scatter = get_scatter(X_dof_handler);
-    X_scatter.global_to_overlap_start(*transaction.native_X,
-                                      channel,
-                                      transaction.overlap_X_vec);
-    ++channel;
+    transaction.X_scatter.global_to_overlap_start(*transaction.native_X,
+                                                  0,
+                                                  transaction.overlap_X_vec);
 
-    Scatter<double> &F_scatter = get_scatter(F_dof_handler);
-    F_scatter.global_to_overlap_start(*transaction.native_F,
-                                      channel,
-                                      transaction.overlap_F);
+    transaction.F_scatter.global_to_overlap_start(*transaction.native_F,
+                                                  1,
+                                                  transaction.overlap_F);
 
     return t_ptr;
   }
@@ -420,11 +454,9 @@ namespace fdl
             Transaction<dim, spacedim>::State::Intermediate),
            ExcMessage("Transaction state should be Intermediate"));
 
-    Scatter<double> &X_scatter = get_scatter(*trans.native_X_dof_handler);
-    X_scatter.global_to_overlap_finish(*trans.native_X, trans.overlap_X_vec);
-
-    Scatter<double> &F_scatter = get_scatter(*trans.native_F_dof_handler);
-    F_scatter.global_to_overlap_finish(*trans.native_F, trans.overlap_F);
+    trans.X_scatter.global_to_overlap_finish(*trans.native_X,
+                                             trans.overlap_X_vec);
+    trans.F_scatter.global_to_overlap_finish(*trans.native_F, trans.overlap_F);
 
     // this is the point at which a base class would normally do computations.
 
@@ -450,6 +482,9 @@ namespace fdl
     // since no data is moved there is nothing else to do here
 
     trans.next_state = Transaction<dim, spacedim>::State::Done;
+
+    return_scatter(*trans.native_X_dof_handler, std::move(trans.X_scatter));
+    return_scatter(*trans.native_F_dof_handler, std::move(trans.F_scatter));
   }
 
   // instantiations

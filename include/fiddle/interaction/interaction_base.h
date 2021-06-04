@@ -60,6 +60,9 @@ namespace fdl
     /// Native position DoFHandler.
     SmartPointer<const DoFHandler<dim, spacedim>> native_X_dof_handler;
 
+    /// X scatter.
+    Scatter<double> X_scatter;
+
     /// Native-partitioned position.
     SmartPointer<const LinearAlgebra::distributed::Vector<double>> native_X;
 
@@ -68,6 +71,9 @@ namespace fdl
 
     /// Native F DoFHandler.
     SmartPointer<const DoFHandler<dim, spacedim>> native_F_dof_handler;
+
+    /// F scatter.
+    Scatter<double> F_scatter;
 
     /// Mapping to use for F.
     SmartPointer<const Mapping<dim, spacedim>> F_mapping;
@@ -285,11 +291,17 @@ namespace fdl
       const DoFHandler<dim, spacedim> &native_dof_handler) const;
 
     /**
-     * Return a reference to the scatter corresponding to the provided native
-     * dof handler.
+     * Return a scatter corresponding to the provided native dof handler.
      */
-    Scatter<double> &
+    Scatter<double>
     get_scatter(const DoFHandler<dim, spacedim> &native_dof_handler);
+
+    /**
+     * Re-cache a Scatter object.
+     */
+    void
+    return_scatter(const DoFHandler<dim, spacedim> &native_dof_handler,
+                   Scatter<double> &&               scatter);
 
     /**
      * @name Geometric data.
@@ -347,10 +359,16 @@ namespace fdl
       overlap_dof_handlers;
 
     /**
-     * Scatter objects for moving vectors between native and overlap
-     * representations.
+     * Translations between overlap dofs and native dofs.
      */
-    std::vector<Scatter<double>> scatters;
+    std::vector<std::vector<types::global_dof_index>>
+      overlap_to_native_dof_translations;
+
+    /**
+     * Scatter objects for moving vectors between native and overlap
+     * representations. Indexed first by the number of the dof handler.
+     */
+    std::vector<std::vector<Scatter<double>>> scatters;
     /**
      * @}
      */

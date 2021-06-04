@@ -112,8 +112,8 @@ namespace fdl
            ExcMessage("Transaction state should be Intermediate"));
 
     // Finish communication:
-    Scatter<double> &X_scatter = this->get_scatter(*trans.native_X_dof_handler);
-    X_scatter.global_to_overlap_finish(*trans.native_X, trans.overlap_X_vec);
+    trans.X_scatter.global_to_overlap_finish(*trans.native_X,
+                                             trans.overlap_X_vec);
 
     MappingFEField<dim, spacedim, Vector<double>> X_mapping(
       this->get_overlap_dof_handler(*trans.native_X_dof_handler),
@@ -131,12 +131,10 @@ namespace fdl
                            trans.overlap_F);
 
     // After we compute we begin the scatter back to the native partitioning:
-    Scatter<double> &F_scatter = this->get_scatter(*trans.native_F_dof_handler);
-
-    F_scatter.overlap_to_global_start(trans.overlap_F,
-                                      VectorOperation::add,
-                                      /*channel = */ 0,
-                                      *trans.native_F_rhs);
+    trans.F_scatter.overlap_to_global_start(trans.overlap_F,
+                                            VectorOperation::add,
+                                            0,
+                                            *trans.native_F_rhs);
 
     trans.next_state = Transaction<dim, spacedim>::State::Finish;
 

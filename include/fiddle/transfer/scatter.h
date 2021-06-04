@@ -28,6 +28,14 @@ namespace fdl
   class Scatter
   {
   public:
+    /**
+     * Default constructor. Sets up an empty object over MPI_COMM_SELF.
+     */
+    Scatter() = default;
+
+    /**
+     * Constructor.
+     */
     Scatter(const std::vector<types::global_dof_index> &overlap,
             const IndexSet &                            local,
             const MPI_Comm &                            communicator);
