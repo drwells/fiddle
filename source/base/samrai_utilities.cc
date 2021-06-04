@@ -213,6 +213,27 @@ namespace fdl
     AssertThrow(false, ExcFDLNotImplemented());
   }
 
+  template <int spacedim, typename field_type>
+  void
+  fill_all(tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy,
+           const int                                     data_index,
+           const int                                     coarsest_level_number,
+           const int                                     finest_level_number,
+           const field_type                              value,
+           const bool                                    interior_only)
+  {
+    Assert(interior_only == false, ExcFDLNotImplemented());
+    for (int ln = coarsest_level_number; ln <= finest_level_number; ++ln)
+      {
+        auto patches = extract_patches(patch_hierarchy->getPatchLevel(ln));
+
+        for (auto &patch : patches)
+          {
+            fill_all(patch->getPatchData(data_index), value);
+          }
+      }
+  }
+
   template <int spacedim>
   tbox::Pointer<math::HierarchyDataOpsReal<spacedim, double>>
   extract_hierarchy_data_ops(
@@ -256,6 +277,30 @@ namespace fdl
 
   template void
   fill_all(tbox::Pointer<hier::PatchData<NDIM>> p, const double value);
+
+  template void
+  fill_all(tbox::Pointer<hier::PatchHierarchy<NDIM>> patch_hierarchy,
+           const int                                 data_index,
+           const int                                 coarsest_level_number,
+           const int                                 finest_level_number,
+           const int                                 value,
+           const bool                                interior_only);
+
+  template void
+  fill_all(tbox::Pointer<hier::PatchHierarchy<NDIM>> patch_hierarchy,
+           const int                                 data_index,
+           const int                                 coarsest_level_number,
+           const int                                 finest_level_number,
+           const double                              value,
+           const bool                                interior_only);
+
+  template void
+  fill_all(tbox::Pointer<hier::PatchHierarchy<NDIM>> patch_hierarchy,
+           const int                                 data_index,
+           const int                                 coarsest_level_number,
+           const int                                 finest_level_number,
+           const float                               value,
+           const bool                                interior_only);
 
   template tbox::Pointer<math::HierarchyDataOpsReal<NDIM, double>>
   extract_hierarchy_data_ops(

@@ -92,6 +92,19 @@ namespace fdl
   fill_all(tbox::Pointer<hier::PatchData<spacedim>> p,
            const field_type                         value = 0);
 
+
+  /**
+   * Same as above, but for a patch hierarchy and data index.
+   */
+  template <int spacedim, typename field_type = int>
+  void
+  fill_all(tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy,
+           const int                                     data_index,
+           const int                                     coarsest_level_number,
+           const int                                     finest_level_number,
+           const field_type                              value         = 0,
+           const bool                                    interior_only = false);
+
   /**
    * Like elsewhere, SAMRAI doesn't provide any way to actually subtract two
    * sets of data in a generic way, so we need to implement our own lookup code.
