@@ -474,7 +474,7 @@ namespace fdl
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
     Assert((trans.operation ==
-            Transaction<dim, spacedim>::Operation::Interpolation),
+            Transaction<dim, spacedim>::Operation::Spreading),
            ExcMessage("Transaction operation should be Spreading"));
     Assert((trans.next_state == Transaction<dim, spacedim>::State::Finish),
            ExcMessage("Transaction state should be Finish"));

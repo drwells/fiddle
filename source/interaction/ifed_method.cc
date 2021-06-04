@@ -13,7 +13,9 @@
 #include <ibamr/IBHierarchyIntegrator.h>
 
 #include <CellVariable.h>
+#include <HierarchyDataOpsManager.h>
 #include <IntVector.h>
+#include <VariableDatabase.h>
 
 #include <deque>
 
@@ -159,6 +161,108 @@ namespace fdl
     (void)f_phys_bdry_op;
     (void)f_prolongation_scheds;
     (void)data_time;
+    const int level_number = primary_hierarchy->getFinestLevelNumber();
+
+    std::shared_ptr<IBTK::SAMRAIDataCache> data_cache =
+      secondary_hierarchy.getSAMRAIDataCache();
+    auto       hierarchy = secondary_hierarchy.d_secondary_hierarchy;
+    const auto f_scratch_data_index =
+      data_cache->getCachedPatchDataIndex(f_data_index);
+    fill_all(hierarchy, f_scratch_data_index, level_number, level_number, 0.0);
+
+    // start:
+    std::vector<std::unique_ptr<TransactionBase>> transactions;
+    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+      {
+        const Part<dim, spacedim> &part = parts[part_n];
+        transactions.emplace_back(interactions[part_n]->compute_spread_start(
+          f_scratch_data_index,
+          get_position(part_n, data_time),
+          part.get_dof_handler(),
+          part.get_mapping(),
+          part.get_dof_handler(),
+          get_force(part_n, data_time)));
+      }
+
+    // Compute:
+    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+      transactions[part_n] = interactions[part_n]->compute_spread_intermediate(
+        std::move(transactions[part_n]));
+
+    // Collect:
+    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+      interactions[part_n]->compute_spread_finish(
+        std::move(transactions[part_n]));
+
+    // Deal with force values spread outside the physical domain. Since these
+    // are spread into ghost regions that don't correspond to actual degrees
+    // of freedom they are ignored by the accumulation step - we have to
+    // handle this before we do that.
+    if (f_phys_bdry_op)
+      {
+        f_phys_bdry_op->setPatchDataIndex(f_scratch_data_index);
+        tbox::Pointer<hier::PatchLevel<spacedim>> level =
+          hierarchy->getPatchLevel(level_number);
+        for (typename hier::PatchLevel<spacedim>::Iterator p(level); p; p++)
+          {
+            const tbox::Pointer<hier::Patch<spacedim>> patch =
+              level->getPatch(p());
+            tbox::Pointer<hier::PatchData<spacedim>> f_data =
+              patch->getPatchData(f_scratch_data_index);
+            f_phys_bdry_op->accumulateFromPhysicalBoundaryData(
+              *patch, data_time, f_data->getGhostCellWidth());
+          }
+      }
+
+    tbox::Pointer<hier::Variable<spacedim>> f_var;
+    hier::VariableDatabase<spacedim>::getDatabase()->mapIndexToVariable(
+      f_data_index, f_var);
+    // Accumulate forces spread into patch ghost regions.
+    {
+      if (!ghost_data_accumulator)
+        {
+          // If we have multiple IBMethod objects we may end up with a wider
+          // ghost region than the one required by this class. Hence, set the
+          // ghost width by just picking whatever the data actually has at the
+          // moment.
+          const tbox::Pointer<hier::PatchLevel<spacedim>> level =
+            hierarchy->getPatchLevel(level_number);
+          const hier::IntVector<spacedim> gcw =
+            level->getPatchDescriptor()
+              ->getPatchDataFactory(f_scratch_data_index)
+              ->getGhostCellWidth();
+
+          ghost_data_accumulator.reset(new IBTK::SAMRAIGhostDataAccumulator(
+            hierarchy, f_var, gcw, level_number, level_number));
+        }
+      ghost_data_accumulator->accumulateGhostData(f_scratch_data_index);
+    }
+
+    return; // TODO - finish. Start by implementing primary_eulerian_data_cache.
+    // Sum values back into the primary hierarchy.
+    {
+      auto f_primary_data_ops =
+        math::HierarchyDataOpsManager<spacedim>::getManager()
+          ->getOperationsDouble(f_var, primary_hierarchy, true);
+      f_primary_data_ops->resetLevels(level_number, level_number);
+      const auto f_primary_scratch_data_index =
+        primary_eulerian_data_cache->getCachedPatchDataIndex(f_data_index);
+      // we have to zero everything here since the scratch to primary
+      // communication does not touch ghost cells, which may have junk
+      fill_all(primary_hierarchy,
+               f_primary_scratch_data_index,
+               level_number,
+               level_number,
+               0.0);
+      secondary_hierarchy
+        .getScratchToPrimarySchedule(level_number,
+                                     f_primary_scratch_data_index,
+                                     f_scratch_data_index)
+        .fillData(data_time);
+      f_primary_data_ops->add(f_data_index,
+                              f_data_index,
+                              f_primary_scratch_data_index);
+    }
   }
 
 
@@ -221,6 +325,9 @@ namespace fdl
         ops->resetLevels(ln, ln);
         ops->setToScalar(lagrangian_workload_current_index, 0.0);
       }
+
+    // Clear a few things that depend on the current hierarchy:
+    ghost_data_accumulator.reset();
   }
 
   template <int dim, int spacedim>
@@ -298,12 +405,10 @@ namespace fdl
         const auto global_bboxes =
           collect_all_active_cell_bboxes(tria, local_bboxes);
 
-        interactions[part_n]->reinit(
-          tria,
-          global_bboxes,
-          // secondary_hierarchy.d_secondary_hierarchy,
-          primary_hierarchy,
-          primary_hierarchy->getFinestLevelNumber());
+        interactions[part_n]->reinit(tria,
+                                     global_bboxes,
+                                     secondary_hierarchy.d_secondary_hierarchy,
+                                     primary_hierarchy->getFinestLevelNumber());
         // TODO - we should probably add a reinit() function that sets up the
         // DoFHandler we always need
         interactions[part_n]->add_dof_handler(part.get_dof_handler());

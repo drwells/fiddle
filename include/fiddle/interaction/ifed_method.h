@@ -10,6 +10,8 @@
 #include <ibamr/IBStrategy.h>
 
 #include <ibtk/LEInteractor.h>
+#include <ibtk/SAMRAIDataCache.h>
+#include <ibtk/SAMRAIGhostDataAccumulator.h>
 #include <ibtk/SecondaryHierarchy.h>
 
 #include <vector>
@@ -145,6 +147,10 @@ namespace fdl
       new_position_vectors.clear();
       half_velocity_vectors.clear();
       new_velocity_vectors.clear();
+
+      current_force_vectors.clear();
+      half_force_vectors.clear();
+      new_force_vectors.clear();
     }
 
     virtual void
@@ -211,7 +217,25 @@ namespace fdl
     virtual void
     computeLagrangianForce(double data_time) override
     {
-      (void)data_time;
+      std::vector<LinearAlgebra::distributed::Vector<double>> *force_vectors =
+        nullptr;
+      if (std::abs(data_time - current_time) < 1e-14)
+        force_vectors = &current_force_vectors;
+      else if (std::abs(data_time - half_time) < 1e-14)
+        force_vectors = &half_force_vectors;
+      else if (std::abs(data_time - new_time) < 1e-14)
+        force_vectors = &new_force_vectors;
+
+      Assert(force_vectors != nullptr, ExcFDLInternalError());
+      // TODO: actually implement the computation of the lagrangian force
+      if (force_vectors)
+        {
+          force_vectors->resize(0);
+          for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+            {
+              force_vectors->emplace_back(parts[part_n].get_partitioner());
+            }
+        }
     }
     /**
      * @}
@@ -319,6 +343,35 @@ namespace fdl
       return parts[part_n].get_position();
     }
 
+    const LinearAlgebra::distributed::Vector<double> &
+    get_force(const unsigned int part_n, const double time)
+    {
+      if (std::abs(time - current_time) < 1e-12)
+        {
+          Assert(part_n < current_force_vectors.size(),
+                 ExcMessage(
+                   "The requested force vector has not been calculated."));
+          return current_force_vectors[part_n];
+        }
+      if (std::abs(time - half_time) < 1e-12)
+        {
+          Assert(part_n < half_force_vectors.size(),
+                 ExcMessage(
+                   "The requested force vector has not been calculated."));
+          return half_force_vectors[part_n];
+        }
+      if (std::abs(time - new_time) < 1e-12)
+        {
+          Assert(part_n < new_force_vectors.size(),
+                 ExcMessage(
+                   "The requested force vector has not been calculated."));
+          return new_force_vectors[part_n];
+        }
+
+      Assert(false, ExcFDLInternalError());
+      return parts[part_n].get_position();
+    }
+
     double current_time;
     double half_time;
     double new_time;
@@ -333,6 +386,11 @@ namespace fdl
     std::vector<Part<dim, spacedim>> parts;
 
     std::vector<LinearAlgebra::distributed::Vector<double>>
+      current_force_vectors;
+    std::vector<LinearAlgebra::distributed::Vector<double>> half_force_vectors;
+    std::vector<LinearAlgebra::distributed::Vector<double>> new_force_vectors;
+
+    std::vector<LinearAlgebra::distributed::Vector<double>>
       half_position_vectors;
     std::vector<LinearAlgebra::distributed::Vector<double>>
       new_position_vectors;
@@ -341,9 +399,6 @@ namespace fdl
       half_velocity_vectors;
     std::vector<LinearAlgebra::distributed::Vector<double>>
       new_velocity_vectors;
-
-    std::vector<LinearAlgebra::distributed::Vector<double>> half_force_vectors;
-    std::vector<LinearAlgebra::distributed::Vector<double>> new_force_vectors;
     /**
      * @}
      */
@@ -354,6 +409,8 @@ namespace fdl
      */
     tbox::Pointer<hier::PatchHierarchy<spacedim>> primary_hierarchy;
 
+    std::shared_ptr<IBTK::SAMRAIDataCache> primary_eulerian_data_cache;
+
     IBTK::SecondaryHierarchy secondary_hierarchy;
 
     int lagrangian_workload_current_index = IBTK::invalid_index;
@@ -361,6 +418,8 @@ namespace fdl
     int lagrangian_workload_scratch_index = IBTK::invalid_index;
 
     tbox::Pointer<hier::Variable<spacedim>> lagrangian_workload_var;
+
+    std::unique_ptr<IBTK::SAMRAIGhostDataAccumulator> ghost_data_accumulator;
     /**
      * @}
      */
