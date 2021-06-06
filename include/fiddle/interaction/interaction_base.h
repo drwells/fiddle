@@ -208,7 +208,7 @@ namespace fdl
      */
     virtual std::unique_ptr<TransactionBase>
     compute_projection_rhs_intermediate(
-      std::unique_ptr<TransactionBase> transaction);
+      std::unique_ptr<TransactionBase> transaction) const;
 
     /**
      * Finish the computation of the RHS vector corresponding to projecting @p
@@ -245,6 +245,9 @@ namespace fdl
     /**
      * Middle part of spreading - performs the actual computations and does not
      * communicate.
+     *
+     * @note this routine is not const because it must modify the PatchHierarchy
+     * stored by the PatchMap.
      */
     virtual std::unique_ptr<TransactionBase>
     compute_spread_intermediate(

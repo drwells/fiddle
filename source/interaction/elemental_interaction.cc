@@ -101,7 +101,7 @@ namespace fdl
   template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
   ElementalInteraction<dim, spacedim>::compute_projection_rhs_intermediate(
-    std::unique_ptr<TransactionBase> t_ptr)
+    std::unique_ptr<TransactionBase> t_ptr) const
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
     Assert((trans.operation ==

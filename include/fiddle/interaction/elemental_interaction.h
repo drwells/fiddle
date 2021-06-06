@@ -69,7 +69,7 @@ namespace fdl
      */
     virtual std::unique_ptr<TransactionBase>
     compute_projection_rhs_intermediate(
-      std::unique_ptr<TransactionBase> transaction) override;
+      std::unique_ptr<TransactionBase> transaction) const override;
 
     /**
      * Middle part of force spreading - performs the actual computations and
