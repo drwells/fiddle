@@ -34,8 +34,10 @@ namespace fdl
                           input_db->getDatabase("GriddingAlgorithm"),
                           input_db->getDatabase("LoadBalancer"))
   {
-    // TODO: set up parameters correctly instead of hardcoding
-    const double density = 1.0;
+    // IBFEMethod uses this value - lower values aren't guaranteed to work. If
+    // dx = dX then we can use a lower density.
+    const double density =
+      input_db->getDoubleWithDefault("IB_point_density", 2.0);
     for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
       {
         const unsigned int n_points_1D =
@@ -60,6 +62,11 @@ namespace fdl
     bool /*initial_time*/)
   {
     primary_hierarchy = hierarchy;
+
+    primary_eulerian_data_cache = std::make_shared<IBTK::SAMRAIDataCache>();
+    primary_eulerian_data_cache->setPatchHierarchy(hierarchy);
+    primary_eulerian_data_cache->resetLevels(0,
+                                             hierarchy->getFinestLevelNumber());
 
     secondary_hierarchy.reinit(primary_hierarchy->getFinestLevelNumber(),
                                primary_hierarchy->getFinestLevelNumber(),
@@ -154,13 +161,9 @@ namespace fdl
     int                               f_data_index,
     IBTK::RobinPhysBdryPatchStrategy *f_phys_bdry_op,
     const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
-      &    f_prolongation_scheds,
+      & /*f_prolongation_scheds*/,
     double data_time)
   {
-    (void)f_data_index;
-    (void)f_phys_bdry_op;
-    (void)f_prolongation_scheds;
-    (void)data_time;
     const int level_number = primary_hierarchy->getFinestLevelNumber();
 
     std::shared_ptr<IBTK::SAMRAIDataCache> data_cache =
@@ -238,12 +241,10 @@ namespace fdl
       ghost_data_accumulator->accumulateGhostData(f_scratch_data_index);
     }
 
-    return; // TODO - finish. Start by implementing primary_eulerian_data_cache.
     // Sum values back into the primary hierarchy.
     {
       auto f_primary_data_ops =
-        math::HierarchyDataOpsManager<spacedim>::getManager()
-          ->getOperationsDouble(f_var, primary_hierarchy, true);
+        extract_hierarchy_data_ops(f_var, primary_hierarchy);
       f_primary_data_ops->resetLevels(level_number, level_number);
       const auto f_primary_scratch_data_index =
         primary_eulerian_data_cache->getCachedPatchDataIndex(f_data_index);

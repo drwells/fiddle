@@ -71,21 +71,13 @@ namespace fdl
     compute_projection_rhs_intermediate(
       std::unique_ptr<TransactionBase> transaction) override;
 
-#if 0
     /**
      * Middle part of force spreading - performs the actual computations and
      * does not communicate.
      */
-    virtual void
-    spread_force_intermediate(SpreadTransaction &spread_transaction) override;
-
-    /**
-     * Finish spreading forces from the provided finite element field @p F by
-     * adding them onto the SAMRAI data index @p f_data_idx.
-     */
-    virtual void
-    spread_force_finish(SpreadTransaction &spread_transaction) override;
-#endif
+    virtual std::unique_ptr<TransactionBase>
+    compute_spread_intermediate(
+      std::unique_ptr<TransactionBase> transaction) override;
 
   protected:
     unsigned int min_n_points_1D;

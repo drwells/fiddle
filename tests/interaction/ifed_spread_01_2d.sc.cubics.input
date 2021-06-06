@@ -1,0 +1,88 @@
+// generic test settings read by setup_hierarchy
+test
+{
+  f_data_type = "SIDE"
+
+  // use high-order FEM and huge MFAC
+  fe_degree = 3
+
+  // fill with zeros to start
+  f
+  {
+    function_0 = "0"
+    function_1 = "0"
+  }
+
+  // the thing we will spread
+  f_exact
+  {
+    function_0 = "sin(2*PI*X_0)*cos(4*PI*X_1)"
+    function_1 = "cos(2*PI*X_0)*sin(4*PI*X_1)"
+  }
+}
+
+Main {
+   log_file_name = "output"
+   log_all_nodes = FALSE
+
+// visualization dump parameters
+   viz_writer = "VisIt"
+   viz_dump_dirname = "viz2d"
+   visit_number_procs_per_file = 1
+
+}
+
+L   = 1.0
+MAX_LEVELS = 1
+REF_RATIO  = 4
+N = 64
+NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N
+DX  = L/NFINEST
+MFAC = 5
+
+CartesianGeometry {
+   domain_boxes       = [(0, 0), (N - 1, N - 1)]
+   x_lo               = 0, 0
+   x_up               = 1, 1
+   periodic_dimension = 1, 1
+}
+
+GriddingAlgorithm {
+   max_levels = MAX_LEVELS
+   ratio_to_coarser {level_1 = REF_RATIO,REF_RATIO}
+   largest_patch_size {level_0 = 512,512}
+   smallest_patch_size {level_0 = 16,16}
+
+   efficiency_tolerance = 0.1e0
+   combine_efficiency   = 0.1e0
+}
+
+StandardTagAndInitialize {
+   tagging_method = "REFINE_BOXES"
+   RefineBoxes {}
+}
+
+LoadBalancer {
+   bin_pack_method = "SPATIAL"
+   max_workload_factor = 1
+}
+
+IFEDMethod {
+   GriddingAlgorithm
+   {
+       max_levels = MAX_LEVELS
+       ratio_to_coarser {level_1 = REF_RATIO, REF_RATIO}
+       largest_patch_size {level_0 = 512,512}
+       smallest_patch_size {level_0 = 16,16}
+
+       efficiency_tolerance = 0.1e0
+       combine_efficiency   = 0.1e0
+   }
+
+   LoadBalancer
+   {
+      type                = "DEFAULT"
+      bin_pack_method     = "SPATIAL"
+      max_workload_factor = 0.0625
+   }
+}

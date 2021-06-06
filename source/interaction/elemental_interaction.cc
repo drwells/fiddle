@@ -141,6 +141,44 @@ namespace fdl
     return t_ptr;
   }
 
+  template <int dim, int spacedim>
+  std::unique_ptr<TransactionBase>
+  ElementalInteraction<dim, spacedim>::compute_spread_intermediate(
+    std::unique_ptr<TransactionBase> t_ptr)
+  {
+    auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
+    Assert((trans.operation ==
+            Transaction<dim, spacedim>::Operation::Spreading),
+           ExcMessage("Transaction operation should be Spreading"));
+    Assert((trans.next_state ==
+            Transaction<dim, spacedim>::State::Intermediate),
+           ExcMessage("Transaction state should be Intermediate"));
+
+    // Finish communication:
+    trans.X_scatter.global_to_overlap_finish(*trans.native_X,
+                                             trans.overlap_X_vec);
+
+    trans.F_scatter.global_to_overlap_finish(*trans.native_F, trans.overlap_F);
+
+    MappingFEField<dim, spacedim, Vector<double>> X_mapping(
+      this->get_overlap_dof_handler(*trans.native_X_dof_handler),
+      trans.overlap_X_vec);
+
+    // Actually do the spreading:
+    compute_spread(trans.current_f_data_idx,
+                   this->patch_map,
+                   X_mapping,
+                   quadrature_indices,
+                   quadratures,
+                   this->get_overlap_dof_handler(*trans.native_F_dof_handler),
+                   *trans.F_mapping,
+                   trans.overlap_F);
+
+    trans.next_state = Transaction<dim, spacedim>::State::Finish;
+
+    return t_ptr;
+  }
+
   // instantiations
   template class ElementalInteraction<NDIM - 1, NDIM>;
   template class ElementalInteraction<NDIM, NDIM>;
