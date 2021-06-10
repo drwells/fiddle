@@ -57,6 +57,25 @@ namespace fdl
     return f1;
   }
 
+  inline UpdateFlags
+  compute_flag_dependencies(const MechanicsUpdateFlags me_flags)
+  {
+    UpdateFlags flags = UpdateFlags::update_default;
+
+    if (me_flags & update_FF)
+      flags |= update_gradients;
+    if (me_flags & update_FF_inv_T)
+      flags |= update_gradients;
+    if (me_flags & update_det_FF)
+      flags |= update_gradients;
+    if (me_flags & update_position_values)
+      flags |= update_values;
+    if (me_flags & update_velocity_values)
+      flags |= update_values;
+
+    return flags;
+  }
+
   /**
    * Class that computes mechanics values and other things we need for
    * evaluating stress functions.
@@ -145,7 +164,7 @@ namespace fdl
         (update_flags | update_velocity_values))
       {
         Assert(this->fe_values->get_update_flags() & UpdateFlags::update_values,
-               ExcMessage("This class needs gradients"));
+               ExcMessage("This class needs values"));
       }
 
     // Set up arrays:

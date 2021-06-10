@@ -70,7 +70,7 @@ namespace fdl
     virtual void
     compute_force(
       const MechanicsValues<dim, spacedim> &  m_values,
-      ArrayView<Tensor<1, spacedim, Number>> &forces) // = 0 TODO fix this
+      ArrayView<Tensor<1, spacedim, Number>> &forces) const // = 0 TODO fix this
     {
       // It shouldn't be possible to get here but since compute_surface_force
       // and compute_volume_force both call this function we need it to make the
@@ -88,7 +88,7 @@ namespace fdl
       const MechanicsValues<dim, spacedim> &m_values,
       const typename Triangulation<dim, spacedim>::active_face_iterator
         & /*face*/,
-      ArrayView<Tensor<1, spacedim, Number>> &forces)
+      ArrayView<Tensor<1, spacedim, Number>> &forces) const
     {
       compute_force(m_values, forces);
     }
@@ -101,9 +101,18 @@ namespace fdl
       const MechanicsValues<dim, spacedim> &m_values,
       const typename Triangulation<dim, spacedim>::active_cell_iterator
         & /*cell*/,
-      ArrayView<Tensor<1, spacedim, Number>> &forces)
+      ArrayView<Tensor<1, spacedim, Number>> &forces) const
     {
       compute_force(m_values, forces);
+    }
+
+    virtual void
+    compute_stress(const MechanicsValues<dim, spacedim> &  me_values,
+                   ArrayView<Tensor<2, spacedim, Number>> &stresses) const
+    {
+      (void)me_values;
+      (void)stresses;
+      Assert(false, ExcFDLInternalError());
     }
 
   protected:
