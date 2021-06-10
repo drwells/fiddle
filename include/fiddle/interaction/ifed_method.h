@@ -118,125 +118,27 @@ namespace fdl
     virtual void
     preprocessIntegrateData(double current_time,
                             double new_time,
-                            int /*num_cycles*/) override
-    {
-      this->current_time = current_time;
-      this->new_time     = new_time;
-      this->half_time    = current_time + 0.5 * (new_time - current_time);
-    }
+                            int /*num_cycles*/) override;
 
     virtual void
     postprocessIntegrateData(double /*current_time*/,
                              double /*new_time*/,
-                             int /*num_cycles*/) override
-    {
-      this->current_time = std::numeric_limits<double>::quiet_NaN();
-      this->new_time     = std::numeric_limits<double>::quiet_NaN();
-      this->half_time    = std::numeric_limits<double>::quiet_NaN();
-
-      // update positions and velocities:
-      for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
-        {
-          parts[part_n].set_position(std::move(new_position_vectors[part_n]));
-          parts[part_n].get_position().update_ghost_values();
-          parts[part_n].set_velocity(std::move(new_velocity_vectors[part_n]));
-          parts[part_n].get_velocity().update_ghost_values();
-        }
-
-      half_position_vectors.clear();
-      new_position_vectors.clear();
-      half_velocity_vectors.clear();
-      new_velocity_vectors.clear();
-
-      current_force_vectors.clear();
-      half_force_vectors.clear();
-      new_force_vectors.clear();
-    }
+                             int /*num_cycles*/) override;
 
     virtual void
-    forwardEulerStep(double current_time, double new_time) override
-    {
-      const double dt = new_time - current_time;
-      half_position_vectors.resize(parts.size());
-      new_position_vectors.resize(parts.size());
-      for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
-        {
-          // Set the position at the end time:
-          new_position_vectors[part_n] = parts[part_n].get_position();
-          new_position_vectors[part_n].add(dt, parts[part_n].get_velocity());
-          new_position_vectors[part_n].update_ghost_values();
-
-          // Set the position at the half time:
-          half_position_vectors[part_n].reinit(
-            parts[part_n].get_position(),
-            /*omit_zeroing_entries = */ true);
-          half_position_vectors[part_n].equ(0.5, parts[part_n].get_position());
-          half_position_vectors[part_n].add(0.5, new_position_vectors[part_n]);
-          half_position_vectors[part_n].update_ghost_values();
-        }
-    }
+    forwardEulerStep(double current_time, double new_time) override;
 
     virtual void
-    backwardEulerStep(double current_time, double new_time) override
-    {
-      (void)current_time;
-      (void)new_time;
-      Assert(false, ExcFDLNotImplemented());
-    }
+    backwardEulerStep(double current_time, double new_time) override;
 
     virtual void
-    midpointStep(double current_time, double new_time) override
-    {
-      const double dt = new_time - current_time;
-      half_position_vectors.resize(parts.size());
-      new_position_vectors.resize(parts.size());
-      for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
-        {
-          // Set the position at the end time:
-          new_position_vectors[part_n] = parts[part_n].get_position();
-          Assert(part_n < half_velocity_vectors.size(), ExcFDLInternalError());
-          new_position_vectors[part_n].add(dt, half_velocity_vectors[part_n]);
-
-          // Set the position at the half time:
-          half_position_vectors[part_n].reinit(
-            parts[part_n].get_position(),
-            /*omit_zeroing_entries = */ true);
-          half_position_vectors[part_n].equ(0.5, parts[part_n].get_position());
-          half_position_vectors[part_n].add(0.5, new_position_vectors[part_n]);
-        }
-    }
+    midpointStep(double current_time, double new_time) override;
 
     virtual void
-    trapezoidalStep(double current_time, double new_time) override
-    {
-      (void)current_time;
-      (void)new_time;
-      Assert(false, ExcFDLNotImplemented());
-    }
+    trapezoidalStep(double current_time, double new_time) override;
 
     virtual void
-    computeLagrangianForce(double data_time) override
-    {
-      std::vector<LinearAlgebra::distributed::Vector<double>> *force_vectors =
-        nullptr;
-      if (std::abs(data_time - current_time) < 1e-14)
-        force_vectors = &current_force_vectors;
-      else if (std::abs(data_time - half_time) < 1e-14)
-        force_vectors = &half_force_vectors;
-      else if (std::abs(data_time - new_time) < 1e-14)
-        force_vectors = &new_force_vectors;
-
-      Assert(force_vectors != nullptr, ExcFDLInternalError());
-      // TODO: actually implement the computation of the lagrangian force
-      if (force_vectors)
-        {
-          force_vectors->resize(0);
-          for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
-            {
-              force_vectors->emplace_back(parts[part_n].get_partitioner());
-            }
-        }
-    }
+    computeLagrangianForce(double data_time) override;
     /**
      * @}
      */
@@ -272,11 +174,7 @@ namespace fdl
      */
 
     const Part<dim, spacedim> &
-    get_part(const unsigned int part_n) const
-    {
-      Assert(part_n < parts.size(), ExcMessage("out of range"));
-      return parts[part_n];
-    }
+    get_part(const unsigned int part_n) const;
 
   protected:
     /**
@@ -296,81 +194,15 @@ namespace fdl
     // Get the correct temporary vector or (if time == current_time) the
     // vector from the Part object
     const LinearAlgebra::distributed::Vector<double> &
-    get_position(const unsigned int part_n, const double time)
-    {
-      if (std::abs(time - current_time) < 1e-12)
-        return parts[part_n].get_position();
-      if (std::abs(time - half_time) < 1e-12)
-        {
-          Assert(part_n < half_position_vectors.size(),
-                 ExcMessage(
-                   "The requested position vector has not been calculated."));
-          return half_position_vectors[part_n];
-        }
-      if (std::abs(time - new_time) < 1e-12)
-        {
-          Assert(part_n < new_position_vectors.size(),
-                 ExcMessage(
-                   "The requested position vector has not been calculated."));
-          return new_position_vectors[part_n];
-        }
+    get_position(const unsigned int part_n, const double time) const;
 
-      Assert(false, ExcFDLInternalError());
-      return parts[part_n].get_position();
-    }
-
+    // same, but for velocity
     const LinearAlgebra::distributed::Vector<double> &
-    get_velocity(const unsigned int part_n, const double time)
-    {
-      if (std::abs(time - current_time) < 1e-12)
-        return parts[part_n].get_velocity();
-      if (std::abs(time - half_time) < 1e-12)
-        {
-          Assert(part_n < half_velocity_vectors.size(),
-                 ExcMessage(
-                   "The requested velocity vector has not been calculated."));
-          return half_velocity_vectors[part_n];
-        }
-      if (std::abs(time - new_time) < 1e-12)
-        {
-          Assert(part_n < new_velocity_vectors.size(),
-                 ExcMessage(
-                   "The requested velocity vector has not been calculated."));
-          return new_velocity_vectors[part_n];
-        }
+    get_velocity(const unsigned int part_n, const double time) const;
 
-      Assert(false, ExcFDLInternalError());
-      return parts[part_n].get_position();
-    }
-
+    // same, but for force
     const LinearAlgebra::distributed::Vector<double> &
-    get_force(const unsigned int part_n, const double time)
-    {
-      if (std::abs(time - current_time) < 1e-12)
-        {
-          Assert(part_n < current_force_vectors.size(),
-                 ExcMessage(
-                   "The requested force vector has not been calculated."));
-          return current_force_vectors[part_n];
-        }
-      if (std::abs(time - half_time) < 1e-12)
-        {
-          Assert(part_n < half_force_vectors.size(),
-                 ExcMessage(
-                   "The requested force vector has not been calculated."));
-          return half_force_vectors[part_n];
-        }
-      if (std::abs(time - new_time) < 1e-12)
-        {
-          Assert(part_n < new_force_vectors.size(),
-                 ExcMessage(
-                   "The requested force vector has not been calculated."));
-          return new_force_vectors[part_n];
-        }
-
-      Assert(false, ExcFDLInternalError());
-      return parts[part_n].get_position();
-    }
+    get_force(const unsigned int part_n, const double time) const;
 
     double current_time;
     double half_time;
@@ -433,6 +265,16 @@ namespace fdl
      * @}
      */
   };
+
+  // Inline functions
+  template <int dim, int spacedim>
+  inline const Part<dim, spacedim> &
+  IFEDMethod<dim, spacedim>::get_part(const unsigned int part_n) const
+  {
+    Assert(part_n < parts.size(), ExcMessage("out of range"));
+    return parts[part_n];
+  }
+
 } // namespace fdl
 
 #endif

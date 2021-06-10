@@ -24,6 +24,10 @@ namespace fdl
   using namespace dealii;
   using namespace SAMRAI;
 
+  //
+  // Initialization
+  //
+
   template <int dim, int spacedim>
   IFEDMethod<dim, spacedim>::IFEDMethod(
     tbox::Pointer<tbox::Database>      input_db,
@@ -74,6 +78,10 @@ namespace fdl
 
     reinit_interactions();
   }
+
+  //
+  // FSI
+  //
 
   template <int dim, int spacedim>
   void
@@ -304,6 +312,182 @@ namespace fdl
       }
   }
 
+  //
+  // Time stepping
+  //
+
+  template <int dim, int spacedim>
+  void
+  IFEDMethod<dim, spacedim>::preprocessIntegrateData(double current_time,
+                                                     double new_time,
+                                                     int /*num_cycles*/)
+  {
+    this->current_time = current_time;
+    this->new_time     = new_time;
+    this->half_time    = current_time + 0.5 * (new_time - current_time);
+  }
+
+  template <int dim, int spacedim>
+  void
+  IFEDMethod<dim, spacedim>::postprocessIntegrateData(double /*current_time*/,
+                                                      double /*new_time*/,
+                                                      int /*num_cycles*/)
+  {
+    this->current_time = std::numeric_limits<double>::quiet_NaN();
+    this->new_time     = std::numeric_limits<double>::quiet_NaN();
+    this->half_time    = std::numeric_limits<double>::quiet_NaN();
+
+    // update positions and velocities:
+    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+      {
+        parts[part_n].set_position(std::move(new_position_vectors[part_n]));
+        parts[part_n].get_position().update_ghost_values();
+        parts[part_n].set_velocity(std::move(new_velocity_vectors[part_n]));
+        parts[part_n].get_velocity().update_ghost_values();
+      }
+
+    half_position_vectors.clear();
+    new_position_vectors.clear();
+    half_velocity_vectors.clear();
+    new_velocity_vectors.clear();
+
+    current_force_vectors.clear();
+    half_force_vectors.clear();
+    new_force_vectors.clear();
+  }
+
+  template <int dim, int spacedim>
+  void
+  IFEDMethod<dim, spacedim>::forwardEulerStep(double current_time,
+                                              double new_time)
+  {
+    const double dt = new_time - current_time;
+    half_position_vectors.resize(parts.size());
+    new_position_vectors.resize(parts.size());
+    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+      {
+        // Set the position at the end time:
+        new_position_vectors[part_n] = parts[part_n].get_position();
+        new_position_vectors[part_n].add(dt, parts[part_n].get_velocity());
+        new_position_vectors[part_n].update_ghost_values();
+
+        // Set the position at the half time:
+        half_position_vectors[part_n].reinit(parts[part_n].get_position(),
+                                             /*omit_zeroing_entries = */ true);
+        half_position_vectors[part_n].equ(0.5, parts[part_n].get_position());
+        half_position_vectors[part_n].add(0.5, new_position_vectors[part_n]);
+        half_position_vectors[part_n].update_ghost_values();
+      }
+  }
+
+  template <int dim, int spacedim>
+  void
+  IFEDMethod<dim, spacedim>::backwardEulerStep(double current_time,
+                                               double new_time)
+  {
+    (void)current_time;
+    (void)new_time;
+    Assert(false, ExcFDLNotImplemented());
+  }
+
+  template <int dim, int spacedim>
+  void
+  IFEDMethod<dim, spacedim>::midpointStep(double current_time, double new_time)
+  {
+    const double dt = new_time - current_time;
+    half_position_vectors.resize(parts.size());
+    new_position_vectors.resize(parts.size());
+    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+      {
+        // Set the position at the end time:
+        new_position_vectors[part_n] = parts[part_n].get_position();
+        Assert(part_n < half_velocity_vectors.size(), ExcFDLInternalError());
+        new_position_vectors[part_n].add(dt, half_velocity_vectors[part_n]);
+
+        // Set the position at the half time:
+        half_position_vectors[part_n].reinit(parts[part_n].get_position(),
+                                             /*omit_zeroing_entries = */ true);
+        half_position_vectors[part_n].equ(0.5, parts[part_n].get_position());
+        half_position_vectors[part_n].add(0.5, new_position_vectors[part_n]);
+      }
+  }
+
+  template <int dim, int spacedim>
+  void
+  IFEDMethod<dim, spacedim>::trapezoidalStep(double current_time,
+                                             double new_time)
+  {
+    (void)current_time;
+    (void)new_time;
+    Assert(false, ExcFDLNotImplemented());
+  }
+
+  //
+  // Mechanics
+  //
+
+  template <int dim, int spacedim>
+  void
+  IFEDMethod<dim, spacedim>::computeLagrangianForce(double data_time)
+  {
+    std::vector<LinearAlgebra::distributed::Vector<double>> *force_vectors =
+      nullptr;
+    if (std::abs(data_time - current_time) < 1e-14)
+      force_vectors = &current_force_vectors;
+    else if (std::abs(data_time - half_time) < 1e-14)
+      force_vectors = &half_force_vectors;
+    else if (std::abs(data_time - new_time) < 1e-14)
+      force_vectors = &new_force_vectors;
+
+    Assert(force_vectors != nullptr, ExcFDLInternalError());
+    // TODO: actually implement the computation of the lagrangian force
+    if (force_vectors)
+      {
+        force_vectors->resize(0);
+        for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+          {
+            force_vectors->emplace_back(parts[part_n].get_partitioner());
+          }
+      }
+  }
+
+  //
+  // Data redistribution
+  //
+
+  template <int dim, int spacedim>
+  void
+  IFEDMethod<dim, spacedim>::reinit_interactions()
+  {
+    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+      {
+        const Part<dim, spacedim> &part = parts[part_n];
+
+        const auto &tria =
+          dynamic_cast<const parallel::shared::Triangulation<dim, spacedim> &>(
+            part.get_triangulation());
+        const DoFHandler<dim, spacedim> &dof_handler = part.get_dof_handler();
+        MappingFEField<dim,
+                       spacedim,
+                       LinearAlgebra::distributed::Vector<double>>
+                   mapping(dof_handler, part.get_position());
+        const auto local_bboxes =
+          compute_cell_bboxes<dim, spacedim, float>(dof_handler, mapping);
+
+        const auto global_bboxes =
+          collect_all_active_cell_bboxes(tria, local_bboxes);
+
+        interactions[part_n]->reinit(tria,
+                                     global_bboxes,
+                                     secondary_hierarchy.d_secondary_hierarchy,
+                                     primary_hierarchy->getFinestLevelNumber());
+        // TODO - we should probably add a reinit() function that sets up the
+        // DoFHandler we always need
+        interactions[part_n]->add_dof_handler(part.get_dof_handler());
+      }
+  }
+
+
   template <int dim, int spacedim>
   void IFEDMethod<dim, spacedim>::beginDataRedistribution(
     tbox::Pointer<hier::PatchHierarchy<spacedim>> /*hierarchy*/,
@@ -348,6 +532,94 @@ namespace fdl
       }
   }
 
+  //
+  // Book-keeping
+  //
+
+
+  template <int dim, int spacedim>
+  const LinearAlgebra::distributed::Vector<double> &
+  IFEDMethod<dim, spacedim>::get_position(const unsigned int part_n,
+                                          const double       time) const
+  {
+    if (std::abs(time - current_time) < 1e-12)
+      return parts[part_n].get_position();
+    if (std::abs(time - half_time) < 1e-12)
+      {
+        Assert(part_n < half_position_vectors.size(),
+               ExcMessage(
+                 "The requested position vector has not been calculated."));
+        return half_position_vectors[part_n];
+      }
+    if (std::abs(time - new_time) < 1e-12)
+      {
+        Assert(part_n < new_position_vectors.size(),
+               ExcMessage(
+                 "The requested position vector has not been calculated."));
+        return new_position_vectors[part_n];
+      }
+
+    Assert(false, ExcFDLInternalError());
+    return parts[part_n].get_position();
+  }
+
+  template <int dim, int spacedim>
+  const LinearAlgebra::distributed::Vector<double> &
+  IFEDMethod<dim, spacedim>::get_velocity(const unsigned int part_n,
+                                          const double       time) const
+  {
+    if (std::abs(time - current_time) < 1e-12)
+      return parts[part_n].get_velocity();
+    if (std::abs(time - half_time) < 1e-12)
+      {
+        Assert(part_n < half_velocity_vectors.size(),
+               ExcMessage(
+                 "The requested velocity vector has not been calculated."));
+        return half_velocity_vectors[part_n];
+      }
+    if (std::abs(time - new_time) < 1e-12)
+      {
+        Assert(part_n < new_velocity_vectors.size(),
+               ExcMessage(
+                 "The requested velocity vector has not been calculated."));
+        return new_velocity_vectors[part_n];
+      }
+
+    Assert(false, ExcFDLInternalError());
+    return parts[part_n].get_position();
+  }
+
+  template <int dim, int spacedim>
+  const LinearAlgebra::distributed::Vector<double> &
+  IFEDMethod<dim, spacedim>::get_force(const unsigned int part_n,
+                                       const double       time) const
+  {
+    if (std::abs(time - current_time) < 1e-12)
+      {
+        Assert(part_n < current_force_vectors.size(),
+               ExcMessage(
+                 "The requested force vector has not been calculated."));
+        return current_force_vectors[part_n];
+      }
+    if (std::abs(time - half_time) < 1e-12)
+      {
+        Assert(part_n < half_force_vectors.size(),
+               ExcMessage(
+                 "The requested force vector has not been calculated."));
+        return half_force_vectors[part_n];
+      }
+    if (std::abs(time - new_time) < 1e-12)
+      {
+        Assert(part_n < new_force_vectors.size(),
+               ExcMessage(
+                 "The requested force vector has not been calculated."));
+        return new_force_vectors[part_n];
+      }
+
+    Assert(false, ExcFDLInternalError());
+    return parts[part_n].get_position();
+  }
+
 
 
   template <int dim, int spacedim>
@@ -381,41 +653,6 @@ namespace fdl
       gcw[i] = ghost_width;
     return gcw;
   }
-
-
-
-  template <int dim, int spacedim>
-  void
-  IFEDMethod<dim, spacedim>::reinit_interactions()
-  {
-    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
-      {
-        const Part<dim, spacedim> &part = parts[part_n];
-
-        const auto &tria =
-          dynamic_cast<const parallel::shared::Triangulation<dim, spacedim> &>(
-            part.get_triangulation());
-        const DoFHandler<dim, spacedim> &dof_handler = part.get_dof_handler();
-        MappingFEField<dim,
-                       spacedim,
-                       LinearAlgebra::distributed::Vector<double>>
-                   mapping(dof_handler, part.get_position());
-        const auto local_bboxes =
-          compute_cell_bboxes<dim, spacedim, float>(dof_handler, mapping);
-
-        const auto global_bboxes =
-          collect_all_active_cell_bboxes(tria, local_bboxes);
-
-        interactions[part_n]->reinit(tria,
-                                     global_bboxes,
-                                     secondary_hierarchy.d_secondary_hierarchy,
-                                     primary_hierarchy->getFinestLevelNumber());
-        // TODO - we should probably add a reinit() function that sets up the
-        // DoFHandler we always need
-        interactions[part_n]->add_dof_handler(part.get_dof_handler());
-      }
-  }
-
 
   template class IFEDMethod<NDIM - 1, NDIM>;
   template class IFEDMethod<NDIM, NDIM>;
