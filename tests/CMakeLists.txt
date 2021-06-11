@@ -99,6 +99,8 @@ SETUP(interaction interaction_base_01.cc fiddle2d)
 # mechanics:
 SETUP(mechanics me_values_01.cc fiddle2d)
 
+SETUP(mechanics pk1_volumetric_01.cc fiddle2d)
+
 ADD_CUSTOM_COMMAND(TARGET tests
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/attest ${CMAKE_BINARY_DIR}/attest)
