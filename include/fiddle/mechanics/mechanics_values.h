@@ -154,14 +154,14 @@ namespace fdl
     }
 
     // Check some things:
-    if (update_flags | update_FF)
+    if (update_flags & update_FF)
       {
         Assert(this->fe_values->get_update_flags() &
                  UpdateFlags::update_gradients,
                ExcMessage("This class needs gradients"));
       }
-    if ((update_flags | update_position_values) ||
-        (update_flags | update_velocity_values))
+    if ((update_flags & update_position_values) ||
+        (update_flags & update_velocity_values))
       {
         Assert(this->fe_values->get_update_flags() & UpdateFlags::update_values,
                ExcMessage("This class needs values"));

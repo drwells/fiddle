@@ -41,11 +41,10 @@ namespace fdl
     // completely deadly yet.
     auto sphere_contains_nontangent_point =
       [&](const Point<spacedim> &center,
-          const unsigned int &   tangent_point_1_n,
-          const unsigned int &   tangent_point_2_n,
+          const unsigned int &   tangent_point_n,
           const double           diameter) -> bool {
       const double magnitude =
-        std::max(center.norm(), points[tangent_point_1_n].norm());
+        std::max(center.norm(), points[tangent_point_n].norm());
 
       Point<spacedim> left  = center;
       Point<spacedim> right = center;
@@ -80,7 +79,7 @@ namespace fdl
 
           if ((tentative_diameter > best_diameter) &&
               !sphere_contains_nontangent_point(
-                tentative_center, i, j, tentative_diameter))
+                tentative_center, i, tentative_diameter))
             {
               best_center   = tentative_center;
               best_diameter = tentative_diameter;
@@ -99,7 +98,7 @@ namespace fdl
 
             if ((tentative_diameter > best_diameter) &&
                 !sphere_contains_nontangent_point(
-                  tentative_center, i, j, tentative_diameter))
+                  tentative_center, i, tentative_diameter))
               {
                 best_center   = tentative_center;
                 best_diameter = tentative_diameter;
