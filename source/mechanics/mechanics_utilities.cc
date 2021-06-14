@@ -48,12 +48,13 @@ namespace fdl
     do
       {
         auto       exemplar_stress = remaining_stresses.front();
+        const Quadrature<dim> &exemplar_quadrature = exemplar_stress->get_quadrature();
         const auto next_group_start =
           std::partition(remaining_stresses.begin(),
                          remaining_stresses.end(),
                          [&](const ForceContribution<dim, spacedim> *p) {
                            return p->get_quadrature() ==
-                                  exemplar_stress->get_quadrature();
+                                  exemplar_quadrature;
                          });
 
         std::vector<ForceContribution<dim, spacedim> *> current_stresses(
@@ -75,15 +76,14 @@ namespace fdl
 
         FEValues<dim, spacedim> fe_values(mapping,
                                           fe,
-                                          exemplar_stress->get_quadrature(),
+                                          exemplar_quadrature,
                                           update_flags);
         MechanicsValues<dim,
                         spacedim,
                         LinearAlgebra::distributed::Vector<double>>
           me_values(fe_values, current_position, current_velocity, me_flags);
 
-        const unsigned int n_quadrature_points =
-          exemplar_stress->get_quadrature().size();
+        const unsigned int n_quadrature_points = exemplar_quadrature.size();
         std::vector<types::global_dof_index>     cell_dofs(fe.dofs_per_cell);
         std::vector<double>                      cell_rhs(fe.dofs_per_cell);
         std::vector<Tensor<2, spacedim, double>> one_stress(
