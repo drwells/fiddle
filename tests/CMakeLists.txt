@@ -100,6 +100,8 @@ SETUP(interaction interaction_base_01.cc fiddle2d)
 SETUP(mechanics me_values_01.cc fiddle2d)
 
 SETUP(mechanics pk1_volumetric_01.cc fiddle2d)
+SETUP(mechanics pk1_volumetric_02.cc fiddle2d)
+SETUP(mechanics pk1_volumetric_03.cc fiddle2d)
 
 ADD_CUSTOM_COMMAND(TARGET tests
   POST_BUILD
