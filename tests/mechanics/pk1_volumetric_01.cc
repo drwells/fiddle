@@ -68,6 +68,8 @@ public:
     const FEValuesBase<dim, spacedim> &fe_values = me_values.get_fe_values();
     Assert(stresses.size() == fe_values.get_quadrature_points().size(),
            fdl::ExcFDLInternalError());
+    Assert(this->quadrature.size() == fe_values.get_quadrature_points().size(),
+           fdl::ExcFDLInternalError());
 
     const double tau = 2.0 * numbers::PI;
     const double pi  = numbers::PI;
@@ -206,7 +208,7 @@ test()
           compute_global_error(tria, cell_error, VectorTools::L2_norm);
 
         if (Utilities::MPI::this_mpi_process(comm) == 0)
-            output << "global error = " << global_error << '\n';
+          output << "global error = " << global_error << '\n';
       }
     }
 }
