@@ -487,6 +487,36 @@ namespace fdl
     return_scatter(*trans.native_F_dof_handler, std::move(trans.F_scatter));
   }
 
+  template <int dim, int spacedim>
+  std::unique_ptr<TransactionBase>
+  InteractionBase<dim, spacedim>::add_workload_start(
+    const int                                         workload_index,
+    const LinearAlgebra::distributed::Vector<double> &X,
+    const DoFHandler<dim, spacedim> &                 X_dof_handler)
+  {
+    (void)workload_index;
+    (void)X;
+    (void)X_dof_handler;
+
+    return {};
+  }
+
+  template <int dim, int spacedim>
+  std::unique_ptr<TransactionBase>
+  InteractionBase<dim, spacedim>::add_workload_intermediate(
+    std::unique_ptr<TransactionBase> t_ptr)
+  {
+    return t_ptr;
+  }
+
+  template <int dim, int spacedim>
+  void
+  InteractionBase<dim, spacedim>::add_workload_finish(
+    std::unique_ptr<TransactionBase> t_ptr)
+  {
+    (void)t_ptr;
+  }
+
   // instantiations
 
   template class InteractionBase<NDIM - 1, NDIM>;

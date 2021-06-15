@@ -260,6 +260,25 @@ namespace fdl
     virtual void
     compute_spread_finish(std::unique_ptr<TransactionBase> spread_transaction);
 
+    /**
+     * Add the workload (typically the number of quadrature points) estimate per
+     * Eulerian cell into the data index @p workload_index. Has a default empty
+     * implementation.
+     *
+     * @note This method is not const because it must modify the patch index @p
+     * workload_index in the stored hierarchy.
+     */
+    virtual std::unique_ptr<TransactionBase>
+    add_workload_start(const int workload_index,
+                       const LinearAlgebra::distributed::Vector<double> &X,
+                       const DoFHandler<dim, spacedim> &X_dof_handler);
+
+    virtual std::unique_ptr<TransactionBase>
+    add_workload_intermediate(std::unique_ptr<TransactionBase> t_ptr);
+
+    virtual void
+    add_workload_finish(std::unique_ptr<TransactionBase> t_ptr);
+
   protected:
     /**
      * One difficulty with the way communication is implemented in deal.II is

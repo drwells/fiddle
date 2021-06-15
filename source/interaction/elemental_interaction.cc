@@ -179,6 +179,112 @@ namespace fdl
     return t_ptr;
   }
 
+  // We use a custom internal class for transactions
+  template <int dim, int spacedim>
+  struct WorkloadTransaction : public TransactionBase
+  {
+    int workload_index;
+
+    /// Native position DoFHandler.
+    SmartPointer<const DoFHandler<dim, spacedim>> native_X_dof_handler;
+
+    /// X scatter.
+    Scatter<double> X_scatter;
+
+    /// Native-partitioned position.
+    SmartPointer<const LinearAlgebra::distributed::Vector<double>> native_X;
+
+    /// Overlap-partitioned position.
+    Vector<double> overlap_X_vec;
+
+    /// Possible states for a transaction.
+    enum class State
+    {
+      Start,
+      Intermediate,
+      Finish,
+      Done
+    };
+
+    /// Next state. Used for consistency checking.
+    State next_state;
+  };
+
+  template <int dim, int spacedim>
+  std::unique_ptr<TransactionBase>
+  ElementalInteraction<dim, spacedim>::add_workload_start(
+    const int                                         workload_index,
+    const LinearAlgebra::distributed::Vector<double> &X,
+    const DoFHandler<dim, spacedim> &                 X_dof_handler)
+  {
+    auto t_ptr = std::make_unique<WorkloadTransaction<dim, spacedim>>();
+    WorkloadTransaction<dim, spacedim> &transaction = *t_ptr;
+
+    transaction.workload_index = workload_index;
+
+    // Setup X info:
+    transaction.native_X_dof_handler = &X_dof_handler;
+    transaction.native_X             = &X;
+    transaction.X_scatter            = this->get_scatter(X_dof_handler);
+    transaction.overlap_X_vec.reinit(
+      this->get_overlap_dof_handler(X_dof_handler).n_dofs());
+
+    // Setup state:
+    transaction.next_state =
+      WorkloadTransaction<dim, spacedim>::State::Intermediate;
+
+    transaction.X_scatter.global_to_overlap_start(*transaction.native_X,
+                                                  0,
+                                                  transaction.overlap_X_vec);
+
+    return t_ptr;
+  }
+
+  template <int dim, int spacedim>
+  std::unique_ptr<TransactionBase>
+  ElementalInteraction<dim, spacedim>::add_workload_intermediate(
+    std::unique_ptr<TransactionBase> t_ptr)
+  {
+    auto &trans = dynamic_cast<WorkloadTransaction<dim, spacedim> &>(*t_ptr);
+    Assert((trans.next_state ==
+            WorkloadTransaction<dim, spacedim>::State::Intermediate),
+           ExcMessage("Transaction state should be Intermediate"));
+
+    // Finish communication:
+    trans.X_scatter.global_to_overlap_finish(*trans.native_X,
+                                             trans.overlap_X_vec);
+
+    MappingFEField<dim, spacedim, Vector<double>> X_mapping(
+      this->get_overlap_dof_handler(*trans.native_X_dof_handler),
+      trans.overlap_X_vec);
+
+    count_quadrature_points(trans.workload_index,
+                            this->patch_map,
+                            X_mapping,
+                            quadrature_indices,
+                            quadratures);
+
+    trans.next_state = WorkloadTransaction<dim, spacedim>::State::Finish;
+
+    return t_ptr;
+  }
+
+  template <int dim, int spacedim>
+  void
+  ElementalInteraction<dim, spacedim>::add_workload_finish(
+    std::unique_ptr<TransactionBase> t_ptr)
+  {
+    auto &trans = dynamic_cast<WorkloadTransaction<dim, spacedim> &>(*t_ptr);
+    Assert((trans.next_state ==
+            WorkloadTransaction<dim, spacedim>::State::Finish),
+           ExcMessage("Transaction state should be Finish"));
+
+    trans.next_state = WorkloadTransaction<dim, spacedim>::State::Done;
+
+    this->return_scatter(*trans.native_X_dof_handler,
+                         std::move(trans.X_scatter));
+  }
+
   // instantiations
   template class ElementalInteraction<NDIM - 1, NDIM>;
   template class ElementalInteraction<NDIM, NDIM>;
