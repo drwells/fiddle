@@ -16,8 +16,26 @@
 #include <HierarchyDataOpsManager.h>
 #include <IntVector.h>
 #include <VariableDatabase.h>
+#include <tbox/TimerManager.h>
 
 #include <deque>
+
+namespace
+{
+  using namespace SAMRAI;
+  static tbox::Timer *t_preprocess_integrate_data;
+  static tbox::Timer *t_postprocess_integrate_data;
+  static tbox::Timer *t_interpolate_velocity;
+  static tbox::Timer *t_compute_lagrangian_force;
+  static tbox::Timer *t_spread_force;
+  static tbox::Timer *t_compute_lagrangian_fluid_source;
+  static tbox::Timer *t_spread_fluid_source;
+  static tbox::Timer *t_add_workload_estimate;
+  static tbox::Timer *t_begin_data_redistribution;
+  static tbox::Timer *t_end_data_redistribution;
+  static tbox::Timer *t_apply_gradient_detector;
+
+} // namespace
 
 namespace fdl
 {
@@ -49,6 +67,32 @@ namespace fdl
         interactions.emplace_back(
           new ElementalInteraction<dim, spacedim>(n_points_1D, density));
       }
+
+    auto set_timer = [&](const char *name) {
+      return tbox::TimerManager::getManager()->getTimer(name);
+    };
+
+    t_preprocess_integrate_data =
+      set_timer("fdl::IFEDMethod::preprocessIntegrateData()");
+    t_postprocess_integrate_data =
+      set_timer("fdl::IFEDMethod::postprocessIntegrateData()");
+    t_interpolate_velocity =
+      set_timer("fdl::IFEDMethod::interpolateVelocity()");
+    t_compute_lagrangian_force =
+      set_timer("fdl::IFEDMethod::computeLagrangianForce()");
+    t_spread_force = set_timer("fdl::IFEDMethod::spreadForce()");
+    t_compute_lagrangian_fluid_source =
+      set_timer("fdl::IFEDMethod::computeLagrangianFluidSource()");
+    t_spread_fluid_source = set_timer("fdl::IFEDMethod::spreadFluidSource()");
+    t_add_workload_estimate =
+      set_timer("fdl::IFEDMethod::addWorkloadEstimate()");
+    t_begin_data_redistribution =
+      set_timer("fdl::IFEDMethod::beginDataRedistribution()");
+    t_end_data_redistribution =
+      set_timer("fdl::IFEDMethod::endDataRedistribution()");
+    t_apply_gradient_detector =
+      set_timer("fdl::IFEDMethod::applyGradientDetector()");
+    tbox::plog << "IFED ctor\n";
   }
 
   template <int dim, int spacedim>
@@ -93,6 +137,7 @@ namespace fdl
       &    u_ghost_fill_scheds,
     double data_time)
   {
+    IBAMR_TIMER_START(t_interpolate_velocity);
     (void)u_synch_scheds;
     (void)u_ghost_fill_scheds;
 
@@ -159,6 +204,7 @@ namespace fdl
         else
           Assert(false, ExcFDLNotImplemented());
       }
+    IBAMR_TIMER_STOP(t_interpolate_velocity);
   }
 
 
@@ -172,6 +218,7 @@ namespace fdl
       & /*f_prolongation_scheds*/,
     double data_time)
   {
+    IBAMR_TIMER_START(t_spread_force);
     const int level_number = primary_hierarchy->getFinestLevelNumber();
 
     std::shared_ptr<IBTK::SAMRAIDataCache> data_cache =
@@ -272,6 +319,7 @@ namespace fdl
                               f_data_index,
                               f_primary_scratch_data_index);
     }
+    IBAMR_TIMER_STOP(t_spread_force);
   }
 
 
@@ -286,6 +334,7 @@ namespace fdl
     bool /*initial_time*/,
     bool /*uses_richardson_extrapolation_too*/)
   {
+    IBAMR_TIMER_START(t_apply_gradient_detector);
     // TODO: we should find a way to save the bboxes so they do not need to be
     // computed for each level that needs tagging - conceivably this could
     // happen in beginDataRedistribution() and the array can be cleared in
@@ -310,6 +359,7 @@ namespace fdl
         Assert(patch_level, ExcNotImplemented());
         tag_cells(global_bboxes, tag_index, patch_level);
       }
+    IBAMR_TIMER_STOP(t_apply_gradient_detector);
   }
 
   //
@@ -322,9 +372,11 @@ namespace fdl
                                                      double new_time,
                                                      int /*num_cycles*/)
   {
+    IBAMR_TIMER_START(t_preprocess_integrate_data);
     this->current_time = current_time;
     this->new_time     = new_time;
     this->half_time    = current_time + 0.5 * (new_time - current_time);
+    IBAMR_TIMER_STOP(t_preprocess_integrate_data);
   }
 
   template <int dim, int spacedim>
@@ -333,6 +385,7 @@ namespace fdl
                                                       double /*new_time*/,
                                                       int /*num_cycles*/)
   {
+    IBAMR_TIMER_START(t_postprocess_integrate_data);
     this->current_time = std::numeric_limits<double>::quiet_NaN();
     this->new_time     = std::numeric_limits<double>::quiet_NaN();
     this->half_time    = std::numeric_limits<double>::quiet_NaN();
@@ -354,6 +407,7 @@ namespace fdl
     current_force_vectors.clear();
     half_force_vectors.clear();
     new_force_vectors.clear();
+    IBAMR_TIMER_STOP(t_postprocess_integrate_data);
   }
 
   template <int dim, int spacedim>
@@ -430,6 +484,7 @@ namespace fdl
   void
   IFEDMethod<dim, spacedim>::computeLagrangianForce(double data_time)
   {
+    IBAMR_TIMER_START(t_compute_lagrangian_force);
     std::vector<LinearAlgebra::distributed::Vector<double>> *force_vectors =
       nullptr;
     if (std::abs(data_time - current_time) < 1e-14)
@@ -449,6 +504,7 @@ namespace fdl
             force_vectors->emplace_back(parts[part_n].get_partitioner());
           }
       }
+    IBAMR_TIMER_STOP(t_compute_lagrangian_force);
   }
 
   //
@@ -493,6 +549,7 @@ namespace fdl
     tbox::Pointer<hier::PatchHierarchy<spacedim>> /*hierarchy*/,
     tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
   {
+    IBAMR_TIMER_START(t_begin_data_redistribution);
     // This function is called before initializePatchHierarchy is - in that case
     // we don't have a hierarchy, so we don't have any data, and there is naught
     // to do
@@ -513,6 +570,7 @@ namespace fdl
 
     // Clear a few things that depend on the current hierarchy:
     ghost_data_accumulator.reset();
+    IBAMR_TIMER_STOP(t_begin_data_redistribution);
   }
 
   template <int dim, int spacedim>
@@ -520,6 +578,7 @@ namespace fdl
     tbox::Pointer<hier::PatchHierarchy<spacedim>> /*hierarchy*/,
     tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
   {
+    IBAMR_TIMER_START(t_end_data_redistribution);
     // same as beginDataRedistribution
     if (primary_hierarchy)
       {
@@ -530,6 +589,7 @@ namespace fdl
 
         reinit_interactions();
       }
+    IBAMR_TIMER_STOP(t_end_data_redistribution);
   }
 
   //
