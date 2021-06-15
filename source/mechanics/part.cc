@@ -81,6 +81,8 @@ namespace fdl
     if (dim == spacedim)
       {
         using namespace MatrixFreeOperators;
+        // TODO - this switch statement is only valid for tensor-product
+        // elements. Generalize it to work with FE_SimplexP.
         switch (fe.tensor_degree())
           {
             case 1:
