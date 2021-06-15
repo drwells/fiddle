@@ -241,7 +241,8 @@ test(const bool use_simplex)
         const Quadrature<dim> &quadrature2 = use_simplex ? *quad_p2 : *quad_q2;
         StressContribution<dim, spacedim> s1(quadrature2);
 
-        std::vector<const fdl::ForceContribution<dim, spacedim> *> stress_ptrs{&s1};
+        std::vector<const fdl::ForceContribution<dim, spacedim> *> stress_ptrs{
+          &s1};
         // This test does read the position
         LinearAlgebra::distributed::Vector<double> current_position(
           partitioner),

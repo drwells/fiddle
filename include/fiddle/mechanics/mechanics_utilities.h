@@ -22,12 +22,13 @@ namespace fdl
   template <int dim, int spacedim = dim>
   void
   compute_volumetric_pk1_load_vector(
-    const DoFHandler<dim, spacedim> &                     dof_handler,
-    const Mapping<dim, spacedim> &                        mapping,
-    const std::vector<const ForceContribution<dim, spacedim> *> stress_contributions,
-    const LinearAlgebra::distributed::Vector<double> &    current_position,
-    const LinearAlgebra::distributed::Vector<double> &    current_velocity,
-    LinearAlgebra::distributed::Vector<double> &          force_rhs);
+    const DoFHandler<dim, spacedim> &dof_handler,
+    const Mapping<dim, spacedim> &   mapping,
+    const std::vector<const ForceContribution<dim, spacedim> *>
+                                                      stress_contributions,
+    const LinearAlgebra::distributed::Vector<double> &current_position,
+    const LinearAlgebra::distributed::Vector<double> &current_velocity,
+    LinearAlgebra::distributed::Vector<double> &      force_rhs);
 
 } // namespace fdl
 

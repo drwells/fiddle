@@ -81,7 +81,8 @@ public:
                              current_force);
 
     current_force.update_ghost_values();
-    Assert(current_force.has_ghost_elements(), ExcMessage("Should have ghosts"));
+    Assert(current_force.has_ghost_elements(),
+           ExcMessage("Should have ghosts"));
     this->current_force_vectors.emplace_back(std::move(current_force));
     Assert(this->current_force_vectors.back().has_ghost_elements(),
            ExcMessage("Should have ghosts"));
@@ -302,11 +303,13 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
       DataOut<dim> data_out;
       data_out.attach_dof_handler(part.get_dof_handler());
       data_out.add_data_vector(ifed_method.get_force(), "F");
-      Assert(ifed_method.get_force().has_ghost_elements(), ExcMessage("Should have ghosts"));
+      Assert(ifed_method.get_force().has_ghost_elements(),
+             ExcMessage("Should have ghosts"));
 
       MappingFEField<dim, spacedim, LinearAlgebra::distributed::Vector<double>>
         X_mapping(part.get_dof_handler(), part.get_position());
-      Assert(part.get_position().has_ghost_elements(), ExcMessage("Should have ghosts"));
+      Assert(part.get_position().has_ghost_elements(),
+             ExcMessage("Should have ghosts"));
       data_out.build_patches(X_mapping);
       data_out.write_vtu_with_pvtu_record("./", "solution", 0, mpi_comm, 8);
     }

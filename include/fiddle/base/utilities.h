@@ -78,8 +78,9 @@ namespace fdl
           const double          tentative_diameter = point1.distance(point2);
 
           if ((tentative_diameter > best_diameter) &&
-              !sphere_contains_nontangent_point(
-                tentative_center, i, tentative_diameter))
+              !sphere_contains_nontangent_point(tentative_center,
+                                                i,
+                                                tentative_diameter))
             {
               best_center   = tentative_center;
               best_diameter = tentative_diameter;
@@ -97,8 +98,9 @@ namespace fdl
             const double          tentative_diameter = point1.distance(point2);
 
             if ((tentative_diameter > best_diameter) &&
-                !sphere_contains_nontangent_point(
-                  tentative_center, i, tentative_diameter))
+                !sphere_contains_nontangent_point(tentative_center,
+                                                  i,
+                                                  tentative_diameter))
               {
                 best_center   = tentative_center;
                 best_diameter = tentative_diameter;

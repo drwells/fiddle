@@ -24,12 +24,13 @@ namespace fdl
   template <int dim, int spacedim>
   void
   compute_volumetric_pk1_load_vector(
-    const DoFHandler<dim, spacedim> &                     dof_handler,
-    const Mapping<dim, spacedim> &                        mapping,
-    const std::vector<const ForceContribution<dim, spacedim> *> stress_contributions,
-    const LinearAlgebra::distributed::Vector<double> &    current_position,
-    const LinearAlgebra::distributed::Vector<double> &    current_velocity,
-    LinearAlgebra::distributed::Vector<double> &          force_rhs)
+    const DoFHandler<dim, spacedim> &dof_handler,
+    const Mapping<dim, spacedim> &   mapping,
+    const std::vector<const ForceContribution<dim, spacedim> *>
+                                                      stress_contributions,
+    const LinearAlgebra::distributed::Vector<double> &current_position,
+    const LinearAlgebra::distributed::Vector<double> &current_velocity,
+    LinearAlgebra::distributed::Vector<double> &      force_rhs)
   {
     Assert(dim == spacedim, ExcNotImplemented());
 
@@ -47,14 +48,14 @@ namespace fdl
       stress_contributions;
     do
       {
-        auto       exemplar_stress = remaining_stresses.front();
-        const Quadrature<dim> &exemplar_quadrature = exemplar_stress->get_quadrature();
+        auto                   exemplar_stress = remaining_stresses.front();
+        const Quadrature<dim> &exemplar_quadrature =
+          exemplar_stress->get_quadrature();
         const auto next_group_start =
           std::partition(remaining_stresses.begin(),
                          remaining_stresses.end(),
                          [&](const ForceContribution<dim, spacedim> *p) {
-                           return p->get_quadrature() ==
-                                  exemplar_quadrature;
+                           return p->get_quadrature() == exemplar_quadrature;
                          });
 
         std::vector<const ForceContribution<dim, spacedim> *> current_stresses(

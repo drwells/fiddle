@@ -132,10 +132,10 @@ namespace fdl
     std::vector<const ForceContribution<dim, spacedim> *> stresses;
 
     for (const auto &force_contribution : force_contributions)
-    {
-      if (force_contribution->is_stress())
-        stresses.push_back(force_contribution.get());
-    }
+      {
+        if (force_contribution->is_stress())
+          stresses.push_back(force_contribution.get());
+      }
 
     return stresses;
   }
