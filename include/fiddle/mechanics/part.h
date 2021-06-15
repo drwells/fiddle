@@ -79,6 +79,12 @@ namespace fdl
     get_communicator() const;
 
     /**
+     * Get pointers to the force contributions that are stresses.
+     */
+    std::vector<const ForceContribution<dim, spacedim> *>
+    get_stress_contributions() const;
+
+    /**
      * Get a constant reference to the DoFHandler used for the position,
      * velocity, and force.
      */

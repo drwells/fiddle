@@ -26,7 +26,7 @@ namespace fdl
   compute_volumetric_pk1_load_vector(
     const DoFHandler<dim, spacedim> &                     dof_handler,
     const Mapping<dim, spacedim> &                        mapping,
-    const std::vector<ForceContribution<dim, spacedim> *> stress_contributions,
+    const std::vector<const ForceContribution<dim, spacedim> *> stress_contributions,
     const LinearAlgebra::distributed::Vector<double> &    current_position,
     const LinearAlgebra::distributed::Vector<double> &    current_velocity,
     LinearAlgebra::distributed::Vector<double> &          force_rhs)
@@ -43,7 +43,7 @@ namespace fdl
       }
 
     // Batch stresses by the quadrature rules they use
-    std::vector<ForceContribution<dim, spacedim> *> remaining_stresses =
+    std::vector<const ForceContribution<dim, spacedim> *> remaining_stresses =
       stress_contributions;
     do
       {
@@ -57,7 +57,7 @@ namespace fdl
                                   exemplar_quadrature;
                          });
 
-        std::vector<ForceContribution<dim, spacedim> *> current_stresses(
+        std::vector<const ForceContribution<dim, spacedim> *> current_stresses(
           remaining_stresses.begin(), next_group_start);
         remaining_stresses.erase(remaining_stresses.begin(), next_group_start);
 
@@ -137,10 +137,19 @@ namespace fdl
   }
 
   template void
+  compute_volumetric_pk1_load_vector<NDIM - 1, NDIM>(
+    const DoFHandler<NDIM - 1, NDIM> &,
+    const Mapping<NDIM - 1, NDIM> &,
+    const std::vector<const ForceContribution<NDIM - 1, NDIM> *>,
+    const LinearAlgebra::distributed::Vector<double> &,
+    const LinearAlgebra::distributed::Vector<double> &,
+    LinearAlgebra::distributed::Vector<double> &);
+
+  template void
   compute_volumetric_pk1_load_vector<NDIM, NDIM>(
     const DoFHandler<NDIM, NDIM> &,
     const Mapping<NDIM, NDIM> &,
-    const std::vector<ForceContribution<NDIM, NDIM> *>,
+    const std::vector<const ForceContribution<NDIM, NDIM> *>,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
     LinearAlgebra::distributed::Vector<double> &);

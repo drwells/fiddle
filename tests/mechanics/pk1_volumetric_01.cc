@@ -172,7 +172,7 @@ test()
         StressContribution<dim, spacedim> s3(quadrature2);
         StressContribution<dim, spacedim> s4(quadrature2);
 
-        std::vector<fdl::ForceContribution<dim, spacedim> *> stress_ptrs{&s1,
+        std::vector<const fdl::ForceContribution<dim, spacedim> *> stress_ptrs{&s1,
                                                                          &s2,
                                                                          &s3,
                                                                          &s4};

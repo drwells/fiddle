@@ -123,6 +123,25 @@ namespace fdl
     velocity.update_ghost_values();
   }
 
+
+
+  template <int dim, int spacedim>
+  std::vector<const ForceContribution<dim, spacedim> *>
+  Part<dim, spacedim>::get_stress_contributions() const
+  {
+    std::vector<const ForceContribution<dim, spacedim> *> stresses;
+
+    for (const auto &force_contribution : force_contributions)
+    {
+      if (force_contribution->is_stress())
+        stresses.push_back(force_contribution.get());
+    }
+
+    return stresses;
+  }
+
+
+
   template class Part<NDIM - 1, NDIM>;
   template class Part<NDIM, NDIM>;
 } // namespace fdl
