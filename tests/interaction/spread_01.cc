@@ -101,9 +101,6 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                          overlap_tria,
                                          cell_bboxes);
 
-  std::ofstream output;
-  if (rank == 0)
-    output.open("output");
 
   // set up what we need for spreading:
   const MappingQ<dim>                X_map(1);
@@ -183,7 +180,14 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     auto ops = fdl::extract_hierarchy_data_ops(f_var, patch_hierarchy);
     ops->subtract(e_idx, e_idx, f_idx);
 
-    output << "max error = " << ops->maxNorm(e_idx) << '\n';
+    const double max_norm = ops->maxNorm(e_idx);
+    if (rank == 0)
+      {
+        std::ofstream output("output");
+        output << "Number of elements: " << native_tria.n_active_cells()
+               << '\n';
+        output << "max error = " << max_norm << '\n';
+      }
   }
 
   // plot overlap data on each processor:

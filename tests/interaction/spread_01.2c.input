@@ -13,7 +13,7 @@ test
 }
 
 Main {
-   log_file_name = "output"
+   log_file_name = "spread_01.2c.log"
    log_all_nodes = FALSE
 
 // visualization dump parameters

@@ -204,9 +204,10 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
     const double error = hier_data_ops->maxNorm(f_error_index);
     tbox::pout << "max norm error = " << error << '\n';
-    if (IBTK::IBTK_MPI::getNodes() == 0)
+    if (IBTK::IBTK_MPI::getRank() == 0)
       {
         std::ofstream output("output");
+        output << "Number of elements: " << tria.n_active_cells() << '\n';
         output << "max norm error = " << error << '\n';
       }
 

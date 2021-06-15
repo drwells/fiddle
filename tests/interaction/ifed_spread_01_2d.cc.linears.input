@@ -22,7 +22,7 @@ test
 }
 
 Main {
-   log_file_name = "output"
+   log_file_name = "IB2d_spread_linears.log"
    log_all_nodes = FALSE
 
 // visualization dump parameters
