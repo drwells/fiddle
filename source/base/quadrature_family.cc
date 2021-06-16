@@ -58,6 +58,8 @@ namespace fdl
       }
     else
       {
+        const double target_point_distance =
+          1.0 / std::max<double>(1.0, n_points_1D);
         // compute all the remaining quadratures up to that point so that
         // the deque doesn't have holes
         for (unsigned char index = quadratures.size(); index <= n_points_1D;
@@ -67,38 +69,59 @@ namespace fdl
             // lower-order rule or increase the number of quadrature points
             // to achieve a well-spaced quadrature rule. Try a few and go
             // with whichever uses the smallest number of points.
-            const auto n_tries = std::min<std::size_t>(16u, n_points_1D + 2);
-            std::vector<std::pair<unsigned int, unsigned int>> pairs(n_tries);
+            const auto n_tries = std::min<std::size_t>(16u, n_points_1D + 4);
+            std::vector<std::pair<unsigned int, unsigned int>> pairs;
+            // Try 1: increase order
             for (unsigned int i = 0; i < n_tries; ++i)
               {
                 // we always need at least one iteration
-                const auto n_iterations =
-                  std::max(1u,
-                           static_cast<unsigned int>(
-                             std::ceil(double(index) / (min_points_1D + i))));
+                const auto n_iterations = std::max<unsigned int>(
+                  1u, std::ceil(double(index) / (min_points_1D + i)));
 
-                pairs[i] = std::make_pair(min_points_1D + i, n_iterations);
+                pairs.emplace_back(min_points_1D + i, n_iterations);
               }
-            std::sort(pairs.begin(),
-                      pairs.end(),
-                      [](const std::pair<unsigned int, unsigned int> &a,
-                         const std::pair<unsigned int, unsigned int> &b) {
-                        const auto p1 = a.first * a.second;
-                        const auto p2 = b.first * b.second;
-                        // prefer rules with fewer (1D) points:
-                        if (p1 != p2)
-                          {
-                            return p1 < p2;
-                          }
-                        // in case we have a tie, prefer the rule with the
-                        // lower order (it likely has better spacing)
-                        else
-                          {
-                            return a.first < b.first;
-                          }
-                      });
 
-            QIterated<dim> new_quad(QGauss<1>(pairs[0].first), pairs[0].second);
+            // Try 2: use more iterations. min_points_1D is pretty low so we can
+            // assume we are using roughly evenly spaced points
+            const auto ratio0 = std::max<unsigned int>(
+              1, std::ceil(double(n_points_1D) / min_points_1D));
+            const auto ratio1 = std::max<unsigned int>(
+              1, std::ceil(double(n_points_1D + 1) / min_points_1D));
+            // This can get expensive so don't try that many at higher order
+            for (int i = 0; i < std::max<int>(3, 7 - min_points_1D); ++i)
+              {
+                pairs.emplace_back(min_points_1D, ratio0 + i);
+                pairs.emplace_back(min_points_1D + 1, ratio1 + i);
+              }
+
+            // Getting good quadrature rules really pays off so put a lot of
+            // effort into sorting these guys and picking the one with the
+            // fewest number of points which meets the spacing criterion
+            std::size_t best_index    = 0;
+            std::size_t best_n_points = std::numeric_limits<std::size_t>::max();
+            double      best_point_distance = 1.0;
+            for (std::size_t i = 0; i < pairs.size(); ++i)
+              {
+                const QIterated<dim> new_quad(QGauss<1>(pairs[i].first),
+                                              pairs[i].second);
+                const double         point_distance =
+                  new_quad.size() < 2 ?
+                            1.0 :
+                            find_largest_nonintersecting_sphere(new_quad.get_points())
+                      .second;
+                if (new_quad.size() < best_n_points &&
+                    // Allow a small tolerance for roundoff
+                    point_distance <= target_point_distance + 1e-14)
+                  {
+                    best_index          = i;
+                    best_n_points       = new_quad.size();
+                    best_point_distance = point_distance;
+                  }
+              }
+            Assert(best_n_points != std::numeric_limits<std::size_t>::max(),
+                   ExcFDLInternalError());
+            QIterated<dim> new_quad(QGauss<1>(pairs[best_index].first),
+                                    pairs[best_index].second);
             // its OK to round here since we have an integer root (up to
             // roundoff)
             Assert(index <= static_cast<unsigned char>(
@@ -106,15 +129,8 @@ namespace fdl
                    ExcFDLInternalError());
             Assert(quadratures.size() == std::size_t(index),
                    ExcFDLInternalError());
-            quadratures.emplace_back(new_quad);
-            // If we only have one point it should be in the center - just set
-            // the diameter to 1
-            if (new_quad.get_points().size() == 1)
-              max_point_distances.push_back(1.0);
-            else
-              max_point_distances.push_back(
-                find_largest_nonintersecting_sphere(new_quad.get_points())
-                  .second);
+            quadratures.emplace_back(std::move(new_quad));
+            max_point_distances.emplace_back(best_point_distance);
           }
 
         Assert(n_points_1D < quadratures.size(), ExcFDLInternalError());
