@@ -107,6 +107,13 @@ namespace fdl
     get_n_points_1D(const double eulerian_length,
                     const double lagrangian_length) const override;
 
+    /**
+     * Get the vector of maximum point distances. This is only public for
+     * benchmarking and testing purposes - it should not be necessary to call
+     * it in user code.
+     */
+    std::vector<double> get_max_point_distances() const;
+
   protected:
     unsigned int min_points_1D;
 
@@ -125,6 +132,14 @@ namespace fdl
      */
     mutable std::vector<double> max_point_distances;
   };
+
+  // Inline functions
+  template <int dim>
+  std::vector<double>
+  QGaussFamily<dim>::get_max_point_distances() const
+  {
+    return max_point_distances;
+  }
 } // namespace fdl
 
 #endif
