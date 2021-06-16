@@ -138,8 +138,8 @@ quadrature 5 size = 25
 dx = 0.1 DX = 0.05 index = 0
 dx = 0.1 DX = 0.1 index = 0
 dx = 0.1 DX = 0.2 index = 4
-dx = 0.1 DX = 0.4 index = 7
-dx = 0.1 DX = 0.8 index = 13
+dx = 0.1 DX = 0.4 index = 8
+dx = 0.1 DX = 0.8 index = 14
 min points 1D 3
 quadrature 0 size = 9
 0.112702 0.112702
@@ -227,8 +227,8 @@ quadrature 5 size = 25
 dx = 0.1 DX = 0.05 index = 0
 dx = 0.1 DX = 0.1 index = 0
 dx = 0.1 DX = 0.2 index = 4
-dx = 0.1 DX = 0.4 index = 7
-dx = 0.1 DX = 0.8 index = 13
+dx = 0.1 DX = 0.4 index = 8
+dx = 0.1 DX = 0.8 index = 15
 min points 1D 4
 quadrature 0 size = 16
 0.0694318 0.0694318

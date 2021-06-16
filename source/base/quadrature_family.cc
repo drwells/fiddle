@@ -67,9 +67,9 @@ namespace fdl
             // lower-order rule or increase the number of quadrature points
             // to achieve a well-spaced quadrature rule. Try a few and go
             // with whichever uses the smallest number of points.
-            constexpr std::size_t n_tries = 4;
-            std::array<std::pair<unsigned int, unsigned int>, n_tries> pairs;
-            for (unsigned int i = 0; i < pairs.size(); ++i)
+            const auto n_tries = std::min<std::size_t>(16u, n_points_1D + 2);
+            std::vector<std::pair<unsigned int, unsigned int>> pairs(n_tries);
+            for (unsigned int i = 0; i < n_tries; ++i)
               {
                 // we always need at least one iteration
                 const auto n_iterations =
