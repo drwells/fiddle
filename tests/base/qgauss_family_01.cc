@@ -6,12 +6,14 @@ template <int dim>
 void
 test_points(const fdl::QuadratureFamily<dim> &q_family, std::ofstream &out)
 {
-  for (unsigned char i = 0; i < 6; ++i)
+  for (unsigned char i = 0; i < 10; ++i)
     {
       const dealii::Quadrature<dim> &quad = q_family[i];
       out << "quadrature " << int(i) << " size = " << quad.size() << '\n';
-      for (const dealii::Point<dim> &point : quad.get_points())
-        out << point << '\n';
+      // We are never going to get a quadrature rule where the first few points
+      // are identical and the rest change, so just print the first five or so
+      for (unsigned int i = 0; i < std::min<unsigned int>(5, quad.size()); ++i)
+        out << quad.get_points()[i] << '\n';
     }
 }
 
