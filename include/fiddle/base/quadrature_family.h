@@ -28,8 +28,7 @@ namespace fdl
     operator[](const unsigned char n_points_1D) const = 0;
 
     /**
-     * Determine how many 1D quadrature points we need to satisfy the given
-     * density condition.
+     * Determine which quadrature index satisfies the given pair of lengths.
      *
      * @param[in] eulerian_length Length of one of the edges of an Eulerian
      * cell.
@@ -38,8 +37,8 @@ namespace fdl
      * longest edge of an element bounding box) of a Lagrangian cell.
      */
     virtual unsigned char
-    get_n_points_1D(const double eulerian_length,
-                    const double lagrangian_length) const = 0;
+    get_index(const double eulerian_length,
+              const double lagrangian_length) const = 0;
   };
 
   /**
@@ -62,8 +61,8 @@ namespace fdl
     }
 
     virtual unsigned char
-    get_n_points_1D(const double /*eulerian_length*/,
-                    const double /*lagrangian_length*/) const override
+    get_index(const double /*eulerian_length*/,
+              const double /*lagrangian_length*/) const override
     {
       std::size_t n_points_1D = 1;
       while (std::pow(n_points_1D, dim) < single_quad.size())
@@ -104,8 +103,8 @@ namespace fdl
     operator[](const unsigned char n_points_1D) const override;
 
     virtual unsigned char
-    get_n_points_1D(const double eulerian_length,
-                    const double lagrangian_length) const override;
+    get_index(const double eulerian_length,
+              const double lagrangian_length) const override;
 
     /**
      * Get the vector of maximum point distances. This is only public for
@@ -128,7 +127,7 @@ namespace fdl
 
     /**
      * Maximum distance between nearest neighbors of quadrature points. Cached
-     * here to make get_n_points_1D a lot faster.
+     * here to make get_index() a lot faster.
      */
     mutable std::vector<double> max_point_distances;
   };

@@ -84,8 +84,7 @@ namespace fdl
             std::max<double>(lagrangian_length, native_bbox.side_length(d));
 
         quadrature_indices.push_back(
-          quadrature_family->get_n_points_1D(eulerian_length,
-                                             lagrangian_length));
+          quadrature_family->get_index(eulerian_length, lagrangian_length));
       }
 
     // Store quadratures in a vector:

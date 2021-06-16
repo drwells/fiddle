@@ -16,8 +16,8 @@ namespace fdl
 
   template <int dim>
   unsigned char
-  QGaussFamily<dim>::get_n_points_1D(const double eulerian_length,
-                                     const double lagrangian_length) const
+  QGaussFamily<dim>::get_index(const double eulerian_length,
+                               const double lagrangian_length) const
   {
     const double n_evenly_spaced_points =
       std::ceil(point_density * lagrangian_length / eulerian_length);
