@@ -58,8 +58,9 @@ namespace fdl
       }
     else
       {
-        const double target_point_distance =
-          1.0 / std::max<double>(1.0, n_points_1D);
+        const double shrink_factor = 0.05;
+        const double target_point_distance = max_point_distances.size() == 0 ?
+          1.0 : (1.0 - shrink_factor)*max_point_distances.back();
         // compute all the remaining quadratures up to that point so that
         // the deque doesn't have holes
         for (unsigned char index = quadratures.size(); index <= n_points_1D;
