@@ -72,7 +72,7 @@ namespace fdl
             // lower-order rule or increase the number of quadrature points
             // to achieve a well-spaced quadrature rule. Try a few and go
             // with whichever uses the smallest number of points.
-            const auto n_tries = std::min<std::size_t>(16u, n_points_1D + 4);
+            const auto n_tries = std::min<std::size_t>(16u, n_points_1D + 6);
             std::vector<std::pair<unsigned int, unsigned int>> pairs;
             // Try 1: increase order
             for (unsigned int i = 0; i < n_tries; ++i)
@@ -90,11 +90,14 @@ namespace fdl
               1, std::ceil(double(n_points_1D) / min_points_1D));
             const auto ratio1 = std::max<unsigned int>(
               1, std::ceil(double(n_points_1D + 1) / min_points_1D));
+            const auto ratio2 = std::max<unsigned int>(
+              1, std::ceil(double(n_points_1D + 2) / min_points_1D));
             // This can get expensive so don't try that many at higher order
-            for (int i = 0; i < std::max<int>(3, 7 - min_points_1D); ++i)
+            for (int i = 0; i < std::max<int>(6, 10 - min_points_1D); ++i)
               {
                 pairs.emplace_back(min_points_1D, ratio0 + i);
                 pairs.emplace_back(min_points_1D + 1, ratio1 + i);
+                pairs.emplace_back(min_points_1D + 2, ratio2 + i);
               }
 
             // Getting good quadrature rules really pays off so put a lot of
