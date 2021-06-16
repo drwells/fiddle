@@ -59,8 +59,10 @@ namespace fdl
     else
       {
         const double shrink_factor = 0.05;
-        const double target_point_distance = max_point_distances.size() == 0 ?
-          1.0 : (1.0 - shrink_factor)*max_point_distances.back();
+        const double target_point_distance =
+          max_point_distances.size() == 0 ?
+            1.0 :
+            (1.0 - shrink_factor) * max_point_distances.back();
         // compute all the remaining quadratures up to that point so that
         // the deque doesn't have holes
         for (unsigned char index = quadratures.size(); index <= n_points_1D;
@@ -103,20 +105,28 @@ namespace fdl
             double      best_point_distance = 1.0;
             for (std::size_t i = 0; i < pairs.size(); ++i)
               {
-                const QIterated<dim> new_quad(QGauss<1>(pairs[i].first),
-                                              pairs[i].second);
-                const double         point_distance =
-                  new_quad.size() < 2 ?
-                            1.0 :
-                            find_largest_nonintersecting_sphere(new_quad.get_points())
-                      .second;
-                if (new_quad.size() < best_n_points &&
-                    // Allow a small tolerance for roundoff
-                    point_distance <= target_point_distance + 1e-14)
+                // We don't have end points in these quadratures so this formula
+                // always works
+                const std::size_t n_points =
+                  std::pow(pairs[i].first * pairs[i].second, dim);
+
+                if (n_points < best_n_points)
                   {
-                    best_index          = i;
-                    best_n_points       = new_quad.size();
-                    best_point_distance = point_distance;
+                    const QIterated<dim> new_quad(QGauss<1>(pairs[i].first),
+                                                  pairs[i].second);
+                    Assert(new_quad.size() == n_points, ExcFDLInternalError());
+                    const double point_distance =
+                      new_quad.size() < 2 ? 1.0 :
+                                            find_largest_nonintersecting_sphere(
+                                              new_quad.get_points())
+                                              .second;
+                    // Allow a small tolerance for roundoff
+                    if (point_distance <= target_point_distance + 1e-14)
+                      {
+                        best_index          = i;
+                        best_n_points       = new_quad.size();
+                        best_point_distance = point_distance;
+                      }
                   }
               }
             Assert(best_n_points != std::numeric_limits<std::size_t>::max(),
