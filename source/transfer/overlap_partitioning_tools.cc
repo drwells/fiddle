@@ -62,7 +62,7 @@ namespace fdl
 
     // 3: pack dofs:
     std::map<types::subdomain_id, std::vector<types::global_dof_index>>
-                dofs_on_native;
+      dofs_on_native;
     const auto &fe = native_dof_handler.get_fe();
     Assert(fe.get_name() == overlap_dof_handler.get_fe().get_name(),
            ExcMessage("dof handlers should use the same FiniteElement"));
