@@ -6,7 +6,8 @@
 
 template <int dim>
 void
-test_max_point_distances(const fdl::QGaussFamily<dim> &q_family, std::ofstream &out)
+test_max_point_distances(const fdl::QGaussFamily<dim> &q_family,
+                         std::ofstream &               out)
 {
   // populate cached entries
   for (unsigned char i = 0; i < 10; ++i)
@@ -15,8 +16,8 @@ test_max_point_distances(const fdl::QGaussFamily<dim> &q_family, std::ofstream &
   // and print what we found
   const auto max_point_distances = q_family.get_max_point_distances();
   for (unsigned char i = 0; i < max_point_distances.size(); ++i)
-      out << "i = " << int(i) << " n_points = " << q_family[i].size()
-          << " max distance = " << max_point_distances[i] << '\n';
+    out << "i = " << int(i) << " n_points = " << q_family[i].size()
+        << " max distance = " << max_point_distances[i] << '\n';
 }
 
 int

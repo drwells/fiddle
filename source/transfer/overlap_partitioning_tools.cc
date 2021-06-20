@@ -18,7 +18,8 @@ namespace fdl
     const DoFHandler<dim, spacedim> &               overlap_dof_handler,
     const DoFHandler<dim, spacedim> &               native_dof_handler)
   {
-    const Triangulation<dim, spacedim> &native_tria = overlap_tria.get_native_triangulation();
+    const Triangulation<dim, spacedim> &native_tria =
+      overlap_tria.get_native_triangulation();
     const MPI_Comm mpi_comm = native_tria.get_communicator();
     Assert(&overlap_dof_handler.get_triangulation() == &overlap_tria,
            ExcMessage("The overlap DoFHandler should use the overlap tria"));
@@ -61,15 +62,16 @@ namespace fdl
 
     // 3: pack dofs:
     std::map<types::subdomain_id, std::vector<types::global_dof_index>>
-      dofs_on_native;
+                dofs_on_native;
     const auto &fe = native_dof_handler.get_fe();
     Assert(fe.get_name() == overlap_dof_handler.get_fe().get_name(),
            ExcMessage("dof handlers should use the same FiniteElement"));
     for (const auto &pair : requested_native_cell_ids)
       {
-        const types::subdomain_id            requested_rank = pair.first;
-        std::vector<types::global_dof_index> &requested_dofs = dofs_on_native[requested_rank];
-        const std::vector<CellId> &          cell_ids       = pair.second;
+        const types::subdomain_id             requested_rank = pair.first;
+        std::vector<types::global_dof_index> &requested_dofs =
+          dofs_on_native[requested_rank];
+        const std::vector<CellId> &          cell_ids = pair.second;
         std::vector<types::global_dof_index> cell_dofs(fe.dofs_per_cell);
         for (const auto &id : cell_ids)
           {
@@ -103,58 +105,60 @@ namespace fdl
     // we now have the native dofs on each cell in a packed format: active cell
     // index, dofs, sentinel. Read dof data back in the order in which it was
     // originally requested:
-    std::map<types::subdomain_id, std::vector<types::global_dof_index>::const_iterator>
+    std::map<types::subdomain_id,
+             std::vector<types::global_dof_index>::const_iterator>
       packed_ptrs;
     for (const auto &pair : native_dof_indices)
       packed_ptrs[pair.first] = pair.second.cbegin();
 
     // 4:
     std::vector<std::pair<types::global_dof_index, types::global_dof_index>>
-      overlap_to_native;
+                                         overlap_to_native;
     std::vector<types::global_dof_index> native_cell_dofs(fe.dofs_per_cell);
     std::vector<types::global_dof_index> overlap_cell_dofs(fe.dofs_per_cell);
     for (const auto &cell : overlap_dof_handler.active_cell_iterators())
       {
         if (cell->is_locally_owned())
-        {
-          const auto native_rank = overlap_tria.get_native_cell_subdomain_id(cell);
-          Assert(native_rank != numbers::invalid_subdomain_id,
-                 ExcFDLInternalError());
-          auto &packed_ptr = packed_ptrs.at(native_rank);
-          Assert(packed_ptr < native_dof_indices.at(native_rank).cend(),
-                 ExcFDLInternalError());
-
-          CellId::binary_type binary_id;
-          for (auto &v : binary_id)
           {
-            v = *packed_ptr;
-            ++packed_ptr;
-          }
+            const auto native_rank =
+              overlap_tria.get_native_cell_subdomain_id(cell);
+            Assert(native_rank != numbers::invalid_subdomain_id,
+                   ExcFDLInternalError());
+            auto &packed_ptr = packed_ptrs.at(native_rank);
+            Assert(packed_ptr < native_dof_indices.at(native_rank).cend(),
+                   ExcFDLInternalError());
+
+            CellId::binary_type binary_id;
+            for (auto &v : binary_id)
+              {
+                v = *packed_ptr;
+                ++packed_ptr;
+              }
 #ifdef DEBUG
-          const CellId cell_id(binary_id);
-          Assert(overlap_tria.get_native_cell_id(cell) == cell_id,
-                 ExcFDLInternalError());
+            const CellId cell_id(binary_id);
+            Assert(overlap_tria.get_native_cell_id(cell) == cell_id,
+                   ExcFDLInternalError());
 #endif
 
-          const auto n_dofs = *packed_ptr;
-          ++packed_ptr;
-
-          native_cell_dofs.clear();
-          for (unsigned int i = 0; i < n_dofs; ++i)
-          {
-            native_cell_dofs.push_back(*packed_ptr);
+            const auto n_dofs = *packed_ptr;
             ++packed_ptr;
-          }
-          Assert(*packed_ptr == numbers::invalid_dof_index,
-                 ExcFDLInternalError());
-          ++packed_ptr;
 
-          // Copy data between orderings.
-          cell->get_dof_indices(overlap_cell_dofs);
-          for (unsigned int i = 0; i < n_dofs; ++i)
-            overlap_to_native.emplace_back(overlap_cell_dofs[i],
-                                           native_cell_dofs[i]);
-        }
+            native_cell_dofs.clear();
+            for (unsigned int i = 0; i < n_dofs; ++i)
+              {
+                native_cell_dofs.push_back(*packed_ptr);
+                ++packed_ptr;
+              }
+            Assert(*packed_ptr == numbers::invalid_dof_index,
+                   ExcFDLInternalError());
+            ++packed_ptr;
+
+            // Copy data between orderings.
+            cell->get_dof_indices(overlap_cell_dofs);
+            for (unsigned int i = 0; i < n_dofs; ++i)
+              overlap_to_native.emplace_back(overlap_cell_dofs[i],
+                                             native_cell_dofs[i]);
+          }
       }
     std::sort(overlap_to_native.begin(),
               overlap_to_native.end(),

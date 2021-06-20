@@ -111,7 +111,8 @@ namespace fdl
      * benchmarking and testing purposes - it should not be necessary to call
      * it in user code.
      */
-    std::vector<double> get_max_point_distances() const;
+    std::vector<double>
+    get_max_point_distances() const;
 
   protected:
     unsigned int min_points_1D;

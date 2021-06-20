@@ -161,7 +161,6 @@ namespace fdl
   {
     AssertIndexRange(cell->user_index(), native_cells.size());
     return native_cell_subdomain_ids[cell->user_index()];
-
   }
 
 
