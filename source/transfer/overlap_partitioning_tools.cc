@@ -41,26 +41,22 @@ namespace fdl
     //    (purely local) and native dofs (distributed).
 
     // 1: determine required active cell indices:
-    std::map<types::subdomain_id, std::vector<unsigned int>>
-      native_active_cell_ids_on_overlap;
+    std::map<types::subdomain_id, std::vector<CellId>>
+      native_cell_ids_on_overlap;
     for (const auto &cell : overlap_tria.active_cell_iterators())
       {
         if (cell->is_locally_owned())
           {
             const auto rank = overlap_tria.get_native_cell_rank(cell);
-            const auto native_cell = overlap_tria.get_native_cell(cell);
-            native_active_cell_ids_on_overlap[rank].push_back(
-              native_cell->active_cell_index());
+            native_cell_ids_on_overlap[rank].push_back(
+              overlap_tria.get_native_cell_id(cell));
           }
       }
-    for (auto &pair : native_active_cell_ids_on_overlap)
-      std::sort(pair.second.begin(), pair.second.end());
 
     // 2: send requested active cell indices:
-    const std::map<types::subdomain_id, std::vector<unsigned int>>
-      requested_native_active_cell_indices =
-        Utilities::MPI::some_to_some(mpi_comm,
-                                     native_active_cell_ids_on_overlap);
+    const std::map<types::subdomain_id, std::vector<CellId>>
+      requested_native_cell_ids =
+        Utilities::MPI::some_to_some(mpi_comm, native_cell_ids_on_overlap);
 
     // 3: pack dofs:
     std::map<types::subdomain_id, std::vector<types::global_dof_index>>
@@ -68,35 +64,30 @@ namespace fdl
     const auto &fe = native_dof_handler.get_fe();
     Assert(fe.get_name() == overlap_dof_handler.get_fe().get_name(),
            ExcMessage("dof handlers should use the same FiniteElement"));
-    // TODO: we could make this more efficient by sorting DH iterators by
-    // active cell index and then getting them with lower_bound.
-    for (const auto &pair : requested_native_active_cell_indices)
+    for (const auto &pair : requested_native_cell_ids)
       {
-        const types::subdomain_id        requested_rank      = pair.first;
-        const std::vector<unsigned int> &active_cell_indices = pair.second;
-        auto active_cell_index_ptr = active_cell_indices.cbegin();
+        const types::subdomain_id            requested_rank = pair.first;
+        const std::vector<CellId> &          cell_ids       = pair.second;
         std::vector<types::global_dof_index> cell_dofs(fe.dofs_per_cell);
-        // Note that we iterate over active cells in order
-        for (const auto &cell : native_dof_handler.active_cell_iterators())
+        for (const auto &id : cell_ids)
           {
-            if (cell->active_cell_index() != *active_cell_index_ptr)
-              continue;
-
-            Assert(active_cell_index_ptr < active_cell_indices.end(),
-                   ExcFDLInternalError());
-            dofs_on_native[requested_rank].push_back(*active_cell_index_ptr);
-            cell->get_dof_indices(cell_dofs);
+            const auto native_cell =
+              overlap_tria.get_native_triangulation().create_cell_iterator(id);
+            const auto native_dh_cell =
+              typename DoFHandler<dim, spacedim>::active_cell_iterator(
+                &overlap_tria.get_native_triangulation(),
+                native_cell->level(),
+                native_cell->index(),
+                &native_dof_handler);
+            dofs_on_native[requested_rank].push_back(
+              native_dh_cell->active_cell_index());
+            native_dh_cell->get_dof_indices(cell_dofs);
             dofs_on_native[requested_rank].push_back(cell_dofs.size());
             for (const auto dof : cell_dofs)
               dofs_on_native[requested_rank].push_back(dof);
 
             dofs_on_native[requested_rank].push_back(
               numbers::invalid_dof_index);
-            ++active_cell_index_ptr;
-            // we may run out of requested cells before we run out of owned
-            // cells
-            if (active_cell_index_ptr == active_cell_indices.end())
-              break;
           }
       }
 
