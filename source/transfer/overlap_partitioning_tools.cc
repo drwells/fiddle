@@ -68,26 +68,31 @@ namespace fdl
     for (const auto &pair : requested_native_cell_ids)
       {
         const types::subdomain_id            requested_rank = pair.first;
+        std::vector<types::global_dof_index> &requested_dofs = dofs_on_native[requested_rank];
         const std::vector<CellId> &          cell_ids       = pair.second;
         std::vector<types::global_dof_index> cell_dofs(fe.dofs_per_cell);
         for (const auto &id : cell_ids)
           {
-            const auto native_cell =
-              overlap_tria.get_native_triangulation().create_cell_iterator(id);
+            const auto native_cell = native_tria.create_cell_iterator(id);
             const auto native_dh_cell =
               typename DoFHandler<dim, spacedim>::active_cell_iterator(
-                &overlap_tria.get_native_triangulation(),
+                &native_tria,
                 native_cell->level(),
                 native_cell->index(),
                 &native_dof_handler);
-            dofs_on_native[requested_rank].push_back(native_cell->active_cell_index());
-            native_dh_cell->get_dof_indices(cell_dofs);
-            dofs_on_native[requested_rank].push_back(cell_dofs.size());
-            for (const auto dof : cell_dofs)
-              dofs_on_native[requested_rank].push_back(dof);
 
-            dofs_on_native[requested_rank].push_back(
-              numbers::invalid_dof_index);
+            // TODO - we can compress this with 64-bit indices some more - might
+            // be worth doing
+            const auto binary_id = id.to_binary<dim>();
+            for (const auto &v : binary_id)
+              requested_dofs.push_back(v);
+
+            native_dh_cell->get_dof_indices(cell_dofs);
+            requested_dofs.push_back(cell_dofs.size());
+            for (const auto dof : cell_dofs)
+              requested_dofs.push_back(dof);
+
+            requested_dofs.push_back(numbers::invalid_dof_index);
           }
       }
 
@@ -118,11 +123,18 @@ namespace fdl
           auto &packed_ptr = packed_ptrs.at(native_rank);
           Assert(packed_ptr < native_dof_indices.at(native_rank).cend(),
                  ExcFDLInternalError());
-          const auto active_cell_index = *packed_ptr;
-          ++packed_ptr;
-          Assert(overlap_tria.get_native_cell(cell)->active_cell_index()
-                 == active_cell_index,
+
+          CellId::binary_type binary_id;
+          for (auto &v : binary_id)
+          {
+            v = *packed_ptr;
+            ++packed_ptr;
+          }
+#ifdef DEBUG
+          const CellId cell_id(binary_id);
+          Assert(overlap_tria.get_native_cell_id(cell) == cell_id,
                  ExcFDLInternalError());
+#endif
 
           const auto n_dofs = *packed_ptr;
           ++packed_ptr;
