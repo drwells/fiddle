@@ -69,8 +69,8 @@ namespace fdl
     /**
      * Get the rank of the corresponding cell on the native Triangulation.
      */
-    int
-    get_native_cell_rank(const cell_iterator &cell) const;
+    types::subdomain_id
+    get_native_cell_subdomain_id(const cell_iterator &cell) const;
 
   protected:
     /**
@@ -103,10 +103,10 @@ namespace fdl
     std::vector<CellId> native_cell_ids;
 
     /**
-     * Ranks of native cells, indexed by the corresponding overlapping cells'
-     * active cell index.
+     * Subdomain ids of native cells, indexed by the corresponding overlapping
+     * cells' active cell index.
      */
-    std::vector<int> native_cell_ranks;
+    std::vector<types::subdomain_id> native_cell_subdomain_ids;
 
     /**
      * Active cell iterators sorted by the active cell index of the
@@ -155,12 +155,12 @@ namespace fdl
 
 
   template <int dim, int spacedim>
-  inline int
-  OverlapTriangulation<dim, spacedim>::get_native_cell_rank(
+  inline types::subdomain_id
+  OverlapTriangulation<dim, spacedim>::get_native_cell_subdomain_id(
     const cell_iterator &cell) const
   {
     AssertIndexRange(cell->user_index(), native_cells.size());
-    return native_cell_ranks[cell->user_index()];
+    return native_cell_subdomain_ids[cell->user_index()];
 
   }
 
@@ -175,7 +175,7 @@ namespace fdl
            ExcMessage("should be a native cell"));
     native_cells.emplace_back(cell->level(), cell->index());
     native_cell_ids.emplace_back(cell->id());
-    native_cell_ranks.emplace_back(cell->subdomain_id());
+    native_cell_subdomain_ids.emplace_back(cell->subdomain_id());
     return native_cells.size() - 1;
   }
 } // namespace fdl

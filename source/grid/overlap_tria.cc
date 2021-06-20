@@ -48,7 +48,7 @@ namespace fdl
   {
     native_cells.clear();
     native_cell_ids.clear();
-    native_cell_ranks.clear();
+    native_cell_subdomain_ids.clear();
     this->clear();
 
     std::vector<CellData<dim>> cells;
