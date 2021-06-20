@@ -18,12 +18,11 @@ namespace fdl
     const DoFHandler<dim, spacedim> &               overlap_dof_handler,
     const DoFHandler<dim, spacedim> &               native_dof_handler)
   {
-    const MPI_Comm mpi_comm =
-      overlap_tria.get_native_triangulation().get_communicator();
+    const Triangulation<dim, spacedim> &native_tria = overlap_tria.get_native_triangulation();
+    const MPI_Comm mpi_comm = native_tria.get_communicator();
     Assert(&overlap_dof_handler.get_triangulation() == &overlap_tria,
            ExcMessage("The overlap DoFHandler should use the overlap tria"));
-    Assert(&native_dof_handler.get_triangulation() ==
-             &overlap_tria.get_native_triangulation(),
+    Assert(&native_dof_handler.get_triangulation() == &native_tria,
            ExcMessage("The native DoFHandler should use the native tria"));
     // Outline of the algorithm:
     //
