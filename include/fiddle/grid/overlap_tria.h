@@ -175,7 +175,12 @@ namespace fdl
            ExcMessage("should be a native cell"));
     native_cells.emplace_back(cell->level(), cell->index());
     native_cell_ids.emplace_back(cell->id());
-    native_cell_subdomain_ids.emplace_back(cell->subdomain_id());
+    // During construction its useful to add nonactive cells, which aren't owned
+    // by any process - permit that here too
+    if (cell->is_active())
+      native_cell_subdomain_ids.emplace_back(cell->subdomain_id());
+    else
+      native_cell_subdomain_ids.emplace_back(numbers::invalid_subdomain_id);
     return native_cells.size() - 1;
   }
 } // namespace fdl

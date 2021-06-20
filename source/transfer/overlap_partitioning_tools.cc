@@ -44,14 +44,16 @@ namespace fdl
     std::map<types::subdomain_id, std::vector<CellId>>
       native_cell_ids_on_overlap;
     for (const auto &cell : overlap_tria.active_cell_iterators())
-      {
-        if (cell->is_locally_owned())
-          {
-            const auto rank = overlap_tria.get_native_cell_rank(cell);
-            native_cell_ids_on_overlap[rank].push_back(
-              overlap_tria.get_native_cell_id(cell));
-          }
-      }
+      if (cell->is_locally_owned())
+        {
+          const auto rank = overlap_tria.get_native_cell_subdomain_id(cell);
+          // We should never have an active cell which does not have a
+          // subdomain: that would mean that the corresponding native cell is
+          // not active!
+          Assert(rank != numbers::invalid_subdomain_id, ExcFDLInternalError());
+          native_cell_ids_on_overlap[rank].push_back(
+            overlap_tria.get_native_cell_id(cell));
+        }
 
     // 2: send requested active cell indices:
     const std::map<types::subdomain_id, std::vector<CellId>>
