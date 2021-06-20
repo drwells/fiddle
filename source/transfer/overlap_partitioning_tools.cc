@@ -81,8 +81,7 @@ namespace fdl
                 native_cell->level(),
                 native_cell->index(),
                 &native_dof_handler);
-            dofs_on_native[requested_rank].push_back(
-              native_dh_cell->active_cell_index());
+            dofs_on_native[requested_rank].push_back(native_cell->active_cell_index());
             native_dh_cell->get_dof_indices(cell_dofs);
             dofs_on_native[requested_rank].push_back(cell_dofs.size());
             for (const auto dof : cell_dofs)
