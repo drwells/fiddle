@@ -57,19 +57,19 @@ namespace fdl
     /**
      * Get the native cell iterator equivalent to the current cell iterator.
      */
-    inline cell_iterator
+    cell_iterator
     get_native_cell(const cell_iterator &cell) const;
 
     /**
      * Get the CellId for the corresponding cell on the native Triangulation.
      */
-    inline CellId
+    CellId
     get_native_cell_id(const cell_iterator &cell) const;
 
     /**
      * Get the rank of the corresponding cell on the native Triangulation.
      */
-    inline int
+    int
     get_native_cell_rank(const cell_iterator &cell) const;
 
   protected:
@@ -139,6 +139,29 @@ namespace fdl
     Assert((native_cell->barycenter() - cell->barycenter()).norm() < 1e-12,
            ExcFDLInternalError());
     return native_cell;
+  }
+
+
+
+  template <int dim, int spacedim>
+  inline CellId
+  OverlapTriangulation<dim, spacedim>::get_native_cell_id(
+    const cell_iterator &cell) const
+  {
+    AssertIndexRange(cell->user_index(), native_cells.size());
+    return native_cell_ids[cell->user_index()];
+  }
+
+
+
+  template <int dim, int spacedim>
+  inline int
+  OverlapTriangulation<dim, spacedim>::get_native_cell_rank(
+    const cell_iterator &cell) const
+  {
+    AssertIndexRange(cell->user_index(), native_cells.size());
+    return native_cell_ranks[cell->user_index()];
+
   }
 
 
