@@ -37,18 +37,6 @@ namespace fdl
     native_tria = &shared_tria;
 
     reinit_overlapping_tria(predicate);
-
-    // Also set up some cached information:
-    cell_iterators_in_active_native_order.clear();
-    for (const auto &cell : this->active_cell_iterators())
-      if (cell->subdomain_id() != numbers::artificial_subdomain_id)
-        cell_iterators_in_active_native_order.push_back(cell);
-    std::sort(cell_iterators_in_active_native_order.begin(),
-              cell_iterators_in_active_native_order.end(),
-              [&](const auto &a, const auto &b) {
-                return this->get_native_cell(a)->active_cell_index() <
-                       this->get_native_cell(b)->active_cell_index();
-              });
   }
 
 

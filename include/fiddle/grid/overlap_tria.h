@@ -61,15 +61,7 @@ namespace fdl
     get_native_cell(const cell_iterator &cell) const;
 
     /**
-     * Get the active cell iterators in order of ascending corresponding native
-     * active cell index.
-     *
-     * @todo replace this with something that stores cell {level, index} pairs
-     * instead to lower memory usage (we don't need to store multiple pointers
-     * to the triangulation).
      */
-    const std::vector<active_cell_iterator> &
-    get_cell_iterators_in_active_native_order() const;
 
   protected:
     /**
@@ -127,18 +119,6 @@ namespace fdl
     Assert((native_cell->barycenter() - cell->barycenter()).norm() < 1e-12,
            ExcFDLInternalError());
     return native_cell;
-  }
-
-
-
-  template <int dim, int spacedim>
-  inline const std::vector<
-    typename OverlapTriangulation<dim, spacedim>::active_cell_iterator> &
-  OverlapTriangulation<dim,
-                       spacedim>::get_cell_iterators_in_active_native_order()
-    const
-  {
-    return cell_iterators_in_active_native_order;
   }
 
 
