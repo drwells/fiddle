@@ -47,6 +47,8 @@ namespace fdl
     const IntersectionPredicate<dim, spacedim> &predicate)
   {
     native_cells.clear();
+    native_cell_ids.clear();
+    native_cell_ranks.clear();
     this->clear();
 
     std::vector<CellData<dim>> cells;

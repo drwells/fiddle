@@ -48,7 +48,7 @@ namespace fdl
         if (cell->is_locally_owned())
           {
             const auto &native_cell  = overlap_tria.get_native_cell(cell);
-            const auto  subdomain_id = native_cell->subdomain_id();
+            const auto  subdomain_id = overlap_tria.get_native_cell_id(cell);
             native_active_cell_ids_on_overlap[subdomain_id].push_back(
               native_cell->active_cell_index());
           }

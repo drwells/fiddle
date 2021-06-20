@@ -61,7 +61,16 @@ namespace fdl
     get_native_cell(const cell_iterator &cell) const;
 
     /**
+     * Get the CellId for the corresponding cell on the native Triangulation.
      */
+    inline CellId
+    get_native_cell_id(const cell_iterator &cell) const;
+
+    /**
+     * Get the rank of the corresponding cell on the native Triangulation.
+     */
+    inline int
+    get_native_cell_rank(const cell_iterator &cell) const;
 
   protected:
     /**
@@ -87,6 +96,17 @@ namespace fdl
      * cells which have an equivalent cell on this triangulation.
      */
     std::vector<std::pair<int, int>> native_cells;
+
+    /**
+     * CellIds for native cells.
+     */
+    std::vector<CellId> native_cell_ids;
+
+    /**
+     * Ranks of native cells, indexed by the corresponding overlapping cells'
+     * active cell index.
+     */
+    std::vector<int> native_cell_ranks;
 
     /**
      * Active cell iterators sorted by the active cell index of the
@@ -131,6 +151,8 @@ namespace fdl
     Assert(&cell->get_triangulation() == native_tria,
            ExcMessage("should be a native cell"));
     native_cells.emplace_back(cell->level(), cell->index());
+    native_cell_ids.emplace_back(cell->id());
+    native_cell_ranks.emplace_back(cell->subdomain_id());
     return native_cells.size() - 1;
   }
 } // namespace fdl
