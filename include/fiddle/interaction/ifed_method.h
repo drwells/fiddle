@@ -204,6 +204,8 @@ namespace fdl
     const LinearAlgebra::distributed::Vector<double> &
     get_force(const unsigned int part_n, const double time) const;
 
+    bool started_time_integration;
+
     double current_time;
     double half_time;
     double new_time;

@@ -6,11 +6,18 @@
 #include <fiddle/interaction/ifed_method.h>
 #include <fiddle/interaction/interaction_utilities.h>
 
+#include <fiddle/mechanics/mechanics_utilities.h>
+
+#include <deal.II/base/mpi.h>
+
 #include <deal.II/distributed/shared_tria.h>
 
 #include <deal.II/fe/mapping_fe_field.h>
 
 #include <ibamr/IBHierarchyIntegrator.h>
+#include <ibamr/ibamr_utilities.h>
+
+#include <ibtk/IBTK_MPI.h>
 
 #include <CellVariable.h>
 #include <HierarchyDataOpsManager.h>
@@ -51,6 +58,10 @@ namespace fdl
     tbox::Pointer<tbox::Database>      input_db,
     std::vector<Part<dim, spacedim>> &&input_parts)
     : input_db(input_db)
+    , started_time_integration(false)
+    , current_time(std::numeric_limits<double>::signaling_NaN())
+    , half_time(std::numeric_limits<double>::signaling_NaN())
+    , new_time(std::numeric_limits<double>::signaling_NaN())
     , parts(std::move(input_parts))
     , secondary_hierarchy("ifed::secondary_hierarchy",
                           input_db->getDatabase("GriddingAlgorithm"),
@@ -373,9 +384,10 @@ namespace fdl
                                                      int /*num_cycles*/)
   {
     IBAMR_TIMER_START(t_preprocess_integrate_data);
-    this->current_time = current_time;
-    this->new_time     = new_time;
-    this->half_time    = current_time + 0.5 * (new_time - current_time);
+    started_time_integration = true;
+    this->current_time       = current_time;
+    this->new_time           = new_time;
+    this->half_time          = current_time + 0.5 * (new_time - current_time);
     IBAMR_TIMER_STOP(t_preprocess_integrate_data);
   }
 
@@ -495,13 +507,36 @@ namespace fdl
       force_vectors = &new_force_vectors;
 
     Assert(force_vectors != nullptr, ExcFDLInternalError());
-    // TODO: actually implement the computation of the lagrangian force
     if (force_vectors)
       {
         force_vectors->resize(0);
         for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
           {
-            force_vectors->emplace_back(parts[part_n].get_partitioner());
+            const Part<dim, spacedim> &part = parts[part_n];
+            force_vectors->emplace_back(part.get_partitioner());
+            auto &force_vector = force_vectors->back();
+            LinearAlgebra::distributed::Vector<double> force_rhs = force_vector;
+
+            // TODO - ask Boyce about the velocity. It's not available at
+            // data_time at the point where this function is called. This isn't
+            // critical - the velocity is mostly used to implement penalties so
+            // being inaccurate shouldn't sink us
+            compute_volumetric_pk1_load_vector(part.get_dof_handler(),
+                                               part.get_mapping(),
+                                               part.get_stress_contributions(),
+                                               get_position(part_n, data_time),
+                                               get_velocity(part_n,
+                                                            current_time),
+                                               force_rhs);
+            force_rhs.compress(VectorOperation::add);
+
+            SolverControl control(1000, 1e-14 * force_rhs.l2_norm());
+            SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
+            // TODO - implement initial guess stuff here
+            cg.solve(part.get_mass_operator(),
+                     force_vector,
+                     force_rhs,
+                     part.get_mass_preconditioner());
           }
       }
     IBAMR_TIMER_STOP(t_compute_lagrangian_force);
@@ -555,17 +590,64 @@ namespace fdl
     // to do
     if (primary_hierarchy)
       {
-        // TODO - calculate a nonzero workload using the secondary hierarchy
-        const int ln = primary_hierarchy->getFinestLevelNumber();
-        tbox::Pointer<hier::PatchLevel<spacedim>> level =
-          primary_hierarchy->getPatchLevel(ln);
-        if (!level->checkAllocated(lagrangian_workload_current_index))
-          level->allocatePatchData(lagrangian_workload_current_index);
+        // Weird things happen when we coarsen and refine if some levels are not
+        // present, so fill them all in with zeros to start
+        const int max_ln = primary_hierarchy->getFinestLevelNumber();
+        for (int ln = 0; ln <= max_ln; ++ln)
+          {
+            tbox::Pointer<hier::PatchLevel<spacedim>> primary_level =
+              primary_hierarchy->getPatchLevel(ln);
+            tbox::Pointer<hier::PatchLevel<spacedim>> secondary_level =
+              secondary_hierarchy.d_secondary_hierarchy->getPatchLevel(ln);
+            if (!primary_level->checkAllocated(
+                  lagrangian_workload_current_index))
+              primary_level->allocatePatchData(
+                lagrangian_workload_current_index);
+            if (!secondary_level->checkAllocated(
+                  lagrangian_workload_current_index))
+              secondary_level->allocatePatchData(
+                lagrangian_workload_current_index);
+          }
 
-        auto ops = extract_hierarchy_data_ops(lagrangian_workload_var,
-                                              primary_hierarchy);
-        ops->resetLevels(ln, ln);
-        ops->setToScalar(lagrangian_workload_current_index, 0.0);
+        fill_all(secondary_hierarchy.d_secondary_hierarchy,
+                 lagrangian_workload_current_index,
+                 0,
+                 max_ln);
+
+        // start:
+        std::vector<std::unique_ptr<TransactionBase>> transactions;
+        for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+          {
+            const Part<dim, spacedim> &part = parts[part_n];
+            transactions.emplace_back(interactions[part_n]->add_workload_start(
+              lagrangian_workload_current_index,
+              part.get_position(),
+              part.get_dof_handler()));
+          }
+
+        // Compute:
+        for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+          transactions[part_n] =
+            interactions[part_n]->add_workload_intermediate(
+              std::move(transactions[part_n]));
+
+        // Finish:
+        for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+          interactions[part_n]->add_workload_finish(
+            std::move(transactions[part_n]));
+
+        // Move to primary hierarchy (we will read it back in
+        // endDataRedistribution)
+        fill_all(primary_hierarchy,
+                 lagrangian_workload_current_index,
+                 0,
+                 max_ln);
+
+        secondary_hierarchy
+          .getScratchToPrimarySchedule(max_ln,
+                                       lagrangian_workload_current_index,
+                                       lagrangian_workload_current_index)
+          .fillData(0.0);
       }
 
     // Clear a few things that depend on the current hierarchy:
@@ -588,6 +670,44 @@ namespace fdl
                                    lagrangian_workload_current_index);
 
         reinit_interactions();
+
+        if (input_db->getBoolWithDefault("enable_logging", true) &&
+            (started_time_integration ||
+             (!started_time_integration &&
+              !input_db->getBoolWithDefault("skip_initial_workload", false))))
+          {
+            const int ln            = primary_hierarchy->getFinestLevelNumber();
+            auto      secondary_ops = extract_hierarchy_data_ops(
+              lagrangian_workload_var,
+              secondary_hierarchy.d_secondary_hierarchy);
+            secondary_ops->resetLevels(ln, ln);
+            const double work =
+              secondary_ops->L1Norm(lagrangian_workload_current_index,
+                                    IBTK::invalid_index,
+                                    true);
+            const std::vector<double> all_work =
+              Utilities::MPI::all_gather(IBTK::IBTK_MPI::getCommunicator(),
+                                         work);
+
+            const int  n_processes   = IBTK::IBTK_MPI::getNodes();
+            const auto right_padding = std::size_t(std::log10(n_processes)) + 1;
+            if (IBTK::IBTK_MPI::getRank() == 0)
+              {
+                for (int rank = 0; rank < n_processes; ++rank)
+                  {
+                    tbox::plog << "IFEDMethod::endDataRedistribution(): "
+                               << "workload estimate on processor "
+                               << std::setw(right_padding) << std::left << rank
+                               << " = " << all_work[rank] << '\n';
+                  }
+                tbox::plog << "IFEDMethod::endDataRedistribution(): "
+                           << "total workload = "
+                           << std::accumulate(all_work.begin(),
+                                              all_work.end(),
+                                              0.0)
+                           << std::endl;
+              }
+          }
       }
     IBAMR_TIMER_STOP(t_end_data_redistribution);
   }
