@@ -7,9 +7,11 @@
 #include <fiddle/transfer/overlap_partitioning_tools.h>
 
 #include <deal.II/base/array_view.h>
-#include <deal.II/base/mpi_noncontiguous_partitioner.templates.h>
+#include <deal.II/base/mpi.h>
 
 #include <deal.II/fe/fe_values.h>
+
+#include <deal.II/grid/grid_tools.h>
 
 #include <deal.II/numerics/rtree.h>
 
@@ -100,13 +102,68 @@ namespace fdl
         global_active_cell_bboxes, patch_bboxes, *native_tria);
       overlap_tria.reinit(*native_tria, predicate);
 
-      std::vector<BoundingBox<spacedim, float>> overlap_bboxes;
+      // Yes, this is much more complex than necessary since
+      // global_active_cell_bboxes is an argument to this function, but we don't
+      // want to rely on that and p::s::T more than we have to since that
+      // approach ultimately needs to go.
+      //
+      // TODO - we should refactor this into a more general function so we can
+      // test it
+      std::vector<CellId> bbox_cellids;
       for (const auto &cell : overlap_tria.active_cell_iterators())
+        bbox_cellids.push_back(overlap_tria.get_native_cell_id(cell));
+
+      // 1. Figure out who owns the bounding boxes we need:
+      std::vector<types::subdomain_id> ranks =
+        GridTools::get_subdomain_association(*native_tria, bbox_cellids);
+
+      // 2. Send each processor the list of bboxes we need:
+      std::map<types::subdomain_id,
+               std::vector<std::pair<unsigned int, CellId>>>
+        corresponding_requested_cellids;
+      // Keep the overlap active cell index along for the ride
+      for (unsigned int i = 0; i < ranks.size(); ++i)
+        corresponding_requested_cellids[ranks[i]].emplace_back(i,
+                                                               bbox_cellids[i]);
+
+      const std::map<types::subdomain_id,
+                     std::vector<std::pair<unsigned int, CellId>>>
+        corresponding_cellids_to_send =
+          Utilities::MPI::some_to_some(communicator,
+                                       corresponding_requested_cellids);
+
+      // 3. Send each processor the actual bboxes:
+      std::map<
+        types::subdomain_id,
+        std::vector<std::pair<unsigned int, BoundingBox<spacedim, float>>>>
+        requested_bboxes;
+      for (const auto &pair : corresponding_cellids_to_send)
         {
-          auto native_cell = overlap_tria.get_native_cell(cell);
-          overlap_bboxes.push_back(
-            global_active_cell_bboxes[native_cell->active_cell_index()]);
+          const auto  rank                = pair.first;
+          const auto &indices_and_cellids = pair.second;
+
+          auto &bboxes = requested_bboxes[rank];
+          for (const auto &index_and_cellid : indices_and_cellids)
+            {
+              auto it =
+                native_tria->create_cell_iterator(index_and_cellid.second);
+              bboxes.emplace_back(
+                index_and_cellid.first,
+                global_active_cell_bboxes[it->active_cell_index()]);
+            }
         }
+
+      const auto received_bboxes =
+        Utilities::MPI::some_to_some(communicator, requested_bboxes);
+
+      std::vector<BoundingBox<spacedim, float>> overlap_bboxes(
+        overlap_tria.n_active_cells());
+      for (const auto &pair : received_bboxes)
+        for (const auto &index_and_bbox : pair.second)
+          {
+            AssertIndexRange(index_and_bbox.first, overlap_bboxes.size());
+            overlap_bboxes[index_and_bbox.first] = index_and_bbox.second;
+          }
 
       // TODO add the ghost cell width as an input argument to this class
       patch_map.reinit(patches, 1.0, overlap_tria, overlap_bboxes);
