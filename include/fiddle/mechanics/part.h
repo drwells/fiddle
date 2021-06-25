@@ -293,9 +293,8 @@ namespace fdl
   Part<dim, spacedim>::set_position(
     const LinearAlgebra::distributed::Vector<double> &pos)
   {
-    // TODO loosen this check slightly or implement Partitioner::operator==
-    Assert(pos.get_partitioner() == partitioner,
-           ExcMessage("The partitioners must be equal"));
+    Assert(partitioner->is_compatible(*pos.get_partitioner()),
+           ExcMessage("The partitioners must be compatible"));
     position = pos;
   }
 
@@ -304,9 +303,8 @@ namespace fdl
   Part<dim, spacedim>::set_position(
     LinearAlgebra::distributed::Vector<double> &&pos)
   {
-    // TODO loosen this check slightly or implement Partitioner::operator==
-    Assert(pos.get_partitioner() == partitioner,
-           ExcMessage("The partitioners must be equal"));
+    Assert(partitioner->is_compatible(*pos.get_partitioner()),
+           ExcMessage("The partitioners must be compatible"));
     position.swap(pos);
   }
 
@@ -322,9 +320,8 @@ namespace fdl
   Part<dim, spacedim>::set_velocity(
     const LinearAlgebra::distributed::Vector<double> &vel)
   {
-    // TODO loosen this check slightly or implement Partitioner::operator==
-    Assert(vel.get_partitioner() == partitioner,
-           ExcMessage("The partitioners must be equal"));
+    Assert(partitioner->is_compatible(*vel.get_partitioner()),
+           ExcMessage("The partitioners must be compatible"));
     velocity = vel;
   }
 
@@ -333,9 +330,8 @@ namespace fdl
   Part<dim, spacedim>::set_velocity(
     LinearAlgebra::distributed::Vector<double> &&vel)
   {
-    // TODO loosen this check slightly or implement Partitioner::operator==
-    Assert(vel.get_partitioner() == partitioner,
-           ExcMessage("The partitioners must be equal"));
+    Assert(partitioner->is_compatible(*vel.get_partitioner()),
+           ExcMessage("The partitioners must be compatible"));
     velocity.swap(vel);
   }
 } // namespace fdl
