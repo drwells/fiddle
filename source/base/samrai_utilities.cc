@@ -256,6 +256,79 @@ namespace fdl
     AssertThrow(false, ExcFDLNotImplemented());
   }
 
+  namespace
+  {
+    void
+    copy_database_recursive(const tbox::Pointer<tbox::Database> &input,
+                            tbox::Pointer<tbox::Database>        output)
+    {
+      tbox::Array<std::string> keys = input->getAllKeys();
+      for (int i = 0; i < keys.getSize(); ++i)
+        {
+          const std::string &key = keys[i];
+          if (input->isDatabase(key))
+            {
+              copy_database_recursive(input->getDatabase(key),
+                                      output->putDatabase(key));
+            }
+          else
+            {
+              // a tbox::Database treats scalars as length-1 arrays
+              const tbox::Database::DataType data_type =
+                input->getArrayType(key);
+              switch (data_type)
+                {
+                  case tbox::Database::SAMRAI_INVALID:
+                    // We shouldn't get here
+                    Assert(false, ExcFDLInternalError());
+                    break;
+                  case tbox::Database::SAMRAI_DATABASE:
+                    // Handled above
+                    Assert(false, ExcFDLInternalError());
+                    break;
+                  case tbox::Database::SAMRAI_BOOL:
+                    output->putBoolArray(key, input->getBoolArray(key));
+                    break;
+                  case tbox::Database::SAMRAI_CHAR:
+                    output->putCharArray(key, input->getCharArray(key));
+                    break;
+                  case tbox::Database::SAMRAI_INT:
+                    output->putIntegerArray(key, input->getIntegerArray(key));
+                    break;
+                  case tbox::Database::SAMRAI_COMPLEX:
+                    output->putComplexArray(key, input->getComplexArray(key));
+                    break;
+                  case tbox::Database::SAMRAI_DOUBLE:
+                    output->putDoubleArray(key, input->getDoubleArray(key));
+                    break;
+                  case tbox::Database::SAMRAI_FLOAT:
+                    output->putFloatArray(key, input->getFloatArray(key));
+                    break;
+                  case tbox::Database::SAMRAI_STRING:
+                    output->putStringArray(key, input->getStringArray(key));
+                    break;
+                  case tbox::Database::SAMRAI_BOX:
+                    output->putDatabaseBoxArray(
+                      key, input->getDatabaseBoxArray(key));
+                    break;
+                  default:
+                    Assert(false, ExcFDLInternalError());
+                }
+            }
+        }
+    }
+  } // namespace
+
+  tbox::Pointer<tbox::MemoryDatabase>
+  copy_database(const tbox::Pointer<tbox::MemoryDatabase> &input,
+                const std::string                          name_suffix)
+  {
+    const std::string             name = input->getName() + name_suffix;
+    tbox::Pointer<tbox::Database> output(new tbox::MemoryDatabase(name));
+    copy_database_recursive(input, output);
+    return output;
+  }
+
   // instantiations:
   template std::vector<tbox::Pointer<hier::Patch<NDIM>>>
   extract_patches(tbox::Pointer<hier::BasePatchLevel<NDIM>> patch_level);

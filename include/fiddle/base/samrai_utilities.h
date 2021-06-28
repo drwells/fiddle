@@ -7,6 +7,8 @@
 #include <PatchHierarchy.h>
 #include <PatchLevel.h>
 #include <Variable.h>
+#include <tbox/Database.h>
+#include <tbox/MemoryDatabase.h>
 
 #include <utility>
 #include <vector>
@@ -114,6 +116,13 @@ namespace fdl
   extract_hierarchy_data_ops(
     const tbox::Pointer<hier::Variable<spacedim>> p,
     tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy);
+
+  /**
+   * Copy the contents of the database into a new database.
+   */
+  tbox::Pointer<tbox::MemoryDatabase>
+  copy_database(const tbox::Pointer<tbox::MemoryDatabase> &input,
+                const std::string name_suffix = "::clone");
 } // namespace fdl
 
 #endif

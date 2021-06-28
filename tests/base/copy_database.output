@@ -1,0 +1,45 @@
+input_db::clone {
+   N = 64                                                   // input not used
+   test {
+      f_data_type = "CELL"                                  // input not used
+      f {
+         function = "sin(2*PI*X_0)*cos(4*PI*X_1)"           // input not used
+      }
+   }
+   Main {
+      log_file_name               = "spread_01.log"         // input not used
+      log_all_nodes               = FALSE                   // input not used
+      viz_writer                  = "VisIt"                 // input not used
+      viz_dump_dirname            = "viz2d"                 // input not used
+      visit_number_procs_per_file = 1                       // input not used
+   }
+   CartesianGeometry {
+      domain_boxes       = [(0,0),(63,63)]                  // input not used
+      x_lo               = 0, 0                             // input not used
+      x_up               = 1, 1                             // input not used
+      periodic_dimension = 1, 1                             // input not used
+   }
+   GriddingAlgorithm {
+      max_levels           = 1                              // input not used
+      efficiency_tolerance = 0.7                            // input not used
+      combine_efficiency   = 0.85                           // input not used
+      ratio_to_coarser {
+         level_1 = 4, 4                                     // input not used
+      }
+      largest_patch_size {
+         level_0 = 16, 16                                   // input not used
+      }
+      smallest_patch_size {
+         level_0 = 8, 8                                     // input not used
+      }
+   }
+   StandardTagAndInitialize {
+      tagging_method = "REFINE_BOXES"                       // input not used
+      RefineBoxes {
+      }
+   }
+   LoadBalancer {
+      bin_pack_method     = "SPATIAL"                       // input not used
+      max_workload_factor = 1                               // input not used
+   }
+}
