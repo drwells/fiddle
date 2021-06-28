@@ -154,10 +154,10 @@ namespace fdl
 
     // Update the secondary hierarchy:
     secondary_hierarchy
-      .getPrimaryToScratchSchedule(primary_hierarchy->getFinestLevelNumber(),
-                                   u_data_index,
-                                   u_data_index,
-                                   d_ib_solver->getVelocityPhysBdryOp())
+      .getPrimaryToSecondarySchedule(primary_hierarchy->getFinestLevelNumber(),
+                                     u_data_index,
+                                     u_data_index,
+                                     d_ib_solver->getVelocityPhysBdryOp())
       .fillData(data_time);
 
     std::vector<std::unique_ptr<TransactionBase>> transactions;
@@ -234,7 +234,7 @@ namespace fdl
 
     std::shared_ptr<IBTK::SAMRAIDataCache> data_cache =
       secondary_hierarchy.getSAMRAIDataCache();
-    auto       hierarchy = secondary_hierarchy.d_secondary_hierarchy;
+    auto       hierarchy = secondary_hierarchy.getSecondaryHierarchy();
     const auto f_scratch_data_index =
       data_cache->getCachedPatchDataIndex(f_data_index);
     fill_all(hierarchy, f_scratch_data_index, level_number, level_number, 0.0);
@@ -322,9 +322,9 @@ namespace fdl
                level_number,
                0.0);
       secondary_hierarchy
-        .getScratchToPrimarySchedule(level_number,
-                                     f_primary_scratch_data_index,
-                                     f_scratch_data_index)
+        .getSecondaryToPrimarySchedule(level_number,
+                                       f_primary_scratch_data_index,
+                                       f_scratch_data_index)
         .fillData(data_time);
       f_primary_data_ops->add(f_data_index,
                               f_data_index,
@@ -568,10 +568,11 @@ namespace fdl
         const auto global_bboxes =
           collect_all_active_cell_bboxes(tria, local_bboxes);
 
-        interactions[part_n]->reinit(tria,
-                                     global_bboxes,
-                                     secondary_hierarchy.d_secondary_hierarchy,
-                                     primary_hierarchy->getFinestLevelNumber());
+        interactions[part_n]->reinit(
+          tria,
+          global_bboxes,
+          secondary_hierarchy.getSecondaryHierarchy(),
+          primary_hierarchy->getFinestLevelNumber());
         // TODO - we should probably add a reinit() function that sets up the
         // DoFHandler we always need
         interactions[part_n]->add_dof_handler(part.get_dof_handler());
@@ -598,7 +599,7 @@ namespace fdl
             tbox::Pointer<hier::PatchLevel<spacedim>> primary_level =
               primary_hierarchy->getPatchLevel(ln);
             tbox::Pointer<hier::PatchLevel<spacedim>> secondary_level =
-              secondary_hierarchy.d_secondary_hierarchy->getPatchLevel(ln);
+              secondary_hierarchy.getSecondaryHierarchy()->getPatchLevel(ln);
             if (!primary_level->checkAllocated(
                   lagrangian_workload_current_index))
               primary_level->allocatePatchData(
@@ -609,7 +610,7 @@ namespace fdl
                 lagrangian_workload_current_index);
           }
 
-        fill_all(secondary_hierarchy.d_secondary_hierarchy,
+        fill_all(secondary_hierarchy.getSecondaryHierarchy(),
                  lagrangian_workload_current_index,
                  0,
                  max_ln);
@@ -644,9 +645,9 @@ namespace fdl
                  max_ln);
 
         secondary_hierarchy
-          .getScratchToPrimarySchedule(max_ln,
-                                       lagrangian_workload_current_index,
-                                       lagrangian_workload_current_index)
+          .getSecondaryToPrimarySchedule(max_ln,
+                                         lagrangian_workload_current_index,
+                                         lagrangian_workload_current_index)
           .fillData(0.0);
       }
 
@@ -679,7 +680,7 @@ namespace fdl
             const int ln            = primary_hierarchy->getFinestLevelNumber();
             auto      secondary_ops = extract_hierarchy_data_ops(
               lagrangian_workload_var,
-              secondary_hierarchy.d_secondary_hierarchy);
+              secondary_hierarchy.getSecondaryHierarchy());
             secondary_ops->resetLevels(ln, ln);
             const double work =
               secondary_ops->L1Norm(lagrangian_workload_current_index,
