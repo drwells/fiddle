@@ -84,6 +84,9 @@ public:
     Assert(current_force.has_ghost_elements(),
            ExcMessage("Should have ghosts"));
     this->current_force_vectors.emplace_back(std::move(current_force));
+    // a proper move ctor for LA::d::V is not yet merged into deal.II (but
+    // should be in 10.0)
+    this->current_force_vectors.back().update_ghost_values();
     Assert(this->current_force_vectors.back().has_ghost_elements(),
            ExcMessage("Should have ghosts"));
   }
