@@ -159,7 +159,8 @@ namespace fdl
     std::vector<int> current_proc_cell_n(n_procs);
     for (const auto &cell : tria.active_cell_iterators())
       {
-        const types::subdomain_id this_cell_proc_n = cell->subdomain_id();
+        const types::subdomain_id this_cell_proc_n =
+          tria.get_true_subdomain_ids_of_cells()[cell->active_cell_index()];
         global_bboxes[cell->active_cell_index()] =
           temp_bboxes[offsets[this_cell_proc_n] / n_nums_per_bbox +
                       current_proc_cell_n[this_cell_proc_n]];

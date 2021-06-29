@@ -1,39 +1,34 @@
-test {}
+test
+{
+  use_artificial_cells = TRUE
+}
 
 // physical parameters
 MU  = 0.01
-RHO = 1.0
+RHO = 2.0
 L   = 1.0
 
+U_MAX = 2.0
+
 // grid spacing parameters
-MAX_LEVELS = 2                                      // maximum number of levels in locally refined grid
+MAX_LEVELS = 1                                      // maximum number of levels in locally refined grid
 REF_RATIO  = 2                                      // refinement ratio between levels
-N = 32                                              // actual    number of grid cells on coarsest grid level
+N = 128                                             // actual    number of grid cells on coarsest grid level
 NFINEST = (REF_RATIO^(MAX_LEVELS - 1))*N            // effective number of grid cells on finest   grid level
 DX0 = L/N                                           // mesh width on coarsest grid level
 DX  = L/NFINEST                                     // mesh width on finest   grid level
-MFAC = 2.0                                          // ratio of Lagrangian mesh width to Cartesian mesh width
-
-// model parameters
-U_MAX = 2.0
-C1 = 0.05
-P0 = C1
-BETA = 1.0*(NFINEST/64.0)
-pk1_dev_n_points_1d = 3
-pk1_dil_n_points_1d = 2
-fe_degree = 2
 
 // solver parameters
 IB_DELTA_FUNCTION          = "BSPLINE_3"            // the type of smoothed delta function to use for Lagrangian-Eulerian interaction
 SPLIT_FORCES               = FALSE                  // whether to split interior and boundary forces
 USE_JUMP_CONDITIONS        = FALSE                  // whether to impose pressure jumps at fluid-structure interfaces
 USE_CONSISTENT_MASS_MATRIX = TRUE                   // whether to use a consistent or lumped mass matrix
-IB_POINT_DENSITY           = 2.0/fe_degree          // approximate density of IB quadrature points for Lagrangian-Eulerian interaction
+IB_POINT_DENSITY           = 3.0                    // approximate density of IB quadrature points for Lagrangian-Eulerian interaction
 SOLVER_TYPE                = "STAGGERED"            // the fluid solver to use (STAGGERED or COLLOCATED)
 CFL_MAX                    = 0.25                   // maximum CFL number
 DT                         = 0.25*CFL_MAX*DX/U_MAX  // maximum timestep size
 START_TIME                 = 0.0e0                  // initial simulation time
-END_TIME                   = 45*DT                  // final simulation time
+END_TIME                   = 10*DT                  // final simulation time
 GROW_DT                    = 2.0e0                  // growth factor for timesteps
 NUM_CYCLES                 = 1                      // number of cycles of fixed-point iteration
 CONVECTIVE_TS_TYPE         = "ADAMS_BASHFORTH"      // convective time stepping type
@@ -43,7 +38,7 @@ NORMALIZE_PRESSURE         = FALSE                  // whether to explicitly for
 ERROR_ON_DT_CHANGE         = TRUE                   // whether to emit an error message if the time step size changes
 VORTICITY_TAGGING          = TRUE                   // whether to tag cells for refinement based on vorticity thresholds
 TAG_BUFFER                 = 1                      // size of tag buffer used by grid generation algorithm
-REGRID_CFL_INTERVAL        = 0.05                   // regrid whenever any material point could have moved 0.5 meshwidths since previous regrid
+REGRID_CFL_INTERVAL        = 0.5                    // regrid whenever any material point could have moved 0.5 meshwidths since previous regrid
 OUTPUT_U                   = TRUE
 OUTPUT_P                   = TRUE
 OUTPUT_F                   = TRUE
@@ -101,12 +96,6 @@ IBHierarchyIntegrator {
 }
 
 IFEDMethod {
-   IB_point_density = IB_POINT_DENSITY
-
-   skip_initial_workload = TRUE
-
-   enable_logging = ENABLE_LOGGING
-
    GriddingAlgorithm
    {
        max_levels = MAX_LEVELS
@@ -139,7 +128,7 @@ IFEDMethod {
    {
       type                = "DEFAULT"
       bin_pack_method     = "SPATIAL"
-      max_workload_factor = 0.25
+      max_workload_factor = 0.0625
    }
 }
 
@@ -163,19 +152,19 @@ INSStaggeredHierarchyIntegrator {
    output_F                      = OUTPUT_F
    output_Omega                  = OUTPUT_OMEGA
    output_Div_U                  = OUTPUT_DIV_U
-   enable_logging                = FALSE
+   enable_logging                = ENABLE_LOGGING
 }
 
 Main {
    solver_type = SOLVER_TYPE
 
 // log file parameters
-   log_file_name               = "output"
+   log_file_name               = "IB2d.log"
    log_all_nodes               = FALSE
 
 // visualization dump parameters
-   viz_writer                  = "VisIt"
-   viz_dump_interval           = 10
+   viz_writer                  = "VisIt","ExodusII"
+   viz_dump_interval           = int(0.125/DT)
    viz_dump_dirname            = "viz_IB2d"
    visit_number_procs_per_file = 1
 
@@ -229,6 +218,6 @@ LoadBalancer {
 TimerManager{
    print_exclusive = FALSE
    print_total     = TRUE
-   print_threshold = 1
-   timer_list      = "fdl::*::*","IBAMR::*::*","IBTK::*::*","*::*::*"
+   print_threshold = 0.1
+   timer_list      = "IBAMR::*::*","IBTK::*::*","*::*::*"
 }

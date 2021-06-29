@@ -177,7 +177,9 @@ namespace fdl
     // During construction its useful to add nonactive cells, which aren't owned
     // by any process - permit that here too
     if (cell->is_active())
-      native_cell_subdomain_ids.emplace_back(cell->subdomain_id());
+      native_cell_subdomain_ids.emplace_back(
+        native_tria
+          ->get_true_subdomain_ids_of_cells()[cell->active_cell_index()]);
     else
       native_cell_subdomain_ids.emplace_back(numbers::invalid_subdomain_id);
     return native_cells.size() - 1;

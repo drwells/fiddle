@@ -1,3 +1,8 @@
+test
+{
+  use_artificial_cells = FALSE
+}
+
 // physical parameters
 MU  = 0.01
 RHO = 2.0

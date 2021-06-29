@@ -114,7 +114,8 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   const double dx = input_db->getDouble("DX");
   const double ds = input_db->getDouble("MFAC") * dx;
   const double L  = input_db->getDouble("L");
-  parallel::shared::Triangulation<dim, spacedim> tria(mpi_comm);
+  parallel::shared::Triangulation<dim, spacedim> tria(
+    mpi_comm, {}, test_db->getBoolWithDefault("use_artificial_cells", false));
   // ensure that all points are actually inside the Eulerian domain
   GridGenerator::subdivided_hyper_cube(tria,
                                        std::ceil(L / ds),

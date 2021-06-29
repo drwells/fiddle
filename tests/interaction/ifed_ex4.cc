@@ -140,12 +140,13 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   // setting up coarsening correctly
   SAMRAI::tbox::Logger::getInstance()->setWarning(false);
 
-  auto input_db = app_initializer->getInputDatabase();
-
+  auto       input_db = app_initializer->getInputDatabase();
+  auto       test_db  = input_db->getDatabase("test");
   const auto mpi_comm = MPI_COMM_WORLD;
 
   // setup deal.II stuff:
-  parallel::shared::Triangulation<dim, spacedim> native_tria(mpi_comm);
+  parallel::shared::Triangulation<dim, spacedim> native_tria(
+    mpi_comm, {}, test_db->getBoolWithDefault("use_artificial_cells", false));
 
   Point<dim> center;
   center[0]       = 0.6;
