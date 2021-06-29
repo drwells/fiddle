@@ -1,0 +1,25 @@
+test
+{
+  position
+  {
+    function_0 = "2.0*X_0 + 1.0"
+    function_1 = "X_1 - 1.0"
+  }
+
+  velocity
+  {
+    function_0 = "4.0*X_0 + 1.0"
+    function_1 = "X_1 - 3.0"
+  }
+}
+
+Main {
+   log_file_name = "output"
+   log_all_nodes = FALSE
+
+// visualization dump parameters
+   viz_writer = "VisIt"
+   viz_dump_dirname = "viz2d"
+   visit_number_procs_per_file = 1
+
+}

@@ -6,6 +6,8 @@
 
 #include <deal.II/numerics/vector_tools_interpolate.h>
 
+#include <boost/serialization/array_wrapper.hpp>
+
 namespace fdl
 {
   namespace internal
@@ -125,7 +127,39 @@ namespace fdl
     velocity.update_ghost_values();
   }
 
+  template <int dim, int spacedim>
+  void
+  Part<dim, spacedim>::save(boost::archive::binary_oarchive &archive,
+                            const unsigned int               version) const
+  {
+    const_cast<Part<dim, spacedim> *>(this)->serialize(archive, version);
+  }
 
+
+  template <int dim, int spacedim>
+  void
+  Part<dim, spacedim>::load(boost::archive::binary_iarchive &archive,
+                            const unsigned int               version)
+  {
+    serialize(archive, version);
+
+    position.update_ghost_values();
+    velocity.update_ghost_values();
+  }
+
+  template <int dim, int spacedim>
+  template <class Archive>
+  void
+  Part<dim, spacedim>::serialize(Archive &ar, const unsigned int /*version*/)
+  {
+    boost::serialization::array_wrapper<double> position_wrapper(
+      position.begin(), position.locally_owned_size());
+    boost::serialization::array_wrapper<double> velocity_wrapper(
+      velocity.begin(), velocity.locally_owned_size());
+
+    ar &position_wrapper;
+    ar &velocity_wrapper;
+  }
 
   template <int dim, int spacedim>
   std::vector<const ForceContribution<dim, spacedim> *>

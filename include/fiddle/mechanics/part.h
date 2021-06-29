@@ -19,6 +19,9 @@
 #include <deal.II/matrix_free/matrix_free.h>
 #include <deal.II/matrix_free/operators.h>
 
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+
 #include <mpi.h>
 
 #include <memory>
@@ -60,6 +63,29 @@ namespace fdl
            Functions::IdentityFunction<spacedim>(),
          const Function<spacedim> &initial_velocity =
            Functions::ZeroFunction<spacedim>(spacedim));
+
+    /**
+     * Save the current state of the object to an archive.
+     *
+     * @note at the present time no information from the force contributions is
+     * saved. This may change in the future.
+     */
+    void
+    save(boost::archive::binary_oarchive &archive,
+         const unsigned int               version) const;
+
+    /**
+     * Load a previously saved state of the object from an archive.
+     *
+     * This function only makes sense if the Part has been set up in the same
+     * way as the one in the archive - in particular, they must use the same
+     * parallel data distribution and finite element spaces.
+     *
+     * @note at the present time no information from the force contributions is
+     * loaded. This may change in the future.
+     */
+    void
+    load(boost::archive::binary_iarchive &archive, const unsigned int version);
 
     /**
      * Move constructor.
@@ -160,6 +186,13 @@ namespace fdl
     set_velocity(LinearAlgebra::distributed::Vector<double> &&X);
 
   protected:
+    /**
+     * Actual archive function. Separate for now from load and save.
+     */
+    template <class Archive>
+    void
+    serialize(Archive &ar, const unsigned int version);
+
     /**
      * Triangulation of the part.
      */
