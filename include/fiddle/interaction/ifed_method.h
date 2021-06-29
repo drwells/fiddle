@@ -43,8 +43,15 @@ namespace fdl
     /**
      * Constructor. Assumes ownership of the provided parts.
      */
-    IFEDMethod(tbox::Pointer<tbox::Database>      input_db,
-               std::vector<Part<dim, spacedim>> &&input_parts);
+    IFEDMethod(const std::string &                object_name,
+               tbox::Pointer<tbox::Database>      input_db,
+               std::vector<Part<dim, spacedim>> &&input_parts,
+               const bool                         register_for_restart = true);
+
+    /**
+     * Destructor.
+     */
+    ~IFEDMethod();
 
     /**
      * @}
@@ -164,6 +171,9 @@ namespace fdl
      * @name book-keeping.
      * @{
      */
+    virtual void
+    putToDatabase(tbox::Pointer<tbox::Database> db) override;
+
     virtual const hier::IntVector<spacedim> &
     getMinimumGhostCellWidth() const override;
 
@@ -189,6 +199,10 @@ namespace fdl
      * Book-keeping
      * @{
      */
+    std::string object_name;
+
+    bool register_for_restart;
+
     tbox::Pointer<tbox::Database> input_db;
 
     // Get the correct temporary vector or (if time == current_time) the

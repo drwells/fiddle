@@ -180,7 +180,8 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
   parts.emplace_back(native_tria, fe, std::move(forces));
   tbox::Pointer<IBAMR::IBStrategy> ib_method_ops =
-    new fdl::IFEDMethod<dim>(input_db->getDatabase("IFEDMethod"),
+    new fdl::IFEDMethod<dim>("ifed_method",
+                             input_db->getDatabase("IFEDMethod"),
                              std::move(parts));
 
 
@@ -334,6 +335,14 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
             mpi_comm,
             8);
         }
+
+        if (app_initializer->dumpRestartData() &&
+            (iteration_num % app_initializer->getRestartDumpInterval() == 0))
+          {
+            tbox::pout << "\nWriting restart files...\n\n";
+            tbox::RestartManager::getManager()->writeRestartFile(
+                app_initializer->getRestartDumpDirectory(), iteration_num);
+          }
 
       if (app_initializer->dumpTimerData() &&
           (iteration_num % app_initializer->getTimerDumpInterval() == 0 ||

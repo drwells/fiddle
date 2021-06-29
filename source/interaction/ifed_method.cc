@@ -9,6 +9,7 @@
 #include <fiddle/mechanics/mechanics_utilities.h>
 
 #include <deal.II/base/mpi.h>
+#include <deal.II/base/utilities.h>
 
 #include <deal.II/distributed/shared_tria.h>
 
@@ -23,6 +24,7 @@
 #include <HierarchyDataOpsManager.h>
 #include <IntVector.h>
 #include <VariableDatabase.h>
+#include <tbox/RestartManager.h>
 #include <tbox/TimerManager.h>
 
 #include <deque>
@@ -55,15 +57,19 @@ namespace fdl
 
   template <int dim, int spacedim>
   IFEDMethod<dim, spacedim>::IFEDMethod(
+    const std::string &                object_name,
     tbox::Pointer<tbox::Database>      input_db,
-    std::vector<Part<dim, spacedim>> &&input_parts)
-    : input_db(input_db)
+    std::vector<Part<dim, spacedim>> &&input_parts,
+    const bool                         register_for_restart)
+    : object_name(object_name)
+    , register_for_restart(register_for_restart)
+    , input_db(copy_database(input_db))
     , started_time_integration(false)
     , current_time(std::numeric_limits<double>::signaling_NaN())
     , half_time(std::numeric_limits<double>::signaling_NaN())
     , new_time(std::numeric_limits<double>::signaling_NaN())
     , parts(std::move(input_parts))
-    , secondary_hierarchy("ifed::secondary_hierarchy",
+    , secondary_hierarchy(object_name + "::secondary_hierarchy",
                           input_db->getDatabase("GriddingAlgorithm"),
                           input_db->getDatabase("LoadBalancer"))
   {
@@ -103,7 +109,55 @@ namespace fdl
       set_timer("fdl::IFEDMethod::endDataRedistribution()");
     t_apply_gradient_detector =
       set_timer("fdl::IFEDMethod::applyGradientDetector()");
-    tbox::plog << "IFED ctor\n";
+
+    // Ignore RestartManager unless requested
+    if (register_for_restart)
+      {
+        if (tbox::RestartManager::getManager()->isFromRestart())
+          {
+            auto restart_db =
+              tbox::RestartManager::getManager()->getRootDatabase();
+            if (restart_db->isDatabase(object_name))
+              {
+                auto db = restart_db->getDatabase(object_name);
+                for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+                  {
+                    const std::string key = "part_" + std::to_string(part_n);
+                    Assert(db->keyExists(key),
+                           ExcMessage("Couldn't find key " + key +
+                                      " in the restart database"));
+                    // Same note from putToDatabase applies here
+                    std::vector<unsigned char> serialization =
+                      Utilities::decode_base64(db->getString(key));
+                    const std::string  serialization2(serialization.begin(),
+                                                     serialization.end());
+                    std::istringstream in_str(serialization2);
+                    boost::archive::binary_iarchive iarchive(in_str);
+                    parts[part_n].load(iarchive, 0);
+                  }
+              }
+            else
+              {
+                Assert(false,
+                       ExcMessage("The restart database does not contain key " +
+                                  object_name));
+              }
+          }
+        else
+          {
+            tbox::RestartManager::getManager()->registerRestartItem(object_name,
+                                                                    this);
+          }
+      }
+  }
+
+  template <int dim, int spacedim>
+  IFEDMethod<dim, spacedim>::~IFEDMethod()
+  {
+    if (register_for_restart)
+      {
+        tbox::RestartManager::getManager()->unregisterRestartItem(object_name);
+      }
   }
 
   template <int dim, int spacedim>
@@ -805,6 +859,30 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
+  IFEDMethod<dim, spacedim>::putToDatabase(tbox::Pointer<tbox::Database> db)
+  {
+    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+      {
+        std::ostringstream              out_str;
+        boost::archive::binary_oarchive oarchive(out_str);
+        parts[part_n].save(oarchive, 0);
+        // Unfortunately, SAMRAI doesn't understand that a std::string can
+        // contain NUL characters (it uses c_str(), which is wrong) so we have
+        // to do an extra translation to get around its bugs:
+        //
+        // TODO - we can probably avoid the extra copy here with some fancy
+        // boost wrappers
+        const std::string          out = out_str.str();
+        std::vector<unsigned char> out_str2(out.begin(), out.end());
+        db->putString("part_" + std::to_string(part_n),
+                      Utilities::encode_base64(out_str2));
+      }
+  }
+
+
+
+  template <int dim, int spacedim>
+  void
   IFEDMethod<dim, spacedim>::registerEulerianVariables()
   {
     // we need ghosts for CONSERVATIVE_LINEAR_REFINE
@@ -819,6 +897,7 @@ namespace fdl
                      "CONSERVATIVE_COARSEN",
                      "CONSERVATIVE_LINEAR_REFINE");
   }
+
 
 
   template <int dim, int spacedim>

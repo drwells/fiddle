@@ -59,7 +59,9 @@ public:
   IFEDMethod2(tbox::Pointer<tbox::Database>           test_db,
               tbox::Pointer<tbox::Database>           input_db,
               std::vector<fdl::Part<dim, spacedim>> &&input_parts)
-    : fdl::IFEDMethod<dim, spacedim>(input_db, std::move(input_parts))
+    : fdl::IFEDMethod<dim, spacedim>("ifed_method",
+                                     input_db,
+                                     std::move(input_parts))
     , test_db(test_db)
   {}
 
