@@ -65,6 +65,7 @@ SETUP(base qgauss_family_01.cc fiddle3d)
 SETUP(base qgauss_family_02.cc fiddle3d)
 
 SETUP(base copy_database.cc fiddle2d)
+SETUP(base base64.cc fiddle2d)
 
 SETUP_2D(base nonintersecting_sphere_01.cc)
 SETUP_3D(base nonintersecting_sphere_01.cc)

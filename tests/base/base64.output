@@ -1,0 +1,54 @@
+start:  
+base64: 
+output: 
+start:  l
+base64: bA==
+output: l
+start:  lo
+base64: bG8=
+output: lo
+start:  lor
+base64: bG9y
+output: lor
+start:  lore
+base64: bG9yZQ==
+output: lore
+start:  lorem
+base64: bG9yZW0=
+output: lorem
+start:  lorem 
+base64: bG9yZW0g
+output: lorem 
+start:  lorem i
+base64: bG9yZW0gaQ==
+output: lorem i
+start:  lorem ip
+base64: bG9yZW0gaXA=
+output: lorem ip
+start:  lorem ips
+base64: bG9yZW0gaXBz
+output: lorem ips
+start:  
+base64: 
+output: 
+start:  0,
+base64: AAAAAA==
+output: 0,
+start:  0,1,
+base64: AAAAAAEAAAA=
+output: 0,1,
+start:  0,1,2,
+base64: AAAAAAEAAAACAAAA
+output: 0,1,2,
+start:  0,1,2,3,
+base64: AAAAAAEAAAACAAAAAwAAAA==
+output: 0,1,2,3,
+start:  0,1,2,3,4,
+base64: AAAAAAEAAAACAAAAAwAAAAQAAAA=
+output: 0,1,2,3,4,
+start:  0,1,2,3,4,5,
+base64: AAAAAAEAAAACAAAAAwAAAAQAAAAFAAAA
+output: 0,1,2,3,4,5,
+start:  0,1,2,3,4,5,6,
+base64: AAAAAAEAAAACAAAAAwAAAAQAAAAFAAAABgAAAA==
+output: 0,1,2,3,4,5,6,

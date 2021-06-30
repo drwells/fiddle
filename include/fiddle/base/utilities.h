@@ -4,6 +4,7 @@
 #include <deal.II/base/point.h>
 
 #include <algorithm>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -110,6 +111,20 @@ namespace fdl
 
     return std::make_pair(best_center, best_diameter);
   }
+
+  /**
+   * Encode arbitrary data from binary to base64. The output type is a string so
+   * that this can be easily saved to a SAMRAI database.
+   */
+  std::string
+  encode_base64(const char *begin, const char *end);
+
+  /**
+   * Decode arbitrary data from base64 back to binary. The output type is a
+   * string so that this can be easily read from with std::istringstream.
+   */
+  std::string
+  decode_base64(const char *begin, const char *end);
 } // namespace fdl
 
 #endif
