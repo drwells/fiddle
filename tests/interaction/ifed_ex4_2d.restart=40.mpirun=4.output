@@ -1,5 +1,5 @@
 Number of elements = 320
-IBHierarchyIntegrator::initializePatchHierarchy(): tag_buffer = 3
+IBHierarchyIntegrator::initializePatchHierarchy(): tag_buffer = 0
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 At beginning of timestep # 40
@@ -13,8 +13,8 @@ IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-S
 IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
 IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian midpoint-rule step
 IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
-IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0164494
-IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0636402
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0198896
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0396165
 IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
 IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
 
@@ -27,15 +27,6 @@ Simulation time is 0.0200195
 At beginning of timestep # 41
 Simulation time is 0.0200195
 IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.0200195,0.0205078], dt = 0.000488281
-IBHierarchyIntegrator::advanceHierarchy(): regridding prior to timestep 41
-IBHierarchyIntegrator::regridHierarchy(): starting Lagrangian data movement
-IBHierarchyIntegrator::regridHierarchy(): regridding the patch hierarchy
-IBHierarchyIntegrator::regridHierarchy(): finishing Lagrangian data movement
-IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 1752
-IFEDMethod::endDataRedistribution(): workload estimate on processor 1 = 1752
-IFEDMethod::endDataRedistribution(): workload estimate on processor 2 = 1864
-IFEDMethod::endDataRedistribution(): workload estimate on processor 3 = 1864
-IFEDMethod::endDataRedistribution(): total workload = 7232
 IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
 IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
 IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
@@ -44,8 +35,8 @@ IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-S
 IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
 IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian midpoint-rule step
 IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
-IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0167794
-IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0167794
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0200463
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0596628
 IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
 IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
 
@@ -58,6 +49,15 @@ Simulation time is 0.0205078
 At beginning of timestep # 42
 Simulation time is 0.0205078
 IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.0205078,0.0209961], dt = 0.000488281
+IBHierarchyIntegrator::advanceHierarchy(): regridding prior to timestep 42
+IBHierarchyIntegrator::regridHierarchy(): starting Lagrangian data movement
+IBHierarchyIntegrator::regridHierarchy(): regridding the patch hierarchy
+IBHierarchyIntegrator::regridHierarchy(): finishing Lagrangian data movement
+IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 1906
+IFEDMethod::endDataRedistribution(): workload estimate on processor 1 = 1907
+IFEDMethod::endDataRedistribution(): workload estimate on processor 2 = 1845
+IFEDMethod::endDataRedistribution(): workload estimate on processor 3 = 1574
+IFEDMethod::endDataRedistribution(): total workload = 7232
 IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
 IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
 IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
@@ -66,8 +66,8 @@ IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-S
 IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
 IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian midpoint-rule step
 IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
-IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0170933
-IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0338727
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0201972
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0201972
 IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
 IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
 
@@ -88,8 +88,8 @@ IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-S
 IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
 IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian midpoint-rule step
 IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
-IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0173919
-IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0512646
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0203425
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0405396
 IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
 IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
 
@@ -102,15 +102,6 @@ Simulation time is 0.0214844
 At beginning of timestep # 44
 Simulation time is 0.0214844
 IBHierarchyIntegrator::advanceHierarchy(): time interval = [0.0214844,0.0219727], dt = 0.000488281
-IBHierarchyIntegrator::advanceHierarchy(): regridding prior to timestep 44
-IBHierarchyIntegrator::regridHierarchy(): starting Lagrangian data movement
-IBHierarchyIntegrator::regridHierarchy(): regridding the patch hierarchy
-IBHierarchyIntegrator::regridHierarchy(): finishing Lagrangian data movement
-IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 1752
-IFEDMethod::endDataRedistribution(): workload estimate on processor 1 = 1752
-IFEDMethod::endDataRedistribution(): workload estimate on processor 2 = 1864
-IFEDMethod::endDataRedistribution(): workload estimate on processor 3 = 1864
-IFEDMethod::endDataRedistribution(): total workload = 7232
 IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
 IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
 IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
@@ -119,8 +110,8 @@ IBHierarchyIntegrator::integrateHierarchy(): solving the incompressible Navier-S
 IBHierarchyIntegrator::integrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
 IBHierarchyIntegrator::integrateHierarchy(): performing Lagrangian midpoint-rule step
 IBHierarchyIntegrator::postprocessIntegrateHierarchy(): interpolating Eulerian velocity to the Lagrangian mesh
-IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0176763
-IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0176763
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): CFL number = 0.0204826
+IBHierarchyIntegrator::postprocessIntegrateHierarchy(): Eulerian estimate of upper bound on IB point displacement since last regrid = 0.0610222
 IBHierarchyIntegrator::advanceHierarchy(): synchronizing updated data
 IBHierarchyIntegrator::advanceHierarchy(): resetting time dependent data
 
@@ -130,4 +121,112 @@ Simulation time is 0.0219727
 
 
 Writing visualization files...
+
+rank = 0
+position:
+0.3998335292582995
+0.5000451282766496
+0.4175119597244276
+0.5000372577221753
+0.4086702267861766
+...
+0.5836724287925025
+0.5998030467467901
+0.5673643940027325
+0.5918328504641815
+0.5669111038367028
+
+velocity:
+-0.01277950857629154
+0.003510672450647152
+-0.01278546290807599
+0.002904927824573991
+-0.01292790837070676
+...
+-0.003858034877667603
+-0.01523835355611903
+-0.00411640266102187
+-0.01528926596798662
+-0.003777096333634221
+
+rank = 1
+position:
+0.6144830468081777
+0.4999485497703993
+0.607159709160637
+0.4999518402797938
+0.6291299403932139
+...
+0.5697627160111186
+0.6646570423029965
+0.5753942910632615
+0.6556004720666849
+0.5641310580799938
+
+velocity:
+-0.01248614489854406
+-0.003990858253445391
+-0.01256465825307348
+-0.003734698097671425
+-0.01231198841553619
+...
+-0.006726119624465761
+-0.01474798282337761
+-0.007017889291345639
+-0.01440858331300788
+-0.006440946772324366
+
+rank = 2
+position:
+0.4584613961528188
+0.3585889390557034
+0.488769767740328
+0.3337128408694772
+0.4688126684205681
+...
+0.492630478360754
+0.629133187434064
+0.492620829709766
+0.6218097086730097
+0.492624042054857
+
+velocity:
+-0.009041564084780624
+0.0008213840125063761
+-0.008893702331591133
+0.0004805432520013338
+-0.009328386087877873
+...
+-0.003659344375364912
+-0.01205932877921494
+-0.004410174962350302
+-0.01214892654930738
+-0.004160207869629171
+
+rank = 3
+position:
+0.5608645479957544
+0.30382709110955
+0.5645765623192466
+0.3233166920415317
+0.5627222094970062
+...
+0.4839897119255701
+0.665902271638373
+0.4760220445792602
+0.6668110677869964
+0.491957352102324
+
+velocity:
+-0.008813057668639648
+-0.001164503209924052
+-0.007674152141907414
+-0.001239525594020766
+-0.008158057839656665
+...
+-0.005528026381402923
+-0.0109785163872602
+-0.005381902524690634
+-0.01148376918205058
+-0.005676196098994184
 
