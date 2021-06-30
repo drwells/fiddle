@@ -1,4 +1,5 @@
 #include <fiddle/base/samrai_utilities.h>
+#include <fiddle/base/utilities.h>
 
 #include <fiddle/grid/box_utilities.h>
 
@@ -127,11 +128,11 @@ namespace fdl
                            ExcMessage("Couldn't find key " + key +
                                       " in the restart database"));
                     // Same note from putToDatabase applies here
-                    std::vector<unsigned char> serialization =
-                      Utilities::decode_base64(db->getString(key));
-                    const std::string  serialization2(serialization.begin(),
-                                                     serialization.end());
-                    std::istringstream in_str(serialization2);
+                    const std::string base64 = db->getString(key);
+                    std::string serialization =
+                      decode_base64(base64.c_str(),
+                                    base64.c_str() + base64.size());
+                    std::istringstream in_str(serialization);
                     boost::archive::binary_iarchive iarchive(in_str);
                     parts[part_n].load(iarchive, 0);
                   }
@@ -870,12 +871,11 @@ namespace fdl
         // contain NUL characters (it uses c_str(), which is wrong) so we have
         // to do an extra translation to get around its bugs:
         //
-        // TODO - we can probably avoid the extra copy here with some fancy
-        // boost wrappers
+        // TODO - with C++20 we can use view() instead of str() and skip one
+        // more copy
         const std::string          out = out_str.str();
-        std::vector<unsigned char> out_str2(out.begin(), out.end());
         db->putString("part_" + std::to_string(part_n),
-                      Utilities::encode_base64(out_str2));
+                      encode_base64(out.c_str(), out.c_str() + out.size()));
       }
   }
 
