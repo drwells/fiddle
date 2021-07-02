@@ -287,7 +287,7 @@ namespace fdl
   inline const Part<dim, spacedim> &
   IFEDMethod<dim, spacedim>::get_part(const unsigned int part_n) const
   {
-    Assert(part_n < parts.size(), ExcMessage("out of range"));
+    AssertIndexRange(part_n, parts.size());
     return parts[part_n];
   }
 
