@@ -312,12 +312,12 @@ namespace fdl
   template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
   InteractionBase<dim, spacedim>::compute_projection_rhs_start(
-    const int                                         f_data_idx,
+    const int                                         data_idx,
     const DoFHandler<dim, spacedim> &                 position_dof_handler,
     const LinearAlgebra::distributed::Vector<double> &position,
-    const DoFHandler<dim, spacedim> &                 F_dof_handler,
-    const Mapping<dim, spacedim> &                    F_mapping,
-    LinearAlgebra::distributed::Vector<double> &      F_rhs)
+    const DoFHandler<dim, spacedim> &                 dof_handler,
+    const Mapping<dim, spacedim> &                    mapping,
+    LinearAlgebra::distributed::Vector<double> &      rhs)
   {
 #ifdef DEBUG
     {
@@ -331,10 +331,10 @@ namespace fdl
                "The same communicator should be used for position and the "
                "input triangulation"));
       ierr =
-        MPI_Comm_compare(communicator, F_rhs.get_mpi_communicator(), &result);
+        MPI_Comm_compare(communicator, rhs.get_mpi_communicator(), &result);
       AssertThrowMPI(ierr);
       Assert(result == MPI_CONGRUENT,
-             ExcMessage("The same communicator should be used for F_rhs and "
+             ExcMessage("The same communicator should be used for rhs and "
                         "the input triangulation"));
     }
 #endif
@@ -343,7 +343,7 @@ namespace fdl
 
     Transaction<dim, spacedim> &transaction = *t_ptr;
     // set up everything we will need later
-    transaction.current_f_data_idx = f_data_idx;
+    transaction.current_data_idx = data_idx;
 
     // Setup position info:
     transaction.native_position_dof_handler = &position_dof_handler;
@@ -352,13 +352,13 @@ namespace fdl
       get_overlap_dof_handler(position_dof_handler).n_dofs());
     transaction.position_scatter = get_scatter(position_dof_handler);
 
-    // Setup F info:
-    transaction.native_F_dof_handler = &F_dof_handler;
-    transaction.F_mapping            = &F_mapping;
-    transaction.native_F_rhs         = &F_rhs;
-    transaction.overlap_F.reinit(
-      get_overlap_dof_handler(F_dof_handler).n_dofs());
-    transaction.F_scatter = get_scatter(F_dof_handler);
+    // Setup rhs info:
+    transaction.native_dof_handler = &dof_handler;
+    transaction.mapping            = &mapping;
+    transaction.native_rhs         = &rhs;
+    transaction.overlap_rhs.reinit(
+      get_overlap_dof_handler(dof_handler).n_dofs());
+    transaction.rhs_scatter = get_scatter(dof_handler);
 
     // Setup state:
     transaction.next_state = Transaction<dim, spacedim>::State::Intermediate;
@@ -395,10 +395,10 @@ namespace fdl
 
     // This object *cannot* get here without the first scatter finishing so
     // using channel 0 again is fine
-    trans.F_scatter.overlap_to_global_start(trans.overlap_F,
-                                            VectorOperation::add,
-                                            0,
-                                            *trans.native_F_rhs);
+    trans.rhs_scatter.overlap_to_global_start(trans.overlap_rhs,
+                                              VectorOperation::add,
+                                              0,
+                                              *trans.native_rhs);
 
     trans.next_state = Transaction<dim, spacedim>::State::Finish;
 
@@ -419,14 +419,14 @@ namespace fdl
     Assert((trans.next_state == Transaction<dim, spacedim>::State::Finish),
            ExcMessage("Transaction state should be Finish"));
 
-    trans.F_scatter.overlap_to_global_finish(trans.overlap_F,
-                                             VectorOperation::add,
-                                             *trans.native_F_rhs);
+    trans.rhs_scatter.overlap_to_global_finish(trans.overlap_rhs,
+                                               VectorOperation::add,
+                                               *trans.native_rhs);
     trans.next_state = Transaction<dim, spacedim>::State::Done;
 
     return_scatter(*trans.native_position_dof_handler,
                    std::move(trans.position_scatter));
-    return_scatter(*trans.native_F_dof_handler, std::move(trans.F_scatter));
+    return_scatter(*trans.native_dof_handler, std::move(trans.rhs_scatter));
   }
 
 
@@ -434,12 +434,12 @@ namespace fdl
   template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
   InteractionBase<dim, spacedim>::compute_spread_start(
-    const int                                         f_data_idx,
+    const int                                         data_idx,
     const LinearAlgebra::distributed::Vector<double> &position,
     const DoFHandler<dim, spacedim> &                 position_dof_handler,
-    const Mapping<dim, spacedim> &                    F_mapping,
-    const DoFHandler<dim, spacedim> &                 F_dof_handler,
-    const LinearAlgebra::distributed::Vector<double> &F)
+    const Mapping<dim, spacedim> &                    mapping,
+    const DoFHandler<dim, spacedim> &                 dof_handler,
+    const LinearAlgebra::distributed::Vector<double> &solution)
   {
 #ifdef DEBUG
     {
@@ -452,11 +452,14 @@ namespace fdl
              ExcMessage(
                "The same communicator should be used for position and the "
                "input triangulation"));
-      ierr = MPI_Comm_compare(communicator, F.get_mpi_communicator(), &result);
+      ierr = MPI_Comm_compare(communicator,
+                              solution.get_mpi_communicator(),
+                              &result);
       AssertThrowMPI(ierr);
       Assert(result == MPI_CONGRUENT,
-             ExcMessage("The same communicator should be used for F and the "
-                        "input triangulation"));
+             ExcMessage(
+               "The same communicator should be used for solution and the "
+               "input triangulation"));
     }
 #endif
 
@@ -464,7 +467,7 @@ namespace fdl
 
     Transaction<dim, spacedim> &transaction = *t_ptr;
     // set up everything we will need later
-    transaction.current_f_data_idx = f_data_idx;
+    transaction.current_data_idx = data_idx;
 
     // Setup position info:
     transaction.native_position_dof_handler = &position_dof_handler;
@@ -473,13 +476,13 @@ namespace fdl
     transaction.overlap_position.reinit(
       get_overlap_dof_handler(position_dof_handler).n_dofs());
 
-    // Setup F info:
-    transaction.native_F_dof_handler = &F_dof_handler;
-    transaction.F_scatter            = get_scatter(F_dof_handler);
-    transaction.F_mapping            = &F_mapping;
-    transaction.native_F             = &F;
-    transaction.overlap_F.reinit(
-      get_overlap_dof_handler(F_dof_handler).n_dofs());
+    // Setup solution info:
+    transaction.native_dof_handler = &dof_handler;
+    transaction.solution_scatter   = get_scatter(dof_handler);
+    transaction.mapping            = &mapping;
+    transaction.native_solution    = &solution;
+    transaction.overlap_solution.reinit(
+      get_overlap_dof_handler(dof_handler).n_dofs());
 
     // Setup state:
     transaction.next_state = Transaction<dim, spacedim>::State::Intermediate;
@@ -492,9 +495,8 @@ namespace fdl
     transaction.position_scatter.global_to_overlap_start(
       *transaction.native_position, 0, transaction.overlap_position);
 
-    transaction.F_scatter.global_to_overlap_start(*transaction.native_F,
-                                                  1,
-                                                  transaction.overlap_F);
+    transaction.solution_scatter.global_to_overlap_start(
+      *transaction.native_solution, 1, transaction.overlap_solution);
 
     return t_ptr;
   }
@@ -516,7 +518,8 @@ namespace fdl
 
     trans.position_scatter.global_to_overlap_finish(*trans.native_position,
                                                     trans.overlap_position);
-    trans.F_scatter.global_to_overlap_finish(*trans.native_F, trans.overlap_F);
+    trans.solution_scatter.global_to_overlap_finish(*trans.native_solution,
+                                                    trans.overlap_solution);
 
     // this is the point at which a base class would normally do computations.
 
@@ -545,7 +548,8 @@ namespace fdl
 
     return_scatter(*trans.native_position_dof_handler,
                    std::move(trans.position_scatter));
-    return_scatter(*trans.native_F_dof_handler, std::move(trans.F_scatter));
+    return_scatter(*trans.native_dof_handler,
+                   std::move(trans.solution_scatter));
   }
 
   template <int dim, int spacedim>

@@ -119,21 +119,21 @@ namespace fdl
       trans.overlap_position);
 
     // Actually do the interpolation:
-    compute_projection_rhs(trans.current_f_data_idx,
+    compute_projection_rhs(trans.current_data_idx,
                            this->patch_map,
                            position_mapping,
                            quadrature_indices,
                            quadratures,
                            this->get_overlap_dof_handler(
-                             *trans.native_F_dof_handler),
-                           *trans.F_mapping,
-                           trans.overlap_F);
+                             *trans.native_dof_handler),
+                           *trans.mapping,
+                           trans.overlap_rhs);
 
     // After we compute we begin the scatter back to the native partitioning:
-    trans.F_scatter.overlap_to_global_start(trans.overlap_F,
-                                            VectorOperation::add,
-                                            0,
-                                            *trans.native_F_rhs);
+    trans.rhs_scatter.overlap_to_global_start(trans.overlap_rhs,
+                                              VectorOperation::add,
+                                              0,
+                                              *trans.native_rhs);
 
     trans.next_state = Transaction<dim, spacedim>::State::Finish;
 
@@ -157,21 +157,22 @@ namespace fdl
     trans.position_scatter.global_to_overlap_finish(*trans.native_position,
                                                     trans.overlap_position);
 
-    trans.F_scatter.global_to_overlap_finish(*trans.native_F, trans.overlap_F);
+    trans.solution_scatter.global_to_overlap_finish(*trans.native_solution,
+                                                    trans.overlap_solution);
 
     MappingFEField<dim, spacedim, Vector<double>> position_mapping(
       this->get_overlap_dof_handler(*trans.native_position_dof_handler),
       trans.overlap_position);
 
     // Actually do the spreading:
-    compute_spread(trans.current_f_data_idx,
+    compute_spread(trans.current_data_idx,
                    this->patch_map,
                    position_mapping,
                    quadrature_indices,
                    quadratures,
-                   this->get_overlap_dof_handler(*trans.native_F_dof_handler),
-                   *trans.F_mapping,
-                   trans.overlap_F);
+                   this->get_overlap_dof_handler(*trans.native_dof_handler),
+                   *trans.mapping,
+                   trans.overlap_solution);
 
     trans.next_state = Transaction<dim, spacedim>::State::Finish;
 

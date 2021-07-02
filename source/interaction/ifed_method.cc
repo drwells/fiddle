@@ -217,13 +217,13 @@ namespace fdl
 
     std::vector<std::unique_ptr<TransactionBase>> transactions;
     // we emplace_back so use a deque to keep pointers valid
-    std::deque<LinearAlgebra::distributed::Vector<double>> F_rhs_vecs;
+    std::deque<LinearAlgebra::distributed::Vector<double>> rhs_vecs;
 
     // start:
     for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
       {
         const Part<dim, spacedim> &part = parts[part_n];
-        F_rhs_vecs.emplace_back(part.get_partitioner());
+        rhs_vecs.emplace_back(part.get_partitioner());
         transactions.emplace_back(
           interactions[part_n]->compute_projection_rhs_start(
             u_data_index,
@@ -231,7 +231,7 @@ namespace fdl
             get_position(part_n, data_time),
             part.get_dof_handler(),
             part.get_mapping(),
-            F_rhs_vecs[part_n]));
+            rhs_vecs[part_n]));
       }
 
     // Compute:
@@ -248,14 +248,14 @@ namespace fdl
     // Project:
     for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
       {
-        SolverControl control(1000, 1e-14 * F_rhs_vecs[part_n].l2_norm());
+        SolverControl control(1000, 1e-14 * rhs_vecs[part_n].l2_norm());
         SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
         LinearAlgebra::distributed::Vector<double>           velocity(
           parts[part_n].get_partitioner());
         // TODO - implement initial guess stuff here
         cg.solve(parts[part_n].get_mass_operator(),
                  velocity,
-                 F_rhs_vecs[part_n],
+                 rhs_vecs[part_n],
                  parts[part_n].get_mass_preconditioner());
         if (std::abs(data_time - half_time) < 1e-14)
           {

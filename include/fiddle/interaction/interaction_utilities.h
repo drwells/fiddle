@@ -84,7 +84,7 @@ namespace fdl
    * Compute the right-hand side used to project the velocity from Eulerian to
    * Lagrangian representation.
    *
-   * @param[in] f_data_idx the SAMRAI patch data index we are interpolating. The
+   * @param[in] data_idx the SAMRAI patch data index we are interpolating. The
    * depth of the variable must match the number of components of the finite
    * element.
    *
@@ -100,13 +100,13 @@ namespace fdl
    *
    * @param[in] quadratures The vector of quadratures we use to interpolate.
    *
-   * @param[in] F_dof_handler DoFHandler for the finite element we are
+   * @param[in] dof_handler DoFHandler for the finite element we are
    * interpolating onto.
    *
-   * @param[in] F_mapping Mapping for computing values of the finite element
+   * @param[in] mapping Mapping for computing values of the finite element
    * field on the reference configuration.
    *
-   * @param[out] F_rhs The load vector populated by this operation.
+   * @param[out] rhs The load vector populated by this operation.
    *
    * @note In general, an OverlappingTriangulation has no knowledge of whether
    * or not DoFs on its boundaries should be constrained. Hence information must
@@ -115,20 +115,20 @@ namespace fdl
    */
   template <int dim, int spacedim = dim>
   void
-  compute_projection_rhs(const int                           f_data_idx,
+  compute_projection_rhs(const int                           data_idx,
                          const PatchMap<dim, spacedim> &     patch_map,
                          const Mapping<dim, spacedim> &      position_mapping,
                          const std::vector<unsigned char> &  quadrature_indices,
                          const std::vector<Quadrature<dim>> &quadratures,
-                         const DoFHandler<dim, spacedim> &   F_dof_handler,
-                         const Mapping<dim, spacedim> &      F_mapping,
-                         Vector<double> &                    F_rhs);
+                         const DoFHandler<dim, spacedim> &   dof_handler,
+                         const Mapping<dim, spacedim> &      mapping,
+                         Vector<double> &                    rhs);
 
   /**
-   * Compute (by adding into the patch index @p f_data_idx) the forces on the
+   * Compute (by adding into the patch index @p data_idx) the forces on the
    * Eulerian grid corresponding to the Lagrangian field F.
    *
-   * @param[in] f_data_idx the SAMRAI patch data index into which we are
+   * @param[in] data_idx the SAMRAI patch data index into which we are
    * spreading. The depth of the variable must match the number of components of
    * the finite element.
    *
@@ -146,24 +146,24 @@ namespace fdl
    *
    * @param[in] quadratures The vector of quadratures we use to interpolate.
    *
-   * @param[in] F_dof_handler DoFHandler for the finite element we are
+   * @param[in] dof_handler DoFHandler for the finite element we are
    * spreading from.
    *
-   * @param[in] F_mapping Mapping for computing values of the finite element
+   * @param[in] mapping Mapping for computing values of the finite element
    * field on the reference configuration.
    *
-   * @param[in] F The finite element field we are spreading from.
+   * @param[in] solution The finite element field we are spreading from.
    */
   template <int dim, int spacedim>
   void
-  compute_spread(const int                           f_data_idx,
+  compute_spread(const int                           data_idx,
                  PatchMap<dim, spacedim> &           patch_map,
                  const Mapping<dim, spacedim> &      position_mapping,
                  const std::vector<unsigned char> &  quadrature_indices,
                  const std::vector<Quadrature<dim>> &quadratures,
-                 const DoFHandler<dim, spacedim> &   F_dof_handler,
-                 const Mapping<dim, spacedim> &      F_mapping,
-                 const Vector<double> &              F);
+                 const DoFHandler<dim, spacedim> &   dof_handler,
+                 const Mapping<dim, spacedim> &      mapping,
+                 const Vector<double> &              solution);
 
 } // namespace fdl
 #endif

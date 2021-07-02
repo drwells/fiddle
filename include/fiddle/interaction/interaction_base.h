@@ -55,7 +55,7 @@ namespace fdl
   struct Transaction : public TransactionBase
   {
     /// Current patch index.
-    int current_f_data_idx;
+    int current_data_idx;
 
     /// Native position DoFHandler.
     SmartPointer<const DoFHandler<dim, spacedim>> native_position_dof_handler;
@@ -70,23 +70,30 @@ namespace fdl
     /// Overlap-partitioned position.
     Vector<double> overlap_position;
 
-    /// Native F DoFHandler.
-    SmartPointer<const DoFHandler<dim, spacedim>> native_F_dof_handler;
+    /// Native DoFHandler.
+    SmartPointer<const DoFHandler<dim, spacedim>> native_dof_handler;
 
-    /// F scatter.
-    Scatter<double> F_scatter;
+    /// The other scatter (used for spreading).
+    Scatter<double> solution_scatter;
 
-    /// Mapping to use for F.
-    SmartPointer<const Mapping<dim, spacedim>> F_mapping;
+    /// The other scatter (used for assembly).
+    Scatter<double> rhs_scatter;
 
-    /// Native-partitioned F used for assembly.
-    SmartPointer<LinearAlgebra::distributed::Vector<double>> native_F_rhs;
+    /// Mapping to use for the provided finite element field.
+    SmartPointer<const Mapping<dim, spacedim>> mapping;
 
-    /// Native-partitioned F used for spreading.
-    SmartPointer<const LinearAlgebra::distributed::Vector<double>> native_F;
+    /// Native-partitioned vector used for assembly.
+    SmartPointer<LinearAlgebra::distributed::Vector<double>> native_rhs;
 
-    /// Overlap-partitioned F.
-    Vector<double> overlap_F;
+    /// Native-partitioned vector used for spreading.
+    SmartPointer<const LinearAlgebra::distributed::Vector<double>>
+      native_solution;
+
+    /// Overlap-partitioned vector used for assembly.
+    Vector<double> overlap_rhs;
+
+    /// Overlap-partitioned vector used for spreading.
+    Vector<double> overlap_solution;
 
     /// Possible states for a transaction.
     enum class State
@@ -178,7 +185,7 @@ namespace fdl
 
     /**
      * Start the computation of the RHS vector corresponding to projecting @p
-     * f_data_idx onto the finite element space specified by @p F_dof_handler.
+     * data_idx onto the finite element space specified by @p dof_handler.
      * Since interpolation requires multiple data transfers it is split into
      * three parts. In particular, this first function begins the asynchronous
      * scatter from the native representation to the overlapping
@@ -193,12 +200,12 @@ namespace fdl
      */
     virtual std::unique_ptr<TransactionBase>
     compute_projection_rhs_start(
-      const int                                         f_data_idx,
+      const int                                         data_idx,
       const DoFHandler<dim, spacedim> &                 position_dof_handler,
       const LinearAlgebra::distributed::Vector<double> &position,
-      const DoFHandler<dim, spacedim> &                 F_dof_handler,
-      const Mapping<dim, spacedim> &                    F_mapping,
-      LinearAlgebra::distributed::Vector<double> &      F_rhs);
+      const DoFHandler<dim, spacedim> &                 dof_handler,
+      const Mapping<dim, spacedim> &                    mapping,
+      LinearAlgebra::distributed::Vector<double> &      rhs);
 
     /**
      * Middle part of velocity interpolation - finalizes the forward scatters
@@ -213,7 +220,7 @@ namespace fdl
 
     /**
      * Finish the computation of the RHS vector corresponding to projecting @p
-     * f_data_idx onto the finite element space specified by @p F_dof_handler.
+     * data_idx onto the finite element space specified by @p dof_handler.
      * This step accumulates the RHS vector computed in the overlap
      * representation back to the native representation.
      */
@@ -222,10 +229,10 @@ namespace fdl
 
     /**
      * Start spreading from the provided finite element field @p F by adding
-     * them onto the SAMRAI data index @p f_data_idx.
+     * them onto the SAMRAI data index @p data_idx.
      *
      * Since, for multi-part models, many different objects may add forces into
-     * @p f_data_idx, at the end of the three spread functions forces may be
+     * @p data_idx, at the end of the three spread functions forces may be
      * spread into ghost regions (both between patches and outside the physical
      * domain). The caller must use, e.g., IBTK::RobinPhysBdryPatchStrategy and
      * IBTK::SAMRAIGhostDataAccumulator (in that order) to communicate spread
@@ -237,12 +244,12 @@ namespace fdl
      */
     virtual std::unique_ptr<TransactionBase>
     compute_spread_start(
-      const int                                         f_data_idx,
+      const int                                         data_idx,
       const LinearAlgebra::distributed::Vector<double> &position,
       const DoFHandler<dim, spacedim> &                 position_dof_handler,
-      const Mapping<dim, spacedim> &                    F_mapping,
-      const DoFHandler<dim, spacedim> &                 F_dof_handler,
-      const LinearAlgebra::distributed::Vector<double> &F);
+      const Mapping<dim, spacedim> &                    mapping,
+      const DoFHandler<dim, spacedim> &                 dof_handler,
+      const LinearAlgebra::distributed::Vector<double> &solution);
 
     /**
      * Middle part of spreading - performs the actual computations and does not
@@ -257,7 +264,7 @@ namespace fdl
 
     /**
      * Finish spreading from the provided finite element field @p F by adding
-     * them onto the SAMRAI data index @p f_data_idx.
+     * them onto the SAMRAI data index @p data_idx.
      */
     virtual void
     compute_spread_finish(std::unique_ptr<TransactionBase> spread_transaction);
