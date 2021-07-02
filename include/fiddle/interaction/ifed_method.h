@@ -28,6 +28,19 @@ namespace fdl
    * equal to NDIM (the IBAMR spatial dimension macro). Like elsewhere in the
    * library, since template parameters are preferrable to macros, while the two
    * are equal we use spacedim whenever possible.
+   *
+   * <h2>Options read from the input database</h2>
+   * <ul>
+   *   <li>enable_logging: whether or not to log things like the workload.
+   *     Defaults to FALSE.</li>
+   *   <li>skip_initial_workload: whether to skip printing the initial workload,
+   *     to work around an issue with SAMRAI. This is typically not necessary to
+   *     set inside user codes. Defaults to FALSE.</li>
+   *   <li>GriddingAlgorithm: Database for setting up the internal
+   *     GriddingAlgorithm object.</li>
+   *   <li>LoadBalancer: Database for setting up the internal LoadBalancer
+   *     object.</li>
+   * </ul>
    */
   template <int dim, int spacedim = dim>
   class IFEDMethod : public IBAMR::IBStrategy
