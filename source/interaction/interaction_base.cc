@@ -312,6 +312,7 @@ namespace fdl
   template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
   InteractionBase<dim, spacedim>::compute_projection_rhs_start(
+    const std::string &                               kernel_name,
     const int                                         data_idx,
     const DoFHandler<dim, spacedim> &                 position_dof_handler,
     const LinearAlgebra::distributed::Vector<double> &position,
@@ -343,6 +344,7 @@ namespace fdl
 
     Transaction<dim, spacedim> &transaction = *t_ptr;
     // set up everything we will need later
+    transaction.kernel_name      = kernel_name;
     transaction.current_data_idx = data_idx;
 
     // Setup position info:
@@ -434,6 +436,7 @@ namespace fdl
   template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
   InteractionBase<dim, spacedim>::compute_spread_start(
+    const std::string &                               kernel_name,
     const int                                         data_idx,
     const LinearAlgebra::distributed::Vector<double> &position,
     const DoFHandler<dim, spacedim> &                 position_dof_handler,
@@ -467,6 +470,7 @@ namespace fdl
 
     Transaction<dim, spacedim> &transaction = *t_ptr;
     // set up everything we will need later
+    transaction.kernel_name      = kernel_name;
     transaction.current_data_idx = data_idx;
 
     // Setup position info:

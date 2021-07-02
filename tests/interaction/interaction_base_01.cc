@@ -125,8 +125,14 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     F_dof_handler.locally_owned_dofs(), locally_relevant_F_dofs, mpi_comm);
   LinearAlgebra::distributed::Vector<double> F_rhs(F_partitioner);
 
-  auto transaction = interaction_base.compute_projection_rhs_start(
-    f_idx, position_dof_handler, position, F_dof_handler, F_mapping, F_rhs);
+  auto transaction =
+    interaction_base.compute_projection_rhs_start("BSPLINE_3",
+                                                  f_idx,
+                                                  position_dof_handler,
+                                                  position,
+                                                  F_dof_handler,
+                                                  F_mapping,
+                                                  F_rhs);
 
   transaction = interaction_base.compute_projection_rhs_intermediate(
     std::move(transaction));

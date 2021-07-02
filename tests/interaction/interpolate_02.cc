@@ -182,7 +182,8 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
   {
     TimerOutput::Scope cprt(computing_timer, "compute_projection_rhs");
-    compute_projection_rhs(f_idx,
+    compute_projection_rhs("BSPLINE_3",
+                           f_idx,
                            patch_map,
                            position_map,
                            quadrature_indices,

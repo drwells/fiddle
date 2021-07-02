@@ -133,7 +133,8 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   Vector<double> F(F_dof_handler.n_dofs());
   VectorTools::interpolate(F_map, F_dof_handler, fp, F);
 
-  fdl::compute_spread(f_idx,
+  fdl::compute_spread("BSPLINE_3",
+                      f_idx,
                       patch_map,
                       position_map,
                       quadrature_indices,

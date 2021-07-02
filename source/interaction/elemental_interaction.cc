@@ -119,7 +119,8 @@ namespace fdl
       trans.overlap_position);
 
     // Actually do the interpolation:
-    compute_projection_rhs(trans.current_data_idx,
+    compute_projection_rhs(trans.kernel_name,
+                           trans.current_data_idx,
                            this->patch_map,
                            position_mapping,
                            quadrature_indices,
@@ -165,7 +166,8 @@ namespace fdl
       trans.overlap_position);
 
     // Actually do the spreading:
-    compute_spread(trans.current_data_idx,
+    compute_spread(trans.kernel_name,
+                   trans.current_data_idx,
                    this->patch_map,
                    position_mapping,
                    quadrature_indices,

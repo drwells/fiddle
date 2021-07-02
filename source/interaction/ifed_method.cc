@@ -226,6 +226,7 @@ namespace fdl
         rhs_vecs.emplace_back(part.get_partitioner());
         transactions.emplace_back(
           interactions[part_n]->compute_projection_rhs_start(
+            "BSPLINE_3",
             u_data_index,
             part.get_dof_handler(),
             get_position(part_n, data_time),
@@ -300,6 +301,7 @@ namespace fdl
       {
         const Part<dim, spacedim> &part = parts[part_n];
         transactions.emplace_back(interactions[part_n]->compute_spread_start(
+          "BSPLINE_3",
           f_scratch_data_index,
           get_position(part_n, data_time),
           part.get_dof_handler(),

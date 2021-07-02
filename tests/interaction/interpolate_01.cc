@@ -122,7 +122,8 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   const MappingQ<dim, spacedim> F_map(1);
   Vector<double>                F_rhs(F_dof_handler.n_dofs());
 
-  compute_projection_rhs(f_idx,
+  compute_projection_rhs("BSPLINE_3",
+                         f_idx,
                          patch_map,
                          position_map,
                          quadrature_indices,

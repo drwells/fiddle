@@ -322,6 +322,7 @@ namespace fdl
   template <int dim, int spacedim, typename patch_type>
   void
   compute_projection_rhs_internal(
+    const std::string &                 kernel_name,
     const int                           data_idx,
     const PatchMap<dim, spacedim> &     patch_map,
     const Mapping<dim, spacedim> &      position_mapping,
@@ -417,7 +418,7 @@ namespace fdl
                                             patch_data,
                                             patch,
                                             patch->getBox(),
-                                            "BSPLINE_3");
+                                            kernel_name);
 #else
             std::fill(rhs_values.begin(), rhs_values.end(), 1.0);
 #endif
@@ -470,7 +471,8 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  compute_projection_rhs(const int                           data_idx,
+  compute_projection_rhs(const std::string &                 kernel_name,
+                         const int                           data_idx,
                          const PatchMap<dim, spacedim> &     patch_map,
                          const Mapping<dim, spacedim> &      position_mapping,
                          const std::vector<unsigned char> &  quadrature_indices,
@@ -480,8 +482,8 @@ namespace fdl
                          Vector<double> &                    rhs)
   {
 #define ARGUMENTS                                                         \
-  data_idx, patch_map, position_mapping, quadrature_indices, quadratures, \
-    dof_handler, mapping, rhs
+  kernel_name, data_idx, patch_map, position_mapping, quadrature_indices, \
+    quadratures, dof_handler, mapping, rhs
     if (patch_map.size() != 0)
       {
         auto patch_data = patch_map.get_patch(0)->getPatchData(data_idx);
@@ -556,7 +558,8 @@ namespace fdl
 
   template <int dim, int spacedim, typename value_type, typename patch_type>
   void
-  compute_spread_internal(const int                         data_idx,
+  compute_spread_internal(const std::string &               kernel_name,
+                          const int                         data_idx,
                           PatchMap<dim, spacedim> &         patch_map,
                           const Mapping<dim, spacedim> &    position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
@@ -653,7 +656,7 @@ namespace fdl
                                        spacedim,
                                        patch,
                                        patch->getBox(),
-                                       "BSPLINE_3");
+                                       kernel_name);
           }
       }
   }
@@ -662,7 +665,8 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  compute_spread(const int                           data_idx,
+  compute_spread(const std::string &                 kernel_name,
+                 const int                           data_idx,
                  PatchMap<dim, spacedim> &           patch_map,
                  const Mapping<dim, spacedim> &      position_mapping,
                  const std::vector<unsigned char> &  quadrature_indices,
@@ -672,8 +676,8 @@ namespace fdl
                  const Vector<double> &              solution)
   {
 #define ARGUMENTS                                                         \
-  data_idx, patch_map, position_mapping, quadrature_indices, quadratures, \
-    dof_handler, mapping, solution
+  kernel_name, data_idx, patch_map, position_mapping, quadrature_indices, \
+    quadratures, dof_handler, mapping, solution
     if (patch_map.size() != 0)
       {
         auto patch_data = patch_map.get_patch(0)->getPatchData(data_idx);
@@ -790,7 +794,8 @@ namespace fdl
                           const std::vector<Quadrature<NDIM>> &quadratures);
 
   template void
-  compute_projection_rhs(const int                         data_idx,
+  compute_projection_rhs(const std::string &               kernel_name,
+                         const int                         data_idx,
                          const PatchMap<NDIM - 1, NDIM> &  patch_map,
                          const Mapping<NDIM - 1, NDIM> &   position_mapping,
                          const std::vector<unsigned char> &quadrature_indices,
@@ -800,7 +805,8 @@ namespace fdl
                          Vector<double> &                         rhs);
 
   template void
-  compute_projection_rhs(const int                         data_idx,
+  compute_projection_rhs(const std::string &               kernel_name,
+                         const int                         data_idx,
                          const PatchMap<NDIM> &            patch_map,
                          const Mapping<NDIM> &             position_mapping,
                          const std::vector<unsigned char> &quadrature_indices,
@@ -810,7 +816,8 @@ namespace fdl
                          Vector<double> &                     rhs);
 
   template void
-  compute_spread(const int                                data_idx,
+  compute_spread(const std::string &                      kernel_name,
+                 const int                                data_idx,
                  PatchMap<NDIM - 1, NDIM> &               patch_map,
                  const Mapping<NDIM - 1, NDIM> &          position_mapping,
                  const std::vector<unsigned char> &       quadrature_indices,
@@ -820,7 +827,8 @@ namespace fdl
                  const Vector<double> &                   solution);
 
   template void
-  compute_spread(const int                            data_idx,
+  compute_spread(const std::string &                  kernel_name,
+                 const int                            data_idx,
                  PatchMap<NDIM, NDIM> &               patch_map,
                  const Mapping<NDIM, NDIM> &          position_mapping,
                  const std::vector<unsigned char> &   quadrature_indices,

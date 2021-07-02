@@ -54,6 +54,9 @@ namespace fdl
   template <int dim, int spacedim = dim>
   struct Transaction : public TransactionBase
   {
+    /// Name of the IB kernel we should use.
+    std::string kernel_name;
+
     /// Current patch index.
     int current_data_idx;
 
@@ -200,6 +203,7 @@ namespace fdl
      */
     virtual std::unique_ptr<TransactionBase>
     compute_projection_rhs_start(
+      const std::string &                               kernel_name,
       const int                                         data_idx,
       const DoFHandler<dim, spacedim> &                 position_dof_handler,
       const LinearAlgebra::distributed::Vector<double> &position,
@@ -244,6 +248,7 @@ namespace fdl
      */
     virtual std::unique_ptr<TransactionBase>
     compute_spread_start(
+      const std::string &                               kernel_name,
       const int                                         data_idx,
       const LinearAlgebra::distributed::Vector<double> &position,
       const DoFHandler<dim, spacedim> &                 position_dof_handler,

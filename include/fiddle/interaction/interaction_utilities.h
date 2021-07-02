@@ -115,7 +115,8 @@ namespace fdl
    */
   template <int dim, int spacedim = dim>
   void
-  compute_projection_rhs(const int                           data_idx,
+  compute_projection_rhs(const std::string &                 kernel_name,
+                         const int                           data_idx,
                          const PatchMap<dim, spacedim> &     patch_map,
                          const Mapping<dim, spacedim> &      position_mapping,
                          const std::vector<unsigned char> &  quadrature_indices,
@@ -156,7 +157,8 @@ namespace fdl
    */
   template <int dim, int spacedim>
   void
-  compute_spread(const int                           data_idx,
+  compute_spread(const std::string &                 kernel_name,
+                 const int                           data_idx,
                  PatchMap<dim, spacedim> &           patch_map,
                  const Mapping<dim, spacedim> &      position_mapping,
                  const std::vector<unsigned char> &  quadrature_indices,
