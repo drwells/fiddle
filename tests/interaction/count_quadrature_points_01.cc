@@ -93,13 +93,13 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                          cell_bboxes);
 
   // set up what we need to count quadrature points:
-  const MappingQ<dim>                X_map(2);
+  const MappingQ<dim>                position_map(2);
   const std::vector<Quadrature<dim>> quadratures({QMidpoint<dim>()});
   const std::vector<unsigned char>   quadrature_indices(
     overlap_tria.n_active_cells());
 
   fdl::count_quadrature_points(
-    f_idx, patch_map, X_map, quadrature_indices, quadratures);
+    f_idx, patch_map, position_map, quadrature_indices, quadratures);
 
   {
     std::ofstream out("output-" + std::to_string(rank));

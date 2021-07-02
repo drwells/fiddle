@@ -99,7 +99,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     output.open("output");
 
   // set up what we need for computing the RHS of the projection:
-  const MappingQ<dim>                X_map(1);
+  const MappingQ<dim>                position_map(1);
   const std::vector<Quadrature<dim>> quadratures({QGauss<dim>(2)});
   const std::vector<unsigned char>   quadrature_indices(
     overlap_tria.n_active_cells());
@@ -124,7 +124,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
   compute_projection_rhs(f_idx,
                          patch_map,
-                         X_map,
+                         position_map,
                          quadrature_indices,
                          quadratures,
                          F_dof_handler,

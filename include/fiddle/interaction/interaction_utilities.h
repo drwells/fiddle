@@ -60,7 +60,7 @@ namespace fdl
    * const because we need to modify the SAMRAI data accessed through a pointer
    * owned by this class.
    *
-   * @param[in] X_mapping Mapping from the reference configuration to the
+   * @param[in] position_mapping Mapping from the reference configuration to the
    * current configuration of the mesh.
    *
    * @param[in] quadrature_indices This vector is indexed by the active cell
@@ -76,7 +76,7 @@ namespace fdl
   void
   count_quadrature_points(const int                         qp_data_idx,
                           PatchMap<dim, spacedim> &         patch_map,
-                          const Mapping<dim, spacedim> &    X_mapping,
+                          const Mapping<dim, spacedim> &    position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
                           const std::vector<Quadrature<dim>> &quadratures);
 
@@ -91,7 +91,7 @@ namespace fdl
    * @param[in] patch_map The mapping between SAMRAI patches and deal.II cells
    * which we will use for interpolation.
    *
-   * @param[in] X_mapping Mapping from the reference configuration to the
+   * @param[in] position_mapping Mapping from the reference configuration to the
    * current configuration of the mesh.
    *
    * @param[in] quadrature_indices This vector is indexed by the active cell
@@ -117,7 +117,7 @@ namespace fdl
   void
   compute_projection_rhs(const int                           f_data_idx,
                          const PatchMap<dim, spacedim> &     patch_map,
-                         const Mapping<dim, spacedim> &      X_mapping,
+                         const Mapping<dim, spacedim> &      position_mapping,
                          const std::vector<unsigned char> &  quadrature_indices,
                          const std::vector<Quadrature<dim>> &quadratures,
                          const DoFHandler<dim, spacedim> &   F_dof_handler,
@@ -137,7 +137,7 @@ namespace fdl
    * non-const because we will modify the patches owned by the patch hierarchy
    * to which this object stores pointers.
    *
-   * @param[in] X_mapping Mapping from the reference configuration to the
+   * @param[in] position_mapping Mapping from the reference configuration to the
    * current configuration of the mesh.
    *
    * @param[in] quadrature_indices This vector is indexed by the active cell
@@ -158,7 +158,7 @@ namespace fdl
   void
   compute_spread(const int                           f_data_idx,
                  PatchMap<dim, spacedim> &           patch_map,
-                 const Mapping<dim, spacedim> &      X_mapping,
+                 const Mapping<dim, spacedim> &      position_mapping,
                  const std::vector<unsigned char> &  quadrature_indices,
                  const std::vector<Quadrature<dim>> &quadratures,
                  const DoFHandler<dim, spacedim> &   F_dof_handler,

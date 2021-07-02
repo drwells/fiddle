@@ -58,16 +58,17 @@ namespace fdl
     int current_f_data_idx;
 
     /// Native position DoFHandler.
-    SmartPointer<const DoFHandler<dim, spacedim>> native_X_dof_handler;
+    SmartPointer<const DoFHandler<dim, spacedim>> native_position_dof_handler;
 
-    /// X scatter.
-    Scatter<double> X_scatter;
+    /// position scatter.
+    Scatter<double> position_scatter;
 
     /// Native-partitioned position.
-    SmartPointer<const LinearAlgebra::distributed::Vector<double>> native_X;
+    SmartPointer<const LinearAlgebra::distributed::Vector<double>>
+      native_position;
 
     /// Overlap-partitioned position.
-    Vector<double> overlap_X_vec;
+    Vector<double> overlap_position;
 
     /// Native F DoFHandler.
     SmartPointer<const DoFHandler<dim, spacedim>> native_F_dof_handler;
@@ -193,8 +194,8 @@ namespace fdl
     virtual std::unique_ptr<TransactionBase>
     compute_projection_rhs_start(
       const int                                         f_data_idx,
-      const DoFHandler<dim, spacedim> &                 X_dof_handler,
-      const LinearAlgebra::distributed::Vector<double> &X,
+      const DoFHandler<dim, spacedim> &                 position_dof_handler,
+      const LinearAlgebra::distributed::Vector<double> &position,
       const DoFHandler<dim, spacedim> &                 F_dof_handler,
       const Mapping<dim, spacedim> &                    F_mapping,
       LinearAlgebra::distributed::Vector<double> &      F_rhs);
@@ -235,12 +236,13 @@ namespace fdl
      * compute_projection_rhs_finish is called.
      */
     virtual std::unique_ptr<TransactionBase>
-    compute_spread_start(const int f_data_idx,
-                         const LinearAlgebra::distributed::Vector<double> &X,
-                         const DoFHandler<dim, spacedim> &X_dof_handler,
-                         const Mapping<dim, spacedim> &   F_mapping,
-                         const DoFHandler<dim, spacedim> &F_dof_handler,
-                         const LinearAlgebra::distributed::Vector<double> &F);
+    compute_spread_start(
+      const int                                         f_data_idx,
+      const LinearAlgebra::distributed::Vector<double> &position,
+      const DoFHandler<dim, spacedim> &                 position_dof_handler,
+      const Mapping<dim, spacedim> &                    F_mapping,
+      const DoFHandler<dim, spacedim> &                 F_dof_handler,
+      const LinearAlgebra::distributed::Vector<double> &F);
 
     /**
      * Middle part of spreading - performs the actual computations and does not
@@ -269,9 +271,10 @@ namespace fdl
      * workload_index in the stored hierarchy.
      */
     virtual std::unique_ptr<TransactionBase>
-    add_workload_start(const int workload_index,
-                       const LinearAlgebra::distributed::Vector<double> &X,
-                       const DoFHandler<dim, spacedim> &X_dof_handler);
+    add_workload_start(
+      const int                                         workload_index,
+      const LinearAlgebra::distributed::Vector<double> &position,
+      const DoFHandler<dim, spacedim> &                 position_dof_handler);
 
     virtual std::unique_ptr<TransactionBase>
     add_workload_intermediate(std::unique_ptr<TransactionBase> t_ptr);

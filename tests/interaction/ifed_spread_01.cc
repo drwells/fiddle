@@ -314,10 +314,10 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
              ExcMessage("Should have ghosts"));
 
       MappingFEField<dim, spacedim, LinearAlgebra::distributed::Vector<double>>
-        X_mapping(part.get_dof_handler(), part.get_position());
+        position_mapping(part.get_dof_handler(), part.get_position());
       Assert(part.get_position().has_ghost_elements(),
              ExcMessage("Should have ghosts"));
-      data_out.build_patches(X_mapping);
+      data_out.build_patches(position_mapping);
       data_out.write_vtu_with_pvtu_record("./", "solution", 0, mpi_comm, 8);
     }
 

@@ -181,8 +181,8 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
           MappingFEField<dim,
                          spacedim,
                          LinearAlgebra::distributed::Vector<double>>
-            X_mapping(part.get_dof_handler(), part.get_position());
-          data_out.build_patches(X_mapping);
+            position_mapping(part.get_dof_handler(), part.get_position());
+          data_out.build_patches(position_mapping);
           data_out.write_vtu_with_pvtu_record(
             "./", "solution", iteration_num, mpi_comm, 8);
         }
@@ -199,10 +199,10 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
       dynamic_cast<fdl::IFEDMethod<NDIM> &>(*ib_method_ops).get_part(0);
 
     MappingFEField<dim, spacedim, LinearAlgebra::distributed::Vector<double>>
-      X_mapping(part.get_dof_handler(), part.get_position());
+      position_mapping(part.get_dof_handler(), part.get_position());
 
     QMidpoint<dim> quad;
-    FEValues<dim>  fe_values(X_mapping,
+    FEValues<dim>  fe_values(position_mapping,
                             part.get_dof_handler().get_fe(),
                             quad,
                             update_quadrature_points | update_values);

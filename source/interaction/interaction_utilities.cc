@@ -199,7 +199,7 @@ namespace fdl
   count_quadrature_points_internal(
     const int                           qp_data_idx,
     PatchMap<dim, spacedim> &           patch_map,
-    const Mapping<dim, spacedim> &      X_mapping,
+    const Mapping<dim, spacedim> &      position_mapping,
     const std::vector<unsigned char> &  quadrature_indices,
     const std::vector<Quadrature<dim>> &quadratures)
   {
@@ -209,7 +209,7 @@ namespace fdl
 
     // We probably don't need more than 16 quadrature rules
     boost::container::small_vector<std::unique_ptr<FEValues<dim, spacedim>>, 16>
-      all_X_fe_values;
+      all_position_fe_values;
     // PatchMap only supports looping over DoFHandler iterators, so we need to
     // make one and never use it explicitly
     const Triangulation<dim, spacedim> &tria = patch_map.get_triangulation();
@@ -221,8 +221,9 @@ namespace fdl
     dof_handler.distribute_dofs(fe_nothing);
     for (const Quadrature<dim> &quad : quadratures)
       {
-        all_X_fe_values.emplace_back(std::make_unique<FEValues<dim, spacedim>>(
-          X_mapping, fe_nothing, quad, update_quadrature_points));
+        all_position_fe_values.emplace_back(
+          std::make_unique<FEValues<dim, spacedim>>(
+            position_mapping, fe_nothing, quad, update_quadrature_points));
       }
 
     for (unsigned int patch_n = 0; patch_n < patch_map.size(); ++patch_n)
@@ -245,10 +246,11 @@ namespace fdl
             const auto quad_index =
               quadrature_indices[cell->active_cell_index()];
 
-            FEValues<dim, spacedim> &X_fe_values = *all_X_fe_values[quad_index];
-            X_fe_values.reinit(cell);
+            FEValues<dim, spacedim> &position_fe_values =
+              *all_position_fe_values[quad_index];
+            position_fe_values.reinit(cell);
             for (const Point<spacedim> &q_point :
-                 X_fe_values.get_quadrature_points())
+                 position_fe_values.get_quadrature_points())
               {
                 const hier::Index<spacedim> i =
                   IBTK::IndexUtilities::getCellIndex(q_point,
@@ -267,7 +269,7 @@ namespace fdl
   void
   count_quadrature_points(const int                         qp_data_idx,
                           PatchMap<dim, spacedim> &         patch_map,
-                          const Mapping<dim, spacedim> &    X_mapping,
+                          const Mapping<dim, spacedim> &    position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
                           const std::vector<Quadrature<dim>> &quadratures)
   {
@@ -291,13 +293,25 @@ namespace fdl
 
         if (int_data)
           count_quadrature_points_internal<dim, spacedim, int>(
-            qp_data_idx, patch_map, X_mapping, quadrature_indices, quadratures);
+            qp_data_idx,
+            patch_map,
+            position_mapping,
+            quadrature_indices,
+            quadratures);
         else if (float_data)
           count_quadrature_points_internal<dim, spacedim, float>(
-            qp_data_idx, patch_map, X_mapping, quadrature_indices, quadratures);
+            qp_data_idx,
+            patch_map,
+            position_mapping,
+            quadrature_indices,
+            quadratures);
         else if (double_data)
           count_quadrature_points_internal<dim, spacedim, double>(
-            qp_data_idx, patch_map, X_mapping, quadrature_indices, quadratures);
+            qp_data_idx,
+            patch_map,
+            position_mapping,
+            quadrature_indices,
+            quadratures);
         else
           Assert(false, ExcNotImplemented());
       }
@@ -310,7 +324,7 @@ namespace fdl
   compute_projection_rhs_internal(
     const int                           f_data_idx,
     const PatchMap<dim, spacedim> &     patch_map,
-    const Mapping<dim, spacedim> &      X_mapping,
+    const Mapping<dim, spacedim> &      position_mapping,
     const std::vector<unsigned char> &  quadrature_indices,
     const std::vector<Quadrature<dim>> &quadratures,
     const DoFHandler<dim, spacedim> &   F_dof_handler,
@@ -328,16 +342,17 @@ namespace fdl
     // We probably don't need more than 16 quadrature rules
     //
     // TODO - implement a move constructor for FEValues
-    // The FE for X is arbitrary - we just need quadrature points. The actual X
-    // FE is in X_mapping
+    // The FE for position is arbitrary - we just need quadrature points. The
+    // actual position FE is in position_mapping
     boost::container::small_vector<std::unique_ptr<FEValues<dim, spacedim>>, 16>
-      all_X_fe_values;
+      all_position_fe_values;
     boost::container::small_vector<std::unique_ptr<FEValues<dim, spacedim>>, 16>
       all_F_fe_values;
     for (const Quadrature<dim> &quad : quadratures)
       {
-        all_X_fe_values.emplace_back(std::make_unique<FEValues<dim, spacedim>>(
-          X_mapping, f_fe, quad, update_quadrature_points));
+        all_position_fe_values.emplace_back(
+          std::make_unique<FEValues<dim, spacedim>>(
+            position_mapping, f_fe, quad, update_quadrature_points));
         all_F_fe_values.emplace_back(std::make_unique<FEValues<dim, spacedim>>(
           F_mapping, f_fe, quad, update_JxW_values | update_values));
       }
@@ -362,17 +377,19 @@ namespace fdl
 
             // Reinitialize:
             FEValues<dim, spacedim> &F_fe_values = *all_F_fe_values[quad_index];
-            FEValues<dim, spacedim> &X_fe_values = *all_X_fe_values[quad_index];
+            FEValues<dim, spacedim> &position_fe_values =
+              *all_position_fe_values[quad_index];
             F_fe_values.reinit(cell);
-            X_fe_values.reinit(cell);
-            F_values.resize(X_fe_values.get_quadrature_points().size());
-            Assert(F_fe_values.get_quadrature() == X_fe_values.get_quadrature(),
+            position_fe_values.reinit(cell);
+            F_values.resize(position_fe_values.get_quadrature_points().size());
+            Assert(F_fe_values.get_quadrature() ==
+                     position_fe_values.get_quadrature(),
                    ExcFDLInternalError());
 
             cell_rhs = 0.0;
             cell->get_dof_indices(dof_indices);
             const std::vector<Point<spacedim>> &q_points =
-              X_fe_values.get_quadrature_points();
+              position_fe_values.get_quadrature_points();
             const unsigned int n_q_points = q_points.size();
             F_values.resize(f_fe.n_components() * n_q_points);
 
@@ -384,14 +401,14 @@ namespace fdl
             // element
             static_assert(sizeof(Point<spacedim>) == sizeof(double) * spacedim,
                           "FORTRAN routines assume we are packed");
-            const auto X_data =
+            const auto position_data =
               reinterpret_cast<const double *>(q_points.data());
 
             std::fill(F_values.begin(), F_values.end(), 0.0);
             IBTK::LEInteractor::interpolate(F_values.data(),
                                             F_values.size(),
                                             f_fe.n_components(),
-                                            X_data,
+                                            position_data,
                                             q_points.size() * spacedim,
                                             spacedim,
                                             f_data,
@@ -452,15 +469,15 @@ namespace fdl
   void
   compute_projection_rhs(const int                           f_data_idx,
                          const PatchMap<dim, spacedim> &     patch_map,
-                         const Mapping<dim, spacedim> &      X_mapping,
+                         const Mapping<dim, spacedim> &      position_mapping,
                          const std::vector<unsigned char> &  quadrature_indices,
                          const std::vector<Quadrature<dim>> &quadratures,
                          const DoFHandler<dim, spacedim> &   F_dof_handler,
                          const Mapping<dim, spacedim> &      F_mapping,
                          Vector<double> &                    F_rhs)
   {
-#define ARGUMENTS                                                    \
-  f_data_idx, patch_map, X_mapping, quadrature_indices, quadratures, \
+#define ARGUMENTS                                                           \
+  f_data_idx, patch_map, position_mapping, quadrature_indices, quadratures, \
     F_dof_handler, F_mapping, F_rhs
     if (patch_map.size() != 0)
       {
@@ -538,7 +555,7 @@ namespace fdl
   void
   compute_spread_internal(const int                         f_data_idx,
                           PatchMap<dim, spacedim> &         patch_map,
-                          const Mapping<dim, spacedim> &    X_mapping,
+                          const Mapping<dim, spacedim> &    position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
                           const std::vector<Quadrature<dim>> &quadratures,
                           const DoFHandler<dim, spacedim> &   F_dof_handler,
@@ -552,13 +569,14 @@ namespace fdl
 
     // We probably don't need more than 16 quadrature rules
     boost::container::small_vector<std::unique_ptr<FEValues<dim, spacedim>>, 16>
-      all_X_fe_values;
+      all_position_fe_values;
     boost::container::small_vector<std::unique_ptr<FEValues<dim, spacedim>>, 16>
       all_F_fe_values;
     for (const Quadrature<dim> &quad : quadratures)
       {
-        all_X_fe_values.emplace_back(std::make_unique<FEValues<dim, spacedim>>(
-          X_mapping, f_fe, quad, update_quadrature_points));
+        all_position_fe_values.emplace_back(
+          std::make_unique<FEValues<dim, spacedim>>(
+            position_mapping, f_fe, quad, update_quadrature_points));
         all_F_fe_values.emplace_back(std::make_unique<FEValues<dim, spacedim>>(
           F_mapping, f_fe, quad, update_JxW_values | update_values));
       }
@@ -582,14 +600,16 @@ namespace fdl
 
             // Reinitialize:
             FEValues<dim, spacedim> &F_fe_values = *all_F_fe_values[quad_index];
-            FEValues<dim, spacedim> &X_fe_values = *all_X_fe_values[quad_index];
+            FEValues<dim, spacedim> &position_fe_values =
+              *all_position_fe_values[quad_index];
             F_fe_values.reinit(cell);
-            X_fe_values.reinit(cell);
-            Assert(F_fe_values.get_quadrature() == X_fe_values.get_quadrature(),
+            position_fe_values.reinit(cell);
+            Assert(F_fe_values.get_quadrature() ==
+                     position_fe_values.get_quadrature(),
                    ExcFDLInternalError());
 
             const std::vector<Point<spacedim>> &q_points =
-              X_fe_values.get_quadrature_points();
+              position_fe_values.get_quadrature_points();
             const unsigned int n_q_points = q_points.size();
             F_values.resize(n_q_points);
 
@@ -604,7 +624,7 @@ namespace fdl
             // spread at quadrature points:
             static_assert(sizeof(Point<spacedim>) == sizeof(double) * spacedim,
                           "FORTRAN routines assume we are packed");
-            const auto X_data =
+            const auto position_data =
               reinterpret_cast<const double *>(q_points.data());
             // the number of components is determined at run time so use a
             // normal assertion
@@ -618,7 +638,7 @@ namespace fdl
                                        F_data,
                                        F_values.size() * f_fe.n_components(),
                                        f_fe.n_components(),
-                                       X_data,
+                                       position_data,
                                        n_q_points * spacedim,
                                        spacedim,
                                        patch,
@@ -634,15 +654,15 @@ namespace fdl
   void
   compute_spread(const int                           f_data_idx,
                  PatchMap<dim, spacedim> &           patch_map,
-                 const Mapping<dim, spacedim> &      X_mapping,
+                 const Mapping<dim, spacedim> &      position_mapping,
                  const std::vector<unsigned char> &  quadrature_indices,
                  const std::vector<Quadrature<dim>> &quadratures,
                  const DoFHandler<dim, spacedim> &   F_dof_handler,
                  const Mapping<dim, spacedim> &      F_mapping,
                  const Vector<double> &              F)
   {
-#define ARGUMENTS                                                    \
-  f_data_idx, patch_map, X_mapping, quadrature_indices, quadratures, \
+#define ARGUMENTS                                                           \
+  f_data_idx, patch_map, position_mapping, quadrature_indices, quadratures, \
     F_dof_handler, F_mapping, F
     if (patch_map.size() != 0)
       {
@@ -748,21 +768,21 @@ namespace fdl
   template void
   count_quadrature_points(const int                         qp_data_idx,
                           PatchMap<NDIM - 1, NDIM> &        patch_map,
-                          const Mapping<NDIM - 1, NDIM> &   X_mapping,
+                          const Mapping<NDIM - 1, NDIM> &   position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
                           const std::vector<Quadrature<NDIM - 1>> &quadratures);
 
   template void
   count_quadrature_points(const int                         qp_data_idx,
                           PatchMap<NDIM, NDIM> &            patch_map,
-                          const Mapping<NDIM, NDIM> &       X_mapping,
+                          const Mapping<NDIM, NDIM> &       position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
                           const std::vector<Quadrature<NDIM>> &quadratures);
 
   template void
   compute_projection_rhs(const int                         f_data_idx,
                          const PatchMap<NDIM - 1, NDIM> &  patch_map,
-                         const Mapping<NDIM - 1, NDIM> &   X_mapping,
+                         const Mapping<NDIM - 1, NDIM> &   position_mapping,
                          const std::vector<unsigned char> &quadrature_indices,
                          const std::vector<Quadrature<NDIM - 1>> &quadratures,
                          const DoFHandler<NDIM - 1, NDIM> &       F_dof_handler,
@@ -772,7 +792,7 @@ namespace fdl
   template void
   compute_projection_rhs(const int                         f_data_idx,
                          const PatchMap<NDIM> &            patch_map,
-                         const Mapping<NDIM> &             X_mapping,
+                         const Mapping<NDIM> &             position_mapping,
                          const std::vector<unsigned char> &quadrature_indices,
                          const std::vector<Quadrature<NDIM>> &quadratures,
                          const DoFHandler<NDIM> &             F_dof_handler,
@@ -782,7 +802,7 @@ namespace fdl
   template void
   compute_spread(const int                                f_data_idx,
                  PatchMap<NDIM - 1, NDIM> &               patch_map,
-                 const Mapping<NDIM - 1, NDIM> &          X_mapping,
+                 const Mapping<NDIM - 1, NDIM> &          position_mapping,
                  const std::vector<unsigned char> &       quadrature_indices,
                  const std::vector<Quadrature<NDIM - 1>> &quadratures,
                  const DoFHandler<NDIM - 1, NDIM> &       F_dof_handler,
@@ -792,7 +812,7 @@ namespace fdl
   template void
   compute_spread(const int                            f_data_idx,
                  PatchMap<NDIM, NDIM> &               patch_map,
-                 const Mapping<NDIM, NDIM> &          X_mapping,
+                 const Mapping<NDIM, NDIM> &          position_mapping,
                  const std::vector<unsigned char> &   quadrature_indices,
                  const std::vector<Quadrature<NDIM>> &quadratures,
                  const DoFHandler<NDIM, NDIM> &       F_dof_handler,

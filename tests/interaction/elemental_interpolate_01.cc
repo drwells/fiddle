@@ -78,22 +78,22 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   else
     F_fe =
       std::make_unique<FESystem<dim>>(FE_Q<dim>(fe_degree), n_F_components);
-  FESystem<dim> X_fe(FE_Q<dim>(fe_degree), dim);
+  FESystem<dim> position_fe(FE_Q<dim>(fe_degree), dim);
 
-  DoFHandler<dim> X_dof_handler(native_tria);
-  X_dof_handler.distribute_dofs(X_fe);
+  DoFHandler<dim> position_dof_handler(native_tria);
+  position_dof_handler.distribute_dofs(position_fe);
   DoFHandler<dim> F_dof_handler(native_tria);
   F_dof_handler.distribute_dofs(*F_fe);
-  IndexSet locally_relevant_X_dofs;
-  DoFTools::extract_locally_relevant_dofs(X_dof_handler,
-                                          locally_relevant_X_dofs);
+  IndexSet locally_relevant_position_dofs;
+  DoFTools::extract_locally_relevant_dofs(position_dof_handler,
+                                          locally_relevant_position_dofs);
   IndexSet locally_relevant_F_dofs;
   DoFTools::extract_locally_relevant_dofs(F_dof_handler,
                                           locally_relevant_F_dofs);
 
-  auto X_partitioner = std::make_shared<Utilities::MPI::Partitioner>(
-    X_dof_handler.locally_owned_dofs(),
-    locally_relevant_X_dofs,
+  auto position_partitioner = std::make_shared<Utilities::MPI::Partitioner>(
+    position_dof_handler.locally_owned_dofs(),
+    locally_relevant_position_dofs,
     native_tria.get_communicator());
   auto F_partitioner = std::make_shared<Utilities::MPI::Partitioner>(
     F_dof_handler.locally_owned_dofs(),
@@ -103,10 +103,10 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   MappingQ1<dim> F_mapping;
   QGauss<dim>    F_quadrature(fe_degree + 1);
 
-  LinearAlgebra::distributed::Vector<double> X_vec(X_partitioner);
-  VectorTools::interpolate(X_dof_handler,
+  LinearAlgebra::distributed::Vector<double> position(position_partitioner);
+  VectorTools::interpolate(position_dof_handler,
                            Functions::IdentityFunction<dim>(),
-                           X_vec);
+                           position);
   LinearAlgebra::distributed::Vector<double> F_rhs(F_partitioner);
   LinearAlgebra::distributed::Vector<double> F_solution(F_partitioner);
 
@@ -131,12 +131,12 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     patch_hierarchy->getFinestLevelNumber(),
     fe_degree + 1,
     1.0);
-  interaction.add_dof_handler(X_dof_handler);
+  interaction.add_dof_handler(position_dof_handler);
   interaction.add_dof_handler(F_dof_handler);
 
   // Do the test:
   auto transaction = interaction.compute_projection_rhs_start(
-    f_idx, X_dof_handler, X_vec, F_dof_handler, F_mapping, F_rhs);
+    f_idx, position_dof_handler, position, F_dof_handler, F_mapping, F_rhs);
   transaction =
     interaction.compute_projection_rhs_intermediate(std::move(transaction));
   interaction.compute_projection_rhs_finish(std::move(transaction));

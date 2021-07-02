@@ -167,7 +167,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   if (rank == 0)
     output.open("output");
 
-  const Mapping<dim, spacedim> &X_map =
+  const Mapping<dim, spacedim> &position_map =
     get_default_linear_mapping<dim, spacedim>(overlap_tria);
   std::vector<Quadrature<dim>> quadratures;
   quadratures.push_back(QGaussSimplex<dim>(2));
@@ -184,7 +184,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     TimerOutput::Scope cprt(computing_timer, "compute_projection_rhs");
     compute_projection_rhs(f_idx,
                            patch_map,
-                           X_map,
+                           position_map,
                            quadrature_indices,
                            quadratures,
                            F_dof_handler,

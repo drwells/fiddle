@@ -159,13 +159,13 @@ namespace fdl
      * Set the current position by copying.
      */
     void
-    set_position(const LinearAlgebra::distributed::Vector<double> &X);
+    set_position(const LinearAlgebra::distributed::Vector<double> &position);
 
     /**
      * Set the current position from a temporary.
      */
     void
-    set_position(LinearAlgebra::distributed::Vector<double> &&X);
+    set_position(LinearAlgebra::distributed::Vector<double> &&position);
 
     /**
      * Get the current velocity of the structure.
@@ -177,13 +177,13 @@ namespace fdl
      * Set the current velocity by copying.
      */
     void
-    set_velocity(const LinearAlgebra::distributed::Vector<double> &X);
+    set_velocity(const LinearAlgebra::distributed::Vector<double> &position);
 
     /**
      * Set the current velocity from a temporary.
      */
     void
-    set_velocity(LinearAlgebra::distributed::Vector<double> &&X);
+    set_velocity(LinearAlgebra::distributed::Vector<double> &&position);
 
   protected:
     /**

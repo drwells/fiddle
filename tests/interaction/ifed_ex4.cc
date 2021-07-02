@@ -265,8 +265,8 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
     data_out.add_data_vector(part.get_velocity(), "U");
 
     MappingFEField<dim, spacedim, LinearAlgebra::distributed::Vector<double>>
-      X_mapping(part.get_dof_handler(), part.get_position());
-    data_out.build_patches(X_mapping);
+      position_mapping(part.get_dof_handler(), part.get_position());
+    data_out.build_patches(position_mapping);
     data_out.write_vtu_with_pvtu_record(app_initializer->getVizDumpDirectory() +
                                           "/",
                                         "solution",
@@ -326,8 +326,8 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
           MappingFEField<dim,
                          spacedim,
                          LinearAlgebra::distributed::Vector<double>>
-            X_mapping(part.get_dof_handler(), part.get_position());
-          data_out.build_patches(X_mapping);
+            position_mapping(part.get_dof_handler(), part.get_position());
+          data_out.build_patches(position_mapping);
           data_out.write_vtu_with_pvtu_record(
             app_initializer->getVizDumpDirectory() + "/",
             "solution",
@@ -359,8 +359,8 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
         MappingFEField<dim,
                        spacedim,
                        LinearAlgebra::distributed::Vector<double>>
-                     X_mapping(part.get_dof_handler(), part.get_position());
-        const double volume = GridTools::volume(native_tria, X_mapping);
+          position_mapping(part.get_dof_handler(), part.get_position());
+        const double volume = GridTools::volume(native_tria, position_mapping);
         if (IBTK::IBTK_MPI::getRank() == 0)
           {
             volume_stream.precision(12);
@@ -371,36 +371,37 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
     }
 
   if (test_db->getBoolWithDefault("log_ends_of_fe_vectors", false))
-  {
-    const auto &part =
-      dynamic_cast<fdl::IFEDMethod<NDIM> &>(*ib_method_ops).get_part(0);
-    const auto&position = part.get_position();
-    const auto&velocity = part.get_velocity();
+    {
+      const auto &part =
+        dynamic_cast<fdl::IFEDMethod<NDIM> &>(*ib_method_ops).get_part(0);
+      const auto &position = part.get_position();
+      const auto &velocity = part.get_velocity();
 
-    std::ostringstream out;
-    out << std::setprecision(16);
-    out << "rank = " << Utilities::MPI::this_mpi_process(mpi_comm) << '\n';
-    out << "position:\n";
-    const long a0 = 0;
-    const long a1 = std::min<long>(position.locally_owned_size(), 5);
-    const long b0 = std::max<long>(long(position.locally_owned_size()) - 5, 0);
-    const long b1 = position.locally_owned_size();
-    for (long i = a0; i < a1; ++i)
-      out << position.local_element(i) << '\n';
-    out << "...\n";
-    for (long i = b0; i < b1; ++i)
-      out << position.local_element(i) << '\n';
-    out << '\n';
-    out << "velocity:\n";
-    for (long i = a0; i < a1; ++i)
-      out << velocity.local_element(i) << '\n';
-    out << "...\n";
-    for (long i = b0; i < b1; ++i)
-      out << velocity.local_element(i) << '\n';
-    out << '\n';
+      std::ostringstream out;
+      out << std::setprecision(16);
+      out << "rank = " << Utilities::MPI::this_mpi_process(mpi_comm) << '\n';
+      out << "position:\n";
+      const long a0 = 0;
+      const long a1 = std::min<long>(position.locally_owned_size(), 5);
+      const long b0 =
+        std::max<long>(long(position.locally_owned_size()) - 5, 0);
+      const long b1 = position.locally_owned_size();
+      for (long i = a0; i < a1; ++i)
+        out << position.local_element(i) << '\n';
+      out << "...\n";
+      for (long i = b0; i < b1; ++i)
+        out << position.local_element(i) << '\n';
+      out << '\n';
+      out << "velocity:\n";
+      for (long i = a0; i < a1; ++i)
+        out << velocity.local_element(i) << '\n';
+      out << "...\n";
+      for (long i = b0; i < b1; ++i)
+        out << velocity.local_element(i) << '\n';
+      out << '\n';
 
-    print_strings_on_0(out.str(), mpi_comm, tbox::pout);
-  }
+      print_strings_on_0(out.str(), mpi_comm, tbox::pout);
+    }
 
   for (auto ptr : u_bc_coefs)
     delete ptr;

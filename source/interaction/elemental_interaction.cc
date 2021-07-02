@@ -111,17 +111,17 @@ namespace fdl
            ExcMessage("Transaction state should be Intermediate"));
 
     // Finish communication:
-    trans.X_scatter.global_to_overlap_finish(*trans.native_X,
-                                             trans.overlap_X_vec);
+    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
+                                                    trans.overlap_position);
 
-    MappingFEField<dim, spacedim, Vector<double>> X_mapping(
-      this->get_overlap_dof_handler(*trans.native_X_dof_handler),
-      trans.overlap_X_vec);
+    MappingFEField<dim, spacedim, Vector<double>> position_mapping(
+      this->get_overlap_dof_handler(*trans.native_position_dof_handler),
+      trans.overlap_position);
 
     // Actually do the interpolation:
     compute_projection_rhs(trans.current_f_data_idx,
                            this->patch_map,
-                           X_mapping,
+                           position_mapping,
                            quadrature_indices,
                            quadratures,
                            this->get_overlap_dof_handler(
@@ -154,19 +154,19 @@ namespace fdl
            ExcMessage("Transaction state should be Intermediate"));
 
     // Finish communication:
-    trans.X_scatter.global_to_overlap_finish(*trans.native_X,
-                                             trans.overlap_X_vec);
+    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
+                                                    trans.overlap_position);
 
     trans.F_scatter.global_to_overlap_finish(*trans.native_F, trans.overlap_F);
 
-    MappingFEField<dim, spacedim, Vector<double>> X_mapping(
-      this->get_overlap_dof_handler(*trans.native_X_dof_handler),
-      trans.overlap_X_vec);
+    MappingFEField<dim, spacedim, Vector<double>> position_mapping(
+      this->get_overlap_dof_handler(*trans.native_position_dof_handler),
+      trans.overlap_position);
 
     // Actually do the spreading:
     compute_spread(trans.current_f_data_idx,
                    this->patch_map,
-                   X_mapping,
+                   position_mapping,
                    quadrature_indices,
                    quadratures,
                    this->get_overlap_dof_handler(*trans.native_F_dof_handler),
@@ -185,16 +185,17 @@ namespace fdl
     int workload_index;
 
     /// Native position DoFHandler.
-    SmartPointer<const DoFHandler<dim, spacedim>> native_X_dof_handler;
+    SmartPointer<const DoFHandler<dim, spacedim>> native_position_dof_handler;
 
-    /// X scatter.
-    Scatter<double> X_scatter;
+    /// position scatter.
+    Scatter<double> position_scatter;
 
     /// Native-partitioned position.
-    SmartPointer<const LinearAlgebra::distributed::Vector<double>> native_X;
+    SmartPointer<const LinearAlgebra::distributed::Vector<double>>
+      native_position;
 
     /// Overlap-partitioned position.
-    Vector<double> overlap_X_vec;
+    Vector<double> overlap_position;
 
     /// Possible states for a transaction.
     enum class State
@@ -213,28 +214,27 @@ namespace fdl
   std::unique_ptr<TransactionBase>
   ElementalInteraction<dim, spacedim>::add_workload_start(
     const int                                         workload_index,
-    const LinearAlgebra::distributed::Vector<double> &X,
-    const DoFHandler<dim, spacedim> &                 X_dof_handler)
+    const LinearAlgebra::distributed::Vector<double> &position,
+    const DoFHandler<dim, spacedim> &                 position_dof_handler)
   {
     auto t_ptr = std::make_unique<WorkloadTransaction<dim, spacedim>>();
     WorkloadTransaction<dim, spacedim> &transaction = *t_ptr;
 
     transaction.workload_index = workload_index;
 
-    // Setup X info:
-    transaction.native_X_dof_handler = &X_dof_handler;
-    transaction.native_X             = &X;
-    transaction.X_scatter            = this->get_scatter(X_dof_handler);
-    transaction.overlap_X_vec.reinit(
-      this->get_overlap_dof_handler(X_dof_handler).n_dofs());
+    // Setup position info:
+    transaction.native_position_dof_handler = &position_dof_handler;
+    transaction.native_position             = &position;
+    transaction.position_scatter = this->get_scatter(position_dof_handler);
+    transaction.overlap_position.reinit(
+      this->get_overlap_dof_handler(position_dof_handler).n_dofs());
 
     // Setup state:
     transaction.next_state =
       WorkloadTransaction<dim, spacedim>::State::Intermediate;
 
-    transaction.X_scatter.global_to_overlap_start(*transaction.native_X,
-                                                  0,
-                                                  transaction.overlap_X_vec);
+    transaction.position_scatter.global_to_overlap_start(
+      *transaction.native_position, 0, transaction.overlap_position);
 
     return t_ptr;
   }
@@ -250,16 +250,16 @@ namespace fdl
            ExcMessage("Transaction state should be Intermediate"));
 
     // Finish communication:
-    trans.X_scatter.global_to_overlap_finish(*trans.native_X,
-                                             trans.overlap_X_vec);
+    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
+                                                    trans.overlap_position);
 
-    MappingFEField<dim, spacedim, Vector<double>> X_mapping(
-      this->get_overlap_dof_handler(*trans.native_X_dof_handler),
-      trans.overlap_X_vec);
+    MappingFEField<dim, spacedim, Vector<double>> position_mapping(
+      this->get_overlap_dof_handler(*trans.native_position_dof_handler),
+      trans.overlap_position);
 
     count_quadrature_points(trans.workload_index,
                             this->patch_map,
-                            X_mapping,
+                            position_mapping,
                             quadrature_indices,
                             quadratures);
 
@@ -280,8 +280,8 @@ namespace fdl
 
     trans.next_state = WorkloadTransaction<dim, spacedim>::State::Done;
 
-    this->return_scatter(*trans.native_X_dof_handler,
-                         std::move(trans.X_scatter));
+    this->return_scatter(*trans.native_position_dof_handler,
+                         std::move(trans.position_scatter));
   }
 
   // instantiations

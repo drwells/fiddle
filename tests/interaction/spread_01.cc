@@ -103,7 +103,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
 
   // set up what we need for spreading:
-  const MappingQ<dim>                X_map(1);
+  const MappingQ<dim>                position_map(1);
   const std::vector<Quadrature<dim>> quadratures({QGauss<dim>(2)});
   const std::vector<unsigned char>   quadrature_indices(
     overlap_tria.n_active_cells());
@@ -135,7 +135,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
   fdl::compute_spread(f_idx,
                       patch_map,
-                      X_map,
+                      position_map,
                       quadrature_indices,
                       quadratures,
                       F_dof_handler,

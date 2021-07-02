@@ -96,19 +96,21 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                                        patch_hierarchy,
                                                        level_number);
 
-  FESystem<dim>             X_fe(FE_Q<dim>(1), dim);
-  DoFHandler<dim, spacedim> X_dof_handler(native_tria);
-  X_dof_handler.distribute_dofs(X_fe);
-  interaction_base.add_dof_handler(X_dof_handler);
+  FESystem<dim>             position_fe(FE_Q<dim>(1), dim);
+  DoFHandler<dim, spacedim> position_dof_handler(native_tria);
+  position_dof_handler.distribute_dofs(position_fe);
+  interaction_base.add_dof_handler(position_dof_handler);
 
-  IndexSet locally_relevant_X_dofs;
-  DoFTools::extract_locally_relevant_dofs(X_dof_handler,
-                                          locally_relevant_X_dofs);
-  auto X_partitioner = std::make_shared<Utilities::MPI::Partitioner>(
-    X_dof_handler.locally_owned_dofs(), locally_relevant_X_dofs, mpi_comm);
-  LinearAlgebra::distributed::Vector<double> X(X_partitioner);
-  VectorTools::interpolate(X_dof_handler, Identity<dim>(), X);
-  X.update_ghost_values();
+  IndexSet locally_relevant_position_dofs;
+  DoFTools::extract_locally_relevant_dofs(position_dof_handler,
+                                          locally_relevant_position_dofs);
+  auto position_partitioner = std::make_shared<Utilities::MPI::Partitioner>(
+    position_dof_handler.locally_owned_dofs(),
+    locally_relevant_position_dofs,
+    mpi_comm);
+  LinearAlgebra::distributed::Vector<double> position(position_partitioner);
+  VectorTools::interpolate(position_dof_handler, Identity<dim>(), position);
+  position.update_ghost_values();
 
   FESystem<dim>             F_fe(FE_DGQ<dim>(0), dim);
   DoFHandler<dim, spacedim> F_dof_handler(native_tria);
@@ -124,7 +126,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   LinearAlgebra::distributed::Vector<double> F_rhs(F_partitioner);
 
   auto transaction = interaction_base.compute_projection_rhs_start(
-    f_idx, X_dof_handler, X, F_dof_handler, F_mapping, F_rhs);
+    f_idx, position_dof_handler, position, F_dof_handler, F_mapping, F_rhs);
 
   transaction = interaction_base.compute_projection_rhs_intermediate(
     std::move(transaction));
@@ -147,24 +149,26 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                                            native_tria);
     fdl::OverlapTriangulation<dim> overlap_tria(native_tria, predicate);
 
-    DoFHandler<dim> X_overlap_dof_handler(overlap_tria);
-    X_overlap_dof_handler.distribute_dofs(X_fe);
+    DoFHandler<dim> position_overlap_dof_handler(overlap_tria);
+    position_overlap_dof_handler.distribute_dofs(position_fe);
 
     std::ostringstream this_output;
     if (input_db->getBoolWithDefault("write_mapped_cell_centers", false))
       {
-        // TODO - implement this test to verify that the X scatter works.
-        std::vector<types::global_dof_index>     X_dofs(X_fe.dofs_per_cell);
+        // TODO - implement this test to verify that the position scatter works.
+        std::vector<types::global_dof_index> position_dofs(
+          position_fe.dofs_per_cell);
         QMidpoint<dim>                           quadrature;
-        MappingFEField<dim, dim, Vector<double>> X_map(X_overlap_dof_handler,
-                                                       trans.overlap_X_vec);
+        MappingFEField<dim, dim, Vector<double>> position_map(
+          position_overlap_dof_handler, trans.overlap_position);
 
-        FEValues<dim> fe_values(X_map,
-                                X_fe,
+        FEValues<dim> fe_values(position_map,
+                                position_fe,
                                 quadrature,
                                 update_quadrature_points);
 
-        for (const auto &cell : X_overlap_dof_handler.active_cell_iterators())
+        for (const auto &cell :
+             position_overlap_dof_handler.active_cell_iterators())
           {
             fe_values.reinit(cell);
 
@@ -181,8 +185,8 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     print_strings_on_0(this_output.str(), mpi_comm, output);
 
     DataOut<dim> data_out;
-    data_out.attach_dof_handler(X_overlap_dof_handler);
-    data_out.add_data_vector(trans.overlap_X_vec, "position");
+    data_out.attach_dof_handler(position_overlap_dof_handler);
+    data_out.add_data_vector(trans.overlap_position, "position");
     data_out.build_patches();
     std::ofstream data_out_stream("overlap-tria-" + std::to_string(rank) +
                                   ".vtu");

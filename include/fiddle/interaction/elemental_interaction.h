@@ -80,9 +80,10 @@ namespace fdl
       std::unique_ptr<TransactionBase> transaction) override;
 
     virtual std::unique_ptr<TransactionBase>
-    add_workload_start(const int workload_index,
-                       const LinearAlgebra::distributed::Vector<double> &X,
-                       const DoFHandler<dim, spacedim> &X_dof_handler) override;
+    add_workload_start(
+      const int                                         workload_index,
+      const LinearAlgebra::distributed::Vector<double> &position,
+      const DoFHandler<dim, spacedim> &position_dof_handler) override;
 
     virtual std::unique_ptr<TransactionBase>
     add_workload_intermediate(std::unique_ptr<TransactionBase> t_ptr) override;
