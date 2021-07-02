@@ -307,10 +307,10 @@ template <int spacedim>
 inline void
 print_partitioning_on_0(
   SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<spacedim>>
-    &            patch_hierarchy,
-  const int      coarsest_ln,
-  const int      finest_ln,
-  std::ostream  &out)
+    &           patch_hierarchy,
+  const int     coarsest_ln,
+  const int     finest_ln,
+  std::ostream &out)
 {
   using namespace SAMRAI;
 

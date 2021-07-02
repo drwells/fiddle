@@ -129,10 +129,10 @@ namespace fdl
                                       " in the restart database"));
                     // Same note from putToDatabase applies here
                     const std::string base64 = db->getString(key);
-                    std::string serialization =
+                    std::string       serialization =
                       decode_base64(base64.c_str(),
                                     base64.c_str() + base64.size());
-                    std::istringstream in_str(serialization);
+                    std::istringstream              in_str(serialization);
                     boost::archive::binary_iarchive iarchive(in_str);
                     parts[part_n].load(iarchive, 0);
                   }
@@ -873,7 +873,7 @@ namespace fdl
         //
         // TODO - with C++20 we can use view() instead of str() and skip one
         // more copy
-        const std::string          out = out_str.str();
+        const std::string out = out_str.str();
         db->putString("part_" + std::to_string(part_n),
                       encode_base64(out.c_str(), out.c_str() + out.size()));
       }
