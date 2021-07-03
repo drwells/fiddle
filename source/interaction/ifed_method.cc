@@ -111,13 +111,13 @@ namespace fdl
     t_apply_gradient_detector =
       set_timer("fdl::IFEDMethod::applyGradientDetector()");
 
-    // Ignore RestartManager unless requested
     if (register_for_restart)
       {
-        if (tbox::RestartManager::getManager()->isFromRestart())
+        auto *restart_manager = tbox::RestartManager::getManager();
+        restart_manager->registerRestartItem(object_name, this);
+        if (restart_manager->isFromRestart())
           {
-            auto restart_db =
-              tbox::RestartManager::getManager()->getRootDatabase();
+            auto restart_db = restart_manager->getRootDatabase();
             if (restart_db->isDatabase(object_name))
               {
                 auto db = restart_db->getDatabase(object_name);
@@ -127,12 +127,8 @@ namespace fdl
                     Assert(db->keyExists(key),
                            ExcMessage("Couldn't find key " + key +
                                       " in the restart database"));
-                    // Same note from putToDatabase applies here
-                    const std::string base64 = db->getString(key);
-                    std::string       serialization =
-                      decode_base64(base64.c_str(),
-                                    base64.c_str() + base64.size());
-                    std::istringstream              in_str(serialization);
+                    const std::string  serialization = load_binary(key, db);
+                    std::istringstream in_str(serialization);
                     boost::archive::binary_iarchive iarchive(in_str);
                     parts[part_n].load(iarchive, 0);
                   }
@@ -143,11 +139,6 @@ namespace fdl
                        ExcMessage("The restart database does not contain key " +
                                   object_name));
               }
-          }
-        else
-          {
-            tbox::RestartManager::getManager()->registerRestartItem(object_name,
-                                                                    this);
           }
       }
   }
@@ -869,15 +860,13 @@ namespace fdl
         std::ostringstream              out_str;
         boost::archive::binary_oarchive oarchive(out_str);
         parts[part_n].save(oarchive, 0);
-        // Unfortunately, SAMRAI doesn't understand that a std::string can
-        // contain NUL characters (it uses c_str(), which is wrong) so we have
-        // to do an extra translation to get around its bugs:
-        //
-        // TODO - with C++20 we can use view() instead of str() and skip one
-        // more copy
+        // TODO - with C++20 we can use view() instead of str() and skip this
+        // copy
         const std::string out = out_str.str();
-        db->putString("part_" + std::to_string(part_n),
-                      encode_base64(out.c_str(), out.c_str() + out.size()));
+        save_binary("part_" + std::to_string(part_n),
+                    out.c_str(),
+                    out.c_str() + out.size(),
+                    db);
       }
   }
 

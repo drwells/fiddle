@@ -123,6 +123,29 @@ namespace fdl
   tbox::Pointer<tbox::MemoryDatabase>
   copy_database(const tbox::Pointer<tbox::MemoryDatabase> &input,
                 const std::string name_suffix = "::clone");
+
+  /**
+   * Save the binary representation of an object in a database.
+   *
+   * @note This function does an additional translation to base64 to avoid a bug
+   * in SAMRAI.
+   */
+  void
+  save_binary(const std::string &            key,
+              const char *                   begin,
+              const char *                   end,
+              tbox::Pointer<tbox::Database> &database);
+
+  /**
+   * Load the binary representation of an object from a database. This is the
+   * inverse of save_binary.
+   *
+   * @note This function does an additional translation from base64 to avoid a
+   * bug in SAMRAI.
+   */
+  std::string
+  load_binary(const std::string &                  key,
+              const tbox::Pointer<tbox::Database> &database);
 } // namespace fdl
 
 #endif

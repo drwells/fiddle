@@ -1,5 +1,6 @@
 #include <fiddle/base/exceptions.h>
 #include <fiddle/base/samrai_utilities.h>
+#include <fiddle/base/utilities.h>
 
 #include <CellData.h>
 #include <CellVariable.h>
@@ -327,6 +328,23 @@ namespace fdl
     tbox::Pointer<tbox::Database> output(new tbox::MemoryDatabase(name));
     copy_database_recursive(input, output);
     return output;
+  }
+
+  void
+  save_binary(const std::string &            key,
+              const char *                   begin,
+              const char *                   end,
+              tbox::Pointer<tbox::Database> &database)
+  {
+    database->putString(key, encode_base64(begin, end));
+  }
+
+  std::string
+  load_binary(const std::string &                  key,
+              const tbox::Pointer<tbox::Database> &database)
+  {
+    const std::string base64 = database->getString(key);
+    return decode_base64(base64.c_str(), base64.c_str() + base64.size());
   }
 
   // instantiations:
