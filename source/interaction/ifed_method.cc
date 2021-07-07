@@ -879,7 +879,7 @@ namespace fdl
     // we need ghosts for CONSERVATIVE_LINEAR_REFINE
     const hier::IntVector<spacedim> ghosts = 1;
     lagrangian_workload_var =
-      new pdat::CellVariable<spacedim, double>("::lagrangian_workload");
+      new pdat::CellVariable<spacedim, double>(object_name + "::lagrangian_workload");
     registerVariable(lagrangian_workload_current_index,
                      lagrangian_workload_new_index,
                      lagrangian_workload_scratch_index,
