@@ -23,18 +23,18 @@ namespace fdl
       std::ceil(point_density * lagrangian_length / eulerian_length);
     const double min_point_distance = 1.0 / n_evenly_spaced_points;
 
-    // TODO: use binary search instead if max_point_distances.back() <
+    // TODO: use binary search instead if mean_point_distances.back() <
     // min_point_distance
     unsigned char i = 0;
     while (true)
       {
-        // access the quadrature first to guarantee that max_point_distances is
+        // access the quadrature first to guarantee that mean_point_distances is
         // long enough
         this->operator[](i);
-        Assert(i < max_point_distances.size(), ExcFDLInternalError());
-        const double max_distance = max_point_distances[i];
+        Assert(i < mean_point_distances.size(), ExcFDLInternalError());
+        const double mean_distance = mean_point_distances[i];
 
-        if (max_distance <= min_point_distance)
+        if (mean_distance <= min_point_distance)
           return i;
 
         if (i == std::numeric_limits<unsigned char>::max())
@@ -113,7 +113,7 @@ namespace fdl
                 const std::size_t n_points =
                   std::pow(pairs[i].first * pairs[i].second, dim);
 
-                if (n_points < best_n_points)
+                if (n_points <= best_n_points)
                   {
                     const QIterated<dim> new_quad(QGauss<1>(pairs[i].first),
                                                   pairs[i].second);
@@ -123,8 +123,9 @@ namespace fdl
                                             find_largest_nonintersecting_sphere(
                                               new_quad.get_points())
                                               .second;
-                    // Allow a small tolerance for roundoff
-                    if (point_distance <= target_point_distance + 1e-14)
+
+                    if (point_distance <= target_point_distance &&
+                        point_distance <= best_point_distance)
                       {
                         best_index          = i;
                         best_n_points       = new_quad.size();
@@ -144,11 +145,17 @@ namespace fdl
             Assert(quadratures.size() == std::size_t(index),
                    ExcFDLInternalError());
             quadratures.emplace_back(std::move(new_quad));
+
             max_point_distances.emplace_back(best_point_distance);
+            const unsigned int n_1D_points =
+              pairs[best_index].first * pairs[best_index].second;
+            mean_point_distances.emplace_back(1.0 / n_1D_points);
           }
 
         Assert(n_points_1D < quadratures.size(), ExcFDLInternalError());
         Assert(max_point_distances.size() == quadratures.size(),
+               ExcFDLInternalError());
+        Assert(mean_point_distances.size() == quadratures.size(),
                ExcFDLInternalError());
         return quadratures[n_points_1D];
       }

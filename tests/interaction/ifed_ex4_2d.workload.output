@@ -637,8 +637,8 @@ IBHierarchyIntegrator::advanceHierarchy(): regridding prior to timestep 28
 IBHierarchyIntegrator::regridHierarchy(): starting Lagrangian data movement
 IBHierarchyIntegrator::regridHierarchy(): regridding the patch hierarchy
 IBHierarchyIntegrator::regridHierarchy(): finishing Lagrangian data movement
-IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 7232
-IFEDMethod::endDataRedistribution(): total workload = 7232
+IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 2880
+IFEDMethod::endDataRedistribution(): total workload = 2880
 IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
 IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
 IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
@@ -756,8 +756,8 @@ IBHierarchyIntegrator::advanceHierarchy(): regridding prior to timestep 33
 IBHierarchyIntegrator::regridHierarchy(): starting Lagrangian data movement
 IBHierarchyIntegrator::regridHierarchy(): regridding the patch hierarchy
 IBHierarchyIntegrator::regridHierarchy(): finishing Lagrangian data movement
-IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 7232
-IFEDMethod::endDataRedistribution(): total workload = 7232
+IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 2880
+IFEDMethod::endDataRedistribution(): total workload = 2880
 IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
 IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
 IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
@@ -850,8 +850,8 @@ IBHierarchyIntegrator::advanceHierarchy(): regridding prior to timestep 37
 IBHierarchyIntegrator::regridHierarchy(): starting Lagrangian data movement
 IBHierarchyIntegrator::regridHierarchy(): regridding the patch hierarchy
 IBHierarchyIntegrator::regridHierarchy(): finishing Lagrangian data movement
-IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 7232
-IFEDMethod::endDataRedistribution(): total workload = 7232
+IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 2880
+IFEDMethod::endDataRedistribution(): total workload = 2880
 IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
 IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
 IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
@@ -947,8 +947,8 @@ IBHierarchyIntegrator::advanceHierarchy(): regridding prior to timestep 41
 IBHierarchyIntegrator::regridHierarchy(): starting Lagrangian data movement
 IBHierarchyIntegrator::regridHierarchy(): regridding the patch hierarchy
 IBHierarchyIntegrator::regridHierarchy(): finishing Lagrangian data movement
-IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 7232
-IFEDMethod::endDataRedistribution(): total workload = 7232
+IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 2880
+IFEDMethod::endDataRedistribution(): total workload = 2880
 IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
 IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
 IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
@@ -1019,8 +1019,8 @@ IBHierarchyIntegrator::advanceHierarchy(): regridding prior to timestep 44
 IBHierarchyIntegrator::regridHierarchy(): starting Lagrangian data movement
 IBHierarchyIntegrator::regridHierarchy(): regridding the patch hierarchy
 IBHierarchyIntegrator::regridHierarchy(): finishing Lagrangian data movement
-IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 7232
-IFEDMethod::endDataRedistribution(): total workload = 7232
+IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 2880
+IFEDMethod::endDataRedistribution(): total workload = 2880
 IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
 IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
 IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force

@@ -637,11 +637,11 @@ IBHierarchyIntegrator::advanceHierarchy(): regridding prior to timestep 28
 IBHierarchyIntegrator::regridHierarchy(): starting Lagrangian data movement
 IBHierarchyIntegrator::regridHierarchy(): regridding the patch hierarchy
 IBHierarchyIntegrator::regridHierarchy(): finishing Lagrangian data movement
-IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 1752
-IFEDMethod::endDataRedistribution(): workload estimate on processor 1 = 1752
-IFEDMethod::endDataRedistribution(): workload estimate on processor 2 = 1864
-IFEDMethod::endDataRedistribution(): workload estimate on processor 3 = 1864
-IFEDMethod::endDataRedistribution(): total workload = 7232
+IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 684
+IFEDMethod::endDataRedistribution(): workload estimate on processor 1 = 684
+IFEDMethod::endDataRedistribution(): workload estimate on processor 2 = 756
+IFEDMethod::endDataRedistribution(): workload estimate on processor 3 = 756
+IFEDMethod::endDataRedistribution(): total workload = 2880
 IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
 IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
 IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
@@ -759,11 +759,11 @@ IBHierarchyIntegrator::advanceHierarchy(): regridding prior to timestep 33
 IBHierarchyIntegrator::regridHierarchy(): starting Lagrangian data movement
 IBHierarchyIntegrator::regridHierarchy(): regridding the patch hierarchy
 IBHierarchyIntegrator::regridHierarchy(): finishing Lagrangian data movement
-IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 1752
-IFEDMethod::endDataRedistribution(): workload estimate on processor 1 = 1752
-IFEDMethod::endDataRedistribution(): workload estimate on processor 2 = 1864
-IFEDMethod::endDataRedistribution(): workload estimate on processor 3 = 1864
-IFEDMethod::endDataRedistribution(): total workload = 7232
+IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 684
+IFEDMethod::endDataRedistribution(): workload estimate on processor 1 = 684
+IFEDMethod::endDataRedistribution(): workload estimate on processor 2 = 756
+IFEDMethod::endDataRedistribution(): workload estimate on processor 3 = 756
+IFEDMethod::endDataRedistribution(): total workload = 2880
 IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
 IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
 IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
@@ -856,11 +856,11 @@ IBHierarchyIntegrator::advanceHierarchy(): regridding prior to timestep 37
 IBHierarchyIntegrator::regridHierarchy(): starting Lagrangian data movement
 IBHierarchyIntegrator::regridHierarchy(): regridding the patch hierarchy
 IBHierarchyIntegrator::regridHierarchy(): finishing Lagrangian data movement
-IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 1752
-IFEDMethod::endDataRedistribution(): workload estimate on processor 1 = 1752
-IFEDMethod::endDataRedistribution(): workload estimate on processor 2 = 1864
-IFEDMethod::endDataRedistribution(): workload estimate on processor 3 = 1864
-IFEDMethod::endDataRedistribution(): total workload = 7232
+IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 684
+IFEDMethod::endDataRedistribution(): workload estimate on processor 1 = 684
+IFEDMethod::endDataRedistribution(): workload estimate on processor 2 = 756
+IFEDMethod::endDataRedistribution(): workload estimate on processor 3 = 756
+IFEDMethod::endDataRedistribution(): total workload = 2880
 IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
 IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
 IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
@@ -956,11 +956,11 @@ IBHierarchyIntegrator::advanceHierarchy(): regridding prior to timestep 41
 IBHierarchyIntegrator::regridHierarchy(): starting Lagrangian data movement
 IBHierarchyIntegrator::regridHierarchy(): regridding the patch hierarchy
 IBHierarchyIntegrator::regridHierarchy(): finishing Lagrangian data movement
-IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 1752
-IFEDMethod::endDataRedistribution(): workload estimate on processor 1 = 1752
-IFEDMethod::endDataRedistribution(): workload estimate on processor 2 = 1864
-IFEDMethod::endDataRedistribution(): workload estimate on processor 3 = 1864
-IFEDMethod::endDataRedistribution(): total workload = 7232
+IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 684
+IFEDMethod::endDataRedistribution(): workload estimate on processor 1 = 684
+IFEDMethod::endDataRedistribution(): workload estimate on processor 2 = 756
+IFEDMethod::endDataRedistribution(): workload estimate on processor 3 = 756
+IFEDMethod::endDataRedistribution(): total workload = 2880
 IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
 IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
 IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force
@@ -1031,11 +1031,11 @@ IBHierarchyIntegrator::advanceHierarchy(): regridding prior to timestep 44
 IBHierarchyIntegrator::regridHierarchy(): starting Lagrangian data movement
 IBHierarchyIntegrator::regridHierarchy(): regridding the patch hierarchy
 IBHierarchyIntegrator::regridHierarchy(): finishing Lagrangian data movement
-IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 1752
-IFEDMethod::endDataRedistribution(): workload estimate on processor 1 = 1752
-IFEDMethod::endDataRedistribution(): workload estimate on processor 2 = 1864
-IFEDMethod::endDataRedistribution(): workload estimate on processor 3 = 1864
-IFEDMethod::endDataRedistribution(): total workload = 7232
+IFEDMethod::endDataRedistribution(): workload estimate on processor 0 = 684
+IFEDMethod::endDataRedistribution(): workload estimate on processor 1 = 684
+IFEDMethod::endDataRedistribution(): workload estimate on processor 2 = 756
+IFEDMethod::endDataRedistribution(): workload estimate on processor 3 = 756
+IFEDMethod::endDataRedistribution(): total workload = 2880
 IBHierarchyIntegrator::preprocessIntegrateHierarchy(): performing Lagrangian forward Euler step
 IBHierarchyIntegrator::advanceHierarchy(): integrating hierarchy
 IBHierarchyIntegrator::integrateHierarchy(): computing Lagrangian force

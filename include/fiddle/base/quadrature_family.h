@@ -131,6 +131,15 @@ namespace fdl
      * here to make get_index() a lot faster.
      */
     mutable std::vector<double> max_point_distances;
+
+    /**
+     * Mean distance between nearest neighbors of quadrature points - computed
+     * as 1.0/n_points_1D. In practice, we use this value since
+     * max_point_distances is too conservative as there will be enough overlap
+     * between elements and cells that the mean is a better reflection of the
+     * density than the worst-case distance.
+     */
+    mutable std::vector<double> mean_point_distances;
   };
 
   // Inline functions

@@ -68,6 +68,9 @@ LoadBalancer {
 }
 
 IFEDMethod {
+
+   IB_point_density = 4
+
    GriddingAlgorithm
    {
        max_levels = MAX_LEVELS
