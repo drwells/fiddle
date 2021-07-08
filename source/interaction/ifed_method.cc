@@ -332,8 +332,8 @@ namespace fdl
       }
 
     tbox::Pointer<hier::Variable<spacedim>> f_var;
-    hier::VariableDatabase<spacedim>::getDatabase()->mapIndexToVariable(
-      f_data_index, f_var);
+    auto *var_db = hier::VariableDatabase<spacedim>::getDatabase();
+    var_db->mapIndexToVariable(f_data_index, f_var);
     // Accumulate forces spread into patch ghost regions.
     {
       if (!ghost_data_accumulator)
