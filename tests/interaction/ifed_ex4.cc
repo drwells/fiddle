@@ -179,7 +179,7 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
     input_db->getDoubleWithDefault("beta", 0.0)));
 
   parts.emplace_back(native_tria, fe, std::move(forces));
-  tbox::Pointer<IBAMR::IBStrategy> ib_method_ops =
+  tbox::Pointer<fdl::IFEDMethod<spacedim>> ib_method_ops =
     new fdl::IFEDMethod<dim>("ifed_method",
                              input_db->getDatabase("IFEDMethod"),
                              std::move(parts));
@@ -258,8 +258,7 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   time_integrator->setupPlotData();
   visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
   {
-    const auto &part =
-      dynamic_cast<fdl::IFEDMethod<NDIM> &>(*ib_method_ops).get_part(0);
+    const auto & part = ib_method_ops->get_part(0);
     DataOut<dim> data_out;
     data_out.attach_dof_handler(part.get_dof_handler());
     data_out.add_data_vector(part.get_velocity(), "U");
