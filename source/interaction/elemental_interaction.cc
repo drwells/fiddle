@@ -30,13 +30,15 @@ namespace fdl
   ElementalInteraction<dim, spacedim>::ElementalInteraction(
     const parallel::shared::Triangulation<dim, spacedim> &native_tria,
     const std::vector<BoundingBox<spacedim, float>> &     active_cell_bboxes,
+    const std::vector<float> &                            active_cell_lengths,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
     const int                                             level_number,
     const unsigned int                                    min_n_points_1D,
     const double                                          point_density)
     : ElementalInteraction<dim, spacedim>(min_n_points_1D, point_density)
   {
-    reinit(native_tria, active_cell_bboxes, patch_hierarchy, level_number);
+    reinit(native_tria, active_cell_bboxes, active_cell_lengths, patch_hierarchy,
+           level_number);
   }
 
   template <int dim, int spacedim>
@@ -44,11 +46,13 @@ namespace fdl
   ElementalInteraction<dim, spacedim>::reinit(
     const parallel::shared::Triangulation<dim, spacedim> &native_tria,
     const std::vector<BoundingBox<spacedim, float>> &     active_cell_bboxes,
+    const std::vector<float> &                            active_cell_lengths,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
     const int                                             level_number)
   {
     InteractionBase<dim, spacedim>::reinit(native_tria,
                                            active_cell_bboxes,
+                                           active_cell_lengths,
                                            patch_hierarchy,
                                            level_number);
     // We need to implement some more quadrature families
@@ -75,15 +79,8 @@ namespace fdl
     quadrature_indices.resize(0);
     for (const auto &cell : this->overlap_tria.active_cell_iterators())
       {
-        const auto  native_cell = this->overlap_tria.get_native_cell(cell);
-        const auto &native_bbox =
-          active_cell_bboxes[native_cell->active_cell_index()];
-
-        double lagrangian_length = native_bbox.side_length(0);
-        for (unsigned int d = 1; d < spacedim; ++d)
-          lagrangian_length =
-            std::max<double>(lagrangian_length, native_bbox.side_length(d));
-
+        const auto native_cell = this->overlap_tria.get_native_cell(cell);
+        const double lagrangian_length = active_cell_lengths[native_cell->active_cell_index()];
         quadrature_indices.push_back(
           quadrature_family->get_index(eulerian_length, lagrangian_length));
       }

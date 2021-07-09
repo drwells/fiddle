@@ -148,6 +148,11 @@ namespace fdl
      *            cells owned by the current processor). This should be computed
      *            with the finite element description of the displacement.
      *
+     * @param[in] active_cell_lengths Length scale for each element - usually
+     *            used to determine which quadrature rule should be used. Also
+     *            for each active cell. This should be computed with the finite
+     *            element description of the displacement.
+     *
      * @param[inout] patch_hierarchy The patch hierarchy with which we will
      *               interact (i.e., for spreading and interpolation).
      *
@@ -160,6 +165,7 @@ namespace fdl
     InteractionBase(
       const parallel::shared::Triangulation<dim, spacedim> &native_tria,
       const std::vector<BoundingBox<spacedim, float>> &     active_cell_bboxes,
+      const std::vector<float> &                            active_cell_lengths,
       tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
       const int                                             level_number);
 
@@ -169,6 +175,7 @@ namespace fdl
     virtual void
     reinit(const parallel::shared::Triangulation<dim, spacedim> &native_tria,
            const std::vector<BoundingBox<spacedim, float>> & active_cell_bboxes,
+           const std::vector<float> &                        active_cell_lengths,
            tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
            const int                                         level_number);
 

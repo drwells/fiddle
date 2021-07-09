@@ -1,5 +1,7 @@
 #include <fiddle/base/exceptions.h>
 
+#include <fiddle/grid/grid_utilities.h>
+
 #include <fiddle/interaction/elemental_interaction.h>
 
 #include <deal.II/base/function_parser.h>
@@ -123,10 +125,15 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
         convert<spacedim, float, double>(cell->bounding_box()));
   const auto all_bboxes =
     fdl::collect_all_active_cell_bboxes(native_tria, bboxes);
+  const auto local_edge_lengths =
+    fdl::compute_longest_edge_lengths(native_tria, F_mapping, QGauss<1>(2));
+  const auto all_edge_lengths = fdl::collect_longest_edge_lengths(
+    native_tria, local_edge_lengths);
 
   fdl::ElementalInteraction<dim, spacedim> interaction(
     native_tria,
     all_bboxes,
+    all_edge_lengths,
     patch_hierarchy,
     patch_hierarchy->getFinestLevelNumber(),
     fe_degree + 1,

@@ -38,6 +38,7 @@ namespace fdl
   InteractionBase<dim, spacedim>::InteractionBase(
     const parallel::shared::Triangulation<dim, spacedim> &n_tria,
     const std::vector<BoundingBox<spacedim, float>> & global_active_cell_bboxes,
+    const std::vector<float> & global_active_cell_lengths,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> p_hierarchy,
     const int                                         l_number)
     : communicator(MPI_COMM_NULL)
@@ -45,7 +46,7 @@ namespace fdl
     , patch_hierarchy(p_hierarchy)
     , level_number(l_number)
   {
-    reinit(n_tria, global_active_cell_bboxes, p_hierarchy, l_number);
+    reinit(n_tria, global_active_cell_bboxes, global_active_cell_lengths, p_hierarchy, l_number);
   }
 
 
@@ -55,6 +56,7 @@ namespace fdl
   InteractionBase<dim, spacedim>::reinit(
     const parallel::shared::Triangulation<dim, spacedim> &n_tria,
     const std::vector<BoundingBox<spacedim, float>> & global_active_cell_bboxes,
+    const std::vector<float> & /*global_active_cell_lengths*/,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> p_hierarchy,
     const int                                         l_number)
   {

@@ -25,9 +25,10 @@ SET(FIDDLE_SRC
   source/base/quadrature_family.cc
   source/base/utilities.cc
 
+  source/grid/box_utilities.cc
+  source/grid/grid_utilities.cc
   source/grid/overlap_tria.cc
   source/grid/patch_map.cc
-  source/grid/box_utilities.cc
 
   source/interaction/elemental_interaction.cc
   source/interaction/ifed_method.cc

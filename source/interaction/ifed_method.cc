@@ -2,6 +2,7 @@
 #include <fiddle/base/utilities.h>
 
 #include <fiddle/grid/box_utilities.h>
+#include <fiddle/grid/grid_utilities.h>
 
 #include <fiddle/interaction/elemental_interaction.h>
 #include <fiddle/interaction/ifed_method.h>
@@ -621,15 +622,23 @@ namespace fdl
         IBAMR_TIMER_START(t_reinit_interactions_bboxes);
         const auto local_bboxes =
           compute_cell_bboxes<dim, spacedim, float>(dof_handler, mapping);
-
         const auto global_bboxes =
           collect_all_active_cell_bboxes(tria, local_bboxes);
         IBAMR_TIMER_STOP(t_reinit_interactions_bboxes);
+
+        IBAMR_TIMER_START(t_reinit_interactions_edges);
+        const auto local_edge_lengths =
+          compute_longest_edge_lengths(tria, mapping, QGauss<1>(
+                                         dof_handler.get_fe().tensor_degree()));
+        const auto global_edge_lengths =
+          collect_longest_edge_lengths(tria, local_edge_lengths);
+        IBAMR_TIMER_STOP(t_reinit_interactions_edges);
 
         IBAMR_TIMER_START(t_reinit_interactions_objects);
         interactions[part_n]->reinit(
           tria,
           global_bboxes,
+          global_edge_lengths,
           secondary_hierarchy.getSecondaryHierarchy(),
           primary_hierarchy->getFinestLevelNumber());
         // TODO - we should probably add a reinit() function that sets up the

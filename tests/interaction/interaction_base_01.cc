@@ -93,6 +93,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   const auto level_number = patch_hierarchy->getFinestLevelNumber();
   fdl::InteractionBase<dim, spacedim> interaction_base(native_tria,
                                                        cell_bboxes,
+                                                       {}, // This class doesn't read edge lengths
                                                        patch_hierarchy,
                                                        level_number);
 
