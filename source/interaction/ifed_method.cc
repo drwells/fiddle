@@ -769,6 +769,29 @@ namespace fdl
                            << std::endl;
               }
           }
+
+        // IBTK::HierarchyIntegrator (which controls these data indices) will
+        // exchange pointers between the new and current states during
+        // timestepping. In particular: it will swap new and current, deallocate
+        // new, reallocate new, and repeat. This causes (since we only touch
+        // this variable in regrids) this data to get cleared, so save a copy
+        // for plotting purposes.
+
+        // TODO - implement a utility function for copying
+        auto primary_ops = extract_hierarchy_data_ops(lagrangian_workload_var,
+                                                      primary_hierarchy);
+        const int max_ln = primary_hierarchy->getFinestLevelNumber();
+        primary_ops->resetLevels(0, max_ln);
+        for (int ln = 0; ln <= max_ln; ++ln)
+          {
+            tbox::Pointer<hier::PatchLevel<spacedim>> primary_level =
+              primary_hierarchy->getPatchLevel(ln);
+            if (!primary_level->checkAllocated(lagrangian_workload_plot_index))
+              primary_level->allocatePatchData(lagrangian_workload_plot_index);
+          }
+        primary_ops->copyData(lagrangian_workload_plot_index,
+                              lagrangian_workload_current_index,
+                              false);
       }
     IBAMR_TIMER_STOP(t_end_data_redistribution);
   }
@@ -890,8 +913,8 @@ namespace fdl
   {
     // we need ghosts for CONSERVATIVE_LINEAR_REFINE
     const hier::IntVector<spacedim> ghosts = 1;
-    lagrangian_workload_var =
-      new pdat::CellVariable<spacedim, double>(object_name + "::lagrangian_workload");
+    lagrangian_workload_var = new pdat::CellVariable<spacedim, double>(
+      object_name + "::lagrangian_workload");
     registerVariable(lagrangian_workload_current_index,
                      lagrangian_workload_new_index,
                      lagrangian_workload_scratch_index,
@@ -899,6 +922,13 @@ namespace fdl
                      ghosts,
                      "CONSERVATIVE_COARSEN",
                      "CONSERVATIVE_LINEAR_REFINE");
+
+    auto *var_db  = hier::VariableDatabase<spacedim>::getDatabase();
+    auto  context = var_db->getContext(object_name);
+    lagrangian_workload_plot_index =
+      var_db->registerVariableAndContext(lagrangian_workload_var,
+                                         context,
+                                         ghosts);
   }
 
 

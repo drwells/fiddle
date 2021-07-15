@@ -199,6 +199,14 @@ namespace fdl
     const Part<dim, spacedim> &
     get_part(const unsigned int part_n) const;
 
+    int
+    get_lagrangian_workload_current_index() const
+    {
+      Assert(lagrangian_workload_plot_index != IBTK::invalid_index,
+             ExcMessage("The Lagrangian workload index has not yet been set."));
+      return lagrangian_workload_plot_index;
+    }
+
   protected:
     /**
      * Actually set up the interaction objects - will ultimately support nodal
@@ -273,6 +281,8 @@ namespace fdl
     std::shared_ptr<IBTK::SAMRAIDataCache> primary_eulerian_data_cache;
 
     IBTK::SecondaryHierarchy secondary_hierarchy;
+
+    int lagrangian_workload_plot_index = IBTK::invalid_index;
 
     int lagrangian_workload_current_index = IBTK::invalid_index;
     int lagrangian_workload_new_index     = IBTK::invalid_index;

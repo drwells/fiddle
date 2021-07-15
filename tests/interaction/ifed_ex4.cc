@@ -252,6 +252,12 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   time_integrator->initializePatchHierarchy(patch_hierarchy,
                                             gridding_algorithm);
 
+  // Now that everything is set up we can register one more plotting quantity
+  visit_data_writer->registerPlotQuantity(
+    "quadraturepoints",
+    "SCALAR",
+    ib_method_ops->get_lagrangian_workload_current_index());
+
   // Write out initial visualization data.
   int    iteration_num = time_integrator->getIntegratorStep();
   double loop_time     = time_integrator->getIntegratorTime();
