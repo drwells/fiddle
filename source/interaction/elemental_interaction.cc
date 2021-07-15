@@ -54,8 +54,9 @@ namespace fdl
     // We need to implement some more quadrature families
     Assert(native_tria.all_reference_cells_are_hyper_cube(),
            ExcFDLNotImplemented());
-    quadrature_family.reset(
-      new QGaussFamily<dim>(min_n_points_1D, point_density));
+    if (!quadrature_family)
+      quadrature_family.reset(
+        new QGaussFamily<dim>(min_n_points_1D, point_density));
 
     const auto patches =
       extract_patches(patch_hierarchy->getPatchLevel(level_number));
