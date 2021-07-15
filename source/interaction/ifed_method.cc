@@ -44,7 +44,9 @@ namespace
   static tbox::Timer *t_begin_data_redistribution;
   static tbox::Timer *t_end_data_redistribution;
   static tbox::Timer *t_apply_gradient_detector;
-
+  static tbox::Timer *t_reinit_interactions_bboxes;
+  static tbox::Timer *t_reinit_interactions_edges;
+  static tbox::Timer *t_reinit_interactions_objects;
 } // namespace
 
 namespace fdl
@@ -110,6 +112,12 @@ namespace fdl
       set_timer("fdl::IFEDMethod::endDataRedistribution()");
     t_apply_gradient_detector =
       set_timer("fdl::IFEDMethod::applyGradientDetector()");
+    t_reinit_interactions_bboxes =
+      set_timer("fdl::IFEDMethod::reinit_interactions()[bboxes]");
+    t_reinit_interactions_edges =
+      set_timer("fdl::IFEDMethod::reinit_interactions()[edges]");
+    t_reinit_interactions_objects =
+      set_timer("fdl::IFEDMethod::reinit_interactions()[objects]");
 
     if (register_for_restart)
       {
@@ -610,12 +618,15 @@ namespace fdl
                        spacedim,
                        LinearAlgebra::distributed::Vector<double>>
                    mapping(dof_handler, part.get_position());
+        IBAMR_TIMER_START(t_reinit_interactions_bboxes);
         const auto local_bboxes =
           compute_cell_bboxes<dim, spacedim, float>(dof_handler, mapping);
 
         const auto global_bboxes =
           collect_all_active_cell_bboxes(tria, local_bboxes);
+        IBAMR_TIMER_STOP(t_reinit_interactions_bboxes);
 
+        IBAMR_TIMER_START(t_reinit_interactions_objects);
         interactions[part_n]->reinit(
           tria,
           global_bboxes,
@@ -624,6 +635,7 @@ namespace fdl
         // TODO - we should probably add a reinit() function that sets up the
         // DoFHandler we always need
         interactions[part_n]->add_dof_handler(part.get_dof_handler());
+        IBAMR_TIMER_STOP(t_reinit_interactions_objects);
       }
   }
 
