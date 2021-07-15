@@ -19,8 +19,10 @@ namespace fdl
   QGaussFamily<dim>::get_index(const double eulerian_length,
                                const double lagrangian_length) const
   {
+    // It isn't really a number of points, but we get more accurate answers if
+    // we don't round or use ceil here.
     const double n_evenly_spaced_points =
-      std::ceil(point_density * lagrangian_length / eulerian_length);
+      point_density * lagrangian_length / eulerian_length;
     const double min_point_distance = 1.0 / n_evenly_spaced_points;
 
     // TODO: use binary search instead if mean_point_distances.back() <
