@@ -101,6 +101,8 @@ namespace fdl
                 pairs.emplace_back(min_points_1D + 1, ratio1 + i);
                 pairs.emplace_back(min_points_1D + 2, ratio2 + i);
               }
+            std::sort(pairs.begin(), pairs.end());
+            pairs.erase(std::unique(pairs.begin(), pairs.end()), pairs.end());
 
             // Getting good quadrature rules really pays off so put a lot of
             // effort into sorting these guys and picking the one with the
@@ -126,8 +128,20 @@ namespace fdl
                                               new_quad.get_points())
                                               .second;
 
-                    if (point_distance <= target_point_distance &&
-                        point_distance <= best_point_distance)
+                    // If we have the same number of points, pick the rule with
+                    // better spacing
+                    if (n_points == best_n_points &&
+                        point_distance < best_point_distance)
+                      {
+                        best_index          = i;
+                        best_n_points       = new_quad.size();
+                        best_point_distance = point_distance;
+                      }
+
+                    // If we have different numbers of points, pick the rule
+                    // with fewer points
+                    if (n_points < best_n_points &&
+                        point_distance < target_point_distance)
                       {
                         best_index          = i;
                         best_n_points       = new_quad.size();

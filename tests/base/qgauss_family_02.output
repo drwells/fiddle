@@ -1,8 +1,8 @@
 min points 1D 1
-i = 0 n_points = 1 max distance = 1
-i = 1 n_points = 4 max distance = 0.707107
-i = 2 n_points = 9 max distance = 0.471405
-i = 3 n_points = 16 max distance = 0.353553
+i = 0 n_points = 4 max distance = 0.707107
+i = 1 n_points = 9 max distance = 0.471405
+i = 2 n_points = 16 max distance = 0.353553
+i = 3 n_points = 25 max distance = 0.282843
 i = 4 n_points = 36 max distance = 0.235702
 i = 5 n_points = 49 max distance = 0.202031
 i = 6 n_points = 64 max distance = 0.176777
@@ -18,8 +18,8 @@ i = 4 n_points = 36 max distance = 0.272166
 i = 5 n_points = 64 max distance = 0.204124
 i = 6 n_points = 100 max distance = 0.163299
 i = 7 n_points = 144 max distance = 0.136083
-i = 8 n_points = 225 max distance = 0.109545
-i = 9 n_points = 441 max distance = 0.0782461
+i = 8 n_points = 196 max distance = 0.116642
+i = 9 n_points = 225 max distance = 0.109545
 min points 1D 3
 i = 0 n_points = 9 max distance = 0.547723
 i = 1 n_points = 16 max distance = 0.480806
@@ -30,7 +30,7 @@ i = 5 n_points = 81 max distance = 0.182574
 i = 6 n_points = 144 max distance = 0.136931
 i = 7 n_points = 225 max distance = 0.109545
 i = 8 n_points = 324 max distance = 0.0912871
-i = 9 n_points = 576 max distance = 0.0684653
+i = 9 n_points = 441 max distance = 0.0782461
 min points 1D 4
 i = 0 n_points = 16 max distance = 0.480806
 i = 1 n_points = 25 max distance = 0.380755
@@ -40,5 +40,5 @@ i = 4 n_points = 64 max distance = 0.240403
 i = 5 n_points = 100 max distance = 0.190378
 i = 6 n_points = 144 max distance = 0.160269
 i = 7 n_points = 225 max distance = 0.126918
-i = 8 n_points = 324 max distance = 0.112486
-i = 9 n_points = 400 max distance = 0.0951888
+i = 8 n_points = 256 max distance = 0.120201
+i = 9 n_points = 324 max distance = 0.112486
