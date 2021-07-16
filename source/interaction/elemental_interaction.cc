@@ -37,7 +37,10 @@ namespace fdl
     const double                                          point_density)
     : ElementalInteraction<dim, spacedim>(min_n_points_1D, point_density)
   {
-    reinit(native_tria, active_cell_bboxes, active_cell_lengths, patch_hierarchy,
+    reinit(native_tria,
+           active_cell_bboxes,
+           active_cell_lengths,
+           patch_hierarchy,
            level_number);
   }
 
@@ -79,8 +82,9 @@ namespace fdl
     quadrature_indices.resize(0);
     for (const auto &cell : this->overlap_tria.active_cell_iterators())
       {
-        const auto native_cell = this->overlap_tria.get_native_cell(cell);
-        const double lagrangian_length = active_cell_lengths[native_cell->active_cell_index()];
+        const auto   native_cell = this->overlap_tria.get_native_cell(cell);
+        const double lagrangian_length =
+          active_cell_lengths[native_cell->active_cell_index()];
         quadrature_indices.push_back(
           quadrature_family->get_index(eulerian_length, lagrangian_length));
       }

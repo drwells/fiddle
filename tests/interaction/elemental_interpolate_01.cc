@@ -127,8 +127,8 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     fdl::collect_all_active_cell_bboxes(native_tria, bboxes);
   const auto local_edge_lengths =
     fdl::compute_longest_edge_lengths(native_tria, F_mapping, QGauss<1>(2));
-  const auto all_edge_lengths = fdl::collect_longest_edge_lengths(
-    native_tria, local_edge_lengths);
+  const auto all_edge_lengths =
+    fdl::collect_longest_edge_lengths(native_tria, local_edge_lengths);
 
   fdl::ElementalInteraction<dim, spacedim> interaction(
     native_tria,

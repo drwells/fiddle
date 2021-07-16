@@ -618,7 +618,7 @@ namespace fdl
         MappingFEField<dim,
                        spacedim,
                        LinearAlgebra::distributed::Vector<double>>
-                   mapping(dof_handler, part.get_position());
+          mapping(dof_handler, part.get_position());
         IBAMR_TIMER_START(t_reinit_interactions_bboxes);
         const auto local_bboxes =
           compute_cell_bboxes<dim, spacedim, float>(dof_handler, mapping);
@@ -627,9 +627,8 @@ namespace fdl
         IBAMR_TIMER_STOP(t_reinit_interactions_bboxes);
 
         IBAMR_TIMER_START(t_reinit_interactions_edges);
-        const auto local_edge_lengths =
-          compute_longest_edge_lengths(tria, mapping, QGauss<1>(
-                                         dof_handler.get_fe().tensor_degree()));
+        const auto local_edge_lengths = compute_longest_edge_lengths(
+          tria, mapping, QGauss<1>(dof_handler.get_fe().tensor_degree()));
         const auto global_edge_lengths =
           collect_longest_edge_lengths(tria, local_edge_lengths);
         IBAMR_TIMER_STOP(t_reinit_interactions_edges);

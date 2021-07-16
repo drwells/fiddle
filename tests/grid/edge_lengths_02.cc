@@ -32,7 +32,8 @@ main(int argc, char **argv)
         {
           float measure = 0.0;
           for (const auto &line_index : cell->line_indices())
-            measure = std::max<float>(measure, cell->line(line_index)->measure());
+            measure =
+              std::max<float>(measure, cell->line(line_index)->measure());
 
           AssertIndexRange(local_index, edge_lengths.size());
           AssertThrow(std::abs(measure - edge_lengths[local_index]) <
