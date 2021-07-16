@@ -142,10 +142,82 @@ namespace fdl
     mutable std::vector<double> mean_point_distances;
   };
 
+  /**
+   * Family of quadratures satisfying some minimum order condition based on
+   * QWitherdenVincentSimplex and QIteratedSimplex.
+   *
+   * This class will alternate between increasing the number of iterated
+   * quadratures and the order of the method to generate rules with the fewest
+   * number of points that still satisfy the minimum order condition.
+   */
+  template <int dim>
+  class QWitherdenVincentSimplexFamily : public QuadratureFamily<dim>
+  {
+  public:
+    /**
+     * Constructor. Takes, as argument, the minimum number of 1D points that
+     * generated quadrature rules will have. Here, like for
+     * dealii::Quadrature, @p min_points_1D should be understood as a
+     * parameter specifying the order of the quadratures.
+     */
+    QWitherdenVincentSimplexFamily(const unsigned int min_points_1D,
+                                   const double       point_density = 1.0);
+
+    virtual const Quadrature<dim> &
+    operator[](const unsigned char n_points_1D) const override;
+
+    virtual unsigned char
+    get_index(const double eulerian_length,
+              const double lagrangian_length) const override;
+
+    /**
+     * Get the vector of maximum point distances. This is only public for
+     * benchmarking and testing purposes - it should not be necessary to call
+     * it in user code.
+     */
+    std::vector<double>
+    get_max_point_distances() const;
+
+  protected:
+    unsigned int min_points_1D;
+
+    double point_density;
+
+    /**
+     * Quadratures. Left as mutable so that new quadratures can be added in
+     * operator[] should the need arise. Uses a deque so that references are
+     * not invalidated.
+     */
+    mutable std::deque<Quadrature<dim>> quadratures;
+
+    /**
+     * Maximum distance between nearest neighbors of quadrature points. Cached
+     * here to make get_index() a lot faster.
+     */
+    mutable std::vector<double> max_point_distances;
+
+    /**
+     * Mean distance between nearest neighbors of quadrature points - computed
+     * as 1.0/n_points_1D. In practice, we use this value since
+     * max_point_distances is too conservative as there will be enough overlap
+     * between elements and cells that the mean is a better reflection of the
+     * density than the worst-case distance.
+     */
+    mutable std::vector<double> mean_point_distances;
+  };
+
+
   // Inline functions
   template <int dim>
   std::vector<double>
   QGaussFamily<dim>::get_max_point_distances() const
+  {
+    return max_point_distances;
+  }
+
+  template <int dim>
+  std::vector<double>
+  QWitherdenVincentSimplexFamily<dim>::get_max_point_distances() const
   {
     return max_point_distances;
   }

@@ -63,6 +63,7 @@ ENDMACRO()
 SETUP(base hello.cc fiddle2d)
 SETUP(base qgauss_family_01.cc fiddle3d)
 SETUP(base qgauss_family_02.cc fiddle3d)
+SETUP(base qwv_family_01.cc fiddle2d)
 
 SETUP(base copy_database.cc fiddle2d)
 SETUP(base base64.cc fiddle2d)
