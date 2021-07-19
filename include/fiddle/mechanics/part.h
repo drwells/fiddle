@@ -8,6 +8,7 @@
 
 #include <deal.II/base/bounding_box.h>
 #include <deal.II/base/function.h>
+#include <deal.II/base/subscriptor.h>
 
 #include <deal.II/dofs/dof_handler.h>
 
@@ -49,7 +50,7 @@ namespace fdl
    * concerns.
    */
   template <int dim, int spacedim = dim>
-  class Part
+  class Part : public Subscriptor
   {
   public:
     /**

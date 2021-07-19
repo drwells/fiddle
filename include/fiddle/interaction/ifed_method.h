@@ -6,6 +6,7 @@
 #include <fiddle/interaction/interaction_base.h>
 
 #include <fiddle/mechanics/part.h>
+#include <fiddle/mechanics/part_vectors.h>
 
 #include <ibamr/IBStrategy.h>
 
@@ -226,19 +227,6 @@ namespace fdl
 
     tbox::Pointer<tbox::Database> input_db;
 
-    // Get the correct temporary vector or (if time == current_time) the
-    // vector from the Part object
-    const LinearAlgebra::distributed::Vector<double> &
-    get_position(const unsigned int part_n, const double time) const;
-
-    // same, but for velocity
-    const LinearAlgebra::distributed::Vector<double> &
-    get_velocity(const unsigned int part_n, const double time) const;
-
-    // same, but for force
-    const LinearAlgebra::distributed::Vector<double> &
-    get_force(const unsigned int part_n, const double time) const;
-
     bool started_time_integration;
 
     double current_time;
@@ -254,20 +242,7 @@ namespace fdl
      */
     std::vector<Part<dim, spacedim>> parts;
 
-    std::vector<LinearAlgebra::distributed::Vector<double>>
-      current_force_vectors;
-    std::vector<LinearAlgebra::distributed::Vector<double>> half_force_vectors;
-    std::vector<LinearAlgebra::distributed::Vector<double>> new_force_vectors;
-
-    std::vector<LinearAlgebra::distributed::Vector<double>>
-      half_position_vectors;
-    std::vector<LinearAlgebra::distributed::Vector<double>>
-      new_position_vectors;
-
-    std::vector<LinearAlgebra::distributed::Vector<double>>
-      half_velocity_vectors;
-    std::vector<LinearAlgebra::distributed::Vector<double>>
-      new_velocity_vectors;
+    PartVectors<dim, spacedim> part_vectors;
     /**
      * @}
      */

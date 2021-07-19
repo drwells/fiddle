@@ -83,21 +83,21 @@ public:
                              current_force);
 
     current_force.update_ghost_values();
-    Assert(current_force.has_ghost_elements(),
-           ExcMessage("Should have ghosts"));
-    this->current_force_vectors.emplace_back(std::move(current_force));
-    // a proper move ctor for LA::d::V is not yet merged into deal.II (but
-    // should be in 10.0)
-    this->current_force_vectors.back().update_ghost_values();
-    Assert(this->current_force_vectors.back().has_ghost_elements(),
-           ExcMessage("Should have ghosts"));
+    this->part_vectors.set_force(0,
+                                 this->current_time,
+                                 std::move(current_force));
+    // Check that we don't have a bug that existed prior to about June of 2021
+    // w.r.t. move ctors and LA::d::V
+    Assert(
+      this->part_vectors.get_force(0, this->current_time).has_ghost_elements(),
+      ExcMessage("Should have ghosts"));
   }
 
   // just for testing - plot the force
   const LinearAlgebra::distributed::Vector<double> &
   get_force() const
   {
-    return this->current_force_vectors.back();
+    return this->part_vectors.get_force(0, this->current_time);
   }
 
 protected:

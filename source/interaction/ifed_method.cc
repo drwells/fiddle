@@ -73,6 +73,7 @@ namespace fdl
     , half_time(std::numeric_limits<double>::signaling_NaN())
     , new_time(std::numeric_limits<double>::signaling_NaN())
     , parts(std::move(input_parts))
+    , part_vectors(this->parts)
     , secondary_hierarchy(object_name + "::secondary_hierarchy",
                           input_db->getDatabase("GriddingAlgorithm"),
                           input_db->getDatabase("LoadBalancer"))
@@ -229,7 +230,7 @@ namespace fdl
             "BSPLINE_3",
             u_data_index,
             part.get_dof_handler(),
-            get_position(part_n, data_time),
+            part_vectors.get_position(part_n, data_time),
             part.get_dof_handler(),
             part.get_mapping(),
             rhs_vecs[part_n]));
@@ -258,18 +259,7 @@ namespace fdl
                  velocity,
                  rhs_vecs[part_n],
                  parts[part_n].get_mass_preconditioner());
-        if (std::abs(data_time - half_time) < 1e-14)
-          {
-            half_velocity_vectors.resize(parts.size());
-            half_velocity_vectors[part_n] = std::move(velocity);
-          }
-        else if (std::abs(data_time - new_time) < 1e-14)
-          {
-            new_velocity_vectors.resize(parts.size());
-            new_velocity_vectors[part_n] = std::move(velocity);
-          }
-        else
-          Assert(false, ExcFDLNotImplemented());
+        part_vectors.set_velocity(part_n, data_time, std::move(velocity));
       }
     IBAMR_TIMER_STOP(t_interpolate_velocity);
   }
@@ -303,11 +293,11 @@ namespace fdl
         transactions.emplace_back(interactions[part_n]->compute_spread_start(
           "BSPLINE_3",
           f_scratch_data_index,
-          get_position(part_n, data_time),
+          part_vectors.get_position(part_n, data_time),
           part.get_dof_handler(),
           part.get_mapping(),
           part.get_dof_handler(),
-          get_force(part_n, data_time)));
+          part_vectors.get_force(part_n, data_time)));
       }
 
     // Compute:
@@ -442,9 +432,10 @@ namespace fdl
   {
     IBAMR_TIMER_START(t_preprocess_integrate_data);
     started_time_integration = true;
-    this->current_time       = current_time;
-    this->new_time           = new_time;
-    this->half_time          = current_time + 0.5 * (new_time - current_time);
+    part_vectors.begin_time_step(current_time, new_time);
+    this->current_time = current_time;
+    this->new_time     = new_time;
+    this->half_time    = current_time + 0.5 * (new_time - current_time);
     IBAMR_TIMER_STOP(t_preprocess_integrate_data);
   }
 
@@ -460,22 +451,17 @@ namespace fdl
     this->half_time    = std::numeric_limits<double>::quiet_NaN();
 
     // update positions and velocities:
+    auto new_positions  = part_vectors.get_all_new_positions();
+    auto new_velocities = part_vectors.get_all_new_velocities();
     for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
       {
-        parts[part_n].set_position(std::move(new_position_vectors[part_n]));
+        parts[part_n].set_position(std::move(new_positions[part_n]));
         parts[part_n].get_position().update_ghost_values();
-        parts[part_n].set_velocity(std::move(new_velocity_vectors[part_n]));
+        parts[part_n].set_velocity(std::move(new_velocities[part_n]));
         parts[part_n].get_velocity().update_ghost_values();
       }
 
-    half_position_vectors.clear();
-    new_position_vectors.clear();
-    half_velocity_vectors.clear();
-    new_velocity_vectors.clear();
-
-    current_force_vectors.clear();
-    half_force_vectors.clear();
-    new_force_vectors.clear();
+    part_vectors.end_time_step();
     IBAMR_TIMER_STOP(t_postprocess_integrate_data);
   }
 
@@ -485,21 +471,23 @@ namespace fdl
                                               double new_time)
   {
     const double dt = new_time - current_time;
-    half_position_vectors.resize(parts.size());
-    new_position_vectors.resize(parts.size());
     for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
       {
         // Set the position at the end time:
-        new_position_vectors[part_n] = parts[part_n].get_position();
-        new_position_vectors[part_n].add(dt, parts[part_n].get_velocity());
-        new_position_vectors[part_n].update_ghost_values();
+        LinearAlgebra::distributed::Vector<double> new_position(
+          parts[part_n].get_partitioner());
+        new_position = parts[part_n].get_position();
+        new_position.add(dt, parts[part_n].get_velocity());
+        part_vectors.set_position(part_n, new_time, std::move(new_position));
 
         // Set the position at the half time:
-        half_position_vectors[part_n].reinit(parts[part_n].get_position(),
-                                             /*omit_zeroing_entries = */ true);
-        half_position_vectors[part_n].equ(0.5, parts[part_n].get_position());
-        half_position_vectors[part_n].add(0.5, new_position_vectors[part_n]);
-        half_position_vectors[part_n].update_ghost_values();
+        LinearAlgebra::distributed::Vector<double> half_position(
+          parts[part_n].get_partitioner());
+        half_position.add(0.5,
+                          part_vectors.get_position(part_n, current_time),
+                          0.5,
+                          part_vectors.get_position(part_n, new_time));
+        part_vectors.set_position(part_n, half_time, std::move(half_position));
       }
   }
 
@@ -518,20 +506,23 @@ namespace fdl
   IFEDMethod<dim, spacedim>::midpointStep(double current_time, double new_time)
   {
     const double dt = new_time - current_time;
-    half_position_vectors.resize(parts.size());
-    new_position_vectors.resize(parts.size());
     for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
       {
         // Set the position at the end time:
-        new_position_vectors[part_n] = parts[part_n].get_position();
-        Assert(part_n < half_velocity_vectors.size(), ExcFDLInternalError());
-        new_position_vectors[part_n].add(dt, half_velocity_vectors[part_n]);
+        LinearAlgebra::distributed::Vector<double> new_position(
+          parts[part_n].get_partitioner());
+        new_position = parts[part_n].get_position();
+        new_position.add(dt, part_vectors.get_velocity(part_n, half_time));
+        part_vectors.set_position(part_n, new_time, std::move(new_position));
 
         // Set the position at the half time:
-        half_position_vectors[part_n].reinit(parts[part_n].get_position(),
-                                             /*omit_zeroing_entries = */ true);
-        half_position_vectors[part_n].equ(0.5, parts[part_n].get_position());
-        half_position_vectors[part_n].add(0.5, new_position_vectors[part_n]);
+        LinearAlgebra::distributed::Vector<double> half_position(
+          parts[part_n].get_partitioner());
+        half_position.add(0.5,
+                          part_vectors.get_position(part_n, current_time),
+                          0.5,
+                          part_vectors.get_position(part_n, new_time));
+        part_vectors.set_position(part_n, half_time, std::move(half_position));
       }
   }
 
@@ -554,47 +545,38 @@ namespace fdl
   IFEDMethod<dim, spacedim>::computeLagrangianForce(double data_time)
   {
     IBAMR_TIMER_START(t_compute_lagrangian_force);
-    std::vector<LinearAlgebra::distributed::Vector<double>> *force_vectors =
-      nullptr;
-    if (std::abs(data_time - current_time) < 1e-14)
-      force_vectors = &current_force_vectors;
-    else if (std::abs(data_time - half_time) < 1e-14)
-      force_vectors = &half_force_vectors;
-    else if (std::abs(data_time - new_time) < 1e-14)
-      force_vectors = &new_force_vectors;
-
-    Assert(force_vectors != nullptr, ExcFDLInternalError());
-    if (force_vectors)
+    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
       {
-        force_vectors->resize(0);
-        for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
-          {
-            const Part<dim, spacedim> &part = parts[part_n];
-            force_vectors->emplace_back(part.get_partitioner());
-            auto &force_vector = force_vectors->back();
-            LinearAlgebra::distributed::Vector<double> force_rhs = force_vector;
+        const Part<dim, spacedim> &                part = parts[part_n];
+        LinearAlgebra::distributed::Vector<double> force(
+          part.get_partitioner()),
+          force_rhs(part.get_partitioner());
 
-            // TODO - ask Boyce about the velocity. It's not available at
-            // data_time at the point where this function is called. This isn't
-            // critical - the velocity is mostly used to implement penalties so
-            // being inaccurate shouldn't sink us
-            compute_volumetric_pk1_load_vector(part.get_dof_handler(),
-                                               part.get_mapping(),
-                                               part.get_stress_contributions(),
-                                               get_position(part_n, data_time),
-                                               get_velocity(part_n,
-                                                            current_time),
-                                               force_rhs);
-            force_rhs.compress(VectorOperation::add);
+        // The velocity isn't available at data_time so use current_time -
+        // IBFEMethod does this too.
+        const auto &position = part_vectors.get_position(part_n, data_time);
+        const auto &velocity = part_vectors.get_velocity(part_n, current_time);
+        // Unlike velocity interpolation and force spreading we actually need
+        // the ghost values in the native partitioning, so make sure they are
+        // available
+        position.update_ghost_values();
+        velocity.update_ghost_values();
+        compute_volumetric_pk1_load_vector(part.get_dof_handler(),
+                                           part.get_mapping(),
+                                           part.get_stress_contributions(),
+                                           position,
+                                           velocity,
+                                           force_rhs);
+        force_rhs.compress(VectorOperation::add);
 
-            SolverControl control(1000, 1e-14 * force_rhs.l2_norm());
-            SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
-            // TODO - implement initial guess stuff here
-            cg.solve(part.get_mass_operator(),
-                     force_vector,
-                     force_rhs,
-                     part.get_mass_preconditioner());
-          }
+        SolverControl control(1000, 1e-14 * force_rhs.l2_norm());
+        SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
+        // TODO - implement initial guess stuff here
+        cg.solve(part.get_mass_operator(),
+                 force,
+                 force_rhs,
+                 part.get_mass_preconditioner());
+        part_vectors.set_force(part_n, data_time, std::move(force));
       }
     IBAMR_TIMER_STOP(t_compute_lagrangian_force);
   }
@@ -807,92 +789,6 @@ namespace fdl
   //
   // Book-keeping
   //
-
-
-  template <int dim, int spacedim>
-  const LinearAlgebra::distributed::Vector<double> &
-  IFEDMethod<dim, spacedim>::get_position(const unsigned int part_n,
-                                          const double       time) const
-  {
-    if (std::abs(time - current_time) < 1e-12)
-      return parts[part_n].get_position();
-    if (std::abs(time - half_time) < 1e-12)
-      {
-        Assert(part_n < half_position_vectors.size(),
-               ExcMessage(
-                 "The requested position vector has not been calculated."));
-        return half_position_vectors[part_n];
-      }
-    if (std::abs(time - new_time) < 1e-12)
-      {
-        Assert(part_n < new_position_vectors.size(),
-               ExcMessage(
-                 "The requested position vector has not been calculated."));
-        return new_position_vectors[part_n];
-      }
-
-    Assert(false, ExcFDLInternalError());
-    return parts[part_n].get_position();
-  }
-
-  template <int dim, int spacedim>
-  const LinearAlgebra::distributed::Vector<double> &
-  IFEDMethod<dim, spacedim>::get_velocity(const unsigned int part_n,
-                                          const double       time) const
-  {
-    if (std::abs(time - current_time) < 1e-12)
-      return parts[part_n].get_velocity();
-    if (std::abs(time - half_time) < 1e-12)
-      {
-        Assert(part_n < half_velocity_vectors.size(),
-               ExcMessage(
-                 "The requested velocity vector has not been calculated."));
-        return half_velocity_vectors[part_n];
-      }
-    if (std::abs(time - new_time) < 1e-12)
-      {
-        Assert(part_n < new_velocity_vectors.size(),
-               ExcMessage(
-                 "The requested velocity vector has not been calculated."));
-        return new_velocity_vectors[part_n];
-      }
-
-    Assert(false, ExcFDLInternalError());
-    return parts[part_n].get_position();
-  }
-
-  template <int dim, int spacedim>
-  const LinearAlgebra::distributed::Vector<double> &
-  IFEDMethod<dim, spacedim>::get_force(const unsigned int part_n,
-                                       const double       time) const
-  {
-    if (std::abs(time - current_time) < 1e-12)
-      {
-        Assert(part_n < current_force_vectors.size(),
-               ExcMessage(
-                 "The requested force vector has not been calculated."));
-        return current_force_vectors[part_n];
-      }
-    if (std::abs(time - half_time) < 1e-12)
-      {
-        Assert(part_n < half_force_vectors.size(),
-               ExcMessage(
-                 "The requested force vector has not been calculated."));
-        return half_force_vectors[part_n];
-      }
-    if (std::abs(time - new_time) < 1e-12)
-      {
-        Assert(part_n < new_force_vectors.size(),
-               ExcMessage(
-                 "The requested force vector has not been calculated."));
-        return new_force_vectors[part_n];
-      }
-
-    Assert(false, ExcFDLInternalError());
-    return parts[part_n].get_position();
-  }
-
-
 
   template <int dim, int spacedim>
   void
