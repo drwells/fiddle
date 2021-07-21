@@ -1,6 +1,5 @@
 #include <fiddle/base/exceptions.h>
 
-#include <deal.II/base/bounding_box.h>
 #include <deal.II/base/qprojector.h>
 #include <deal.II/base/quadrature_lib.h>
 
