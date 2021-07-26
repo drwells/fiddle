@@ -62,12 +62,12 @@ namespace fdl
   template <int dim, int spacedim>
   IFEDMethod<dim, spacedim>::IFEDMethod(
     const std::string &                object_name,
-    tbox::Pointer<tbox::Database>      input_db,
+    tbox::Pointer<tbox::Database>      input_input_db,
     std::vector<Part<dim, spacedim>> &&input_parts,
     const bool                         register_for_restart)
     : object_name(object_name)
     , register_for_restart(register_for_restart)
-    , input_db(copy_database(input_db))
+    , input_db(copy_database(input_input_db))
     , started_time_integration(false)
     , current_time(std::numeric_limits<double>::signaling_NaN())
     , half_time(std::numeric_limits<double>::signaling_NaN())
