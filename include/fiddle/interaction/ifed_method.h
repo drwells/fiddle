@@ -227,6 +227,8 @@ namespace fdl
 
     tbox::Pointer<tbox::Database> input_db;
 
+    std::vector<std::string> ib_kernels;
+
     bool started_time_integration;
 
     double current_time;

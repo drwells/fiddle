@@ -90,6 +90,20 @@ namespace fdl
           new ElementalInteraction<dim, spacedim>(n_points_1D, density));
       }
 
+    AssertThrow(input_db->keyExists("IB_kernel"),
+                ExcMessage(
+                  "The IB kernel should be set in the input database."));
+    // values in SAMRAI databases are always arrays, possibly of length 1
+    const int n_ib_kernels = input_db->getArraySize("IB_kernel");
+    AssertThrow(n_ib_kernels == 1 ||
+                  n_ib_kernels == static_cast<int>(parts.size()),
+                ExcMessage("The number of specified IB kernels should either "
+                           "be 1 or equal the number of parts."));
+    ib_kernels.resize(n_ib_kernels);
+    input_db->getStringArray("IB_kernel",
+                             ib_kernels.data(),
+                             static_cast<int>(ib_kernels.size()));
+
     auto set_timer = [&](const char *name) {
       return tbox::TimerManager::getManager()->getTimer(name);
     };
@@ -228,7 +242,7 @@ namespace fdl
         rhs_vecs.emplace_back(part.get_partitioner());
         transactions.emplace_back(
           interactions[part_n]->compute_projection_rhs_start(
-            "BSPLINE_3",
+            ib_kernels[part_n],
             u_data_index,
             part.get_dof_handler(),
             part_vectors.get_position(part_n, data_time),
@@ -292,7 +306,7 @@ namespace fdl
       {
         const Part<dim, spacedim> &part = parts[part_n];
         transactions.emplace_back(interactions[part_n]->compute_spread_start(
-          "BSPLINE_3",
+          ib_kernels[part_n],
           f_scratch_data_index,
           part_vectors.get_position(part_n, data_time),
           part.get_dof_handler(),
@@ -842,13 +856,14 @@ namespace fdl
   const hier::IntVector<spacedim> &
   IFEDMethod<dim, spacedim>::getMinimumGhostCellWidth() const
   {
-    // Like elsewhere, we are hard-coding in bspline 3 for now
-    const std::string kernel_name = "BSPLINE_3";
-    const int         ghost_width =
-      IBTK::LEInteractor::getMinimumGhostWidth(kernel_name);
     static hier::IntVector<spacedim> gcw;
-    for (int i = 0; i < spacedim; ++i)
-      gcw[i] = ghost_width;
+    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+      {
+        const int ghost_width =
+          IBTK::LEInteractor::getMinimumGhostWidth(ib_kernels[part_n]);
+        for (int i = 0; i < spacedim; ++i)
+          gcw[i] = std::max(gcw[i], ghost_width);
+      }
     return gcw;
   }
 

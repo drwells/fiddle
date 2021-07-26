@@ -68,6 +68,8 @@ LoadBalancer {
 }
 
 IFEDMethod {
+   IB_kernel = "BSPLINE_3"
+
    GriddingAlgorithm
    {
        max_levels = MAX_LEVELS

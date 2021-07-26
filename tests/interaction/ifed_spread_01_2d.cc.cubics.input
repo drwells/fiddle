@@ -68,6 +68,7 @@ LoadBalancer {
 }
 
 IFEDMethod {
+   IB_kernel = "BSPLINE_3"
 
    IB_point_density = 4
 
