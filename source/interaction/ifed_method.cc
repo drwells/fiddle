@@ -134,9 +134,9 @@ namespace fdl
                 for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
                   {
                     const std::string key = "part_" + std::to_string(part_n);
-                    Assert(db->keyExists(key),
-                           ExcMessage("Couldn't find key " + key +
-                                      " in the restart database"));
+                    AssertThrow(db->keyExists(key),
+                                ExcMessage("Couldn't find key " + key +
+                                           " in the restart database"));
                     const std::string  serialization = load_binary(key, db);
                     std::istringstream in_str(serialization);
                     boost::archive::binary_iarchive iarchive(in_str);
@@ -145,9 +145,10 @@ namespace fdl
               }
             else
               {
-                Assert(false,
-                       ExcMessage("The restart database does not contain key " +
-                                  object_name));
+                AssertThrow(false,
+                            ExcMessage(
+                              "The restart database does not contain key " +
+                              object_name));
               }
           }
       }
