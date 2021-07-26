@@ -144,9 +144,11 @@ main(int argc, char **argv)
           std::vector<BoundingBox<2>> cell_patch_bboxes;
           auto       iterator = patch_map.begin(patch_n, dof_handler);
           const auto end      = patch_map.end(patch_n, dof_handler);
-          for (; iterator != end; ++iterator)
+          std::vector<DoFHandler<2>::active_cell_iterator> cells(iterator, end);
+          std::sort(cells.begin(), cells.end());
+          for (const auto &cell : cells)
             {
-              cell_patch_bboxes.emplace_back((*iterator)->bounding_box());
+              cell_patch_bboxes.emplace_back(cell->bounding_box());
             }
 
           output << "Number of FE cells on patch " << patch_n << " = "

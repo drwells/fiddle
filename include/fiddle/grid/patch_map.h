@@ -1,9 +1,13 @@
 #ifndef included_fiddle_grid_patch_map_h
 #define included_fiddle_grid_patch_map_h
 
+#include <fiddle/base/exceptions.h>
+
 #include <deal.II/dofs/dof_handler.h>
 
 #include <Patch.h>
+
+#include <iterator>
 
 namespace fdl
 {
@@ -71,6 +75,10 @@ namespace fdl
       using reference = value_type &;
 
       using size_type = std::size_t;
+
+      using iterator_category = std::random_access_iterator_tag;
+
+      using pointer = value_type *;
 
       value_type
       operator*() const;
