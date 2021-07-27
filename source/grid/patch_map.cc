@@ -38,11 +38,11 @@ namespace fdl
                                              extra_ghost_cell_fraction);
     patch_level_cells.clear();
     patch_level_cells.resize(patches.size());
-    for (std::vector<IndexSet> &level_cells : patch_level_cells)
+    for (unsigned int patch_n = 0; patch_n < patches.size(); ++patch_n)
       {
-        level_cells.resize(tria.n_levels());
+        patch_level_cells[patch_n].resize(tria.n_levels());
         for (unsigned int level_n = 0; level_n < tria.n_levels(); ++level_n)
-          level_cells[level_n].set_size(tria.n_cells(level_n));
+          patch_level_cells[patch_n][level_n].set_size(tria.n_cells(level_n));
       }
 
     // Speed up intersection by putting the patch bboxes in an rtree
@@ -65,6 +65,21 @@ namespace fdl
     for (auto &level_cells : patch_level_cells)
       for (auto &cell_indices : level_cells)
         cell_indices.compress();
+
+    // update cummulative number of cells
+    cummulative_n_cells.clear();
+    cummulative_n_cells.resize(patches.size());
+    for (unsigned int patch_n = 0; patch_n < patches.size(); ++patch_n)
+      {
+        for (unsigned int level_n = 0; level_n < tria.n_levels(); ++level_n)
+          {
+            cummulative_n_cells[patch_n].push_back(
+              patch_level_cells[patch_n][level_n].n_elements());
+            if (level_n != 0)
+              cummulative_n_cells[patch_n].back() +=
+                cummulative_n_cells[patch_n][level_n - 1];
+          }
+      }
   }
 
   // Since we depend on SAMRAI types (and SAMRAI uses 2D or 3D libraries) we

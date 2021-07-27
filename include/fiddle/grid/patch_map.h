@@ -125,15 +125,18 @@ namespace fdl
       // only let a PatchMap construct these iterators directly
       iterator(const std::ptrdiff_t             index,
                const DoFHandler<dim, spacedim> &dof_handler,
-               const std::vector<IndexSet> &    patch_cells)
+               const std::vector<IndexSet> &    patch_level_cells,
+               const std::vector<std::size_t> & patch_cummulative_n_cells)
         : dh(&dof_handler)
-        , level_cells(&patch_cells)
+        , level_cells(&patch_level_cells)
+        , cummulative_n_cells(&patch_cummulative_n_cells)
         , index(index)
       {}
 
       const DoFHandler<dim, spacedim> *dh;
 
-      const std::vector<IndexSet> *level_cells;
+      const std::vector<IndexSet> *   level_cells;
+      const std::vector<std::size_t> *cummulative_n_cells;
 
       std::ptrdiff_t index;
 
@@ -168,7 +171,10 @@ namespace fdl
       AssertIndexRange(patch_n, size());
       Assert(&dh.get_triangulation() == &*tria,
              ExcMessage("must use same Triangulation"));
-      return iterator(0, dh, patch_level_cells[patch_n]);
+      return iterator(0,
+                      dh,
+                      patch_level_cells[patch_n],
+                      cummulative_n_cells[patch_n]);
     }
 
     iterator
@@ -177,10 +183,10 @@ namespace fdl
       AssertIndexRange(patch_n, size());
       Assert(&dh.get_triangulation() == &*tria,
              ExcMessage("must use same Triangulation"));
-      std::ptrdiff_t index = 0;
-      for (const IndexSet &indices : patch_level_cells[patch_n])
-        index += indices.n_elements();
-      return iterator(index, dh, patch_level_cells[patch_n]);
+      return iterator(cummulative_n_cells[patch_n].back(),
+                      dh,
+                      patch_level_cells[patch_n],
+                      cummulative_n_cells[patch_n]);
     }
 
   protected:
@@ -191,6 +197,11 @@ namespace fdl
     // Compressed representation of cells, indexed by patch and then level
     // number. The entries in the IndexSet are the cell indices.
     std::vector<std::vector<IndexSet>> patch_level_cells;
+
+    // Cumulative number of cells on each level: e.g., the first entry is the
+    // number of cells on level 0, the second is the sum of level 0 and 1, etc.
+    // The last entry is the total number of cells. Used by the iterators.
+    std::vector<std::vector<std::size_t>> cummulative_n_cells;
   };
 } // namespace fdl
 
@@ -220,32 +231,19 @@ namespace fdl
   typename PatchMap<dim, spacedim>::iterator::value_type
   PatchMap<dim, spacedim>::iterator::operator*() const
   {
-    unsigned int cell_level        = level_cells->size(); // max level number
-    unsigned int cell_index        = numbers::invalid_unsigned_int;
-    unsigned int cummulative_cells = 0;
     Assert(0 <= index, ExcMessage("invalid iterator"));
-    for (unsigned int level_n = 0; level_n < level_cells->size(); ++level_n)
+    const auto it = std::upper_bound(cummulative_n_cells->begin(),
+                                     cummulative_n_cells->end(),
+                                     index);
+    if (it == cummulative_n_cells->end())
       {
-        if (index < cummulative_cells + (*level_cells)[level_n].n_elements())
-          {
-            cell_level = level_n;
-            Assert(index >= cummulative_cells, ExcFDLInternalError());
-            cell_index = (*level_cells)[level_n].nth_index_in_set(
-              index - cummulative_cells);
-            break;
-          }
-        else
-          {
-            cummulative_cells += (*level_cells)[level_n].n_elements();
-          }
+        Assert(index <= std::ptrdiff_t(cummulative_n_cells->back()),
+               ExcMessage("invalid iterator"));
+        return dh->end();
       }
-    if (cell_level == level_cells->size() && index == cummulative_cells)
-      return dh->end();
-    else if (cell_level == level_cells->size())
-      Assert(index < cummulative_cells, ExcMessage("invalid iterator"));
-
-    // The index has to be equal to or larger than the indices of all cells on
-    // coarser levels
+    const unsigned int cell_level = it - cummulative_n_cells->begin();
+    const unsigned int cell_index = (*level_cells)[cell_level].nth_index_in_set(
+      index - (cell_level == 0 ? 0 : (*cummulative_n_cells)[cell_level - 1]));
     return typename DoFHandler<dim, spacedim>::active_cell_iterator(
       &dh->get_triangulation(), cell_level, cell_index, dh);
   }
