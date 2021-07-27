@@ -125,18 +125,15 @@ namespace fdl
       // only let a PatchMap construct these iterators directly
       iterator(const std::ptrdiff_t             index,
                const DoFHandler<dim, spacedim> &dof_handler,
-               const std::vector<
-                 typename Triangulation<dim, spacedim>::active_cell_iterator>
-                 &patch_cells)
+               const std::vector<IndexSet> &    patch_cells)
         : dh(&dof_handler)
-        , cells(&patch_cells)
+        , level_cells(&patch_cells)
         , index(index)
       {}
 
       const DoFHandler<dim, spacedim> *dh;
 
-      const std::vector<
-        typename Triangulation<dim, spacedim>::active_cell_iterator> *cells;
+      const std::vector<IndexSet> *level_cells;
 
       std::ptrdiff_t index;
 
@@ -171,7 +168,7 @@ namespace fdl
       AssertIndexRange(patch_n, size());
       Assert(&dh.get_triangulation() == &*tria,
              ExcMessage("must use same Triangulation"));
-      return iterator(0, dh, cells[patch_n]);
+      return iterator(0, dh, patch_level_cells[patch_n]);
     }
 
     iterator
@@ -180,7 +177,10 @@ namespace fdl
       AssertIndexRange(patch_n, size());
       Assert(&dh.get_triangulation() == &*tria,
              ExcMessage("must use same Triangulation"));
-      return iterator(cells[patch_n].size(), dh, cells[patch_n]);
+      std::ptrdiff_t index = 0;
+      for (const IndexSet &indices : patch_level_cells[patch_n])
+        index += indices.n_elements();
+      return iterator(index, dh, patch_level_cells[patch_n]);
     }
 
   protected:
@@ -188,27 +188,15 @@ namespace fdl
 
     std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches;
 
-    // TODO - we can really compress this down by instead storing
-    //
-    // std::vector<std::vector<IndexSet>>
-    //
-    // where the first index is the patch number, the second is the level
-    // number, and the IndexSet stores the cell indices.
-    std::vector<
-      std::vector<typename Triangulation<dim, spacedim>::active_cell_iterator>>
-      cells;
+    // Compressed representation of cells, indexed by patch and then level
+    // number. The entries in the IndexSet are the cell indices.
+    std::vector<std::vector<IndexSet>> patch_level_cells;
   };
+} // namespace fdl
 
+namespace fdl
+{
   // ---------------------------- inline functions -----------------------------
-
-  template <int dim, int spacedim>
-  std::size_t
-  PatchMap<dim, spacedim>::size() const
-  {
-    return patches.size();
-  }
-
-
 
   template <int dim, int spacedim>
   const Triangulation<dim, spacedim> &
@@ -220,19 +208,46 @@ namespace fdl
 
 
   template <int dim, int spacedim>
+  std::size_t
+  PatchMap<dim, spacedim>::size() const
+  {
+    return patches.size();
+  }
+
+
+
+  template <int dim, int spacedim>
   typename PatchMap<dim, spacedim>::iterator::value_type
   PatchMap<dim, spacedim>::iterator::operator*() const
   {
-    Assert(0 <= index && index <= std::ptrdiff_t(cells->size()),
-           ExcMessage("invalid iterator"));
-    if (index == std::ptrdiff_t(cells->size()))
+    unsigned int cell_level        = level_cells->size(); // max level number
+    unsigned int cell_index        = numbers::invalid_unsigned_int;
+    unsigned int cummulative_cells = 0;
+    Assert(0 <= index, ExcMessage("invalid iterator"));
+    for (unsigned int level_n = 0; level_n < level_cells->size(); ++level_n)
+      {
+        if (index < cummulative_cells + (*level_cells)[level_n].n_elements())
+          {
+            cell_level = level_n;
+            Assert(index >= cummulative_cells, ExcFDLInternalError());
+            cell_index = (*level_cells)[level_n].nth_index_in_set(
+              index - cummulative_cells);
+            break;
+          }
+        else
+          {
+            cummulative_cells += (*level_cells)[level_n].n_elements();
+          }
+      }
+    if (cell_level == level_cells->size() && index == cummulative_cells)
       return dh->end();
+    else if (cell_level == level_cells->size())
+      Assert(index < cummulative_cells, ExcMessage("invalid iterator"));
 
+    // The index has to be equal to or larger than the indices of all cells on
+    // coarser levels
     return typename DoFHandler<dim, spacedim>::active_cell_iterator(
-      &dh->get_triangulation(),
-      (*cells)[index]->level(),
-      (*cells)[index]->index(),
-      dh);
+      &dh->get_triangulation(), cell_level, cell_index, dh);
   }
 
 
@@ -322,7 +337,7 @@ namespace fdl
   typename PatchMap<dim, spacedim>::iterator::difference_type
   PatchMap<dim, spacedim>::iterator::operator-(const iterator &other) const
   {
-    Assert(other.dh == this->dh && other.cells == this->cells,
+    Assert(other.dh == this->dh && other.level_cells == this->level_cells,
            ExcMessage(
              "only iterators pointing to the same container can be compared."));
     return index - other.index;
@@ -334,7 +349,7 @@ namespace fdl
   bool
   PatchMap<dim, spacedim>::iterator::operator<(const iterator &other) const
   {
-    Assert(other.dh == this->dh && other.cells == this->cells,
+    Assert(other.dh == this->dh && other.level_cells == this->level_cells,
            ExcMessage(
              "only iterators pointing to the same container can be compared."));
     return this->index < other.index;
@@ -346,7 +361,7 @@ namespace fdl
   bool
   PatchMap<dim, spacedim>::iterator::operator==(const iterator &other) const
   {
-    Assert(other.dh == this->dh && other.cells == this->cells,
+    Assert(other.dh == this->dh && other.level_cells == this->level_cells,
            ExcMessage(
              "only iterators pointing to the same container can be compared."));
     return this->index == other.index;
@@ -358,7 +373,7 @@ namespace fdl
   bool
   PatchMap<dim, spacedim>::iterator::operator!=(const iterator &other) const
   {
-    Assert(other.dh == this->dh && other.cells == this->cells,
+    Assert(other.dh == this->dh && other.level_cells == this->level_cells,
            ExcMessage(
              "only iterators pointing to the same container can be compared."));
     return this->index != other.index;

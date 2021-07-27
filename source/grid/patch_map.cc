@@ -36,8 +36,14 @@ namespace fdl
     const std::vector<BoundingBox<spacedim, Number>> patch_bboxes =
       compute_patch_bboxes<spacedim, Number>(patches,
                                              extra_ghost_cell_fraction);
-    cells.clear();
-    cells.resize(patches.size());
+    patch_level_cells.clear();
+    patch_level_cells.resize(patches.size());
+    for (std::vector<IndexSet> &level_cells : patch_level_cells)
+      {
+        level_cells.resize(tria.n_levels());
+        for (unsigned int level_n = 0; level_n < tria.n_levels(); ++level_n)
+          level_cells[level_n].set_size(tria.n_cells(level_n));
+      }
 
     // Speed up intersection by putting the patch bboxes in an rtree
     const auto rtree = pack_rtree_of_indices(patch_bboxes);
@@ -51,9 +57,14 @@ namespace fdl
              rtree | bgi::adaptors::queried(bgi::intersects(cell_bbox)))
           {
             AssertIndexRange(patch_n, patches.size());
-            cells[patch_n].push_back(cell);
+            AssertIndexRange(cell->level(), patch_level_cells[patch_n].size());
+            patch_level_cells[patch_n][cell->level()].add_index(cell->index());
           }
       }
+
+    for (auto &level_cells : patch_level_cells)
+      for (auto &cell_indices : level_cells)
+        cell_indices.compress();
   }
 
   // Since we depend on SAMRAI types (and SAMRAI uses 2D or 3D libraries) we
