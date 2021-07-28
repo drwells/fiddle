@@ -37,7 +37,11 @@ namespace
   static tbox::Timer *t_preprocess_integrate_data;
   static tbox::Timer *t_postprocess_integrate_data;
   static tbox::Timer *t_interpolate_velocity;
+  static tbox::Timer *t_interpolate_velocity_rhs;
+  static tbox::Timer *t_interpolate_velocity_solve;
   static tbox::Timer *t_compute_lagrangian_force;
+  static tbox::Timer *t_compute_lagrangian_force_pk1;
+  static tbox::Timer *t_compute_lagrangian_force_solve;
   static tbox::Timer *t_spread_force;
   static tbox::Timer *t_compute_lagrangian_fluid_source;
   static tbox::Timer *t_spread_fluid_source;
@@ -114,8 +118,16 @@ namespace fdl
       set_timer("fdl::IFEDMethod::postprocessIntegrateData()");
     t_interpolate_velocity =
       set_timer("fdl::IFEDMethod::interpolateVelocity()");
+    t_interpolate_velocity_rhs =
+      set_timer("fdl::IFEDMethod::interpolateVelocity()[rhs]");
+    t_interpolate_velocity_solve =
+      set_timer("fdl::IFEDMethod::interpolateVelocity()[solve]");
     t_compute_lagrangian_force =
       set_timer("fdl::IFEDMethod::computeLagrangianForce()");
+    t_compute_lagrangian_force_pk1 =
+      set_timer("fdl::IFEDMethod::computeLagrangianForce()[pk1]");
+    t_compute_lagrangian_force_solve =
+      set_timer("fdl::IFEDMethod::computeLagrangianForce()[solve]");
     t_spread_force = set_timer("fdl::IFEDMethod::spreadForce()");
     t_compute_lagrangian_fluid_source =
       set_timer("fdl::IFEDMethod::computeLagrangianFluidSource()");
@@ -236,6 +248,7 @@ namespace fdl
     std::deque<LinearAlgebra::distributed::Vector<double>> rhs_vecs;
 
     // start:
+    IBAMR_TIMER_START(t_interpolate_velocity_rhs);
     for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
       {
         const Part<dim, spacedim> &part = parts[part_n];
@@ -261,8 +274,14 @@ namespace fdl
     for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
       interactions[part_n]->compute_projection_rhs_finish(
         std::move(transactions[part_n]));
+    // We cannot start the linear solve without first finishing this, so use a
+    // barrier to keep the timers accurate
+    const int ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
+    AssertThrowMPI(ierr);
+    IBAMR_TIMER_STOP(t_interpolate_velocity_rhs);
 
     // Project:
+    IBAMR_TIMER_START(t_interpolate_velocity_solve);
     for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
       {
         SolverControl control(1000, 1e-14 * rhs_vecs[part_n].l2_norm());
@@ -275,7 +294,15 @@ namespace fdl
                  rhs_vecs[part_n],
                  parts[part_n].get_mass_preconditioner());
         part_vectors.set_velocity(part_n, data_time, std::move(velocity));
+
+        if (input_db->getBoolWithDefault("enable_logging", true))
+          {
+            tbox::plog << "IFEDMethod::interpolateVelocity(): "
+                       << "SolverCG<> converged in " << control.last_step()
+                       << " steps." << std::endl;
+          }
       }
+    IBAMR_TIMER_STOP(t_interpolate_velocity_solve);
     IBAMR_TIMER_STOP(t_interpolate_velocity);
   }
 
@@ -562,6 +589,7 @@ namespace fdl
     IBAMR_TIMER_START(t_compute_lagrangian_force);
     for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
       {
+        IBAMR_TIMER_START(t_compute_lagrangian_force_pk1);
         const Part<dim, spacedim> &                part = parts[part_n];
         LinearAlgebra::distributed::Vector<double> force(
           part.get_partitioner()),
@@ -583,7 +611,9 @@ namespace fdl
                                            velocity,
                                            force_rhs);
         force_rhs.compress(VectorOperation::add);
+        IBAMR_TIMER_STOP(t_compute_lagrangian_force_pk1);
 
+        IBAMR_TIMER_START(t_compute_lagrangian_force_solve);
         SolverControl control(1000, 1e-14 * force_rhs.l2_norm());
         SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
         // TODO - implement initial guess stuff here
@@ -591,7 +621,14 @@ namespace fdl
                  force,
                  force_rhs,
                  part.get_mass_preconditioner());
+        if (input_db->getBoolWithDefault("enable_logging", true))
+          {
+            tbox::plog << "IFEDMethod::computeLagrangianForce(): "
+                       << "SolverCG<> converged in " << control.last_step()
+                       << " steps." << std::endl;
+          }
         part_vectors.set_force(part_n, data_time, std::move(force));
+        IBAMR_TIMER_STOP(t_compute_lagrangian_force_solve);
       }
     IBAMR_TIMER_STOP(t_compute_lagrangian_force);
   }
