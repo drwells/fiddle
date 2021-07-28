@@ -82,30 +82,48 @@ namespace fdl
     // Set up matrix free components:
     if (dim == spacedim)
       {
-        using namespace MatrixFreeOperators;
-        // TODO - this switch statement is only valid for tensor-product
-        // elements. Generalize it to work with FE_SimplexP.
-        switch (fe.tensor_degree())
+        if (reference_cells.front() == ReferenceCells::get_hypercube<dim>())
           {
-            case 1:
-              mass_operator.reset(new MassOperator<dim, 1, 1 + 1, dim>());
-              break;
-            case 2:
-              mass_operator.reset(new MassOperator<dim, 2, 2 + 1, dim>());
-              break;
-            case 3:
-              mass_operator.reset(new MassOperator<dim, 3, 3 + 1, dim>());
-              break;
-            case 4:
-              mass_operator.reset(new MassOperator<dim, 4, 4 + 1, dim>());
-              break;
-            case 5:
-              mass_operator.reset(new MassOperator<dim, 5, 5 + 1, dim>());
-              break;
-            default:
-              Assert(false, ExcFDLNotImplemented());
+            using namespace MatrixFreeOperators;
+            switch (fe.tensor_degree())
+              {
+                case 1:
+                  mass_operator.reset(new MassOperator<dim, 1, 1 + 1, dim>());
+                  break;
+                case 2:
+                  mass_operator.reset(new MassOperator<dim, 2, 2 + 1, dim>());
+                  break;
+                case 3:
+                  mass_operator.reset(new MassOperator<dim, 3, 3 + 1, dim>());
+                  break;
+                case 4:
+                  mass_operator.reset(new MassOperator<dim, 4, 4 + 1, dim>());
+                  break;
+                case 5:
+                  mass_operator.reset(new MassOperator<dim, 5, 5 + 1, dim>());
+                  break;
+                default:
+                  Assert(false, ExcFDLNotImplemented());
+              }
           }
-
+        else
+          {
+            using namespace MatrixFreeOperators;
+            switch (fe.tensor_degree())
+              {
+                case 1:
+                  mass_operator.reset(new MassOperator<dim, -1, 0, dim>());
+                  break;
+                case 2:
+                  mass_operator.reset(new MassOperator<dim, -1, 0, dim>());
+                  break;
+                case 3:
+                  mass_operator.reset(new MassOperator<dim, -1, 0, dim>());
+                  break;
+                default:
+                  Assert(false, ExcFDLNotImplemented());
+              }
+          }
         matrix_free = std::make_shared<MatrixFree<dim, double>>();
         internal::reinit_matrix_free(
           *mapping, *dof_handler, constraints, quadrature, *matrix_free);
