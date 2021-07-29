@@ -17,6 +17,8 @@
 
 #include <deal.II/fe/mapping_fe_field.h>
 
+#include <deal.II/lac/solver_cg.h>
+
 #include <ibamr/IBHierarchyIntegrator.h>
 #include <ibamr/ibamr_utilities.h>
 
@@ -288,7 +290,8 @@ namespace fdl
         SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
         LinearAlgebra::distributed::Vector<double>           velocity(
           parts[part_n].get_partitioner());
-        // TODO - implement initial guess stuff here
+        // TODO - implement better initial guess stuff here
+        velocity = part_vectors.get_velocity(part_n, current_time);
         cg.solve(parts[part_n].get_mass_operator(),
                  velocity,
                  rhs_vecs[part_n],
@@ -616,7 +619,7 @@ namespace fdl
         IBAMR_TIMER_START(t_compute_lagrangian_force_solve);
         SolverControl control(1000, 1e-14 * force_rhs.l2_norm());
         SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
-        // TODO - implement initial guess stuff here
+        // TODO - implement better initial guess stuff here
         cg.solve(part.get_mass_operator(),
                  force,
                  force_rhs,
