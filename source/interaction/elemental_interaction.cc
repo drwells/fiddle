@@ -59,11 +59,20 @@ namespace fdl
                                            patch_hierarchy,
                                            level_number);
     // We need to implement some more quadrature families
-    Assert(native_tria.all_reference_cells_are_hyper_cube(),
-           ExcFDLNotImplemented());
+    const auto reference_cells = native_tria.get_reference_cells();
+    Assert(reference_cells.size() == 1, ExcFDLNotImplemented());
     if (!quadrature_family)
-      quadrature_family.reset(
-        new QGaussFamily<dim>(min_n_points_1D, point_density));
+      {
+        if (reference_cells.front() == ReferenceCells::get_hypercube<dim>())
+          quadrature_family.reset(
+            new QGaussFamily<dim>(min_n_points_1D, point_density));
+        else if (reference_cells.front() == ReferenceCells::get_simplex<dim>())
+          quadrature_family.reset(
+            new QWitherdenVincentSimplexFamily<dim>(min_n_points_1D,
+                                                    point_density));
+        else
+          Assert(false, ExcFDLNotImplemented());
+      }
 
     const auto patches =
       extract_patches(patch_hierarchy->getPatchLevel(level_number));
