@@ -239,11 +239,11 @@ namespace fdl
 
     // Update the secondary hierarchy:
     secondary_hierarchy
-      .getPrimaryToSecondarySchedule(primary_hierarchy->getFinestLevelNumber(),
-                                     u_data_index,
-                                     u_data_index,
-                                     d_ib_solver->getVelocityPhysBdryOp())
-      .fillData(data_time);
+      .transferPrimaryToSecondary(primary_hierarchy->getFinestLevelNumber(),
+                                  u_data_index,
+                                  u_data_index,
+                                  data_time,
+                                  d_ib_solver->getVelocityPhysBdryOp());
 
     std::vector<std::unique_ptr<TransactionBase>> transactions;
     // we emplace_back so use a deque to keep pointers valid
@@ -414,10 +414,10 @@ namespace fdl
                level_number,
                0.0);
       secondary_hierarchy
-        .getSecondaryToPrimarySchedule(level_number,
-                                       f_primary_scratch_data_index,
-                                       f_scratch_data_index)
-        .fillData(data_time);
+        .transferSecondaryToPrimary(level_number,
+                                    f_primary_scratch_data_index,
+                                    f_scratch_data_index,
+                                    data_time);
       f_primary_data_ops->add(f_data_index,
                               f_data_index,
                               f_primary_scratch_data_index);
@@ -750,10 +750,10 @@ namespace fdl
                  max_ln);
 
         secondary_hierarchy
-          .getSecondaryToPrimarySchedule(max_ln,
-                                         lagrangian_workload_current_index,
-                                         lagrangian_workload_current_index)
-          .fillData(0.0);
+          .transferSecondaryToPrimary(max_ln,
+                                      lagrangian_workload_current_index,
+                                      lagrangian_workload_current_index,
+                                      0.0);
       }
 
     // Clear a few things that depend on the current hierarchy:
