@@ -126,12 +126,12 @@ namespace fdl
         case TimeStep::Half:
           half_positions.resize(
             std::max(std::size_t(part_n + 1), half_positions.size()));
-          half_positions[part_n] = std::move(position);
+          half_positions[part_n].swap(position);
           return;
         case TimeStep::New:
           new_positions.resize(
             std::max(std::size_t(part_n + 1), new_positions.size()));
-          new_positions[part_n] = std::move(position);
+          new_positions[part_n].swap(position);
           return;
       }
 
@@ -178,12 +178,12 @@ namespace fdl
         case TimeStep::Half:
           half_velocities.resize(
             std::max(std::size_t(part_n + 1), half_velocities.size()));
-          half_velocities[part_n] = std::move(velocity);
+          half_velocities[part_n].swap(velocity);
           return;
         case TimeStep::New:
           new_velocities.resize(
             std::max(std::size_t(part_n + 1), new_velocities.size()));
-          new_velocities[part_n] = std::move(velocity);
+          new_velocities[part_n].swap(velocity);
           return;
       }
 
@@ -230,17 +230,17 @@ namespace fdl
         case TimeStep::Current:
           current_forces.resize(
             std::max(std::size_t(part_n + 1), current_forces.size()));
-          current_forces[part_n] = std::move(force);
+          current_forces[part_n].swap(force);
           return;
         case TimeStep::Half:
           half_forces.resize(
             std::max(std::size_t(part_n + 1), half_forces.size()));
-          half_forces[part_n] = std::move(force);
+          half_forces[part_n].swap(force);
           return;
         case TimeStep::New:
           new_forces.resize(
             std::max(std::size_t(part_n + 1), new_forces.size()));
-          new_forces[part_n] = std::move(force);
+          new_forces[part_n].swap(force);
           return;
       }
 
