@@ -188,6 +188,36 @@ namespace fdl
   {}
 
   template <int dim>
+  std::vector<Point<dim>>
+  map_to_equilateral_simplex(const std::vector<Point<dim>> &input)
+  {
+    Tensor<2, dim> transformation;
+    switch (dim)
+    {
+      case 2:
+      {
+        // (0, 0) -> (0, 0)
+        // (1, 0) -> (0, 1)
+        // (0, 1) -> (0.5, sqrt(3)/2)
+        transformation[0][0] = 1.0;
+        transformation[0][1] = 0.5;
+        transformation[1][0] = 0.0;
+        transformation[1][1] = std::sqrt(3.0)/2.0;
+        break;
+      }
+      default:
+        Assert(false, ExcFDLNotImplemented());
+    }
+    std::vector<Point<dim>> output;
+    for (const Point<dim> &p : input)
+    {
+      output.emplace_back(transformation * p);
+    }
+
+    return output;
+  }
+
+  template <int dim>
   unsigned char
   QWitherdenVincentSimplexFamily<dim>::get_index(
     const double eulerian_length,
@@ -261,61 +291,75 @@ namespace fdl
             // with whichever uses the smallest number of points.
             const auto n_tries = std::min<std::size_t>(20u, n_points_1D + 10);
             // QWVS is missing higher-order rules
-            const unsigned int max_n_points_1D = dim == 2 ? 6 : 5;
+            const unsigned int max_n_points_1D = dim == 2 ? 7 : 5;
             Assert(min_points_1D <= max_n_points_1D, ExcFDLNotImplemented());
-            std::vector<std::pair<unsigned int, unsigned int>> pairs;
+            // n_points_1D, use_odd_order, n_copies
+            std::vector<std::tuple<unsigned int, bool, unsigned int>> tuples;
             // Try 1: increase order.
             for (unsigned int i = 0; i < n_tries; ++i)
               {
                 // we always need at least one iteration
                 const auto n_target_iterations = std::max<unsigned int>(
                   1u, std::ceil(double(index) / (min_points_1D + i)));
-                pairs.emplace_back(std::min(max_n_points_1D, min_points_1D + i),
-                                   next_power_of_2(n_target_iterations));
+                tuples.emplace_back(std::min(max_n_points_1D,
+                                             min_points_1D + i),
+                                    false,
+                                    next_power_of_2(n_target_iterations));
+                tuples.emplace_back(std::min(max_n_points_1D,
+                                             min_points_1D + i),
+                                    true,
+                                    next_power_of_2(n_target_iterations));
               }
 
             // Try 2: use more iterations.
+            const std::array<bool, 2> bools{{false, true}};
             for (int i = 0; i < 6; ++i)
-              {
-                pairs.emplace_back(min_points_1D, std::pow(2, i));
-                pairs.emplace_back(std::min(max_n_points_1D, min_points_1D + 1),
-                                   std::pow(2, i));
-                pairs.emplace_back(std::min(max_n_points_1D, min_points_1D + 2),
-                                   std::pow(2, i));
-                pairs.emplace_back(std::min(max_n_points_1D, min_points_1D + 3),
-                                   std::pow(2, i));
-                pairs.emplace_back(std::min(max_n_points_1D, min_points_1D + 4),
-                                   std::pow(2, i));
-              }
+              for (unsigned int j = 0; j < 4; ++j)
+                for (const bool &b : bools)
+                  tuples.emplace_back(std::min(max_n_points_1D,
+                                               min_points_1D + j),
+                                      b,
+                                      std::pow(2, i));
 
-            std::sort(pairs.begin(), pairs.end());
-            pairs.erase(std::unique(pairs.begin(), pairs.end()), pairs.end());
+            // Uniquify:
+            std::sort(tuples.begin(), tuples.end());
+            tuples.erase(std::unique(tuples.begin(), tuples.end()),
+                         tuples.end());
             // Try to avoid really huge quadrature rules if we can
             std::stable_sort(
-              pairs.begin(),
-              pairs.end(),
-              [](const std::pair<unsigned int, unsigned int> &a,
-                 const std::pair<unsigned int, unsigned int> &b) {
-                return a.first * a.second < b.first * b.second;
+              tuples.begin(),
+              tuples.end(),
+              [](const std::tuple<unsigned int, bool, unsigned int> &a,
+                 const std::tuple<unsigned int, bool, unsigned int> &b) {
+                return std::get<0>(a) * std::get<2>(a) <
+                       std::get<0>(b) * std::get<2>(b);
               });
-            // TODO - compute sizes in some other way
-            std::vector<unsigned int> points_per_q_rule;
+            // TODO - compute sizes in some other way. Index by the oddness
+            // boolean (so false == 0 is even, true == 1 is odd)
+            std::array<std::vector<unsigned int>, 2> points_per_q_rule;
             if (dim == 2)
-              points_per_q_rule = {0, 1, 6, 7, 15, 19, 28};
+              {
+                points_per_q_rule[0] = {0, 3, 6, 12, 16, 25, 33, 42};
+                points_per_q_rule[1] = {0, 1, 6, 7, 15, 19, 28, 37};
+              }
             else
-              points_per_q_rule = {0, 1, 8, 14, 35, 59};
+              {
+                points_per_q_rule[0] = {0, 4, 14, 24, 46, 81};
+                points_per_q_rule[1] = {0, 1, 8, 14, 35, 59};
+              }
             // Getting good quadrature rules really pays off so put a lot of
             // effort into sorting these guys and picking the one with the
             // fewest number of points which meets the spacing criterion
             std::size_t best_index    = 0;
             std::size_t best_n_points = std::numeric_limits<std::size_t>::max();
             double      best_point_distance = 1.0;
-            for (std::size_t i = 0; i < pairs.size(); ++i)
+            for (std::size_t i = 0; i < tuples.size(); ++i)
               {
                 const unsigned int n_base_points =
-                  points_per_q_rule[pairs[i].first];
+                  points_per_q_rule[std::get<1>(tuples[i])]
+                                   [std::get<0>(tuples[i])];
                 const auto power = static_cast<unsigned int>(
-                  std::round(std::log2(pairs[i].second)));
+                  std::round(std::log2(std::get<2>(tuples[i]))));
                 const auto n_copies = static_cast<unsigned int>(
                   std::round(std::pow(std::pow(2, dim), power)));
                 const unsigned int n_points = n_base_points * n_copies;
@@ -323,15 +367,19 @@ namespace fdl
                 if (n_points <= best_n_points)
                   {
                     const QIteratedSimplex<dim> new_quad(
-                      QWitherdenVincentSimplex<dim>(pairs[i].first),
-                      pairs[i].second);
+                      QWitherdenVincentSimplex<dim>(std::get<0>(tuples[i]),
+                                                    std::get<1>(tuples[i])),
+                      std::get<2>(tuples[i]));
                     Assert(new_quad.size() == n_points, ExcFDLInternalError());
 
-                    const double point_distance =
-                      new_quad.size() < 2 ? 1.0 :
-                                            find_largest_nonintersecting_sphere(
-                                              new_quad.get_points())
-                                              .second;
+                    double point_distance = 1.0;
+                    if (new_quad.size() > 1)
+                    {
+                      const auto points = map_to_equilateral_simplex(
+                        new_quad.get_points());
+                      point_distance = find_largest_nonintersecting_sphere(points)
+                        .second;
+                    }
 
                     // If we have the same number of points, pick the rule with
                     // better spacing
@@ -356,23 +404,16 @@ namespace fdl
               }
             Assert(best_n_points != std::numeric_limits<std::size_t>::max(),
                    ExcFDLInternalError());
-            QIteratedSimplex<dim> new_quad(QWitherdenVincentSimplex<dim>(
-                                             pairs[best_index].first),
-                                           pairs[best_index].second);
+            QIteratedSimplex<dim> new_quad(
+              QWitherdenVincentSimplex<dim>(std::get<0>(tuples[best_index]),
+                                            std::get<1>(tuples[best_index])),
+              std::get<2>(tuples[best_index]));
             Assert(quadratures.size() == std::size_t(index),
                    ExcFDLInternalError());
-            // Get a 1D estimate by counting the number of points that would be
-            // in the equivalent composite rule in a hypercube
-            const auto n_copies =
-              static_cast<unsigned int>(std::round(std::tgamma(dim + 1)));
-            // As usual, there is no need to round here
-            const auto n_1D_points =
-              std::pow(new_quad.size() * n_copies, 1.0 / dim);
-            mean_point_distances.emplace_back(1.0 / n_1D_points);
+            // TODO: 1.5 is a magic factor in 2D
+            mean_point_distances.emplace_back(best_point_distance/1.5);
             max_point_distances.emplace_back(best_point_distance);
             quadratures.emplace_back(std::move(new_quad));
-            Assert(index <= static_cast<unsigned char>(n_1D_points),
-                   ExcFDLInternalError());
           }
 
         Assert(n_points_1D < quadratures.size(), ExcFDLInternalError());
