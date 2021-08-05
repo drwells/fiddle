@@ -292,10 +292,17 @@ namespace fdl
           parts[part_n].get_partitioner());
         // TODO - implement better initial guess stuff here
         velocity = part_vectors.get_velocity(part_n, current_time);
+        // If we mess up the matrix-free implementation will fix our
+        // partitioner: make sure we catch that case here
+        Assert(velocity.get_partitioner() == parts[part_n].get_partitioner(),
+               ExcFDLInternalError());
         cg.solve(parts[part_n].get_mass_operator(),
                  velocity,
                  rhs_vecs[part_n],
                  parts[part_n].get_mass_preconditioner());
+        // Same
+        Assert(velocity.get_partitioner() == parts[part_n].get_partitioner(),
+               ExcFDLInternalError());
         part_vectors.set_velocity(part_n, data_time, std::move(velocity));
 
         if (input_db->getBoolWithDefault("log_solver_iterations", false))

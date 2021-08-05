@@ -223,7 +223,7 @@ namespace fdl
     /**
      * Partitioner for the position, velocity, and force vectors.
      */
-    std::shared_ptr<Utilities::MPI::Partitioner> partitioner;
+    std::shared_ptr<const Utilities::MPI::Partitioner> partitioner;
 
     // Quadrature used for the position, velocity, and force.
     Quadrature<dim> quadrature;

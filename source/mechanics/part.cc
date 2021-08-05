@@ -50,24 +50,6 @@ namespace fdl
     , dof_handler(std::make_unique<DoFHandler<dim, spacedim>>(tria))
     , force_contributions(std::move(force_contributions))
   {
-    Assert(fe.n_components() == spacedim,
-           ExcMessage("The finite element should have spacedim components "
-                      "since it will represent the position, velocity and "
-                      "force of the part."));
-    // Set up DoFs and finite element fields:
-    dof_handler->distribute_dofs(*this->fe);
-    constraints.close();
-    IndexSet locally_relevant_dofs;
-    DoFTools::extract_locally_relevant_dofs(*dof_handler,
-                                            locally_relevant_dofs);
-
-    partitioner = std::make_shared<Utilities::MPI::Partitioner>(
-      dof_handler->locally_owned_dofs(),
-      locally_relevant_dofs,
-      tria.get_communicator());
-    position.reinit(partitioner);
-    velocity.reinit(partitioner);
-
     // TODO - make the quadrature and mapping parameters so we can implement
     // nodal interaction
     const auto &reference_cells = this->tria->get_reference_cells();
@@ -78,6 +60,40 @@ namespace fdl
     quadrature =
       reference_cells.front().template get_gauss_type_quadrature<dim>(
         this->fe->tensor_degree() + 1);
+
+    Assert(fe.n_components() == spacedim,
+           ExcMessage("The finite element should have spacedim components "
+                      "since it will represent the position, velocity and "
+                      "force of the part."));
+    // Set up DoFs and finite element fields:
+    dof_handler->distribute_dofs(*this->fe);
+    constraints.close();
+
+    // A MatrixFree object sets up the partitioning on its own - use that to
+    // avoid issues with p::s::T where there may not be artificial cells/
+    //
+    // TODO - understand this issue well enough to file a bug report
+    matrix_free = std::make_shared<MatrixFree<dim, double>>();
+    internal::reinit_matrix_free(
+      *mapping, *dof_handler, constraints, quadrature, *matrix_free);
+    if (dim == spacedim)
+    {
+      // no matrixfree outside codim 0
+      partitioner = matrix_free->get_vector_partitioner();
+    }
+    else
+    {
+      IndexSet locally_relevant_dofs;
+      DoFTools::extract_locally_relevant_dofs(*dof_handler,
+                                              locally_relevant_dofs);
+      partitioner = std::make_shared<Utilities::MPI::Partitioner>(
+        dof_handler->locally_owned_dofs(),
+        locally_relevant_dofs,
+        tria.get_communicator());
+    }
+
+    position.reinit(partitioner);
+    velocity.reinit(partitioner);
 
     // Set up matrix free components:
     if (dim == spacedim)
@@ -124,10 +140,6 @@ namespace fdl
                   Assert(false, ExcFDLNotImplemented());
               }
           }
-        matrix_free = std::make_shared<MatrixFree<dim, double>>();
-        internal::reinit_matrix_free(
-          *mapping, *dof_handler, constraints, quadrature, *matrix_free);
-
         mass_operator->initialize(matrix_free);
         mass_operator->compute_diagonal();
         mass_preconditioner.initialize(*mass_operator, 1.0);
