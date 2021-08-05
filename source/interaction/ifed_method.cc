@@ -298,7 +298,7 @@ namespace fdl
                  parts[part_n].get_mass_preconditioner());
         part_vectors.set_velocity(part_n, data_time, std::move(velocity));
 
-        if (input_db->getBoolWithDefault("enable_logging", true))
+        if (input_db->getBoolWithDefault("log_solver_iterations", false))
           {
             tbox::plog << "IFEDMethod::interpolateVelocity(): "
                        << "SolverCG<> converged in " << control.last_step()
@@ -624,7 +624,7 @@ namespace fdl
                  force,
                  force_rhs,
                  part.get_mass_preconditioner());
-        if (input_db->getBoolWithDefault("enable_logging", true))
+        if (input_db->getBoolWithDefault("log_solver_iterations", false))
           {
             tbox::plog << "IFEDMethod::computeLagrangianForce(): "
                        << "SolverCG<> converged in " << control.last_step()

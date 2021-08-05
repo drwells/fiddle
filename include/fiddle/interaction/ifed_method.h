@@ -34,6 +34,8 @@ namespace fdl
    * <ul>
    *   <li>enable_logging: whether or not to log things like the workload.
    *     Defaults to FALSE.</li>
+   *   <li>log_solver_iterations: whether or not to log number of iterations
+   *     required for finite element solvers. Defaults to FALSE.</li>
    *   <li>skip_initial_workload: whether to skip printing the initial workload,
    *     to work around an issue with SAMRAI. This is typically not necessary to
    *     set inside user codes. Defaults to FALSE.</li>
