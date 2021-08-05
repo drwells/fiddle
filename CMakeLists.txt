@@ -24,6 +24,7 @@ SET(FIDDLE_SRC
   source/base/samrai_utilities.cc
   source/base/quadrature_family.cc
   source/base/utilities.cc
+  source/base/initial_guess.cc
 
   source/grid/box_utilities.cc
   source/grid/grid_utilities.cc

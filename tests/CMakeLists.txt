@@ -64,6 +64,7 @@ SETUP(base hello.cc fiddle2d)
 SETUP(base qgauss_family_01.cc fiddle3d)
 SETUP(base qgauss_family_02.cc fiddle3d)
 SETUP(base qwv_family_01.cc fiddle2d)
+SETUP(base initial_guess.cc fiddle2d)
 
 SETUP(base copy_database.cc fiddle2d)
 SETUP(base base64.cc fiddle2d)
@@ -96,6 +97,7 @@ SETUP_2D(interaction ifed_interpolate_01.cc)
 SETUP_2D(interaction ifed_spread_01.cc)
 
 SETUP_2D(interaction ifed_ex4.cc)
+SETUP_2D(interaction ifed_ex4_simplex.cc)
 
 SETUP_2D(interaction elemental_interpolate_01.cc)
 
