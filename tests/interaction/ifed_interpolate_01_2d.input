@@ -98,6 +98,8 @@ IBHierarchyIntegrator {
 IFEDMethod {
    IB_kernel = "BSPLINE_3"
 
+   solver_relative_tolerance = 1e-14
+
    GriddingAlgorithm
    {
        max_levels = MAX_LEVELS

@@ -32,6 +32,10 @@ namespace fdl
    *
    * <h2>Options read from the input database</h2>
    * <ul>
+   *   <li>solver_iterations: Maximum number of iterations to use in linear solvers.</li>
+   *   <li>solver_relative_tolerance: Relative tolerance (i.e., the solver
+   *     tolerance will be set to this times the L2 norm of the RHS vector) to
+   *     use in linear solvers.</li>
    *   <li>enable_logging: whether or not to log things like the workload.
    *     Defaults to FALSE.</li>
    *   <li>log_solver_iterations: whether or not to log number of iterations

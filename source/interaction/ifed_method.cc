@@ -286,7 +286,9 @@ namespace fdl
     IBAMR_TIMER_START(t_interpolate_velocity_solve);
     for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
       {
-        SolverControl control(1000, 1e-14 * rhs_vecs[part_n].l2_norm());
+        SolverControl control(input_db->getIntegerWithDefault("solver_iterations", 100),
+                              input_db->getDoubleWithDefault("solver_relative_tolerance", 1e-6)
+                              * rhs_vecs[part_n].l2_norm());
         SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
         LinearAlgebra::distributed::Vector<double>           velocity(
           parts[part_n].get_partitioner());
@@ -624,7 +626,9 @@ namespace fdl
         IBAMR_TIMER_STOP(t_compute_lagrangian_force_pk1);
 
         IBAMR_TIMER_START(t_compute_lagrangian_force_solve);
-        SolverControl control(1000, 1e-14 * force_rhs.l2_norm());
+        SolverControl control(input_db->getIntegerWithDefault("solver_iterations", 100),
+                              input_db->getDoubleWithDefault("solver_relative_tolerance", 1e-6)
+                              * force_rhs.l2_norm());
         SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
         // TODO - implement better initial guess stuff here
         cg.solve(part.get_mass_operator(),
