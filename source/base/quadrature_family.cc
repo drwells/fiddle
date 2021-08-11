@@ -9,9 +9,11 @@ namespace fdl
 {
   template <int dim>
   QGaussFamily<dim>::QGaussFamily(const unsigned int min_points_1D,
-                                  const double       point_density)
+                                  const double       point_density,
+                                  const DensityKind  density_kind)
     : min_points_1D(min_points_1D)
     , point_density(point_density)
+    , density_factor(density_kind == DensityKind::Minimum ? 1.0 : 1.5)
   {}
 
   template <int dim>
@@ -165,7 +167,7 @@ namespace fdl
             max_point_distances.emplace_back(best_point_distance);
             const unsigned int n_1D_points =
               pairs[best_index].first * pairs[best_index].second;
-            mean_point_distances.emplace_back(1.0 / n_1D_points);
+            mean_point_distances.emplace_back(1.0 / n_1D_points / density_factor);
           }
 
         Assert(n_points_1D < quadratures.size(), ExcFDLInternalError());
@@ -182,9 +184,12 @@ namespace fdl
   template <int dim>
   QWitherdenVincentSimplexFamily<dim>::QWitherdenVincentSimplexFamily(
     const unsigned int min_points_1D,
-    const double       point_density)
+    const double       point_density,
+    const DensityKind  density_kind)
     : min_points_1D(min_points_1D)
     , point_density(point_density)
+    // TODO: these factors are determined empirically and could be improved
+    , density_factor(density_kind == DensityKind::Minimum ? 1.5 : 2.2)
   {}
 
   template <int dim>
@@ -410,8 +415,7 @@ namespace fdl
               std::get<2>(tuples[best_index]));
             Assert(quadratures.size() == std::size_t(index),
                    ExcFDLInternalError());
-            // TODO: 1.5 is a magic factor in 2D
-            mean_point_distances.emplace_back(best_point_distance/1.5);
+            mean_point_distances.emplace_back(best_point_distance/density_factor);
             max_point_distances.emplace_back(best_point_distance);
             quadratures.emplace_back(std::move(new_quad));
           }

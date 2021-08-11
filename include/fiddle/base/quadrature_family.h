@@ -12,6 +12,22 @@ namespace fdl
   using namespace dealii;
 
   /**
+   * An IB density can be interpreted in two ways:
+   *
+   * - An *average* density, meaning that some cells may have a lower density
+   *   and others a higher density, but the average will be near the requested
+   *   value.
+   * - A *minimum* density, meaning that nearly all cells (aside from
+   *   some with very unlucky placement) will have the requested density and
+   *   most will have a higher density.
+   */
+  enum class DensityKind
+  {
+    Average,
+    Minimum
+  };
+
+  /**
    * Implementation of a family of quadratures - meaning that, for a specified
    * number of points in a single coordinate direction, objects of this class
    * return a constant reference to a quadrature meeting that requirement.
@@ -97,7 +113,8 @@ namespace fdl
      * parameter specifying the order of the quadratures.
      */
     QGaussFamily(const unsigned int min_points_1D,
-                 const double       point_density = 1.0);
+                 const double       point_density = 1.0,
+                 const DensityKind  density_kind = DensityKind::Minimum);
 
     virtual const Quadrature<dim> &
     operator[](const unsigned char n_points_1D) const override;
@@ -118,6 +135,8 @@ namespace fdl
     unsigned int min_points_1D;
 
     double point_density;
+
+    double density_factor;
 
     /**
      * Quadratures. Left as mutable so that new quadratures can be added in
@@ -161,7 +180,8 @@ namespace fdl
      * parameter specifying the order of the quadratures.
      */
     QWitherdenVincentSimplexFamily(const unsigned int min_points_1D,
-                                   const double       point_density = 1.0);
+                                   const double       point_density = 1.0,
+                                   const DensityKind  density_kind = DensityKind::Minimum);
 
     virtual const Quadrature<dim> &
     operator[](const unsigned char n_points_1D) const override;
@@ -182,6 +202,8 @@ namespace fdl
     unsigned int min_points_1D;
 
     double point_density;
+
+    double density_factor;
 
     /**
      * Quadratures. Left as mutable so that new quadratures can be added in

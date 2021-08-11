@@ -88,12 +88,27 @@ namespace fdl
     // dx = dX then we can use a lower density.
     const double density =
       input_db->getDoubleWithDefault("IB_point_density", 2.0);
+
+    // Default to minimum density:
+    auto density_kind = DensityKind::Minimum;
+    std::string density_kind_string =
+      input_db->getStringWithDefault("density_kind", "Minimum");
+    std::transform(density_kind_string.begin(), density_kind_string.end(),
+                   density_kind_string.begin(),
+                   [](const unsigned char c){return std::tolower(c);});
+    if (density_kind_string == "minimum")
+      density_kind = DensityKind::Minimum;
+    else if (density_kind_string == "average")
+      density_kind = DensityKind::Average;
+    else
+      AssertThrow(false, ExcFDLNotImplemented());
+
     for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
       {
         const unsigned int n_points_1D =
           parts[part_n].get_dof_handler().get_fe().tensor_degree() + 1;
         interactions.emplace_back(
-          new ElementalInteraction<dim, spacedim>(n_points_1D, density));
+          new ElementalInteraction<dim, spacedim>(n_points_1D, density, density_kind));
       }
 
     AssertThrow(input_db->keyExists("IB_kernel"),

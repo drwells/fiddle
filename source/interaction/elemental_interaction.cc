@@ -20,10 +20,12 @@ namespace fdl
   template <int dim, int spacedim>
   ElementalInteraction<dim, spacedim>::ElementalInteraction(
     const unsigned int min_n_points_1D,
-    const double       point_density)
+    const double       point_density,
+    const DensityKind  density_kind)
     : InteractionBase<dim, spacedim>()
     , min_n_points_1D(min_n_points_1D)
     , point_density(point_density)
+    , density_kind(density_kind)
   {}
 
   template <int dim, int spacedim>
@@ -34,8 +36,9 @@ namespace fdl
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
     const int                                             level_number,
     const unsigned int                                    min_n_points_1D,
-    const double                                          point_density)
-    : ElementalInteraction<dim, spacedim>(min_n_points_1D, point_density)
+    const double                                          point_density,
+    const DensityKind                                     density_kind)
+    : ElementalInteraction<dim, spacedim>(min_n_points_1D, point_density, density_kind)
   {
     reinit(native_tria,
            active_cell_bboxes,
@@ -69,7 +72,8 @@ namespace fdl
         else if (reference_cells.front() == ReferenceCells::get_simplex<dim>())
           quadrature_family.reset(
             new QWitherdenVincentSimplexFamily<dim>(min_n_points_1D,
-                                                    point_density));
+                                                    point_density,
+                                                    density_kind));
         else
           Assert(false, ExcFDLNotImplemented());
       }

@@ -137,7 +137,8 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     patch_hierarchy,
     patch_hierarchy->getFinestLevelNumber(),
     fe_degree + 1,
-    1.0);
+    1.0,
+    fdl::DensityKind::Minimum);
   interaction.add_dof_handler(position_dof_handler);
   interaction.add_dof_handler(F_dof_handler);
 

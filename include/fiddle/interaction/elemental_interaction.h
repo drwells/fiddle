@@ -40,7 +40,8 @@ namespace fdl
      * Constructor. Sets up an empty object.
      */
     ElementalInteraction(const unsigned int min_n_points_1D,
-                         const double       point_density);
+                         const double       point_density,
+                         const DensityKind  density_kind);
 
     /**
      * Constructor.
@@ -52,11 +53,12 @@ namespace fdl
       tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
       const int                                             level_number,
       const unsigned int                                    min_n_points_1D,
-      const double                                          point_density);
+      const double                                          point_density,
+      const DensityKind                                     density_kind);
 
     /**
-     * Reinitialize the object. Same as the constructor, except min_n_points_1D
-     * and point_density are unchanged.
+     * Reinitialize the object. Same as the constructor, except min_n_points_1D,
+     * point_density, and density_kind are unchanged.
      */
     virtual void
     reinit(const parallel::shared::Triangulation<dim, spacedim> &native_tria,
@@ -97,6 +99,8 @@ namespace fdl
     unsigned int min_n_points_1D;
 
     double point_density;
+
+    DensityKind density_kind;
 
     /**
      * Indices of the quadrature rules that should be used on each cell.
