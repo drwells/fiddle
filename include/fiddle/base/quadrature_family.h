@@ -114,7 +114,7 @@ namespace fdl
      */
     QGaussFamily(const unsigned int min_points_1D,
                  const double       point_density = 1.0,
-                 const DensityKind  density_kind = DensityKind::Minimum);
+                 const DensityKind  density_kind  = DensityKind::Minimum);
 
     virtual const Quadrature<dim> &
     operator[](const unsigned char n_points_1D) const override;
@@ -179,9 +179,10 @@ namespace fdl
      * dealii::Quadrature, @p min_points_1D should be understood as a
      * parameter specifying the order of the quadratures.
      */
-    QWitherdenVincentSimplexFamily(const unsigned int min_points_1D,
-                                   const double       point_density = 1.0,
-                                   const DensityKind  density_kind = DensityKind::Minimum);
+    QWitherdenVincentSimplexFamily(
+      const unsigned int min_points_1D,
+      const double       point_density = 1.0,
+      const DensityKind  density_kind  = DensityKind::Minimum);
 
     virtual const Quadrature<dim> &
     operator[](const unsigned char n_points_1D) const override;

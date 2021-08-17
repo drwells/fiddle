@@ -167,7 +167,8 @@ namespace fdl
             max_point_distances.emplace_back(best_point_distance);
             const unsigned int n_1D_points =
               pairs[best_index].first * pairs[best_index].second;
-            mean_point_distances.emplace_back(1.0 / n_1D_points / density_factor);
+            mean_point_distances.emplace_back(1.0 / n_1D_points /
+                                              density_factor);
           }
 
         Assert(n_points_1D < quadratures.size(), ExcFDLInternalError());
@@ -198,26 +199,25 @@ namespace fdl
   {
     Tensor<2, dim> transformation;
     switch (dim)
-    {
-      case 2:
       {
-        // (0, 0) -> (0, 0)
-        // (1, 0) -> (0, 1)
-        // (0, 1) -> (0.5, sqrt(3)/2)
-        transformation[0][0] = 1.0;
-        transformation[0][1] = 0.5;
-        transformation[1][0] = 0.0;
-        transformation[1][1] = std::sqrt(3.0)/2.0;
-        break;
+          case 2: {
+            // (0, 0) -> (0, 0)
+            // (1, 0) -> (0, 1)
+            // (0, 1) -> (0.5, sqrt(3)/2)
+            transformation[0][0] = 1.0;
+            transformation[0][1] = 0.5;
+            transformation[1][0] = 0.0;
+            transformation[1][1] = std::sqrt(3.0) / 2.0;
+            break;
+          }
+        default:
+          Assert(false, ExcFDLNotImplemented());
       }
-      default:
-        Assert(false, ExcFDLNotImplemented());
-    }
     std::vector<Point<dim>> output;
     for (const Point<dim> &p : input)
-    {
-      output.emplace_back(transformation * p);
-    }
+      {
+        output.emplace_back(transformation * p);
+      }
 
     return output;
   }
@@ -379,12 +379,12 @@ namespace fdl
 
                     double point_distance = 1.0;
                     if (new_quad.size() > 1)
-                    {
-                      const auto points = map_to_equilateral_simplex(
-                        new_quad.get_points());
-                      point_distance = find_largest_nonintersecting_sphere(points)
-                        .second;
-                    }
+                      {
+                        const auto points =
+                          map_to_equilateral_simplex(new_quad.get_points());
+                        point_distance =
+                          find_largest_nonintersecting_sphere(points).second;
+                      }
 
                     // If we have the same number of points, pick the rule with
                     // better spacing
@@ -415,7 +415,8 @@ namespace fdl
               std::get<2>(tuples[best_index]));
             Assert(quadratures.size() == std::size_t(index),
                    ExcFDLInternalError());
-            mean_point_distances.emplace_back(best_point_distance/density_factor);
+            mean_point_distances.emplace_back(best_point_distance /
+                                              density_factor);
             max_point_distances.emplace_back(best_point_distance);
             quadratures.emplace_back(std::move(new_quad));
           }

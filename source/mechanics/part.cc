@@ -77,20 +77,20 @@ namespace fdl
     internal::reinit_matrix_free(
       *mapping, *dof_handler, constraints, quadrature, *matrix_free);
     if (dim == spacedim)
-    {
-      // no matrixfree outside codim 0
-      partitioner = matrix_free->get_vector_partitioner();
-    }
+      {
+        // no matrixfree outside codim 0
+        partitioner = matrix_free->get_vector_partitioner();
+      }
     else
-    {
-      IndexSet locally_relevant_dofs;
-      DoFTools::extract_locally_relevant_dofs(*dof_handler,
-                                              locally_relevant_dofs);
-      partitioner = std::make_shared<Utilities::MPI::Partitioner>(
-        dof_handler->locally_owned_dofs(),
-        locally_relevant_dofs,
-        tria.get_communicator());
-    }
+      {
+        IndexSet locally_relevant_dofs;
+        DoFTools::extract_locally_relevant_dofs(*dof_handler,
+                                                locally_relevant_dofs);
+        partitioner = std::make_shared<Utilities::MPI::Partitioner>(
+          dof_handler->locally_owned_dofs(),
+          locally_relevant_dofs,
+          tria.get_communicator());
+      }
 
     position.reinit(partitioner);
     velocity.reinit(partitioner);

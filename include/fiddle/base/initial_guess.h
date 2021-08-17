@@ -11,27 +11,27 @@ IBTK_ENABLE_EXTRA_WARNINGS
 
 namespace fdl
 {
-    template <typename VectorType>
-    class InitialGuess
-    {
-    public:
-      InitialGuess(const unsigned int n_vectors = 5);
+  template <typename VectorType>
+  class InitialGuess
+  {
+  public:
+    InitialGuess(const unsigned int n_vectors = 5);
 
-      void
-      submit(const VectorType &solution, const VectorType &rhs);
+    void
+    submit(const VectorType &solution, const VectorType &rhs);
 
-      void
-      guess(VectorType &solution, const VectorType &rhs) const;
+    void
+    guess(VectorType &solution, const VectorType &rhs) const;
 
-    protected:
-      unsigned int n_max_vectors;
-      unsigned int n_stored_vectors;
+  protected:
+    unsigned int n_max_vectors;
+    unsigned int n_stored_vectors;
 
-      // IBAMR always has Eigen, deal.II only optionally has LAPACK
-      Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> correlation_matrix;
+    // IBAMR always has Eigen, deal.II only optionally has LAPACK
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> correlation_matrix;
 
-      std::deque<VectorType> solutions;
-      std::deque<VectorType> right_hand_sides;
-    };
-}
+    std::deque<VectorType> solutions;
+    std::deque<VectorType> right_hand_sides;
+  };
+} // namespace fdl
 #endif

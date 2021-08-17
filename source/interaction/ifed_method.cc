@@ -90,12 +90,13 @@ namespace fdl
       input_db->getDoubleWithDefault("IB_point_density", 2.0);
 
     // Default to minimum density:
-    auto density_kind = DensityKind::Minimum;
+    auto        density_kind = DensityKind::Minimum;
     std::string density_kind_string =
       input_db->getStringWithDefault("density_kind", "Minimum");
-    std::transform(density_kind_string.begin(), density_kind_string.end(),
+    std::transform(density_kind_string.begin(),
+                   density_kind_string.end(),
                    density_kind_string.begin(),
-                   [](const unsigned char c){return std::tolower(c);});
+                   [](const unsigned char c) { return std::tolower(c); });
     if (density_kind_string == "minimum")
       density_kind = DensityKind::Minimum;
     else if (density_kind_string == "average")
@@ -107,8 +108,8 @@ namespace fdl
       {
         const unsigned int n_points_1D =
           parts[part_n].get_dof_handler().get_fe().tensor_degree() + 1;
-        interactions.emplace_back(
-          new ElementalInteraction<dim, spacedim>(n_points_1D, density, density_kind));
+        interactions.emplace_back(new ElementalInteraction<dim, spacedim>(
+          n_points_1D, density, density_kind));
       }
 
     AssertThrow(input_db->keyExists("IB_kernel"),
@@ -253,12 +254,12 @@ namespace fdl
     (void)u_ghost_fill_scheds;
 
     // Update the secondary hierarchy:
-    secondary_hierarchy
-      .transferPrimaryToSecondary(primary_hierarchy->getFinestLevelNumber(),
-                                  u_data_index,
-                                  u_data_index,
-                                  data_time,
-                                  d_ib_solver->getVelocityPhysBdryOp());
+    secondary_hierarchy.transferPrimaryToSecondary(
+      primary_hierarchy->getFinestLevelNumber(),
+      u_data_index,
+      u_data_index,
+      data_time,
+      d_ib_solver->getVelocityPhysBdryOp());
 
     std::vector<std::unique_ptr<TransactionBase>> transactions;
     // we emplace_back so use a deque to keep pointers valid
@@ -301,9 +302,10 @@ namespace fdl
     IBAMR_TIMER_START(t_interpolate_velocity_solve);
     for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
       {
-        SolverControl control(input_db->getIntegerWithDefault("solver_iterations", 100),
-                              input_db->getDoubleWithDefault("solver_relative_tolerance", 1e-6)
-                              * rhs_vecs[part_n].l2_norm());
+        SolverControl control(
+          input_db->getIntegerWithDefault("solver_iterations", 100),
+          input_db->getDoubleWithDefault("solver_relative_tolerance", 1e-6) *
+            rhs_vecs[part_n].l2_norm());
         SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
         LinearAlgebra::distributed::Vector<double>           velocity(
           parts[part_n].get_partitioner());
@@ -437,11 +439,11 @@ namespace fdl
                level_number,
                level_number,
                0.0);
-      secondary_hierarchy
-        .transferSecondaryToPrimary(level_number,
-                                    f_primary_scratch_data_index,
-                                    f_scratch_data_index,
-                                    data_time);
+      secondary_hierarchy.transferSecondaryToPrimary(
+        level_number,
+        f_primary_scratch_data_index,
+        f_scratch_data_index,
+        data_time);
       f_primary_data_ops->add(f_data_index,
                               f_data_index,
                               f_primary_scratch_data_index);
@@ -641,9 +643,10 @@ namespace fdl
         IBAMR_TIMER_STOP(t_compute_lagrangian_force_pk1);
 
         IBAMR_TIMER_START(t_compute_lagrangian_force_solve);
-        SolverControl control(input_db->getIntegerWithDefault("solver_iterations", 100),
-                              input_db->getDoubleWithDefault("solver_relative_tolerance", 1e-6)
-                              * force_rhs.l2_norm());
+        SolverControl control(
+          input_db->getIntegerWithDefault("solver_iterations", 100),
+          input_db->getDoubleWithDefault("solver_relative_tolerance", 1e-6) *
+            force_rhs.l2_norm());
         SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
         // TODO - implement better initial guess stuff here
         cg.solve(part.get_mass_operator(),
@@ -775,11 +778,11 @@ namespace fdl
                  0,
                  max_ln);
 
-        secondary_hierarchy
-          .transferSecondaryToPrimary(max_ln,
-                                      lagrangian_workload_current_index,
-                                      lagrangian_workload_current_index,
-                                      0.0);
+        secondary_hierarchy.transferSecondaryToPrimary(
+          max_ln,
+          lagrangian_workload_current_index,
+          lagrangian_workload_current_index,
+          0.0);
       }
 
     // Clear a few things that depend on the current hierarchy:

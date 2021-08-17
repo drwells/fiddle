@@ -38,7 +38,9 @@ namespace fdl
     const unsigned int                                    min_n_points_1D,
     const double                                          point_density,
     const DensityKind                                     density_kind)
-    : ElementalInteraction<dim, spacedim>(min_n_points_1D, point_density, density_kind)
+    : ElementalInteraction<dim, spacedim>(min_n_points_1D,
+                                          point_density,
+                                          density_kind)
   {
     reinit(native_tria,
            active_cell_bboxes,
@@ -70,10 +72,8 @@ namespace fdl
           quadrature_family.reset(
             new QGaussFamily<dim>(min_n_points_1D, point_density));
         else if (reference_cells.front() == ReferenceCells::get_simplex<dim>())
-          quadrature_family.reset(
-            new QWitherdenVincentSimplexFamily<dim>(min_n_points_1D,
-                                                    point_density,
-                                                    density_kind));
+          quadrature_family.reset(new QWitherdenVincentSimplexFamily<dim>(
+            min_n_points_1D, point_density, density_kind));
         else
           Assert(false, ExcFDLNotImplemented());
       }
