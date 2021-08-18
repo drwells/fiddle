@@ -15,7 +15,7 @@ namespace fdl
   class InitialGuess
   {
   public:
-    InitialGuess(const unsigned int n_vectors = 5);
+    explicit InitialGuess(const unsigned int n_vectors = 5);
 
     void
     submit(const VectorType &solution, const VectorType &rhs);

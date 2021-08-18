@@ -2,6 +2,7 @@
 #define included_fiddle_interaction_ifed_method_h
 
 #include <fiddle/base/exceptions.h>
+#include <fiddle/base/initial_guess.h>
 
 #include <fiddle/interaction/interaction_base.h>
 
@@ -251,6 +252,11 @@ namespace fdl
     std::vector<Part<dim, spacedim>> parts;
 
     PartVectors<dim, spacedim> part_vectors;
+
+    std::vector<InitialGuess<LinearAlgebra::distributed::Vector<double>>>
+      force_guesses;
+    std::vector<InitialGuess<LinearAlgebra::distributed::Vector<double>>>
+      velocity_guesses;
     /**
      * @}
      */

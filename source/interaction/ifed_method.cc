@@ -110,6 +110,10 @@ namespace fdl
           parts[part_n].get_dof_handler().get_fe().tensor_degree() + 1;
         interactions.emplace_back(new ElementalInteraction<dim, spacedim>(
           n_points_1D, density, density_kind));
+        force_guesses.emplace_back(
+          input_db->getIntegerWithDefault("n_guess_vectors", 10));
+        velocity_guesses.emplace_back(
+          input_db->getIntegerWithDefault("n_guess_vectors", 10));
       }
 
     AssertThrow(input_db->keyExists("IB_kernel"),
@@ -309,16 +313,17 @@ namespace fdl
         SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
         LinearAlgebra::distributed::Vector<double>           velocity(
           parts[part_n].get_partitioner());
-        // TODO - implement better initial guess stuff here
-        velocity = part_vectors.get_velocity(part_n, current_time);
+
         // If we mess up the matrix-free implementation will fix our
         // partitioner: make sure we catch that case here
         Assert(velocity.get_partitioner() == parts[part_n].get_partitioner(),
                ExcFDLInternalError());
+        velocity_guesses[part_n].guess(velocity, rhs_vecs[part_n]);
         cg.solve(parts[part_n].get_mass_operator(),
                  velocity,
                  rhs_vecs[part_n],
                  parts[part_n].get_mass_preconditioner());
+        velocity_guesses[part_n].submit(velocity, rhs_vecs[part_n]);
         // Same
         Assert(velocity.get_partitioner() == parts[part_n].get_partitioner(),
                ExcFDLInternalError());
@@ -648,11 +653,12 @@ namespace fdl
           input_db->getDoubleWithDefault("solver_relative_tolerance", 1e-6) *
             force_rhs.l2_norm());
         SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
-        // TODO - implement better initial guess stuff here
+        force_guesses[part_n].guess(force, force_rhs);
         cg.solve(part.get_mass_operator(),
                  force,
                  force_rhs,
                  part.get_mass_preconditioner());
+        force_guesses[part_n].submit(force, force_rhs);
         if (input_db->getBoolWithDefault("log_solver_iterations", false))
           {
             tbox::plog << "IFEDMethod::computeLagrangianForce(): "
