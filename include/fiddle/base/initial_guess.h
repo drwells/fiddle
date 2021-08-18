@@ -21,7 +21,7 @@ namespace fdl
     submit(const VectorType &solution, const VectorType &rhs);
 
     void
-    guess(VectorType &solution, const VectorType &rhs) const;
+    guess(VectorType &solution, const VectorType &rhs);
 
   protected:
     unsigned int n_max_vectors;
@@ -29,6 +29,10 @@ namespace fdl
 
     // IBAMR always has Eigen, deal.II only optionally has LAPACK
     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> correlation_matrix;
+
+    Eigen::VectorXd projection_coefficients;
+
+    const VectorType *last_rhs;
 
     std::deque<VectorType> solutions;
     std::deque<VectorType> right_hand_sides;

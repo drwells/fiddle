@@ -95,7 +95,11 @@ main()
     new_rhs[0] = 1.0;
     Vector<double> solution(3);
     guess.guess(solution, new_rhs);
+    solution.print(out);
 
+    // shouldn't change the vector
+    guess.submit(solution, new_rhs);
+    guess.guess(solution, new_rhs);
     solution.print(out);
   }
 
@@ -135,6 +139,11 @@ main()
     Vector<double> new_rhs(3);
     new_rhs[0] = 1;
     Vector<double> solution(3);
+    guess.guess(solution, new_rhs);
+    solution.print(out);
+
+    // shouldn't change the solution
+    guess.submit(solution, new_rhs);
     guess.guess(solution, new_rhs);
 
     solution.print(out);
