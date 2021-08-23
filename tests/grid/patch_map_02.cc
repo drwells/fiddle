@@ -38,11 +38,12 @@ main(int argc, char **argv)
 
   const auto    rank    = dealii::Utilities::MPI::this_mpi_process(mpi_comm);
   const auto    n_procs = dealii::Utilities::MPI::n_mpi_processes(mpi_comm);
-  std::ofstream output("output-" + std::to_string(rank));
 
   // Use a patch hierarchy
   {
     using namespace SAMRAI;
+
+    std::ofstream output("output-" + std::to_string(rank));
 
     // Input file:
     tbox::Pointer<IBTK::AppInitializer> app_initializer =
