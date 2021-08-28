@@ -1,0 +1,19 @@
+Using simplices
+Number of cells = 8
+global error = 0.00776097
+error ratio  = 128.85
+Number of cells = 32
+global error = 0.00130073
+error ratio  = 5.9666
+Number of cells = 128
+global error = 0.000146858
+error ratio  = 8.85708
+Number of cells = 512
+global error = 1.9124e-05
+error ratio  = 7.67925
+Number of cells = 2048
+global error = 2.49849e-06
+error ratio  = 7.65424
+Number of cells = 8192
+global error = 3.14876e-07
+error ratio  = 7.93484

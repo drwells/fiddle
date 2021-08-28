@@ -30,6 +30,21 @@ namespace fdl
     const LinearAlgebra::distributed::Vector<double> &current_velocity,
     LinearAlgebra::distributed::Vector<double> &      force_rhs);
 
+  /**
+   * Compute the contribution of volumetric forces and add them to the given
+   * load vector.
+   */
+  template <int dim, int spacedim = dim>
+  void
+  compute_volumetric_force_load_vector(
+    const DoFHandler<dim, spacedim> &dof_handler,
+    const Mapping<dim, spacedim> &   mapping,
+    const std::vector<const ForceContribution<dim, spacedim> *>
+                                                      force_contributions,
+    const LinearAlgebra::distributed::Vector<double> &current_position,
+    const LinearAlgebra::distributed::Vector<double> &current_velocity,
+    LinearAlgebra::distributed::Vector<double> &      force_rhs);
+
 } // namespace fdl
 
 #endif

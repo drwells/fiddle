@@ -112,6 +112,12 @@ namespace fdl
     get_stress_contributions() const;
 
     /**
+     * Get pointers to the force contributions that are volumetric forces.
+     */
+    std::vector<const ForceContribution<dim, spacedim> *>
+    get_volumetric_force_contributions() const;
+
+    /**
      * Get a constant reference to the DoFHandler used for the position,
      * velocity, and force.
      */

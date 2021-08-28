@@ -206,6 +206,21 @@ namespace fdl
     return stresses;
   }
 
+  template <int dim, int spacedim>
+  std::vector<const ForceContribution<dim, spacedim> *>
+  Part<dim, spacedim>::get_volumetric_force_contributions() const
+  {
+    std::vector<const ForceContribution<dim, spacedim> *> forces;
+
+    for (const auto &force_contribution : force_contributions)
+      {
+        if (force_contribution->is_volume_force())
+          forces.push_back(force_contribution.get());
+      }
+
+    return forces;
+  }
+
 
 
   template class Part<NDIM - 1, NDIM>;
