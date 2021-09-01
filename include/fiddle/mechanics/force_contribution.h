@@ -94,12 +94,14 @@ namespace fdl
      */
     virtual void
     compute_force(
+      const double                            time,
       const MechanicsValues<dim, spacedim> &  m_values,
       ArrayView<Tensor<1, spacedim, Number>> &forces) const // = 0 TODO fix this
     {
       // It shouldn't be possible to get here but since compute_surface_force
       // and compute_volume_force both call this function we need it to make the
       // linker happy
+      (void)time;
       (void)m_values;
       (void)forces;
       Assert(false, ExcFDLInternalError());
@@ -110,12 +112,13 @@ namespace fdl
      */
     virtual void
     compute_surface_force(
+      const double                          time,
       const MechanicsValues<dim, spacedim> &m_values,
       const typename Triangulation<dim, spacedim>::active_face_iterator
         & /*face*/,
       ArrayView<Tensor<1, spacedim, Number>> &forces) const
     {
-      compute_force(m_values, forces);
+      compute_force(time, m_values, forces);
     }
 
     /**
@@ -123,18 +126,21 @@ namespace fdl
      */
     virtual void
     compute_volume_force(
+      const double                          time,
       const MechanicsValues<dim, spacedim> &m_values,
       const typename Triangulation<dim, spacedim>::active_cell_iterator
         & /*cell*/,
       ArrayView<Tensor<1, spacedim, Number>> &forces) const
     {
-      compute_force(m_values, forces);
+      compute_force(time, m_values, forces);
     }
 
     virtual void
-    compute_stress(const MechanicsValues<dim, spacedim> &  me_values,
+    compute_stress(const double                            time,
+                   const MechanicsValues<dim, spacedim> &  me_values,
                    ArrayView<Tensor<2, spacedim, Number>> &stresses) const
     {
+      (void)time;
       (void)me_values;
       (void)stresses;
       Assert(false, ExcFDLInternalError());

@@ -117,6 +117,7 @@ public:
 
   virtual void
   compute_stress(
+    const double /*time*/,
     const fdl::MechanicsValues<dim, spacedim> &me_values,
     ArrayView<Tensor<2, spacedim, double>> &   stresses) const override
   {
@@ -258,6 +259,7 @@ test(const bool use_simplex)
         fdl::compute_volumetric_pk1_load_vector(dof_handler,
                                                 mapping,
                                                 stress_ptrs,
+                                                0.0,
                                                 current_position,
                                                 current_velocity,
                                                 force_rhs);

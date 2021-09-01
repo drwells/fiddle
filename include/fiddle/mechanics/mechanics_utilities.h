@@ -26,6 +26,7 @@ namespace fdl
     const Mapping<dim, spacedim> &   mapping,
     const std::vector<const ForceContribution<dim, spacedim> *>
                                                       stress_contributions,
+    const double                                      time,
     const LinearAlgebra::distributed::Vector<double> &current_position,
     const LinearAlgebra::distributed::Vector<double> &current_velocity,
     LinearAlgebra::distributed::Vector<double> &      force_rhs);
@@ -41,6 +42,7 @@ namespace fdl
     const Mapping<dim, spacedim> &   mapping,
     const std::vector<const ForceContribution<dim, spacedim> *>
                                                       force_contributions,
+    const double                                      time,
     const LinearAlgebra::distributed::Vector<double> &current_position,
     const LinearAlgebra::distributed::Vector<double> &current_velocity,
     LinearAlgebra::distributed::Vector<double> &      force_rhs);
@@ -56,6 +58,7 @@ namespace fdl
     const Mapping<dim, spacedim> &   mapping,
     const std::vector<const ForceContribution<dim, spacedim> *>
                                                       force_contributions,
+    const double                                      time,
     const LinearAlgebra::distributed::Vector<double> &current_position,
     const LinearAlgebra::distributed::Vector<double> &current_velocity,
     LinearAlgebra::distributed::Vector<double> &      force_rhs);

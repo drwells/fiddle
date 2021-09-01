@@ -105,6 +105,7 @@ public:
 
   virtual void
   compute_surface_force(
+    const double /*time*/,
     const fdl::MechanicsValues<dim, spacedim> &me_values,
     const typename Triangulation<dim, spacedim>::active_face_iterator &face,
     ArrayView<Tensor<1, spacedim, double>> &forces) const override
@@ -220,6 +221,7 @@ test()
         fdl::compute_boundary_force_load_vector(dof_handler,
                                                 mapping,
                                                 force_ptrs,
+                                                0.0,
                                                 current_position,
                                                 current_velocity,
                                                 force_rhs);

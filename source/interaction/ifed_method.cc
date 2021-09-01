@@ -641,6 +641,7 @@ namespace fdl
         compute_volumetric_pk1_load_vector(part.get_dof_handler(),
                                            part.get_mapping(),
                                            part.get_stress_contributions(),
+                                           data_time,
                                            position,
                                            velocity,
                                            force_rhs);
@@ -648,6 +649,7 @@ namespace fdl
           part.get_dof_handler(),
           part.get_mapping(),
           part.get_volumetric_force_contributions(),
+          data_time,
           position,
           velocity,
           force_rhs);
@@ -655,6 +657,7 @@ namespace fdl
           part.get_dof_handler(),
           part.get_mapping(),
           part.get_boundary_force_contributions(),
+          data_time,
           position,
           velocity,
           force_rhs);

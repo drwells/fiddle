@@ -67,6 +67,7 @@ public:
 
   virtual void
   compute_stress(
+    const double /*time*/,
     const fdl::MechanicsValues<dim, spacedim> &me_values,
     ArrayView<Tensor<2, spacedim, double>> &   stresses) const override
   {
@@ -116,6 +117,7 @@ public:
 
   virtual void
   compute_stress(
+    const double /*time*/,
     const fdl::MechanicsValues<dim, spacedim> &me_values,
     ArrayView<Tensor<2, spacedim, double>> &   stresses) const override
   {

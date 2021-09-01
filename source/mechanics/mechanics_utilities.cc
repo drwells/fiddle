@@ -28,6 +28,7 @@ namespace fdl
     const Mapping<dim, spacedim> &   mapping,
     const std::vector<const ForceContribution<dim, spacedim> *>
                                                       stress_contributions,
+    const double                                      time,
     const LinearAlgebra::distributed::Vector<double> &current_position,
     const LinearAlgebra::distributed::Vector<double> &current_velocity,
     LinearAlgebra::distributed::Vector<double> &      force_rhs)
@@ -114,7 +115,7 @@ namespace fdl
                               Tensor<2, spacedim, double>());
                     auto view =
                       make_array_view(one_stress.begin(), one_stress.end());
-                    fc->compute_stress(me_values, view);
+                    fc->compute_stress(time, me_values, view);
                     for (unsigned int qp_n = 0; qp_n < n_quadrature_points;
                          ++qp_n)
                       accumulated_stresses[qp_n] += one_stress[qp_n];
@@ -144,7 +145,8 @@ namespace fdl
     const DoFHandler<dim, spacedim> &dof_handler,
     const Mapping<dim, spacedim> &   mapping,
     const std::vector<const ForceContribution<dim, spacedim> *>
-      volume_force_contributions,
+                 volume_force_contributions,
+    const double time,
     const LinearAlgebra::distributed::Vector<double> &current_position,
     const LinearAlgebra::distributed::Vector<double> &current_velocity,
     LinearAlgebra::distributed::Vector<double> &      force_rhs)
@@ -231,7 +233,7 @@ namespace fdl
                               Tensor<1, spacedim, double>());
                     auto view =
                       make_array_view(one_force.begin(), one_force.end());
-                    fc->compute_volume_force(me_values, cell, view);
+                    fc->compute_volume_force(time, me_values, cell, view);
                     for (unsigned int qp_n = 0; qp_n < n_quadrature_points;
                          ++qp_n)
                       accumulated_forces[qp_n] += one_force[qp_n];
@@ -261,7 +263,8 @@ namespace fdl
     const DoFHandler<dim, spacedim> &dof_handler,
     const Mapping<dim, spacedim> &   mapping,
     const std::vector<const ForceContribution<dim, spacedim> *>
-      boundary_force_contributions,
+                 boundary_force_contributions,
+    const double time,
     const LinearAlgebra::distributed::Vector<double> &current_position,
     const LinearAlgebra::distributed::Vector<double> &current_velocity,
     LinearAlgebra::distributed::Vector<double> &      force_rhs)
@@ -351,7 +354,8 @@ namespace fdl
                                 Tensor<1, spacedim, double>());
                       auto view =
                         make_array_view(one_force.begin(), one_force.end());
-                      fc->compute_surface_force(me_values,
+                      fc->compute_surface_force(time,
+                                                me_values,
                                                 cell->face(face_n),
                                                 view);
                       for (unsigned int qp_n = 0; qp_n < n_quadrature_points;
@@ -381,6 +385,7 @@ namespace fdl
     const DoFHandler<NDIM - 1, NDIM> &,
     const Mapping<NDIM - 1, NDIM> &,
     const std::vector<const ForceContribution<NDIM - 1, NDIM> *>,
+    const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
     LinearAlgebra::distributed::Vector<double> &);
@@ -390,6 +395,7 @@ namespace fdl
     const DoFHandler<NDIM, NDIM> &,
     const Mapping<NDIM, NDIM> &,
     const std::vector<const ForceContribution<NDIM, NDIM> *>,
+    const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
     LinearAlgebra::distributed::Vector<double> &);
@@ -399,6 +405,7 @@ namespace fdl
     const DoFHandler<NDIM - 1, NDIM> &,
     const Mapping<NDIM - 1, NDIM> &,
     const std::vector<const ForceContribution<NDIM - 1, NDIM> *>,
+    const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
     LinearAlgebra::distributed::Vector<double> &);
@@ -408,6 +415,7 @@ namespace fdl
     const DoFHandler<NDIM, NDIM> &,
     const Mapping<NDIM, NDIM> &,
     const std::vector<const ForceContribution<NDIM, NDIM> *>,
+    const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
     LinearAlgebra::distributed::Vector<double> &);
@@ -417,6 +425,7 @@ namespace fdl
     const DoFHandler<NDIM - 1, NDIM> &,
     const Mapping<NDIM - 1, NDIM> &,
     const std::vector<const ForceContribution<NDIM - 1, NDIM> *>,
+    const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
     LinearAlgebra::distributed::Vector<double> &);
@@ -426,6 +435,7 @@ namespace fdl
     const DoFHandler<NDIM, NDIM> &,
     const Mapping<NDIM, NDIM> &,
     const std::vector<const ForceContribution<NDIM, NDIM> *>,
+    const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
     LinearAlgebra::distributed::Vector<double> &);

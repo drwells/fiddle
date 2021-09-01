@@ -107,7 +107,8 @@ public:
   }
 
   virtual void
-  compute_force(const fdl::MechanicsValues<dim, spacedim> &me_values,
+  compute_force(const double /*time*/,
+                const fdl::MechanicsValues<dim, spacedim> &me_values,
                 ArrayView<Tensor<1, spacedim, double>> &forces) const override
   {
     Assert(spacedim == 2, fdl::ExcFDLNotImplemented());
@@ -229,6 +230,7 @@ test(const bool use_simplex)
         fdl::compute_volumetric_force_load_vector(dof_handler,
                                                   mapping,
                                                   force_ptrs,
+                                                  0.0,
                                                   current_position,
                                                   current_velocity,
                                                   force_rhs);
