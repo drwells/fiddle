@@ -85,7 +85,8 @@ public:
     const FEValuesBase<dim, spacedim> &fe_values = me_values.get_fe_values();
     Assert(forces.size() == fe_values.get_quadrature_points().size(),
            fdl::ExcFDLInternalError());
-    Assert(this->quadrature.size() == fe_values.get_quadrature_points().size(),
+    Assert(this->get_cell_quadrature().size() ==
+             fe_values.get_quadrature_points().size(),
            fdl::ExcFDLInternalError());
 
     for (unsigned int qp_n : fe_values.quadrature_point_indices())

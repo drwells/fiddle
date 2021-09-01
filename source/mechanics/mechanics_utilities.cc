@@ -50,12 +50,13 @@ namespace fdl
       {
         auto                   exemplar_stress = remaining_stresses.front();
         const Quadrature<dim> &exemplar_quadrature =
-          exemplar_stress->get_quadrature();
+          exemplar_stress->get_cell_quadrature();
         const auto next_group_start =
           std::partition(remaining_stresses.begin(),
                          remaining_stresses.end(),
                          [&](const ForceContribution<dim, spacedim> *p) {
-                           return p->get_quadrature() == exemplar_quadrature;
+                           return p->get_cell_quadrature() ==
+                                  exemplar_quadrature;
                          });
 
         std::vector<const ForceContribution<dim, spacedim> *> current_stresses(
@@ -167,12 +168,13 @@ namespace fdl
       {
         auto                   exemplar_force = remaining_forces.front();
         const Quadrature<dim> &exemplar_quadrature =
-          exemplar_force->get_quadrature();
+          exemplar_force->get_cell_quadrature();
         const auto next_group_start =
           std::partition(remaining_forces.begin(),
                          remaining_forces.end(),
                          [&](const ForceContribution<dim, spacedim> *p) {
-                           return p->get_quadrature() == exemplar_quadrature;
+                           return p->get_cell_quadrature() ==
+                                  exemplar_quadrature;
                          });
 
         std::vector<const ForceContribution<dim, spacedim> *> current_forces(

@@ -112,11 +112,11 @@ public:
   {
     Assert(spacedim == 2, fdl::ExcFDLNotImplemented());
 
-    Assert(forces.size() == this->quadrature.size(),
+    Assert(forces.size() == this->get_cell_quadrature().size(),
            fdl::ExcFDLInternalError());
     const std::vector<Tensor<1, spacedim>> &positions =
       me_values.get_position_values();
-    Assert(this->quadrature.size() == positions.size(),
+    Assert(this->get_cell_quadrature().size() == positions.size(),
            fdl::ExcFDLInternalError());
 
     std::copy(positions.begin(), positions.end(), forces.begin());

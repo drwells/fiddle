@@ -24,13 +24,36 @@ namespace fdl
      * Constructor
      */
     ForceContribution(const Quadrature<dim> &quad)
-      : quadrature(quad)
+      : is_volumetric(true)
+      , cell_quadrature(quad)
+    {}
+
+    /**
+     * Constructor
+     */
+    ForceContribution(const Quadrature<dim - 1> &quad)
+      : is_volumetric(false)
+      , face_quadrature(quad)
     {}
 
     const Quadrature<dim> &
-    get_quadrature() const
+    get_cell_quadrature() const
     {
-      return quadrature;
+      Assert(is_volumetric,
+             ExcMessage("This function can only be called on forces "
+                        "constructed with a volumetric (codimension zero) "
+                        "quadrature rule."));
+      return cell_quadrature;
+    }
+
+    const Quadrature<dim - 1> &
+    get_face_quadrature() const
+    {
+      Assert(!is_volumetric,
+             ExcMessage("This function can only be called on forces "
+                        "constructed with a face (codimension one) quadrature"
+                        "rule."));
+      return face_quadrature;
     }
 
     /**
@@ -117,8 +140,12 @@ namespace fdl
       Assert(false, ExcFDLInternalError());
     }
 
-  protected:
-    Quadrature<dim> quadrature;
+  private:
+    bool is_volumetric;
+
+    Quadrature<dim> cell_quadrature;
+
+    Quadrature<dim - 1> face_quadrature;
   };
 } // namespace fdl
 
