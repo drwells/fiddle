@@ -36,8 +36,8 @@ main(int argc, char **argv)
   const auto     mpi_comm = MPI_COMM_WORLD;
   IBTK::IBTKInit ibtk_init(argc, argv, mpi_comm);
 
-  const auto    rank    = dealii::Utilities::MPI::this_mpi_process(mpi_comm);
-  const auto    n_procs = dealii::Utilities::MPI::n_mpi_processes(mpi_comm);
+  const auto rank    = dealii::Utilities::MPI::this_mpi_process(mpi_comm);
+  const auto n_procs = dealii::Utilities::MPI::n_mpi_processes(mpi_comm);
 
   // Use a patch hierarchy
   {
