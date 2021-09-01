@@ -118,6 +118,12 @@ namespace fdl
     get_volumetric_force_contributions() const;
 
     /**
+     * Get pointers to the force contributions that are boundary forces.
+     */
+    std::vector<const ForceContribution<dim, spacedim> *>
+    get_boundary_force_contributions() const;
+
+    /**
      * Get a constant reference to the DoFHandler used for the position,
      * velocity, and force.
      */

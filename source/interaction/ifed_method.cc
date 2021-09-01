@@ -644,6 +644,20 @@ namespace fdl
                                            position,
                                            velocity,
                                            force_rhs);
+        compute_volumetric_force_load_vector(
+          part.get_dof_handler(),
+          part.get_mapping(),
+          part.get_volumetric_force_contributions(),
+          position,
+          velocity,
+          force_rhs);
+        compute_boundary_force_load_vector(
+          part.get_dof_handler(),
+          part.get_mapping(),
+          part.get_boundary_force_contributions(),
+          position,
+          velocity,
+          force_rhs);
         force_rhs.compress(VectorOperation::add);
         IBAMR_TIMER_STOP(t_compute_lagrangian_force_pk1);
 
