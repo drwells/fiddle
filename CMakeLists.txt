@@ -1,13 +1,16 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.15.0)
 
+INCLUDE(CMakePackageConfigHelpers)
+
 # Do we want dynamic or static linking?
 OPTION(BUILD_SHARED_LIBS "Whether or not to build shared libraries." ON)
 
 SET(FIDDLE_DIMENSIONS "2" "3")
 
+SET(FIDDLE_VERSION 0.0.1)
 PROJECT(FIDDLE
   DESCRIPTION "Four-chambered heart + IBAMR + deal.II"
-  VERSION 0.0.1
+  VERSION ${FIDDLE_VERSION}
   # include C so that we can link against C libraries (e.g., MPI::MPI_C) easily
   LANGUAGES C CXX)
 
@@ -44,14 +47,22 @@ SET(FIDDLE_SRC
   source/transfer/scatter.cc
   )
 
+# like IBAMR, we compile in 2D and 3D but only install the headers once.
+ADD_LIBRARY(FIDDLEHeaders INTERFACE)
+TARGET_INCLUDE_DIRECTORIES(
+  FIDDLEHeaders
+  INTERFACE
+  $<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/>)
+INSTALL(TARGETS FIDDLEHeaders EXPORT FIDDLETargets)
+
 FOREACH(_d ${FIDDLE_DIMENSIONS})
   SET(_lib "fiddle${_d}d")
   ADD_LIBRARY(${_lib})
   TARGET_SOURCES(${_lib} PRIVATE ${FIDDLE_SRC})
-  TARGET_INCLUDE_DIRECTORIES(${_lib} PUBLIC
-    $<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include/>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/include/>)
+
+  TARGET_LINK_LIBRARIES(${_lib} PUBLIC FIDDLEHeaders)
+  # if we want to write a config header it should be added as a dependency here
 
   IF(${CMAKE_BUILD_TYPE} STREQUAL "Debug" OR ${CMAKE_BUILD_TYPE} STREQUAL "DEBUG")
     TARGET_LINK_LIBRARIES(${_lib} PUBLIC ${DEAL_II_LIBRARIES_DEBUG})
@@ -61,6 +72,36 @@ FOREACH(_d ${FIDDLE_DIMENSIONS})
   TARGET_INCLUDE_DIRECTORIES(${_lib} PUBLIC ${DEAL_II_INCLUDE_DIRS})
 
   TARGET_LINK_LIBRARIES(${_lib} PUBLIC "IBAMR::IBAMR${_d}d")
+
+  INSTALL(TARGETS ${_lib} EXPORT FIDDLETargets COMPONENT library)
 ENDFOREACH()
+
+# set up targets for export:
+SET(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/fiddle/)
+
+# Set up actual files containing the export target information:
+INSTALL(EXPORT "FIDDLETargets" FILE "FIDDLETargets.cmake"
+  NAMESPACE FIDDLE::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/fiddle/)
+
+# Do the same for in-tree:
+EXPORT(EXPORT "FIDDLETargets"
+  FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/FIDDLETargets.cmake"
+  NAMESPACE FIDDLE::)
+
+WRITE_BASIC_PACKAGE_VERSION_FILE(
+  "${CMAKE_CURRENT_BINARY_DIR}/cmake/FIDDLEConfigVersion.cmake"
+  VERSION ${FIDDLE_VERSION}
+  COMPATIBILITY AnyNewerVersion)
+
+CONFIGURE_PACKAGE_CONFIG_FILE(
+  ${CMAKE_SOURCE_DIR}/cmake/FIDDLEConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/cmake/FIDDLEConfig.cmake
+  INSTALL_DESTINATION ${INSTALL_CONFIGDIR})
+
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/FIDDLEConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/cmake/FIDDLEConfigVersion.cmake
+  DESTINATION ${INSTALL_CONFIGDIR})
+
 
 ADD_SUBDIRECTORY(tests)
