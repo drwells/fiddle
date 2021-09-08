@@ -9,6 +9,8 @@
 
 #include <deal.II/fe/fe_update_flags.h>
 
+#include <deal.II/lac/la_parallel_vector.h>
+
 namespace fdl
 {
   using namespace dealii;
@@ -86,6 +88,38 @@ namespace fdl
     is_volume_force() const
     {
       return false;
+    }
+
+    /**
+     * Some forces that are not defined in a straightforward way (e.g., pressure
+     * fields) require additional setup before their force contribution is
+     * available at a given time. For example, computing a static pressure
+     * requires solving a linear system.
+     *
+     * To aid in the user definition of such things,
+     * IFEDMethod::computeLagrangianForce() and related functions will call this
+     * function for each force contribution before calling any of
+     * compute_force(), compute_surface_force(), etc. at a specific time.
+     */
+    virtual void
+    setup_force(const double                                      time,
+                const LinearAlgebra::distributed::Vector<double> &position,
+                const LinearAlgebra::distributed::Vector<double> &velocity)
+    {
+      (void)time;
+      (void)position;
+      (void)velocity;
+    }
+
+    /**
+     * Matching function to setup_force() which is instead called after all
+     * required forces have been computed. This function may be used to
+     * deallocate memory or perform any other necessary cleanup.
+     */
+    virtual void
+    finish_force(const double time)
+    {
+      (void)time;
     }
 
     /**

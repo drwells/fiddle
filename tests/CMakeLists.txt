@@ -95,6 +95,7 @@ SETUP_3D(interaction ifed_tag.cc)
 
 SETUP_2D(interaction ifed_interpolate_01.cc)
 SETUP_2D(interaction ifed_spread_01.cc)
+SETUP_2D(interaction ifed_spread_02.cc)
 
 SETUP_2D(interaction ifed_ex4.cc)
 SETUP_2D(interaction ifed_ex4_simplex.cc)
