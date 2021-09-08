@@ -21,3 +21,19 @@ In particular:
   `IFEDMethod`. As usual, multiple `IBAMR::IBStrategy` objects can be combined
   with the `IBStrategySet` object.
 - bridge_3.cc uses IFEDMethod for all three objects.
+
+## how to set this up
+
+Run
+```shell
+cmake -DFIDDLE_ROOT=path_to_fiddle .
+make
+```
+where `path_to_fiddle` is either a build or installation directory of fiddle.
+For example, if you built fiddle in `build/` in the top fiddle folder, then run
+```shell
+cmake -DFIDDLE_ROOT=$(pwd)/../../build/ .
+make
+```
+
+to configure and build the example.
