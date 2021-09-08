@@ -151,7 +151,7 @@ test()
         Force<dim, spacedim> s3(quadrature2);
         Force<dim, spacedim> s4(quadrature2);
 
-        std::vector<const fdl::ForceContribution<dim, spacedim> *> force_ptrs{
+        std::vector<fdl::ForceContribution<dim, spacedim> *> force_ptrs{
           &s1, &s2, &s3, &s4};
         // This test doesn't read the position or velocity
         LinearAlgebra::distributed::Vector<double> current_position(

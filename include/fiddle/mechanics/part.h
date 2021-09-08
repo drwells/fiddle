@@ -108,19 +108,19 @@ namespace fdl
     /**
      * Get pointers to the force contributions that are stresses.
      */
-    std::vector<const ForceContribution<dim, spacedim> *>
+    std::vector<ForceContribution<dim, spacedim> *>
     get_stress_contributions() const;
 
     /**
      * Get pointers to the force contributions that are volumetric forces.
      */
-    std::vector<const ForceContribution<dim, spacedim> *>
+    std::vector<ForceContribution<dim, spacedim> *>
     get_volumetric_force_contributions() const;
 
     /**
      * Get pointers to the force contributions that are boundary forces.
      */
-    std::vector<const ForceContribution<dim, spacedim> *>
+    std::vector<ForceContribution<dim, spacedim> *>
     get_boundary_force_contributions() const;
 
     /**

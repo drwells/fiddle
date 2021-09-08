@@ -192,12 +192,12 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
-  std::vector<const ForceContribution<dim, spacedim> *>
+  std::vector<ForceContribution<dim, spacedim> *>
   Part<dim, spacedim>::get_stress_contributions() const
   {
-    std::vector<const ForceContribution<dim, spacedim> *> stresses;
+    std::vector<ForceContribution<dim, spacedim> *> stresses;
 
-    for (const auto &force_contribution : force_contributions)
+    for (auto &force_contribution : force_contributions)
       {
         if (force_contribution->is_stress())
           stresses.push_back(force_contribution.get());
@@ -207,12 +207,12 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
-  std::vector<const ForceContribution<dim, spacedim> *>
+  std::vector<ForceContribution<dim, spacedim> *>
   Part<dim, spacedim>::get_volumetric_force_contributions() const
   {
-    std::vector<const ForceContribution<dim, spacedim> *> forces;
+    std::vector<ForceContribution<dim, spacedim> *> forces;
 
-    for (const auto &force_contribution : force_contributions)
+    for (auto &force_contribution : force_contributions)
       {
         if (force_contribution->is_volume_force())
           forces.push_back(force_contribution.get());
@@ -223,12 +223,12 @@ namespace fdl
 
 
   template <int dim, int spacedim>
-  std::vector<const ForceContribution<dim, spacedim> *>
+  std::vector<ForceContribution<dim, spacedim> *>
   Part<dim, spacedim>::get_boundary_force_contributions() const
   {
-    std::vector<const ForceContribution<dim, spacedim> *> forces;
+    std::vector<ForceContribution<dim, spacedim> *> forces;
 
-    for (const auto &force_contribution : force_contributions)
+    for (auto &force_contribution : force_contributions)
       {
         if (force_contribution->is_boundary_force())
           forces.push_back(force_contribution.get());

@@ -24,14 +24,13 @@ namespace fdl
   template <int dim, int spacedim>
   void
   compute_volumetric_pk1_load_vector(
-    const DoFHandler<dim, spacedim> &dof_handler,
-    const Mapping<dim, spacedim> &   mapping,
-    const std::vector<const ForceContribution<dim, spacedim> *>
-                                                      stress_contributions,
-    const double                                      time,
-    const LinearAlgebra::distributed::Vector<double> &current_position,
-    const LinearAlgebra::distributed::Vector<double> &current_velocity,
-    LinearAlgebra::distributed::Vector<double> &      force_rhs)
+    const DoFHandler<dim, spacedim> &                      dof_handler,
+    const Mapping<dim, spacedim> &                         mapping,
+    const std::vector<ForceContribution<dim, spacedim> *> &stress_contributions,
+    const double                                           time,
+    const LinearAlgebra::distributed::Vector<double> &     current_position,
+    const LinearAlgebra::distributed::Vector<double> &     current_velocity,
+    LinearAlgebra::distributed::Vector<double> &           force_rhs)
   {
     Assert(dim == spacedim, ExcNotImplemented());
 
@@ -45,7 +44,7 @@ namespace fdl
       }
 
     // Batch stresses by the quadrature rules they use
-    std::vector<const ForceContribution<dim, spacedim> *> remaining_stresses =
+    std::vector<ForceContribution<dim, spacedim> *> remaining_stresses =
       stress_contributions;
     do
       {
@@ -60,7 +59,7 @@ namespace fdl
                                   exemplar_quadrature;
                          });
 
-        std::vector<const ForceContribution<dim, spacedim> *> current_stresses(
+        std::vector<ForceContribution<dim, spacedim> *> current_stresses(
           remaining_stresses.begin(), next_group_start);
         remaining_stresses.erase(remaining_stresses.begin(), next_group_start);
 
@@ -144,8 +143,8 @@ namespace fdl
   compute_volumetric_force_load_vector(
     const DoFHandler<dim, spacedim> &dof_handler,
     const Mapping<dim, spacedim> &   mapping,
-    const std::vector<const ForceContribution<dim, spacedim> *>
-                 volume_force_contributions,
+    const std::vector<ForceContribution<dim, spacedim> *>
+      &          volume_force_contributions,
     const double time,
     const LinearAlgebra::distributed::Vector<double> &current_position,
     const LinearAlgebra::distributed::Vector<double> &current_velocity,
@@ -164,7 +163,7 @@ namespace fdl
       }
 
     // Batch forces by the quadrature rules they use
-    std::vector<const ForceContribution<dim, spacedim> *> remaining_forces =
+    std::vector<ForceContribution<dim, spacedim> *> remaining_forces =
       volume_force_contributions;
     do
       {
@@ -179,7 +178,7 @@ namespace fdl
                                   exemplar_quadrature;
                          });
 
-        std::vector<const ForceContribution<dim, spacedim> *> current_forces(
+        std::vector<ForceContribution<dim, spacedim> *> current_forces(
           remaining_forces.begin(), next_group_start);
         remaining_forces.erase(remaining_forces.begin(), next_group_start);
 
@@ -262,8 +261,8 @@ namespace fdl
   compute_boundary_force_load_vector(
     const DoFHandler<dim, spacedim> &dof_handler,
     const Mapping<dim, spacedim> &   mapping,
-    const std::vector<const ForceContribution<dim, spacedim> *>
-                 boundary_force_contributions,
+    const std::vector<ForceContribution<dim, spacedim> *>
+      &          boundary_force_contributions,
     const double time,
     const LinearAlgebra::distributed::Vector<double> &current_position,
     const LinearAlgebra::distributed::Vector<double> &current_velocity,
@@ -282,7 +281,7 @@ namespace fdl
       }
 
     // Batch forces by the quadrature rules they use
-    std::vector<const ForceContribution<dim, spacedim> *> remaining_forces =
+    std::vector<ForceContribution<dim, spacedim> *> remaining_forces =
       boundary_force_contributions;
     do
       {
@@ -297,7 +296,7 @@ namespace fdl
                                   exemplar_quadrature;
                          });
 
-        std::vector<const ForceContribution<dim, spacedim> *> current_forces(
+        std::vector<ForceContribution<dim, spacedim> *> current_forces(
           remaining_forces.begin(), next_group_start);
         remaining_forces.erase(remaining_forces.begin(), next_group_start);
 
@@ -384,7 +383,7 @@ namespace fdl
   compute_volumetric_pk1_load_vector<NDIM - 1, NDIM>(
     const DoFHandler<NDIM - 1, NDIM> &,
     const Mapping<NDIM - 1, NDIM> &,
-    const std::vector<const ForceContribution<NDIM - 1, NDIM> *>,
+    const std::vector<ForceContribution<NDIM - 1, NDIM> *> &,
     const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
@@ -394,7 +393,7 @@ namespace fdl
   compute_volumetric_pk1_load_vector<NDIM, NDIM>(
     const DoFHandler<NDIM, NDIM> &,
     const Mapping<NDIM, NDIM> &,
-    const std::vector<const ForceContribution<NDIM, NDIM> *>,
+    const std::vector<ForceContribution<NDIM, NDIM> *> &,
     const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
@@ -404,7 +403,7 @@ namespace fdl
   compute_volumetric_force_load_vector<NDIM - 1, NDIM>(
     const DoFHandler<NDIM - 1, NDIM> &,
     const Mapping<NDIM - 1, NDIM> &,
-    const std::vector<const ForceContribution<NDIM - 1, NDIM> *>,
+    const std::vector<ForceContribution<NDIM - 1, NDIM> *> &,
     const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
@@ -414,7 +413,7 @@ namespace fdl
   compute_boundary_force_load_vector<NDIM, NDIM>(
     const DoFHandler<NDIM, NDIM> &,
     const Mapping<NDIM, NDIM> &,
-    const std::vector<const ForceContribution<NDIM, NDIM> *>,
+    const std::vector<ForceContribution<NDIM, NDIM> *> &,
     const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
@@ -424,7 +423,7 @@ namespace fdl
   compute_boundary_force_load_vector<NDIM - 1, NDIM>(
     const DoFHandler<NDIM - 1, NDIM> &,
     const Mapping<NDIM - 1, NDIM> &,
-    const std::vector<const ForceContribution<NDIM - 1, NDIM> *>,
+    const std::vector<ForceContribution<NDIM - 1, NDIM> *> &,
     const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
@@ -434,7 +433,7 @@ namespace fdl
   compute_volumetric_force_load_vector<NDIM, NDIM>(
     const DoFHandler<NDIM, NDIM> &,
     const Mapping<NDIM, NDIM> &,
-    const std::vector<const ForceContribution<NDIM, NDIM> *>,
+    const std::vector<ForceContribution<NDIM, NDIM> *> &,
     const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
