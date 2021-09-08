@@ -682,6 +682,7 @@ namespace fdl
                  force,
                  force_rhs,
                  part.get_mass_preconditioner());
+        force.update_ghost_values();
         force_guesses[part_n].submit(force, force_rhs);
         if (input_db->getBoolWithDefault("log_solver_iterations", false))
           {
