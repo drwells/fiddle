@@ -66,6 +66,17 @@ namespace fdl
            Functions::ZeroFunction<spacedim>(spacedim));
 
     /**
+     * Constructor, which uses an externally managed DoFHandler.
+     */
+    Part(std::shared_ptr<DoFHandler<dim, spacedim>> dof_handler,
+         std::vector<std::unique_ptr<ForceContribution<dim, spacedim>>>
+                                   force_contributions = {},
+         const Function<spacedim> &initial_position =
+           Functions::IdentityFunction<spacedim>(),
+         const Function<spacedim> &initial_velocity =
+           Functions::ZeroFunction<spacedim>(spacedim));
+
+    /**
      * Save the current state of the object to an archive.
      *
      * @note at the present time no information from the force contributions is
@@ -221,11 +232,10 @@ namespace fdl
     SmartPointer<const FiniteElement<dim, spacedim>> fe;
 
     /**
-     * DoFHandler for the position, velocity, and force.
-     *
-     * @todo Implement a move constructor for this so we don't need a pointer.
+     * DoFHandler for the position, velocity, and force. May be shared by
+     * external applications.
      */
-    std::unique_ptr<DoFHandler<dim, spacedim>> dof_handler;
+    std::shared_ptr<DoFHandler<dim, spacedim>> dof_handler;
 
     /**
      * Constraints on the position, velocity, and force. Presently empty.

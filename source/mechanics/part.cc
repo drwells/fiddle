@@ -39,15 +39,14 @@ namespace fdl
 
   template <int dim, int spacedim>
   Part<dim, spacedim>::Part(
-    const Triangulation<dim, spacedim> &tria,
-    const FiniteElement<dim, spacedim> &fe,
+    std::shared_ptr<DoFHandler<dim, spacedim>> dh,
     std::vector<std::unique_ptr<ForceContribution<dim, spacedim>>>
                               force_contributions,
     const Function<spacedim> &initial_position,
     const Function<spacedim> &initial_velocity)
-    : tria(&tria)
-    , fe(&fe)
-    , dof_handler(std::make_unique<DoFHandler<dim, spacedim>>(tria))
+    : tria(&dh->get_triangulation())
+    , fe(&dh->get_fe())
+    , dof_handler(dh)
     , force_contributions(std::move(force_contributions))
   {
     // TODO - make the quadrature and mapping parameters so we can implement
@@ -61,7 +60,7 @@ namespace fdl
       reference_cells.front().template get_gauss_type_quadrature<dim>(
         this->fe->tensor_degree() + 1);
 
-    Assert(fe.n_components() == spacedim,
+    Assert(fe->n_components() == spacedim,
            ExcMessage("The finite element should have spacedim components "
                       "since it will represent the position, velocity and "
                       "force of the part."));
@@ -89,7 +88,7 @@ namespace fdl
         partitioner = std::make_shared<Utilities::MPI::Partitioner>(
           dof_handler->locally_owned_dofs(),
           locally_relevant_dofs,
-          tria.get_communicator());
+          tria->get_communicator());
       }
 
     position.reinit(partitioner);
@@ -101,7 +100,7 @@ namespace fdl
         if (reference_cells.front() == ReferenceCells::get_hypercube<dim>())
           {
             using namespace MatrixFreeOperators;
-            switch (fe.tensor_degree())
+            switch (fe->tensor_degree())
               {
                 case 1:
                   mass_operator.reset(new MassOperator<dim, 1, 1 + 1, dim>());
@@ -125,7 +124,7 @@ namespace fdl
         else
           {
             using namespace MatrixFreeOperators;
-            switch (fe.tensor_degree())
+            switch (fe->tensor_degree())
               {
                 case 1:
                   mass_operator.reset(new MassOperator<dim, -1, 0, dim>());
@@ -156,6 +155,33 @@ namespace fdl
     position.update_ghost_values();
     velocity.update_ghost_values();
   }
+
+  namespace
+  {
+    template <int dim, int spacedim>
+    std::shared_ptr<DoFHandler<dim, spacedim>>
+    setup_dof_handler(const Triangulation<dim, spacedim> &tria,
+                      const FiniteElement<dim, spacedim> &fe)
+    {
+      auto dof_handler = std::make_shared<DoFHandler<dim, spacedim>>(tria);
+      dof_handler->distribute_dofs(fe);
+      return dof_handler;
+    }
+  } // namespace
+
+  template <int dim, int spacedim>
+  Part<dim, spacedim>::Part(
+    const Triangulation<dim, spacedim> &tria,
+    const FiniteElement<dim, spacedim> &fe,
+    std::vector<std::unique_ptr<ForceContribution<dim, spacedim>>>
+                              force_contributions,
+    const Function<spacedim> &initial_position,
+    const Function<spacedim> &initial_velocity)
+    : Part(setup_dof_handler(tria, fe),
+           std::move(force_contributions),
+           initial_position,
+           initial_velocity)
+  {}
 
   template <int dim, int spacedim>
   void
