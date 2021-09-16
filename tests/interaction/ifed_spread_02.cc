@@ -70,7 +70,7 @@ public:
 
 
   virtual void
-  setup_force(const double                                      /*time*/,
+  setup_force(const double /*time*/,
               const LinearAlgebra::distributed::Vector<double> &position,
               const LinearAlgebra::distributed::Vector<double> & /*velocity*/)
   {
@@ -78,13 +78,14 @@ public:
     sines.reinit(position);
     // Convert (x0, y0) to (sin(x0), sin(y0))
     for (std::size_t i = 0; i < position.locally_owned_size(); ++i)
-      sines.local_element(i) = std::sin(2.0*numbers::PI*position.local_element(i));
+      sines.local_element(i) =
+        std::sin(2.0 * numbers::PI * position.local_element(i));
     sines.update_ghost_values();
   }
 
   virtual void
   compute_volume_force(
-    const double                          /*time*/,
+    const double /*time*/,
     const fdl::MechanicsValues<dim, spacedim> &m_values,
     const typename Triangulation<dim, spacedim>::active_cell_iterator
       & /*cell*/,

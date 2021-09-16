@@ -205,8 +205,8 @@ test()
         BoundaryForce<dim, spacedim> s1(quadrature2);
         BoundaryForce<dim, spacedim> s2(quadrature3);
 
-        std::vector<fdl::ForceContribution<dim, spacedim> *> force_ptrs{
-          &s1, &s2};
+        std::vector<fdl::ForceContribution<dim, spacedim> *> force_ptrs{&s1,
+                                                                        &s2};
         // This test doesn't read the position or velocity
         LinearAlgebra::distributed::Vector<double> current_position(
           partitioner),
