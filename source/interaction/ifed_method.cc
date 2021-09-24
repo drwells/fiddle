@@ -104,7 +104,7 @@ namespace fdl
     else
       AssertThrow(false, ExcFDLNotImplemented());
 
-    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {
         const unsigned int n_points_1D =
           parts[part_n].get_dof_handler().get_fe().tensor_degree() + 1;
@@ -122,7 +122,7 @@ namespace fdl
     // values in SAMRAI databases are always arrays, possibly of length 1
     const int n_ib_kernels = input_db->getArraySize("IB_kernel");
     AssertThrow(n_ib_kernels == 1 ||
-                  n_ib_kernels == static_cast<int>(parts.size()),
+                n_ib_kernels == static_cast<int>(n_parts()),
                 ExcMessage("The number of specified IB kernels should either "
                            "be 1 or equal the number of parts."));
     ib_kernels.resize(n_ib_kernels);
@@ -179,7 +179,7 @@ namespace fdl
             if (restart_db->isDatabase(object_name))
               {
                 auto db = restart_db->getDatabase(object_name);
-                for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+                for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
                   {
                     const std::string key = "part_" + std::to_string(part_n);
                     AssertThrow(db->keyExists(key),
@@ -271,7 +271,7 @@ namespace fdl
 
     // start:
     IBAMR_TIMER_START(t_interpolate_velocity_rhs);
-    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {
         const Part<dim, spacedim> &part = parts[part_n];
         rhs_vecs.emplace_back(part.get_partitioner());
@@ -287,13 +287,13 @@ namespace fdl
       }
 
     // Compute:
-    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       transactions[part_n] =
         interactions[part_n]->compute_projection_rhs_intermediate(
           std::move(transactions[part_n]));
 
     // Collect:
-    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       interactions[part_n]->compute_projection_rhs_finish(
         std::move(transactions[part_n]));
     // We cannot start the linear solve without first finishing this, so use a
@@ -304,7 +304,7 @@ namespace fdl
 
     // Project:
     IBAMR_TIMER_START(t_interpolate_velocity_solve);
-    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {
         SolverControl control(
           input_db->getIntegerWithDefault("solver_iterations", 100),
@@ -363,7 +363,7 @@ namespace fdl
 
     // start:
     std::vector<std::unique_ptr<TransactionBase>> transactions;
-    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {
         const Part<dim, spacedim> &part = parts[part_n];
         transactions.emplace_back(interactions[part_n]->compute_spread_start(
@@ -377,12 +377,12 @@ namespace fdl
       }
 
     // Compute:
-    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       transactions[part_n] = interactions[part_n]->compute_spread_intermediate(
         std::move(transactions[part_n]));
 
     // Collect:
-    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       interactions[part_n]->compute_spread_finish(
         std::move(transactions[part_n]));
 
@@ -529,7 +529,7 @@ namespace fdl
     // update positions and velocities:
     auto new_positions  = part_vectors.get_all_new_positions();
     auto new_velocities = part_vectors.get_all_new_velocities();
-    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {
         parts[part_n].set_position(std::move(new_positions[part_n]));
         parts[part_n].get_position().update_ghost_values();
@@ -547,7 +547,7 @@ namespace fdl
                                               double new_time)
   {
     const double dt = new_time - current_time;
-    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {
         // Set the position at the end time:
         LinearAlgebra::distributed::Vector<double> new_position(
@@ -582,7 +582,7 @@ namespace fdl
   IFEDMethod<dim, spacedim>::midpointStep(double current_time, double new_time)
   {
     const double dt = new_time - current_time;
-    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {
         // Set the position at the end time:
         LinearAlgebra::distributed::Vector<double> new_position(
@@ -621,7 +621,7 @@ namespace fdl
   IFEDMethod<dim, spacedim>::computeLagrangianForce(double data_time)
   {
     IBAMR_TIMER_START(t_compute_lagrangian_force);
-    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {
         IBAMR_TIMER_START(t_compute_lagrangian_force_pk1);
         const Part<dim, spacedim> &                part = parts[part_n];
@@ -711,7 +711,7 @@ namespace fdl
   void
   IFEDMethod<dim, spacedim>::reinit_interactions()
   {
-    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {
         const Part<dim, spacedim> &part = parts[part_n];
 
@@ -789,7 +789,7 @@ namespace fdl
 
         // start:
         std::vector<std::unique_ptr<TransactionBase>> transactions;
-        for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+        for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
           {
             const Part<dim, spacedim> &part = parts[part_n];
             transactions.emplace_back(interactions[part_n]->add_workload_start(
@@ -799,13 +799,13 @@ namespace fdl
           }
 
         // Compute:
-        for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+        for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
           transactions[part_n] =
             interactions[part_n]->add_workload_intermediate(
               std::move(transactions[part_n]));
 
         // Finish:
-        for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+        for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
           interactions[part_n]->add_workload_finish(
             std::move(transactions[part_n]));
 
@@ -916,7 +916,7 @@ namespace fdl
   void
   IFEDMethod<dim, spacedim>::putToDatabase(tbox::Pointer<tbox::Database> db)
   {
-    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {
         std::ostringstream              out_str;
         boost::archive::binary_oarchive oarchive(out_str);
@@ -964,7 +964,7 @@ namespace fdl
   IFEDMethod<dim, spacedim>::getMinimumGhostCellWidth() const
   {
     static hier::IntVector<spacedim> gcw;
-    for (unsigned int part_n = 0; part_n < parts.size(); ++part_n)
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {
         const int ghost_width =
           IBTK::LEInteractor::getMinimumGhostWidth(ib_kernels[part_n]);
