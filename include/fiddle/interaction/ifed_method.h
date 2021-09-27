@@ -200,20 +200,18 @@ namespace fdl
 
     void
     registerEulerianVariables() override;
-    /**
-     * @}
-     */
+
+    std::size_t
+    n_parts() const;
 
     const Part<dim, spacedim> &
     get_part(const unsigned int part_n) const;
 
     int
-    get_lagrangian_workload_current_index() const
-    {
-      Assert(lagrangian_workload_plot_index != IBTK::invalid_index,
-             ExcMessage("The Lagrangian workload index has not yet been set."));
-      return lagrangian_workload_plot_index;
-    }
+    get_lagrangian_workload_current_index() const;
+    /**
+     * @}
+     */
 
   protected:
     /**
@@ -296,13 +294,28 @@ namespace fdl
 
   // Inline functions
   template <int dim, int spacedim>
+  inline std::size_t
+  IFEDMethod<dim, spacedim>::n_parts() const
+  {
+    return parts.size();
+  }
+
+  template <int dim, int spacedim>
   inline const Part<dim, spacedim> &
   IFEDMethod<dim, spacedim>::get_part(const unsigned int part_n) const
   {
-    AssertIndexRange(part_n, parts.size());
+    AssertIndexRange(part_n, n_parts());
     return parts[part_n];
   }
 
+  template <int dim, int spacedim>
+  inline int
+  IFEDMethod<dim, spacedim>::get_lagrangian_workload_current_index() const
+  {
+    Assert(lagrangian_workload_plot_index != IBTK::invalid_index,
+           ExcMessage("The Lagrangian workload index has not yet been set."));
+    return lagrangian_workload_plot_index;
+  }
 } // namespace fdl
 
 #endif
