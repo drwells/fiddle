@@ -120,6 +120,8 @@ SETUP(mechanics force_volumetric_01.cc fiddle2d)
 SETUP(mechanics force_volumetric_02.cc fiddle2d)
 SETUP(mechanics force_boundary_01.cc fiddle2d)
 
+SETUP(mechanics spring_01.cc fiddle2d)
+
 ADD_CUSTOM_COMMAND(TARGET tests
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/attest ${CMAKE_BINARY_DIR}/attest)
