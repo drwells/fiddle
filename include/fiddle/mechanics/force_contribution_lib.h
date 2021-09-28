@@ -76,7 +76,7 @@ namespace fdl
         & /*cell*/,
       ArrayView<Tensor<1, spacedim, Number>> &forces) const override;
 
-  private:
+  protected:
     double spring_constant;
 
     SmartPointer<const DoFHandler<dim, spacedim>> dof_handler;

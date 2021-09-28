@@ -1,0 +1,27 @@
+test 0: t = 0, spring constant = 10
+cell center = 0.25 0.25
+forces = 0 0
+cell center = 0.75 0.25
+forces = 0 0
+cell center = 0.25 0.75
+forces = 0 0
+cell center = 0.75 0.75
+forces = 0 0
+test 1: t = 0.5, spring constant = 10
+cell center = 0.25 0.25
+forces = 5 5
+cell center = 0.75 0.25
+forces = 5 5
+cell center = 0.25 0.75
+forces = 5 5
+cell center = 0.75 0.75
+forces = 5 5
+test 2: t = 1, spring constant = 10
+cell center = 0.25 0.25
+forces = 10 10
+cell center = 0.75 0.25
+forces = 10 10
+cell center = 0.25 0.75
+forces = 10 10
+cell center = 0.75 0.75
+forces = 10 10
