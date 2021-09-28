@@ -3,6 +3,44 @@
 Some experiments in trying to implement something like `IBAMR::IBFEMethod` and
 `IBTK::FEDataManager` within deal.II rather than libMesh.
 
+# Building fiddle
+
+1. Build IBAMR with CMake - see
+
+https://github.com/IBAMR/IBAMR/blob/master/doc/cmake.md
+
+2. Build deal.II (the current development version)
+
+3. Run some shell commands like
+```
+mkdir build
+cd build
+cmake -DDEAL_II_ROOT=$HOME/Applications/deal.ii \
+      -DIBAMR_ROOT=$HOME/Applications/ibamr \
+      -DCMAKE_BUILD_TYPE=Debug \
+      -DCMAKE_CXX_FLAGS="-g -DDEBUG -Wall -Wextra -Wpedantic -fopenmp"   \
+      ../
+```
+for a debug build (uses deal.II's debug settings) or
+```
+mkdir build-release
+cd build-release
+cmake -DDEAL_II_ROOT=$HOME/Applications/deal.ii \
+      -DIBAMR_ROOT=$HOME/Applications/ibamr \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_CXX_FLAGS="-O3 -mach=native -g"   \
+      ../
+```
+for a release build. In both cases you need to signal to fiddle where IBAMR and
+deal.II were installed via `-DDEAL_II_ROOT` and `-DIBAMR_ROOT`.
+
+Fiddle doesn't do much checking - if you use different MPI versions in deal.II
+and IBAMR, for example, fiddle won't catch it.
+
+You can either use fiddle in-place or run `make install` to use it as a
+dependency. As usual, you will need to specify `CMAKE_INSTALL_PREFIX` to install
+to a non-default location (e.g., inside your home directory).
+
 # Project Goals
 
 - (WIP) Scalable implementations of all fundamental IFED algorithms.
