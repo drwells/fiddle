@@ -1,18 +1,19 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.15.0)
 
-INCLUDE(CMakePackageConfigHelpers)
-
-# Do we want dynamic or static linking?
-OPTION(BUILD_SHARED_LIBS "Whether or not to build shared libraries." ON)
-
-SET(FIDDLE_DIMENSIONS "2" "3")
-
 SET(FIDDLE_VERSION 0.0.1)
 PROJECT(FIDDLE
   DESCRIPTION "Four-chambered heart + IBAMR + deal.II"
   VERSION ${FIDDLE_VERSION}
   # include C so that we can link against C libraries (e.g., MPI::MPI_C) easily
   LANGUAGES C CXX)
+
+INCLUDE(CMakePackageConfigHelpers)
+INCLUDE(GNUInstallDirs)
+
+# Do we want dynamic or static linking?
+OPTION(BUILD_SHARED_LIBS "Whether or not to build shared libraries." ON)
+
+SET(FIDDLE_DIMENSIONS "2" "3")
 
 #
 # set up dependencies:
@@ -56,6 +57,8 @@ TARGET_INCLUDE_DIRECTORIES(
   $<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/>)
 INSTALL(TARGETS FIDDLEHeaders EXPORT FIDDLETargets)
+INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/include/fiddle
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 FOREACH(_d ${FIDDLE_DIMENSIONS})
   SET(_lib "fiddle${_d}d")
@@ -103,6 +106,5 @@ CONFIGURE_PACKAGE_CONFIG_FILE(
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/FIDDLEConfig.cmake
   ${CMAKE_CURRENT_BINARY_DIR}/cmake/FIDDLEConfigVersion.cmake
   DESTINATION ${INSTALL_CONFIGDIR})
-
 
 ADD_SUBDIRECTORY(tests)
