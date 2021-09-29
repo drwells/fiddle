@@ -35,6 +35,7 @@ SET(FIDDLE_SRC
   source/grid/overlap_tria.cc
   source/grid/patch_map.cc
 
+  source/interaction/dlm_method.cc
   source/interaction/elemental_interaction.cc
   source/interaction/ifed_method.cc
   source/interaction/interaction_base.cc

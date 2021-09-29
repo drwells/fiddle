@@ -90,6 +90,8 @@ SETUP(grid tag_cells_01.cc fiddle2d)
 # interaction:
 SETUP(interaction count_quadrature_points_01.cc fiddle2d)
 
+SETUP(interaction dlm_01.cc fiddle2d)
+
 SETUP_2D(interaction ifed_tag.cc)
 SETUP_3D(interaction ifed_tag.cc)
 
