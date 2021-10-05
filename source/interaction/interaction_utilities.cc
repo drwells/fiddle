@@ -591,7 +591,7 @@ namespace fdl
             mapping, fe, quad, update_JxW_values | update_values));
       }
 
-    std::vector<value_type> solution_values;
+    std::vector<value_type> cell_solution_values;
     std::vector<double>     cell_solution(fe.dofs_per_cell);
 
     for (unsigned int patch_n = 0; patch_n < patch_map.size(); ++patch_n)
@@ -623,20 +623,20 @@ namespace fdl
             const std::vector<Point<spacedim>> &q_points =
               position_fe_values.get_quadrature_points();
             const unsigned int n_q_points = q_points.size();
-            solution_values.resize(n_q_points);
+            cell_solution_values.resize(n_q_points);
 
             // get forces:
-            std::fill(solution_values.begin(),
-                      solution_values.end(),
+            std::fill(cell_solution_values.begin(),
+                      cell_solution_values.end(),
                       value_type());
             cell->get_dof_values(solution,
                                  cell_solution.begin(),
                                  cell_solution.end());
             compute_values_generic(solution_fe_values,
                                    cell_solution,
-                                   solution_values);
+                                   cell_solution_values);
             for (unsigned int qp = 0; qp < n_q_points; ++qp)
-              solution_values[qp] *= solution_fe_values.JxW(qp);
+              cell_solution_values[qp] *= solution_fe_values.JxW(qp);
 
             // TODO reimplement zeroExteriorValues here
 
@@ -651,11 +651,11 @@ namespace fdl
                           sizeof(double) * fe.n_components(),
                         ExcMessage("FORTRAN routines assume we are packed"));
             const auto solution_data =
-              reinterpret_cast<const double *>(solution_values.data());
+              reinterpret_cast<const double *>(cell_solution_values.data());
 
             IBTK::LEInteractor::spread(patch_data,
                                        solution_data,
-                                       solution_values.size() *
+                                       cell_solution_values.size() *
                                          fe.n_components(),
                                        fe.n_components(),
                                        position_data,
