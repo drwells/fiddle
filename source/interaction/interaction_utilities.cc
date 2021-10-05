@@ -540,20 +540,23 @@ namespace fdl
   template <int dim, int spacedim>
   void
   compute_values_generic(const FEValues<dim, spacedim> &fe_values,
-                         const Vector<double>           fe_solution,
+                         const std::vector<double> &    fe_solution,
                          std::vector<double> &          values)
   {
-    fe_values.get_function_values(fe_solution, values);
+    const FEValuesExtractors::Scalar scalar(0);
+    fe_values[scalar].get_function_values_from_local_dof_values(fe_solution,
+                                                                values);
   }
 
   template <int dim, int spacedim>
   void
   compute_values_generic(const FEValues<dim, spacedim> &   fe_values,
-                         const Vector<double>              fe_solution,
+                         const std::vector<double> &       fe_solution,
                          std::vector<Tensor<1, spacedim>> &values)
   {
     const FEValuesExtractors::Vector vec(0);
-    fe_values[vec].get_function_values(fe_solution, values);
+    fe_values[vec].get_function_values_from_local_dof_values(fe_solution,
+                                                             values);
   }
 
   template <int dim, int spacedim, typename value_type, typename patch_type>
@@ -589,6 +592,7 @@ namespace fdl
       }
 
     std::vector<value_type> solution_values;
+    std::vector<double>     cell_solution(fe.dofs_per_cell);
 
     for (unsigned int patch_n = 0; patch_n < patch_map.size(); ++patch_n)
       {
@@ -625,8 +629,11 @@ namespace fdl
             std::fill(solution_values.begin(),
                       solution_values.end(),
                       value_type());
+            cell->get_dof_values(solution,
+                                 cell_solution.begin(),
+                                 cell_solution.end());
             compute_values_generic(solution_fe_values,
-                                   solution,
+                                   cell_solution,
                                    solution_values);
             for (unsigned int qp = 0; qp < n_q_points; ++qp)
               solution_values[qp] *= solution_fe_values.JxW(qp);
