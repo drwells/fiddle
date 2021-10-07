@@ -122,7 +122,7 @@ namespace fdl
     // values in SAMRAI databases are always arrays, possibly of length 1
     const int n_ib_kernels = input_db->getArraySize("IB_kernel");
     AssertThrow(n_ib_kernels == 1 ||
-                n_ib_kernels == static_cast<int>(n_parts()),
+                  n_ib_kernels == static_cast<int>(n_parts()),
                 ExcMessage("The number of specified IB kernels should either "
                            "be 1 or equal the number of parts."));
     ib_kernels.resize(n_ib_kernels);
