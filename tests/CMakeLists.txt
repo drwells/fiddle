@@ -113,6 +113,7 @@ SETUP(interaction interaction_base_01.cc fiddle2d)
 
 # mechanics:
 SETUP(mechanics me_values_01.cc fiddle2d)
+SETUP(mechanics me_values_02.cc fiddle2d)
 SETUP(mechanics serialize_part_01.cc fiddle2d)
 
 SETUP(mechanics pk1_volumetric_01.cc fiddle2d)
