@@ -2,6 +2,7 @@
 #define included_fiddle_mechanics_mechanics_values_h
 
 #include <deal.II/base/subscriptor.h>
+#include <deal.II/base/symmetric_tensor.h>
 #include <deal.II/base/tensor.h>
 
 #include <deal.II/fe/fe_values.h>
@@ -19,12 +20,56 @@ namespace fdl
 
   enum MechanicsUpdateFlags
   {
-    update_nothing         = 0x0000,
-    update_FF              = 0x0001,
-    update_FF_inv_T        = 0x0002,
-    update_det_FF          = 0x0004,
+    /**
+     * Don't update any values.
+     */
+    update_nothing = 0x0000,
+
+    /**
+     * Update the deformation gradient (FF).
+     */
+    update_FF = 0x0001,
+
+    /**
+     * Update the transpose inverse of FF. Only valid when dim == spacedim.
+     */
+    update_FF_inv_T = 0x0002,
+
+    /**
+     * Update the determinant of FF. Only valid when dim == spacedim.
+     */
+    update_det_FF = 0x0004,
+
+    /**
+     * Update the positions at the quadrature points.
+     */
     update_position_values = 0x0008,
-    update_velocity_values = 0x0010
+
+    /**
+     * Update the velocities at the quadrature points.
+     */
+    update_velocity_values = 0x0010,
+
+    /**
+     * The right Cauchy-Green deformation tensor: C := F^T F.
+     */
+    update_right_cauchy_green = 0x0020,
+
+    /**
+     * The first invariant: tr(C)
+     */
+    update_first_invariant = 0x0040,
+
+    /**
+     * The second invariant: 1/2(tr(C)^2 - tr(C^2))
+     */
+    update_second_invariant = 0x0080,
+
+    /**
+     * The third invariant: det(C). If dim == spacedim then this is also
+     * det(FF)^2.
+     */
+    update_third_invariant = 0x0100,
   };
 
   // Manipulation routines for flags
@@ -76,6 +121,35 @@ namespace fdl
     return flags;
   }
 
+  inline MechanicsUpdateFlags
+  resolve_flag_dependencies(const MechanicsUpdateFlags me_flags)
+  {
+    MechanicsUpdateFlags result = me_flags;
+    // Resolve dependencies of dependencies by iteration. We only need three
+    // iterations - do 4 out of an abundance of caution
+    for (unsigned int i = 0; i < 4; ++i)
+      {
+        if (result & update_FF_inv_T)
+          result |= update_FF;
+        if (result & update_det_FF)
+          result |= update_FF;
+        if (result & update_right_cauchy_green)
+          result |= update_FF;
+        if (result & update_first_invariant)
+          // needs tr(C)
+          result |= update_right_cauchy_green;
+        if (result & update_second_invariant)
+          // needs tr(C) and tr(C^2)
+          result |= update_first_invariant;
+        if (result & update_third_invariant)
+          // needs det(C)
+          // TODO: make this work when dim != spacedim
+          result |= update_det_FF;
+      }
+
+    return result;
+  }
+
   /**
    * Class that computes mechanics values and other things we need for
    * evaluating stress functions.
@@ -112,6 +186,18 @@ namespace fdl
     const std::vector<Tensor<1, spacedim>> &
     get_velocity_values() const;
 
+    const std::vector<SymmetricTensor<2, spacedim>> &
+    get_right_cauchy_green() const;
+
+    const std::vector<double> &
+    get_first_invariant() const;
+
+    const std::vector<double> &
+    get_second_invariant() const;
+
+    const std::vector<double> &
+    get_third_invariant() const;
+
   protected:
     SmartPointer<const FEValuesBase<dim, spacedim>> fe_values;
 
@@ -130,6 +216,14 @@ namespace fdl
     std::vector<Tensor<1, spacedim>> position_values;
 
     std::vector<Tensor<1, spacedim>> velocity_values;
+
+    std::vector<SymmetricTensor<2, spacedim>> right_cauchy_green;
+
+    std::vector<double> first_invariant;
+
+    std::vector<double> second_invariant;
+
+    std::vector<double> third_invariant;
   };
 
   // Constructor and reinitialization
@@ -146,12 +240,7 @@ namespace fdl
     , update_flags(flags)
   {
     // Resolve flag dependencies:
-    {
-      if (update_flags & update_FF_inv_T)
-        update_flags |= update_FF;
-      if (update_flags & update_det_FF)
-        update_flags |= update_FF;
-    }
+    update_flags = resolve_flag_dependencies(update_flags);
 
     // Check some things:
     if (update_flags & update_FF)
@@ -178,6 +267,14 @@ namespace fdl
       position_values.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_velocity_values)
       velocity_values.resize(this->fe_values->n_quadrature_points);
+    if (update_flags & MechanicsUpdateFlags::update_right_cauchy_green)
+      right_cauchy_green.resize(this->fe_values->n_quadrature_points);
+    if (update_flags & MechanicsUpdateFlags::update_first_invariant)
+      first_invariant.resize(this->fe_values->n_quadrature_points);
+    if (update_flags & MechanicsUpdateFlags::update_second_invariant)
+      second_invariant.resize(this->fe_values->n_quadrature_points);
+    if (update_flags & MechanicsUpdateFlags::update_third_invariant)
+      third_invariant.resize(this->fe_values->n_quadrature_points);
   }
 
   template <int dim, int spacedim, typename VectorType>
@@ -191,10 +288,46 @@ namespace fdl
 
     for (unsigned int q = 0; q < fe_values->n_quadrature_points; ++q)
       {
+        SymmetricTensor<2, spacedim> temp;
         if (update_flags & update_FF_inv_T)
           FF_inv_T[q] = transpose(invert(FF[q]));
         if (update_flags & update_det_FF)
           det_FF[q] = determinant(FF[q]);
+        if (update_flags & update_right_cauchy_green)
+          // TODO - get rid of the call to symmetrize()
+          {
+            Assert(update_flags & update_FF, ExcFDLInternalError());
+            right_cauchy_green[q] = SymmetricTensor<2, spacedim>(
+              symmetrize(transpose(FF[q]) * FF[q]));
+          }
+        if (update_flags & update_first_invariant)
+          {
+            Assert(update_flags & update_right_cauchy_green,
+                   ExcFDLInternalError());
+            first_invariant[q] = dealii::first_invariant(right_cauchy_green[q]);
+          }
+        if (update_flags & update_second_invariant)
+          {
+            Assert(update_flags & update_right_cauchy_green,
+                   ExcFDLInternalError());
+            second_invariant[q] =
+              dealii::second_invariant(right_cauchy_green[q]);
+          }
+        if (update_flags & update_third_invariant)
+          {
+            if (dim == spacedim)
+              {
+                Assert(update_flags & update_det_FF, ExcFDLInternalError());
+                third_invariant[q] = det_FF[q] * det_FF[q];
+              }
+            else
+              {
+                Assert(update_flags & update_right_cauchy_green,
+                       ExcFDLInternalError());
+                third_invariant[q] =
+                  dealii::third_invariant(right_cauchy_green[q]);
+              }
+          }
       }
 
     if (update_flags & update_position_values)
@@ -253,6 +386,42 @@ namespace fdl
     Assert(update_flags & update_velocity_values,
            ExcMessage("Needs update_velocity_values"));
     return velocity_values;
+  }
+
+  template <int dim, int spacedim, typename VectorType>
+  inline const std::vector<SymmetricTensor<2, spacedim>> &
+  MechanicsValues<dim, spacedim, VectorType>::get_right_cauchy_green() const
+  {
+    Assert(update_flags & update_right_cauchy_green,
+           ExcMessage("Needs update_right_cauchy_green"));
+    return right_cauchy_green;
+  }
+
+  template <int dim, int spacedim, typename VectorType>
+  inline const std::vector<double> &
+  MechanicsValues<dim, spacedim, VectorType>::get_first_invariant() const
+  {
+    Assert(update_flags & update_first_invariant,
+           ExcMessage("Needs update_first_invariant"));
+    return first_invariant;
+  }
+
+  template <int dim, int spacedim, typename VectorType>
+  inline const std::vector<double> &
+  MechanicsValues<dim, spacedim, VectorType>::get_second_invariant() const
+  {
+    Assert(update_flags & update_second_invariant,
+           ExcMessage("Needs update_second_invariant"));
+    return second_invariant;
+  }
+
+  template <int dim, int spacedim, typename VectorType>
+  inline const std::vector<double> &
+  MechanicsValues<dim, spacedim, VectorType>::get_third_invariant() const
+  {
+    Assert(update_flags & update_third_invariant,
+           ExcMessage("Needs update_third_invariant"));
+    return third_invariant;
   }
 } // namespace fdl
 
