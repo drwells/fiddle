@@ -135,9 +135,11 @@ namespace fdl
                 ++packed_ptr;
               }
 #ifdef DEBUG
-            const CellId cell_id(binary_id);
-            Assert(overlap_tria.get_native_cell_id(cell) == cell_id,
-                   ExcFDLInternalError());
+            {
+              const CellId cell_id(binary_id);
+              Assert(overlap_tria.get_native_cell_id(cell) == cell_id,
+                     ExcFDLInternalError());
+            }
 #endif
 
             const auto n_dofs = *packed_ptr;
