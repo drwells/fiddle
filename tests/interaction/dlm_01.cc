@@ -36,8 +36,8 @@ public:
 
   virtual void
   update_external_position(
-    const double                                      time,
-    const LinearAlgebra::distributed::Vector<double> &ib_position) override
+    const double /*time*/,
+    const LinearAlgebra::distributed::Vector<double> & /*ib_position*/) override
   {
     // we don't compute anything based on the external positition
   }
