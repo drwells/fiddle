@@ -112,7 +112,6 @@ namespace fdl
       packed_ptrs[pair.first] = pair.second.cbegin();
 
     // 4:
-    std::vector<types::global_dof_index> native_cell_dofs(fe.dofs_per_cell);
     std::vector<types::global_dof_index> overlap_cell_dofs(fe.dofs_per_cell);
     std::vector<types::global_dof_index> native_indices(
       overlap_dof_handler.n_dofs());
@@ -144,21 +143,18 @@ namespace fdl
 
             const auto n_dofs = *packed_ptr;
             ++packed_ptr;
+            AssertDimension(n_dofs, overlap_cell_dofs.size());
 
-            native_cell_dofs.resize(n_dofs);
+            // Copy data between orderings.
+            cell->get_dof_indices(overlap_cell_dofs);
             for (unsigned int i = 0; i < n_dofs; ++i)
               {
-                native_cell_dofs[i] = *packed_ptr;
+                native_indices[overlap_cell_dofs[i]] = *packed_ptr;
                 ++packed_ptr;
               }
             Assert(*packed_ptr == numbers::invalid_dof_index,
                    ExcFDLInternalError());
             ++packed_ptr;
-
-            // Copy data between orderings.
-            cell->get_dof_indices(overlap_cell_dofs);
-            for (unsigned int i = 0; i < n_dofs; ++i)
-              native_indices[overlap_cell_dofs[i]] = native_cell_dofs[i];
           }
       }
 
