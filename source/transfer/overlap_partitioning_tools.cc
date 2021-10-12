@@ -143,10 +143,10 @@ namespace fdl
             const auto n_dofs = *packed_ptr;
             ++packed_ptr;
 
-            native_cell_dofs.clear();
+            native_cell_dofs.resize(n_dofs);
             for (unsigned int i = 0; i < n_dofs; ++i)
               {
-                native_cell_dofs.push_back(*packed_ptr);
+                native_cell_dofs[i] = *packed_ptr;
                 ++packed_ptr;
               }
             Assert(*packed_ptr == numbers::invalid_dof_index,
