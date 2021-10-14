@@ -112,10 +112,9 @@ namespace fdl
       packed_ptrs[pair.first] = pair.second.cbegin();
 
     // 4:
-    std::vector<std::pair<types::global_dof_index, types::global_dof_index>>
-                                         overlap_to_native;
-    std::vector<types::global_dof_index> native_cell_dofs(fe.dofs_per_cell);
     std::vector<types::global_dof_index> overlap_cell_dofs(fe.dofs_per_cell);
+    std::vector<types::global_dof_index> native_indices(
+      overlap_dof_handler.n_dofs());
     for (const auto &cell : overlap_dof_handler.active_cell_iterators())
       {
         if (cell->is_locally_owned())
@@ -135,43 +134,29 @@ namespace fdl
                 ++packed_ptr;
               }
 #ifdef DEBUG
-            const CellId cell_id(binary_id);
-            Assert(overlap_tria.get_native_cell_id(cell) == cell_id,
-                   ExcFDLInternalError());
+            {
+              const CellId cell_id(binary_id);
+              Assert(overlap_tria.get_native_cell_id(cell) == cell_id,
+                     ExcFDLInternalError());
+            }
 #endif
 
             const auto n_dofs = *packed_ptr;
             ++packed_ptr;
+            AssertDimension(n_dofs, overlap_cell_dofs.size());
 
-            native_cell_dofs.clear();
+            // Copy data between orderings.
+            cell->get_dof_indices(overlap_cell_dofs);
             for (unsigned int i = 0; i < n_dofs; ++i)
               {
-                native_cell_dofs.push_back(*packed_ptr);
+                native_indices[overlap_cell_dofs[i]] = *packed_ptr;
                 ++packed_ptr;
               }
             Assert(*packed_ptr == numbers::invalid_dof_index,
                    ExcFDLInternalError());
             ++packed_ptr;
-
-            // Copy data between orderings.
-            cell->get_dof_indices(overlap_cell_dofs);
-            for (unsigned int i = 0; i < n_dofs; ++i)
-              overlap_to_native.emplace_back(overlap_cell_dofs[i],
-                                             native_cell_dofs[i]);
           }
       }
-    std::sort(overlap_to_native.begin(),
-              overlap_to_native.end(),
-              [](const auto &a, const auto &b) { return a.first < b.first; });
-    overlap_to_native.erase(std::unique(overlap_to_native.begin(),
-                                        overlap_to_native.end()),
-                            overlap_to_native.end());
-    std::vector<types::global_dof_index> native_indices(
-      overlap_to_native.size());
-    std::transform(overlap_to_native.begin(),
-                   overlap_to_native.end(),
-                   native_indices.begin(),
-                   [](const auto &a) { return a.second; });
 
     // We finally have the contiguous array native_indices that gives us the
     // native dof for each overlap dof.
