@@ -20,7 +20,31 @@ namespace fdl
     , spring_constant(spring_constant)
     , dof_handler(&dof_handler)
     , reference_position(reference_position)
+  {}
+
+  template <int dim, int spacedim, typename Number>
+  SpringForce<dim, spacedim, Number>::SpringForce(
+    const Quadrature<dim> &                           quad,
+    const double                                      spring_constant,
+    const DoFHandler<dim, spacedim> &                 dof_handler,
+    const std::vector<types::material_id> &           material_ids,
+    const LinearAlgebra::distributed::Vector<double> &reference_position)
+    : ForceContribution<dim, spacedim, double>(quad)
+    , material_ids(material_ids)
+    , spring_constant(spring_constant)
+    , dof_handler(&dof_handler)
+    , reference_position(reference_position)
   {
+    if (material_ids.size() == 0)
+      // If the user doesn't want any material ids, let them do it
+      this->material_ids.push_back(numbers::invalid_material_id);
+
+    // permit duplicates in the input array
+    std::sort(this->material_ids.begin(), this->material_ids.end());
+    this->material_ids.erase(std::unique(this->material_ids.begin(),
+                                         this->material_ids.end()),
+                             this->material_ids.end());
+
     this->reference_position.update_ghost_values();
   }
 
@@ -80,30 +104,42 @@ namespace fdl
     const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
     ArrayView<Tensor<1, spacedim, Number>> &forces) const
   {
-    const FEValuesBase<dim, spacedim> &fe_values = m_values.get_fe_values();
+    if (material_ids.size() > 0 && !std::binary_search(material_ids.begin(),
+                                                       material_ids.end(),
+                                                       cell->material_id()))
+      {
+        // the user specified a subset of material ids and we currently don't
+        // match - fill with zeros
+        for (auto &force : forces)
+          force = 0.0;
+      }
+    else
+      {
+        const FEValuesBase<dim, spacedim> &fe_values = m_values.get_fe_values();
 
-    const auto dof_cell =
-      typename DoFHandler<dim, spacedim>::active_cell_iterator(
-        &dof_handler->get_triangulation(),
-        cell->level(),
-        cell->index(),
-        &*dof_handler);
+        const auto dof_cell =
+          typename DoFHandler<dim, spacedim>::active_cell_iterator(
+            &dof_handler->get_triangulation(),
+            cell->level(),
+            cell->index(),
+            &*dof_handler);
 
-    scratch_cell_dofs.resize(fe_values.dofs_per_cell);
-    dof_cell->get_dof_indices(scratch_cell_dofs);
-    scratch_dof_values.resize(fe_values.dofs_per_cell);
-    scratch_qp_values.resize(fe_values.n_quadrature_points);
+        scratch_cell_dofs.resize(fe_values.dofs_per_cell);
+        dof_cell->get_dof_indices(scratch_cell_dofs);
+        scratch_dof_values.resize(fe_values.dofs_per_cell);
+        scratch_qp_values.resize(fe_values.n_quadrature_points);
 
-    auto &extractor = fe_values[FEValuesExtractors::Vector(0)];
-    for (unsigned int i = 0; i < scratch_cell_dofs.size(); ++i)
-      scratch_dof_values[i] =
-        spring_constant * (reference_position[scratch_cell_dofs[i]] -
-                           (*current_position)[scratch_cell_dofs[i]]);
-    extractor.get_function_values_from_local_dof_values(scratch_dof_values,
-                                                        scratch_qp_values);
-    std::copy(scratch_qp_values.begin(),
-              scratch_qp_values.end(),
-              forces.begin());
+        auto &extractor = fe_values[FEValuesExtractors::Vector(0)];
+        for (unsigned int i = 0; i < scratch_cell_dofs.size(); ++i)
+          scratch_dof_values[i] =
+            spring_constant * (reference_position[scratch_cell_dofs[i]] -
+                               (*current_position)[scratch_cell_dofs[i]]);
+        extractor.get_function_values_from_local_dof_values(scratch_dof_values,
+                                                            scratch_qp_values);
+        std::copy(scratch_qp_values.begin(),
+                  scratch_qp_values.end(),
+                  forces.begin());
+      }
   }
 
 

@@ -28,11 +28,26 @@ namespace fdl
     /**
      * Constructor. This class stores a pointer to the DoFHandler so that it can
      * access DoFs on cells and copies the provided references position vector.
+     * Applies the force on every cell.
      */
     SpringForce(
       const Quadrature<dim> &                           quad,
       const double                                      spring_constant,
       const DoFHandler<dim, spacedim> &                 dof_handler,
+      const LinearAlgebra::distributed::Vector<double> &reference_position);
+
+    /**
+     * Constructor. Same idea, but only applies the force on cells with the
+     * provided material ids.
+     *
+     * @note if @p material_ids is empty then the force will not be applied on
+     * any cell.
+     */
+    SpringForce(
+      const Quadrature<dim> &                           quad,
+      const double                                      spring_constant,
+      const DoFHandler<dim, spacedim> &                 dof_handler,
+      const std::vector<types::material_id> &           material_ids,
       const LinearAlgebra::distributed::Vector<double> &reference_position);
 
     /**
@@ -77,6 +92,8 @@ namespace fdl
       ArrayView<Tensor<1, spacedim, Number>> &forces) const override;
 
   protected:
+    std::vector<types::material_id> material_ids;
+
     double spring_constant;
 
     SmartPointer<const DoFHandler<dim, spacedim>> dof_handler;
