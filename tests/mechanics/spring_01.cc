@@ -16,7 +16,11 @@
 
 #include <deal.II/numerics/vector_tools_interpolate.h>
 
+#include <ibtk/AppInitializer.h>
+#include <ibtk/IBTKInit.h>
+
 #include <fstream>
+#include <memory>
 #include <vector>
 
 // Basic test for SpringForce
@@ -40,11 +44,23 @@ public:
 
 
 int
-main()
+main(int argc, char **argv)
 {
+  IBTK::IBTKInit ibtk_init(argc, argv, MPI_COMM_WORLD);
+  SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer =
+    new IBTK::AppInitializer(argc, argv, "spring_01.log");
+  auto input_db = app_initializer->getInputDatabase();
+
   Triangulation<2> tria;
   GridGenerator::hyper_cube(tria);
   tria.refine_global(1);
+  if (input_db->getBoolWithDefault("multiple_materials", false))
+    {
+      auto cell = tria.begin_active();
+      cell->set_material_id(42);
+      ++cell;
+      cell->set_material_id(99);
+    }
   FESystem<2>   fe(FE_Q<2>(1), 2);
   DoFHandler<2> dof_handler(tria);
   dof_handler.distribute_dofs(fe);
@@ -70,14 +86,27 @@ main()
                                    current,
                                    fdl::MechanicsUpdateFlags::update_nothing);
 
-  const double        spring_constant = 10.0;
-  fdl::SpringForce<2> spring_force(quadrature,
-                                   spring_constant,
-                                   dof_handler,
-                                   current);
-  spring_force.set_reference_position(reference);
+  const double spring_constant = 10.0;
 
-  spring_force.setup_force(0.0, current, current);
+  std::unique_ptr<fdl::SpringForce<2>> spring_force;
+  if (input_db->getBoolWithDefault("multiple_materials", false))
+    {
+      std::vector<types::material_id> materials;
+      if (!input_db->getBoolWithDefault("use_no_materials", false))
+        materials = {42, 99, 99, 99, 42};
+      spring_force = std::make_unique<fdl::SpringForce<2>>(
+        quadrature, spring_constant, dof_handler, materials, current);
+    }
+  else
+    {
+      spring_force = std::make_unique<fdl::SpringForce<2>>(quadrature,
+                                                           spring_constant,
+                                                           dof_handler,
+                                                           current);
+    }
+  spring_force->set_reference_position(reference);
+
+  spring_force->setup_force(0.0, current, current);
   std::vector<Tensor<1, 2>> forces(quadrature.size());
   std::ofstream             output("output");
   output << "test 1: displace 2 forward, spring constant = " << spring_constant
@@ -88,7 +117,7 @@ main()
       fe_values.reinit(cell);
       output << "cell center = " << cell->center() << '\n';
       auto view = make_array_view(forces);
-      spring_force.compute_volume_force(0.0, m_values, cell, view);
+      spring_force->compute_volume_force(0.0, m_values, cell, view);
       output << "forces = ";
       for (const Tensor<1, 2> &f : forces)
         output << f << '\n';
@@ -103,7 +132,7 @@ main()
       fe_values.reinit(cell);
       output << "cell center = " << cell->center() << '\n';
       auto view = make_array_view(forces);
-      spring_force.compute_volume_force(0.0, m_values, cell, view);
+      spring_force->compute_volume_force(0.0, m_values, cell, view);
       output << "forces = ";
       for (const Tensor<1, 2> &f : forces)
         output << f << '\n';

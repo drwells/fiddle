@@ -1,4 +1,4 @@
-multiple_materials = FALSE
+multiple_materials = TRUE
 
 Main {
    log_file_name = "ignoreme"
