@@ -80,6 +80,7 @@ namespace fdl
     , new_time(std::numeric_limits<double>::signaling_NaN())
     , parts(std::move(input_parts))
     , part_vectors(this->parts)
+    , ghosts(0)
     , secondary_hierarchy(object_name + "::secondary_hierarchy",
                           input_db->getDatabase("GriddingAlgorithm"),
                           input_db->getDatabase("LoadBalancer"))
@@ -129,6 +130,14 @@ namespace fdl
     input_db->getStringArray("IB_kernel",
                              ib_kernels.data(),
                              static_cast<int>(ib_kernels.size()));
+    // now that we know that, we know the ghost requirements
+    for (const std::string &ib_kernel : ib_kernels)
+      {
+        const int ghost_width =
+          IBTK::LEInteractor::getMinimumGhostWidth(ib_kernel);
+        for (int i = 0; i < spacedim; ++i)
+          ghosts[i] = std::max(ghosts[i], ghost_width);
+      }
 
     auto set_timer = [&](const char *name) {
       return tbox::TimerManager::getManager()->getTimer(name);
@@ -963,15 +972,7 @@ namespace fdl
   const hier::IntVector<spacedim> &
   IFEDMethod<dim, spacedim>::getMinimumGhostCellWidth() const
   {
-    static hier::IntVector<spacedim> gcw;
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        const int ghost_width =
-          IBTK::LEInteractor::getMinimumGhostWidth(ib_kernels[part_n]);
-        for (int i = 0; i < spacedim; ++i)
-          gcw[i] = std::max(gcw[i], ghost_width);
-      }
-    return gcw;
+    return ghosts;
   }
 
   template class IFEDMethod<NDIM - 1, NDIM>;

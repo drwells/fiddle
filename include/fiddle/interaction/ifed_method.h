@@ -265,6 +265,8 @@ namespace fdl
      */
     tbox::Pointer<hier::PatchHierarchy<spacedim>> primary_hierarchy;
 
+    SAMRAI::hier::IntVector<spacedim> ghosts;
+
     std::shared_ptr<IBTK::SAMRAIDataCache> primary_eulerian_data_cache;
 
     IBTK::SecondaryHierarchy secondary_hierarchy;
