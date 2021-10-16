@@ -20,7 +20,9 @@ namespace fdl
     , spring_constant(spring_constant)
     , dof_handler(&dof_handler)
     , reference_position(reference_position)
-  {}
+  {
+    this->reference_position.update_ghost_values();
+  }
 
   template <int dim, int spacedim, typename Number>
   SpringForce<dim, spacedim, Number>::SpringForce(
