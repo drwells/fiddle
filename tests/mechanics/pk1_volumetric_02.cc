@@ -120,6 +120,8 @@ public:
   compute_stress(
     const double /*time*/,
     const fdl::MechanicsValues<dim, spacedim> &me_values,
+    const typename Triangulation<dim, spacedim>::active_cell_iterator
+    & /*cell*/,
     ArrayView<Tensor<2, spacedim, double>> &   stresses) const override
   {
     Assert(spacedim == 2, fdl::ExcFDLNotImplemented());

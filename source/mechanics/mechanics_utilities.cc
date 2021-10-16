@@ -114,7 +114,7 @@ namespace fdl
                               Tensor<2, spacedim, double>());
                     auto view =
                       make_array_view(one_stress.begin(), one_stress.end());
-                    fc->compute_stress(time, me_values, view);
+                    fc->compute_stress(time, me_values, cell, view);
                     for (unsigned int qp_n = 0; qp_n < n_quadrature_points;
                          ++qp_n)
                       accumulated_stresses[qp_n] += one_stress[qp_n];

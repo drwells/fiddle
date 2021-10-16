@@ -170,12 +170,15 @@ namespace fdl
     }
 
     virtual void
-    compute_stress(const double                            time,
-                   const MechanicsValues<dim, spacedim> &  me_values,
-                   ArrayView<Tensor<2, spacedim, Number>> &stresses) const
+    compute_stress(
+      const double                          time,
+      const MechanicsValues<dim, spacedim> &me_values,
+      const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
+      ArrayView<Tensor<2, spacedim, Number>> &stresses) const
     {
       (void)time;
       (void)me_values;
+      (void)cell;
       (void)stresses;
       Assert(false, ExcFDLInternalError());
     }
