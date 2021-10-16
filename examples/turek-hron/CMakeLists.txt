@@ -1,0 +1,12 @@
+ADD_EXECUTABLE(turek-hron EXCLUDE_FROM_ALL turek-hron.cc)
+
+TARGET_LINK_LIBRARIES(turek-hron fiddle2d)
+SET_TARGET_PROPERTIES(turek-hron
+  PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY
+  "${CMAKE_BINARY_DIR}/examples/turek-hron"
+  OUTPUT_NAME
+  main2d)
+TARGET_INCLUDE_DIRECTORIES(turek-hron PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+CONFIGURE_FILE(input2d "${CMAKE_BINARY_DIR}/examples/turek-hron" COPYONLY)
+ADD_DEPENDENCIES(examples turek-hron)
