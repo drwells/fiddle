@@ -49,6 +49,35 @@ namespace fdl
    *   <li>LoadBalancer: Database for setting up the internal LoadBalancer
    *     object.</li>
    * </ul>
+   *
+   * <h2>Tips and tricks for improving performance</h2>
+   * At the present time IFEDMethod requires that the input database include
+   * instructions for setting up internal GriddingAlgorithm and LoadBalancer
+   * objects. These (unlike the ones typically created in main() associated with
+   * the Navier-Stokes integrator) partition the Eulerian data by attempting to
+   * assign equal numbers of interaction points per processor. There are few
+   * tweaks to these input databases that make this load balancing easier:
+   * <ol>
+   *   <li>Set reasonable values for <code>smallest_patch_size</code> in
+   *     GriddingAlgorithm's database. Usually 16 is the right number of cells
+   *     to use in each coordinate direction. Larger patches are more efficient
+   *     since they result in a lower total number of ghost cells. However,
+   *     larger patches are also difficult to load balance - hence 16 is a
+   *     reasonable compromise. Also consider trying 24.</li>
+   *   <li>Set <code>combine_efficiency</code> to 0.01 in GriddingAlgorithm's
+   *     database. We want to only split things in the load balancing step, not
+   *     box generation. For IB methods we tend to not care about having the
+   *     smallest possible patches - load balancing them is more important.</li>
+   *   <li>Set <code>max_workload_factor</code> in LoadBalancer's database to
+   *     0.01. Since the patches tend to have highly variable amounts of work
+   *     per cell we typically want to do a lot of box chopping. The 'floor'
+   *     here is controlled by the minimum patch size set above.</li>
+   * </ol>
+   *
+   * In general, getting good load balancing requires some problem-dependent
+   * tuning that balances using a lot of small patches (which enables better
+   * load balancing) to using few large patches (which enables more efficient
+   * computations).
    */
   template <int dim, int spacedim = dim>
   class IFEDMethod : public IBAMR::IBStrategy
