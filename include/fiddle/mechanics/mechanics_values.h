@@ -165,8 +165,9 @@ namespace fdl
                     const VectorType &                 velocity,
                     const MechanicsUpdateFlags         flags);
 
+    template <typename Iterator>
     void
-    reinit();
+    reinit(const Iterator &cell);
 
     const FEValuesBase<dim, spacedim> &
     get_fe_values() const;
@@ -224,6 +225,12 @@ namespace fdl
     std::vector<double> second_invariant;
 
     std::vector<double> third_invariant;
+
+    std::vector<types::global_dof_index> scratch_dof_indices;
+
+    std::vector<double> scratch_position_values;
+
+    std::vector<double> scratch_velocity_values;
   };
 
   // Constructor and reinitialization
@@ -257,6 +264,20 @@ namespace fdl
       }
 
     // Set up arrays:
+    const auto n_dofs_per_cell = this->fe_values->get_fe().n_dofs_per_cell();
+    if (update_flags & MechanicsUpdateFlags::update_position_values ||
+        update_flags & MechanicsUpdateFlags::update_FF)
+      {
+        scratch_position_values.resize(n_dofs_per_cell);
+        scratch_dof_indices.resize(n_dofs_per_cell);
+      }
+
+    if (update_flags & MechanicsUpdateFlags::update_velocity_values)
+      {
+        scratch_velocity_values.resize(n_dofs_per_cell);
+        scratch_dof_indices.resize(n_dofs_per_cell);
+      }
+
     if (update_flags & MechanicsUpdateFlags::update_FF)
       FF.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_FF_inv_T)
@@ -278,13 +299,45 @@ namespace fdl
   }
 
   template <int dim, int spacedim, typename VectorType>
+  template <typename Iterator>
   void
-  MechanicsValues<dim, spacedim, VectorType>::reinit()
+  MechanicsValues<dim, spacedim, VectorType>::reinit(const Iterator &cell)
   {
+    static_assert(
+      std::is_same<
+        Iterator,
+        typename DoFHandler<dim, spacedim>::active_cell_iterator>::value ||
+        std::is_same<
+          Iterator,
+          typename DoFHandler<dim, spacedim>::active_face_iterator>::value,
+      "The only supported iterator types are active cell and face DoFHandler "
+      "iterators.");
+    Assert(cell->level() == fe_values->get_cell()->level() &&
+           cell->index() == fe_values->get_cell()->index(),
+           ExcMessage("The provided cell must be the same as the one used in "
+                      "the corresponding FEValues object."));
+
     const FEValuesExtractors::Vector vec(0);
 
+    const bool update_scratch_positions =
+      update_flags & update_FF || update_flags & update_position_values;
+    const bool update_scratch_velocities =
+      update_flags & update_velocity_values;
+
+    if (update_scratch_positions || update_scratch_velocities)
+      cell->get_dof_indices(scratch_dof_indices);
+
+    if (update_scratch_positions)
+      for (unsigned int i = 0; i < scratch_dof_indices.size(); ++i)
+        scratch_position_values[i] = (*position)[scratch_dof_indices[i]];
+
+    if (update_scratch_velocities)
+      for (unsigned int i = 0; i < scratch_dof_indices.size(); ++i)
+        scratch_velocity_values[i] = (*velocity)[scratch_dof_indices[i]];
+
     if (update_flags & update_FF)
-      (*fe_values)[vec].get_function_gradients(*position, FF);
+      (*fe_values)[vec].get_function_gradients_from_local_dof_values(
+        scratch_position_values, FF);
 
     for (unsigned int q = 0; q < fe_values->n_quadrature_points; ++q)
       {
@@ -331,10 +384,12 @@ namespace fdl
       }
 
     if (update_flags & update_position_values)
-      (*fe_values)[vec].get_function_values(*position, position_values);
+      (*fe_values)[vec].get_function_values_from_local_dof_values(
+        scratch_position_values, position_values);
 
     if (update_flags & update_velocity_values)
-      (*fe_values)[vec].get_function_values(*velocity, position_values);
+      (*fe_values)[vec].get_function_values_from_local_dof_values(
+        scratch_velocity_values, velocity_values);
   }
 
   template <int dim, int spacedim, typename VectorType>

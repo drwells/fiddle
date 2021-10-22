@@ -98,7 +98,7 @@ namespace fdl
               {
                 cell->get_dof_indices(cell_dofs);
                 fe_values.reinit(cell);
-                me_values.reinit();
+                me_values.reinit(cell);
                 std::fill(accumulated_stresses.begin(),
                           accumulated_stresses.end(),
                           Tensor<2, spacedim, double>());
@@ -216,7 +216,7 @@ namespace fdl
               {
                 cell->get_dof_indices(cell_dofs);
                 fe_values.reinit(cell);
-                me_values.reinit();
+                me_values.reinit(cell);
                 std::fill(accumulated_forces.begin(),
                           accumulated_forces.end(),
                           Tensor<1, spacedim, double>());
@@ -337,7 +337,7 @@ namespace fdl
                 {
                   cell->get_dof_indices(cell_dofs);
                   fe_values.reinit(cell, face_n);
-                  me_values.reinit();
+                  me_values.reinit(cell);
                   std::fill(accumulated_forces.begin(),
                             accumulated_forces.end(),
                             Tensor<1, spacedim, double>());
