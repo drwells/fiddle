@@ -67,7 +67,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     for (const auto &cell : dof_handler.active_cell_iterators())
       {
         fe_values.reinit(cell);
-        mechanics_values.reinit();
+        mechanics_values.reinit(cell);
 
         out << "J:\n";
         for (const double &J : mechanics_values.get_det_FF())
