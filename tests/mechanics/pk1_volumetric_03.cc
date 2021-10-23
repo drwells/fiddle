@@ -120,8 +120,8 @@ public:
     const double /*time*/,
     const fdl::MechanicsValues<dim, spacedim> &me_values,
     const typename Triangulation<dim, spacedim>::active_cell_iterator
-    & /*cell*/,
-    ArrayView<Tensor<2, spacedim, double>> &   stresses) const override
+      & /*cell*/,
+    ArrayView<Tensor<2, spacedim, double>> &stresses) const override
   {
     Assert(spacedim == 2, fdl::ExcFDLNotImplemented());
     const FEValuesBase<dim, spacedim> &fe_values = me_values.get_fe_values();
