@@ -1,29 +1,9 @@
 // Based on the Turek-Hron IBFE benchmark
 
-// Headers for basic SAMRAI objects
-#include <BergerRigoutsos.h>
-#include <CartesianGridGeometry.h>
-#include <LoadBalancer.h>
-#include <StandardTagAndInitialize.h>
+#include <fiddle/interaction/ifed_method.h>
 
-// Headers for application-specific algorithm/data structure objects
-#include <boost/multi_array.hpp>
-
-#include <ibamr/IBExplicitHierarchyIntegrator.h>
-#include <ibamr/INSCollocatedHierarchyIntegrator.h>
-#include <ibamr/INSStaggeredHierarchyIntegrator.h>
-
-#include <ibtk/AppInitializer.h>
-#include <ibtk/IBTK_MPI.h>
-#include <ibtk/IBTKInit.h>
-#include <ibtk/muParserCartGridFunction.h>
-#include <ibtk/muParserRobinBcCoefs.h>
-
-// Set up application namespace declarations
 #include <fiddle/mechanics/force_contribution.h>
 #include <fiddle/mechanics/force_contribution_lib.h>
-
-#include <fiddle/interaction/ifed_method.h>
 
 #include <deal.II/distributed/shared_tria.h>
 
@@ -41,6 +21,21 @@
 
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools_interpolate.h>
+
+#include <ibamr/IBExplicitHierarchyIntegrator.h>
+#include <ibamr/INSCollocatedHierarchyIntegrator.h>
+#include <ibamr/INSStaggeredHierarchyIntegrator.h>
+
+#include <ibtk/AppInitializer.h>
+#include <ibtk/IBTKInit.h>
+#include <ibtk/IBTK_MPI.h>
+#include <ibtk/muParserCartGridFunction.h>
+#include <ibtk/muParserRobinBcCoefs.h>
+
+#include <BergerRigoutsos.h>
+#include <CartesianGridGeometry.h>
+#include <LoadBalancer.h>
+#include <StandardTagAndInitialize.h>
 
 // Elasticity model data.
 namespace ModelData
@@ -202,7 +197,8 @@ namespace ModelData
                    const typename Triangulation<2>::active_cell_iterator &cell,
                    ArrayView<Tensor<2, 2>> &stresses) const override
     {
-      if (cell->material_id() == beam_id)
+      // if (cell->material_id() == beam_id)
+      if (true)
         {
           for (unsigned int qp_n = 0; qp_n < stresses.size(); ++qp_n)
             {
@@ -226,11 +222,12 @@ namespace ModelData
 // Function prototypes
 static std::ofstream drag_stream, lift_stream, A_x_posn_stream, A_y_posn_stream;
 void
-postprocess_data(SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>>   patch_hierarchy,
-                 SAMRAI::tbox::Pointer<IBAMR::INSHierarchyIntegrator> navier_stokes_integrator,
-                 const int                             iteration_num,
-                 const double                          loop_time,
-                 const std::string &                   data_dump_dirname);
+postprocess_data(
+  SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> patch_hierarchy,
+  SAMRAI::tbox::Pointer<IBAMR::INSHierarchyIntegrator> navier_stokes_integrator,
+  const int                                            iteration_num,
+  const double                                         loop_time,
+  const std::string &                                  data_dump_dirname);
 
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
@@ -253,7 +250,8 @@ main(int argc, char *argv[])
     using namespace SAMRAI;
     tbox::Pointer<IBTK::AppInitializer> app_initializer =
       new IBTK::AppInitializer(argc, argv, "IB.log");
-    tbox::Pointer<tbox::Database> input_db = app_initializer->getInputDatabase();
+    tbox::Pointer<tbox::Database> input_db =
+      app_initializer->getInputDatabase();
 
     // Get various standard options set in the input file.
     const bool dump_viz_data     = app_initializer->dumpVizData();
@@ -307,31 +305,37 @@ main(int argc, char *argv[])
     while (dealii::GridTools::maximal_cell_diameter(tria) > target_element_size)
       tria.refine_global(1);
 
-    // we may want to add some convenience functions for setting up tether forces
+    // we may want to add some convenience functions for setting up tether
+    // forces
     dealii::FESystem<2> fe(dealii::FE_Q<2>(2), 2);
-    dealii::QGauss<2> quadrature1(fe.tensor_degree() + 1);
-    dealii::QGauss<2> quadrature2(fe.tensor_degree() + 2);
+    dealii::QGauss<2>   quadrature1(fe.tensor_degree() + 1);
+    dealii::QGauss<2>   quadrature2(fe.tensor_degree() + 2);
     auto dof_handler = std::make_shared<dealii::DoFHandler<2>>(tria);
     dof_handler->distribute_dofs(fe);
     dealii::IndexSet locally_relevant_dofs;
     dealii::DoFTools::extract_locally_relevant_dofs(*dof_handler,
                                                     locally_relevant_dofs);
-    dealii::LinearAlgebra::distributed::Vector<double> reference_position
-      (dof_handler->locally_owned_dofs(), locally_relevant_dofs, communicator);
-    dealii::VectorTools::interpolate(
-      *dof_handler,
-      dealii::Functions::IdentityFunction<2>(),
-      reference_position);
-    const std::vector<dealii::types::material_id> cylinder_ids {0};
-    auto spring_force = std::make_unique<fdl::SpringForce<2>>(
-      quadrature1, kappa_s_block, *dof_handler, cylinder_ids, reference_position);
+    dealii::LinearAlgebra::distributed::Vector<double> reference_position(
+      dof_handler->locally_owned_dofs(), locally_relevant_dofs, communicator);
+    dealii::VectorTools::interpolate(*dof_handler,
+                                     dealii::Functions::IdentityFunction<2>(),
+                                     reference_position);
+    const std::vector<dealii::types::material_id> cylinder_ids{0};
+    auto                                          spring_force =
+      std::make_unique<fdl::SpringForce<2>>(quadrature1,
+                                            kappa_s_block,
+                                            *dof_handler,
+                                            cylinder_ids,
+                                            reference_position);
 
     std::vector<std::unique_ptr<fdl::ForceContribution<2>>> force_contributions;
     force_contributions.emplace_back(std::move(spring_force));
     force_contributions.emplace_back(
       std::make_unique<ModelData::BeamNeoHookeanStress>(quadrature2, 1, mu_s));
     force_contributions.emplace_back(
-      std::make_unique<ModelData::BeamDilatationalStress>(quadrature2, 1, beta_s));
+      std::make_unique<ModelData::BeamDilatationalStress>(quadrature2,
+                                                          1,
+                                                          beta_s));
 
     std::vector<fdl::Part<2>> parts;
     parts.emplace_back(tria, fe, std::move(force_contributions));
@@ -341,22 +345,22 @@ main(int argc, char *argv[])
                                "IFEDMethod"),
                              std::move(parts));
     tbox::Pointer<IBAMR::IBHierarchyIntegrator> time_integrator =
-      new IBAMR::IBExplicitHierarchyIntegrator("IBHierarchyIntegrator",
-                                        app_initializer->getComponentDatabase(
-                                          "IBHierarchyIntegrator"),
-                                        ib_method_ops,
-                                        navier_stokes_integrator);
+      new IBAMR::IBExplicitHierarchyIntegrator(
+        "IBHierarchyIntegrator",
+        app_initializer->getComponentDatabase("IBHierarchyIntegrator"),
+        ib_method_ops,
+        navier_stokes_integrator);
     tbox::Pointer<geom::CartesianGridGeometry<NDIM>> grid_geometry =
-      new geom::CartesianGridGeometry<NDIM>("CartesianGeometry",
-                                      app_initializer->getComponentDatabase(
-                                        "CartesianGeometry"));
+      new geom::CartesianGridGeometry<NDIM>(
+        "CartesianGeometry",
+        app_initializer->getComponentDatabase("CartesianGeometry"));
     tbox::Pointer<hier::PatchHierarchy<NDIM>> patch_hierarchy =
       new hier::PatchHierarchy<NDIM>("PatchHierarchy", grid_geometry);
     tbox::Pointer<mesh::StandardTagAndInitialize<NDIM>> error_detector =
-      new mesh::StandardTagAndInitialize<NDIM>("StandardTagAndInitialize",
-                                         time_integrator,
-                                         app_initializer->getComponentDatabase(
-                                           "StandardTagAndInitialize"));
+      new mesh::StandardTagAndInitialize<NDIM>(
+        "StandardTagAndInitialize",
+        time_integrator,
+        app_initializer->getComponentDatabase("StandardTagAndInitialize"));
     tbox::Pointer<mesh::BergerRigoutsos<NDIM>> box_generator =
       new mesh::BergerRigoutsos<NDIM>();
     tbox::Pointer<mesh::LoadBalancer<NDIM>> load_balancer =
@@ -364,11 +368,11 @@ main(int argc, char *argv[])
         "LoadBalancer", app_initializer->getComponentDatabase("LoadBalancer"));
     tbox::Pointer<mesh::GriddingAlgorithm<NDIM>> gridding_algorithm =
       new mesh::GriddingAlgorithm<NDIM>("GriddingAlgorithm",
-                                  app_initializer->getComponentDatabase(
-                                    "GriddingAlgorithm"),
-                                  error_detector,
-                                  box_generator,
-                                  load_balancer);
+                                        app_initializer->getComponentDatabase(
+                                          "GriddingAlgorithm"),
+                                        error_detector,
+                                        box_generator,
+                                        load_balancer);
 
     // Create Eulerian initial condition specification objects.
     if (input_db->keyExists("VelocityInitialConditions"))
@@ -469,29 +473,33 @@ main(int argc, char *argv[])
           }
 
         using namespace dealii;
-        const auto & part = ib_method_ops->get_part(0);
-        DataOut<2> data_out;
+        const auto &part = ib_method_ops->get_part(0);
+        DataOut<2>  data_out;
         data_out.attach_dof_handler(part.get_dof_handler());
         data_out.add_data_vector(part.get_velocity(), "U");
 
         MappingFEField<2, 2, LinearAlgebra::distributed::Vector<double>>
           position_mapping(part.get_dof_handler(), part.get_position());
         data_out.build_patches(position_mapping);
-        data_out.write_vtu_with_pvtu_record(app_initializer->getVizDumpDirectory() +
-                                              "/",
-                                            "solution",
-                                            iteration_num,
-                                            IBTK::IBTK_MPI::getCommunicator(),
-                                            8);
+        data_out.write_vtu_with_pvtu_record(
+          app_initializer->getVizDumpDirectory() + "/",
+          "solution",
+          iteration_num,
+          IBTK::IBTK_MPI::getCommunicator(),
+          8);
       }
 
     // Open streams to save lift and drag coefficients.
     if (tbox::SAMRAI_MPI::getRank() == 0)
       {
-        drag_stream.open("C_D.curve", std::ios_base::out | std::ios_base::trunc);
-        lift_stream.open("C_L.curve", std::ios_base::out | std::ios_base::trunc);
-        A_x_posn_stream.open("A_x.curve", std::ios_base::out | std::ios_base::trunc);
-        A_y_posn_stream.open("A_y.curve", std::ios_base::out | std::ios_base::trunc);
+        drag_stream.open("C_D.curve",
+                         std::ios_base::out | std::ios_base::trunc);
+        lift_stream.open("C_L.curve",
+                         std::ios_base::out | std::ios_base::trunc);
+        A_x_posn_stream.open("A_x.curve",
+                             std::ios_base::out | std::ios_base::trunc);
+        A_y_posn_stream.open("A_y.curve",
+                             std::ios_base::out | std::ios_base::trunc);
       }
 
     // Main time step loop.
@@ -536,20 +544,20 @@ main(int argc, char *argv[])
               }
 
             using namespace dealii;
-            const auto & part = ib_method_ops->get_part(0);
-            DataOut<2> data_out;
+            const auto &part = ib_method_ops->get_part(0);
+            DataOut<2>  data_out;
             data_out.attach_dof_handler(part.get_dof_handler());
             data_out.add_data_vector(part.get_velocity(), "U");
 
             MappingFEField<2, 2, LinearAlgebra::distributed::Vector<double>>
               position_mapping(part.get_dof_handler(), part.get_position());
             data_out.build_patches(position_mapping);
-            data_out.write_vtu_with_pvtu_record(app_initializer->getVizDumpDirectory() +
-                                                  "/",
-                                                "solution",
-                                                iteration_num,
-                                                IBTK::IBTK_MPI::getCommunicator(),
-                                                8);
+            data_out.write_vtu_with_pvtu_record(
+              app_initializer->getVizDumpDirectory() + "/",
+              "solution",
+              iteration_num,
+              IBTK::IBTK_MPI::getCommunicator(),
+              8);
           }
         if (dump_restart_data &&
             (iteration_num % restart_dump_interval == 0 || last_step))
@@ -594,7 +602,8 @@ main(int argc, char *argv[])
 void
 postprocess_data(
   SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<NDIM>> /*patch_hierarchy*/,
-  SAMRAI::tbox::Pointer<IBAMR::INSHierarchyIntegrator> /*navier_stokes_integrator*/,
+  SAMRAI::tbox::Pointer<
+    IBAMR::INSHierarchyIntegrator> /*navier_stokes_integrator*/,
   const int /*iteration_num*/,
   const double loop_time,
   const std::string & /*data_dump_dirname*/)

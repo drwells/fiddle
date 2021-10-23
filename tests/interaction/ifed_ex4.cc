@@ -70,8 +70,8 @@ public:
     const double /*time*/,
     const fdl::MechanicsValues<dim, spacedim> &me_values,
     const typename Triangulation<dim, spacedim>::active_cell_iterator
-    & /*cell*/,
-    ArrayView<Tensor<2, spacedim, double>> &   stresses) const override
+      & /*cell*/,
+    ArrayView<Tensor<2, spacedim, double>> &stresses) const override
   {
     const std::vector<Tensor<2, spacedim>> &FF = me_values.get_FF();
     Assert(FF.size() == stresses.size(), ExcMessage("sizes should match"));
@@ -122,8 +122,8 @@ public:
     const double /*time*/,
     const fdl::MechanicsValues<dim, spacedim> &me_values,
     const typename Triangulation<dim, spacedim>::active_cell_iterator
-    & /*cell*/,
-    ArrayView<Tensor<2, spacedim, double>> &   stresses) const override
+      & /*cell*/,
+    ArrayView<Tensor<2, spacedim, double>> &stresses) const override
   {
     const std::vector<double> &             det_FF   = me_values.get_det_FF();
     const std::vector<Tensor<2, spacedim>> &FF_inv_T = me_values.get_FF_inv_T();
