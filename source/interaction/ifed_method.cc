@@ -11,6 +11,7 @@
 #include <fiddle/mechanics/mechanics_utilities.h>
 
 #include <deal.II/base/mpi.h>
+#include <deal.II/base/multithread_info.h>
 #include <deal.II/base/utilities.h>
 
 #include <deal.II/distributed/shared_tria.h>
@@ -85,6 +86,10 @@ namespace fdl
                           input_db->getDatabase("GriddingAlgorithm"),
                           input_db->getDatabase("LoadBalancer"))
   {
+    // IBAMR does not support using threads so unconditionally disable them
+    // here.
+    MultithreadInfo::set_thread_limit(1);
+
     // IBFEMethod uses this value - lower values aren't guaranteed to work. If
     // dx = dX then we can use a lower density.
     const double density =
