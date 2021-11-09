@@ -46,6 +46,8 @@ SET(FIDDLE_SRC
   source/mechanics/part.cc
   source/mechanics/part_vectors.cc
 
+  source/postprocess/point_values.cc
+
   source/transfer/overlap_partitioning_tools.cc
   source/transfer/scatter.cc
   )
