@@ -60,6 +60,19 @@ namespace fdl
     const LinearAlgebra::distributed::Vector<double> &     current_velocity,
     LinearAlgebra::distributed::Vector<double> &           force_rhs);
 
+  /**
+   * Combined function that calls all of the previous functions.
+   */
+  template <int dim, int spacedim = dim>
+  void
+  compute_load_vector(
+    const DoFHandler<dim, spacedim> &                      dof_handler,
+    const Mapping<dim, spacedim> &                         mapping,
+    const std::vector<ForceContribution<dim, spacedim> *> &force_contributions,
+    const double                                           time,
+    const LinearAlgebra::distributed::Vector<double> &     current_position,
+    const LinearAlgebra::distributed::Vector<double> &     current_velocity,
+    LinearAlgebra::distributed::Vector<double> &           force_rhs);
 } // namespace fdl
 
 #endif

@@ -116,6 +116,7 @@ SETUP(mechanics me_values_01.cc fiddle2d)
 SETUP(mechanics me_values_02.cc fiddle2d)
 SETUP(mechanics serialize_part_01.cc fiddle2d)
 
+SETUP(mechanics compute_load_vector_01.cc fiddle2d)
 SETUP(mechanics pk1_volumetric_01.cc fiddle2d)
 SETUP(mechanics pk1_volumetric_02.cc fiddle2d)
 SETUP(mechanics pk1_volumetric_03.cc fiddle2d)
