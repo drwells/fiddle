@@ -652,36 +652,16 @@ namespace fdl
         // available
         position.update_ghost_values();
         velocity.update_ghost_values();
-        for (auto &force : part.get_stress_contributions())
-          force->setup_force(data_time, position, velocity);
-        for (auto &force : part.get_volumetric_force_contributions())
-          force->setup_force(data_time, position, velocity);
-        for (auto &force : part.get_boundary_force_contributions())
+        for (auto &force : part.get_force_contributions())
           force->setup_force(data_time, position, velocity);
 
-        compute_volumetric_pk1_load_vector(part.get_dof_handler(),
-                                           part.get_mapping(),
-                                           part.get_stress_contributions(),
-                                           data_time,
-                                           position,
-                                           velocity,
-                                           force_rhs);
-        compute_volumetric_force_load_vector(
-          part.get_dof_handler(),
-          part.get_mapping(),
-          part.get_volumetric_force_contributions(),
-          data_time,
-          position,
-          velocity,
-          force_rhs);
-        compute_boundary_force_load_vector(
-          part.get_dof_handler(),
-          part.get_mapping(),
-          part.get_boundary_force_contributions(),
-          data_time,
-          position,
-          velocity,
-          force_rhs);
+        compute_load_vector(part.get_dof_handler(),
+                            part.get_mapping(),
+                            part.get_force_contributions(),
+                            data_time,
+                            position,
+                            velocity,
+                            force_rhs);
         force_rhs.compress(VectorOperation::add);
         IBAMR_TIMER_STOP(t_compute_lagrangian_force_pk1);
 
@@ -706,11 +686,7 @@ namespace fdl
           }
         part_vectors.set_force(part_n, data_time, std::move(force));
 
-        for (auto &force : part.get_stress_contributions())
-          force->finish_force(data_time);
-        for (auto &force : part.get_volumetric_force_contributions())
-          force->finish_force(data_time);
-        for (auto &force : part.get_boundary_force_contributions())
+        for (auto &force : part.get_force_contributions())
           force->finish_force(data_time);
         IBAMR_TIMER_STOP(t_compute_lagrangian_force_solve);
       }

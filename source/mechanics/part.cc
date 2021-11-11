@@ -219,51 +219,15 @@ namespace fdl
 
   template <int dim, int spacedim>
   std::vector<ForceContribution<dim, spacedim> *>
-  Part<dim, spacedim>::get_stress_contributions() const
-  {
-    std::vector<ForceContribution<dim, spacedim> *> stresses;
-
-    for (auto &force_contribution : force_contributions)
-      {
-        if (force_contribution->is_stress())
-          stresses.push_back(force_contribution.get());
-      }
-
-    return stresses;
-  }
-
-  template <int dim, int spacedim>
-  std::vector<ForceContribution<dim, spacedim> *>
-  Part<dim, spacedim>::get_volumetric_force_contributions() const
+  Part<dim, spacedim>::get_force_contributions() const
   {
     std::vector<ForceContribution<dim, spacedim> *> forces;
 
     for (auto &force_contribution : force_contributions)
-      {
-        if (force_contribution->is_volume_force())
-          forces.push_back(force_contribution.get());
-      }
+      forces.push_back(force_contribution.get());
 
     return forces;
   }
-
-
-  template <int dim, int spacedim>
-  std::vector<ForceContribution<dim, spacedim> *>
-  Part<dim, spacedim>::get_boundary_force_contributions() const
-  {
-    std::vector<ForceContribution<dim, spacedim> *> forces;
-
-    for (auto &force_contribution : force_contributions)
-      {
-        if (force_contribution->is_boundary_force())
-          forces.push_back(force_contribution.get());
-      }
-
-    return forces;
-  }
-
-
 
   template class Part<NDIM - 1, NDIM>;
   template class Part<NDIM, NDIM>;
