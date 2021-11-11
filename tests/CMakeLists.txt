@@ -1,6 +1,6 @@
 ADD_CUSTOM_TARGET(tests)
 
-SET(TEST_DIRECTORIES base grid interaction mechanics)
+SET(TEST_DIRECTORIES base grid interaction mechanics postprocess)
 
 FOREACH(_dir ${TEST_DIRECTORIES})
   ADD_CUSTOM_TARGET("tests-${_dir}")
@@ -124,6 +124,9 @@ SETUP(mechanics force_volumetric_02.cc fiddle2d)
 SETUP(mechanics force_boundary_01.cc fiddle2d)
 
 SETUP(mechanics spring_01.cc fiddle2d)
+
+# postprocess:
+SETUP(postprocess point_values_01.cc fiddle2d)
 
 ADD_CUSTOM_COMMAND(TARGET tests
   POST_BUILD
