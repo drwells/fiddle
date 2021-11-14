@@ -313,7 +313,7 @@ namespace fdl
       "The only supported iterator types are active cell and face DoFHandler "
       "iterators.");
     Assert(cell->level() == fe_values->get_cell()->level() &&
-           cell->index() == fe_values->get_cell()->index(),
+             cell->index() == fe_values->get_cell()->index(),
            ExcMessage("The provided cell must be the same as the one used in "
                       "the corresponding FEValues object."));
 
