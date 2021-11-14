@@ -1,7 +1,5 @@
-#include <fiddle/postprocess/point_values.h>
-
-#include <deal.II/base/utilities.h>
 #include <deal.II/base/function_lib.h>
+#include <deal.II/base/utilities.h>
 
 #include <deal.II/distributed/shared_tria.h>
 
@@ -20,6 +18,8 @@
 
 #include <ibtk/AppInitializer.h>
 #include <ibtk/IBTKInit.h>
+
+#include <fiddle/postprocess/point_values.h>
 
 #include <fstream>
 

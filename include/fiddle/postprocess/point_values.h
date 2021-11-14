@@ -48,7 +48,7 @@ namespace fdl
     /**
      * Pointer to the provided mapping.
      */
-    SmartPointer<const Mapping<dim, spacedim>>    mapping;
+    SmartPointer<const Mapping<dim, spacedim>> mapping;
 
     /**
      * Pointer to the provided DoFHandler.
