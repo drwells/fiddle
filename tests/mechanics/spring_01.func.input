@@ -1,0 +1,13 @@
+multiple_materials = FALSE
+use_function = TRUE
+
+Main {
+   log_file_name = "ignoreme"
+   log_all_nodes = FALSE
+
+// visualization dump parameters
+   viz_writer = "VisIt"
+   viz_dump_dirname = "viz2d"
+   visit_number_procs_per_file = 1
+
+}
