@@ -305,28 +305,22 @@ main(int argc, char *argv[])
     while (dealii::GridTools::maximal_cell_diameter(tria) > target_element_size)
       tria.refine_global(1);
 
-    // we may want to add some convenience functions for setting up tether
-    // forces
     dealii::FESystem<2> fe(dealii::FE_Q<2>(2), 2);
     dealii::QGauss<2>   quadrature1(fe.tensor_degree() + 1);
     dealii::QGauss<2>   quadrature2(fe.tensor_degree() + 2);
     auto dof_handler = std::make_shared<dealii::DoFHandler<2>>(tria);
     dof_handler->distribute_dofs(fe);
-    dealii::IndexSet locally_relevant_dofs;
-    dealii::DoFTools::extract_locally_relevant_dofs(*dof_handler,
-                                                    locally_relevant_dofs);
-    dealii::LinearAlgebra::distributed::Vector<double> reference_position(
-      dof_handler->locally_owned_dofs(), locally_relevant_dofs, communicator);
-    dealii::VectorTools::interpolate(*dof_handler,
-                                     dealii::Functions::IdentityFunction<2>(),
-                                     reference_position);
+
     const std::vector<dealii::types::material_id> cylinder_ids{0};
-    auto                                          spring_force =
-      std::make_unique<fdl::SpringForce<2>>(quadrature1,
-                                            kappa_s_block,
-                                            *dof_handler,
-                                            cylinder_ids,
-                                            reference_position);
+
+    MappingQ<dim, spacedim> mapping(fe.tensor_degree());
+    auto spring_force = std::make_unique<fdl::SpringForce<2>>(
+      quadrature1,
+      kappa_s_block,
+      *dof_handler,
+      mapping,
+      cylinder_ids,
+      dealii::Functions::IdentityFunction<2>());
 
     std::vector<std::unique_ptr<fdl::ForceContribution<2>>> force_contributions;
     force_contributions.emplace_back(std::move(spring_force));

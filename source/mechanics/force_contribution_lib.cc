@@ -2,13 +2,58 @@
 
 #include <fiddle/mechanics/force_contribution_lib.h>
 
+#include <deal.II/dofs/dof_tools.h>
+
 #include <deal.II/lac/la_parallel_vector.h>
+
+#include <deal.II/numerics/vector_tools_interpolate.h>
 
 #include <algorithm>
 
 namespace fdl
 {
   using namespace dealii;
+
+  namespace
+  {
+    template <int dim, int spacedim>
+    LinearAlgebra::distributed::Vector<double>
+    do_interpolation(const DoFHandler<dim, spacedim> &dof_handler,
+                     const Mapping<dim, spacedim> &   mapping,
+                     const Function<spacedim> &       reference_position)
+    {
+      IndexSet locally_relevant_dofs;
+      DoFTools::extract_locally_relevant_dofs(dof_handler,
+                                              locally_relevant_dofs);
+      LinearAlgebra::distributed::Vector<double> result(
+        dof_handler.locally_owned_dofs(),
+        locally_relevant_dofs,
+        dof_handler.get_triangulation().get_communicator());
+
+      VectorTools::interpolate(mapping,
+                               dof_handler,
+                               reference_position,
+                               result);
+
+      return result;
+    }
+
+    std::vector<types::material_id>
+    setup_material_ids(const std::vector<types::material_id> &material_ids)
+    {
+      std::vector<types::material_id> result = material_ids;
+      // If the user doesn't want any material ids, let them do it. This utility
+      // function is only for the explicit material id case.
+      if (result.size() == 0)
+        result.push_back(numbers::invalid_material_id);
+
+      // permit duplicates in the input array
+      std::sort(result.begin(), result.end());
+      result.erase(std::unique(result.begin(), result.end()), result.end());
+
+      return result;
+    }
+  } // namespace
 
   template <int dim, int spacedim, typename Number>
   SpringForce<dim, spacedim, Number>::SpringForce(
@@ -26,27 +71,51 @@ namespace fdl
 
   template <int dim, int spacedim, typename Number>
   SpringForce<dim, spacedim, Number>::SpringForce(
+    const Quadrature<dim> &          quad,
+    const double                     spring_constant,
+    const DoFHandler<dim, spacedim> &dof_handler,
+    const Mapping<dim, spacedim> &   mapping,
+    const Function<spacedim> &       reference_position)
+    : ForceContribution<dim, spacedim, double>(quad)
+    , spring_constant(spring_constant)
+    , dof_handler(&dof_handler)
+    , reference_position(
+        do_interpolation(dof_handler, mapping, reference_position))
+  {
+    this->reference_position.update_ghost_values();
+  }
+
+  template <int dim, int spacedim, typename Number>
+  SpringForce<dim, spacedim, Number>::SpringForce(
     const Quadrature<dim> &                           quad,
     const double                                      spring_constant,
     const DoFHandler<dim, spacedim> &                 dof_handler,
     const std::vector<types::material_id> &           material_ids,
     const LinearAlgebra::distributed::Vector<double> &reference_position)
     : ForceContribution<dim, spacedim, double>(quad)
-    , material_ids(material_ids)
+    , material_ids(setup_material_ids(material_ids))
     , spring_constant(spring_constant)
     , dof_handler(&dof_handler)
     , reference_position(reference_position)
   {
-    if (material_ids.size() == 0)
-      // If the user doesn't want any material ids, let them do it
-      this->material_ids.push_back(numbers::invalid_material_id);
+    this->reference_position.update_ghost_values();
+  }
 
-    // permit duplicates in the input array
-    std::sort(this->material_ids.begin(), this->material_ids.end());
-    this->material_ids.erase(std::unique(this->material_ids.begin(),
-                                         this->material_ids.end()),
-                             this->material_ids.end());
-
+  template <int dim, int spacedim, typename Number>
+  SpringForce<dim, spacedim, Number>::SpringForce(
+    const Quadrature<dim> &                quad,
+    const double                           spring_constant,
+    const DoFHandler<dim, spacedim> &      dof_handler,
+    const Mapping<dim, spacedim> &         mapping,
+    const std::vector<types::material_id> &material_ids,
+    const Function<spacedim> &             reference_position)
+    : ForceContribution<dim, spacedim, double>(quad)
+    , material_ids(setup_material_ids(material_ids))
+    , spring_constant(spring_constant)
+    , dof_handler(&dof_handler)
+    , reference_position(
+        do_interpolation(dof_handler, mapping, reference_position))
+  {
     this->reference_position.update_ghost_values();
   }
 
