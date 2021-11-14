@@ -5,7 +5,11 @@
 
 #include <fiddle/mechanics/force_contribution.h>
 
+#include <deal.II/base/function.h>
+
 #include <deal.II/dofs/dof_handler.h>
+
+#include <deal.II/fe/mapping.h>
 
 #include <deal.II/lac/la_parallel_vector.h>
 
@@ -37,6 +41,16 @@ namespace fdl
       const LinearAlgebra::distributed::Vector<double> &reference_position);
 
     /**
+     * Same, but for an initial position set up by a Function instead of a
+     * specified vector.
+     */
+    SpringForce(const Quadrature<dim> &          quad,
+                const double                     spring_constant,
+                const DoFHandler<dim, spacedim> &dof_handler,
+                const Mapping<dim, spacedim> &   mapping,
+                const Function<spacedim> &       reference_function);
+
+    /**
      * Constructor. Same idea, but only applies the force on cells with the
      * provided material ids.
      *
@@ -49,6 +63,17 @@ namespace fdl
       const DoFHandler<dim, spacedim> &                 dof_handler,
       const std::vector<types::material_id> &           material_ids,
       const LinearAlgebra::distributed::Vector<double> &reference_position);
+
+    /**
+     * Same, but for an initial position set up by a Function instead of a
+     * specified vector.
+     */
+    SpringForce(const Quadrature<dim> &                quad,
+                const double                           spring_constant,
+                const DoFHandler<dim, spacedim> &      dof_handler,
+                const Mapping<dim, spacedim> &         mapping,
+                const std::vector<types::material_id> &material_ids,
+                const Function<spacedim> &             reference_position);
 
     /**
      * Set the reference position to a new value.

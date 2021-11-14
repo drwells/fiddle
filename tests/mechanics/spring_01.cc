@@ -8,6 +8,7 @@
 
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/mapping_cartesian.h>
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/tria.h>
@@ -24,6 +25,24 @@
 #include <vector>
 
 // Basic test for SpringForce
+
+using namespace dealii;
+template <int dim>
+class IP2 : public Function<dim>
+{
+public:
+  IP2()
+    : Function<dim>(dim)
+  {}
+
+  virtual double
+  value(const Point<dim> &p, const unsigned int component = 0) const override
+  {
+    AssertIndexRange(component, dim);
+    return p[component] + 2.0;
+  }
+};
+
 
 using namespace dealii;
 template <int dim>
@@ -79,8 +98,9 @@ main(int argc, char **argv)
     current[i] = 2.0 + reference[i];
 
   // We have to do some manual setup of stuff normally done inside the library
+  MappingCartesian<2>     mapping;
   QMidpoint<2>            quadrature;
-  FEValues<2>             fe_values(fe, quadrature, update_values);
+  FEValues<2>             fe_values(mapping, fe, quadrature, update_values);
   fdl::MechanicsValues<2> m_values(fe_values,
                                    current,
                                    current,
@@ -94,15 +114,27 @@ main(int argc, char **argv)
       std::vector<types::material_id> materials;
       if (!input_db->getBoolWithDefault("use_no_materials", false))
         materials = {42, 99, 99, 99, 42};
-      spring_force = std::make_unique<fdl::SpringForce<2>>(
-        quadrature, spring_constant, dof_handler, materials, current);
+      if (input_db->getBoolWithDefault("use_function", false))
+        spring_force = std::make_unique<fdl::SpringForce<2>>(quadrature,
+                                                             spring_constant,
+                                                             dof_handler,
+                                                             mapping,
+                                                             materials,
+                                                             IP2<2>());
+      else
+        spring_force = std::make_unique<fdl::SpringForce<2>>(
+          quadrature, spring_constant, dof_handler, materials, current);
     }
   else
     {
-      spring_force = std::make_unique<fdl::SpringForce<2>>(quadrature,
-                                                           spring_constant,
-                                                           dof_handler,
-                                                           current);
+      if (input_db->getBoolWithDefault("use_function", false))
+        spring_force = std::make_unique<fdl::SpringForce<2>>(
+          quadrature, spring_constant, dof_handler, mapping, IP2<2>());
+      else
+        spring_force = std::make_unique<fdl::SpringForce<2>>(quadrature,
+                                                             spring_constant,
+                                                             dof_handler,
+                                                             current);
     }
   spring_force->set_reference_position(reference);
 
