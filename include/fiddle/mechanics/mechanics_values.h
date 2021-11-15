@@ -16,8 +16,15 @@ namespace fdl
 {
   using namespace dealii;
 
-  // Enum controlling update values
-
+  /**
+   * Enum controlling update values. Computes all the useful things solid
+   * mechanics codes might want to use. compute_load_vector() and related
+   * functions use these flags to compute invariants in the least expensive
+   * manner possible.
+   *
+   * In 2D, the computed values still correspond to 3D values: see, e.g.,
+   * update_first_invariant.
+   */
   enum MechanicsUpdateFlags
   {
     /**
@@ -41,35 +48,45 @@ namespace fdl
     update_det_FF = 0x0004,
 
     /**
+     * Update det(FF)^{-2/3}. Only valid when dim == spacedim.
+     *
+     * This value is intended to be used with the modified invariants.
+     */
+    update_n23_det_FF = 0x0008,
+
+    /**
      * Update the positions at the quadrature points.
      */
-    update_position_values = 0x0008,
+    update_position_values = 0x0010,
 
     /**
      * Update the velocities at the quadrature points.
      */
-    update_velocity_values = 0x0010,
+    update_velocity_values = 0x0020,
 
     /**
      * The right Cauchy-Green deformation tensor: C := F^T F.
      */
-    update_right_cauchy_green = 0x0020,
+    update_right_cauchy_green = 0x0040,
 
     /**
-     * The first invariant: tr(C)
+     * The first invariant: tr(C) in 3D. In 2D this is tr(C) + 1 to account for
+     * the 'missing' row and column.
      */
-    update_first_invariant = 0x0040,
+    update_first_invariant = 0x0080,
 
     /**
-     * The second invariant: 1/2(tr(C)^2 - tr(C^2))
+     * The second invariant: 1/2(tr(C)^2 - tr(C^2)) in 3D. Like the first
+     * invariant, this is 1/2(tr(C)^2 - tr(C^2)) + tr(C) in 2D to account for
+     * the missing component.
      */
-    update_second_invariant = 0x0080,
+    update_second_invariant = 0x0100,
 
     /**
      * The third invariant: det(C). If dim == spacedim then this is also
      * det(FF)^2.
      */
-    update_third_invariant = 0x0100,
+    update_third_invariant = 0x0200,
   };
 
   // Manipulation routines for flags
@@ -133,6 +150,8 @@ namespace fdl
           result |= update_FF;
         if (result & update_det_FF)
           result |= update_FF;
+        if (result & update_n23_det_FF)
+          result |= update_det_FF;
         if (result & update_right_cauchy_green)
           result |= update_FF;
         if (result & update_first_invariant)
@@ -181,6 +200,9 @@ namespace fdl
     const std::vector<double> &
     get_det_FF() const;
 
+    const std::vector<double> &
+    get_n23_det_FF() const;
+
     const std::vector<Tensor<1, spacedim>> &
     get_position_values() const;
 
@@ -213,6 +235,8 @@ namespace fdl
     std::vector<Tensor<2, spacedim>> FF_inv_T;
 
     std::vector<double> det_FF;
+
+    std::vector<double> n23_det_FF;
 
     std::vector<Tensor<1, spacedim>> position_values;
 
@@ -284,6 +308,8 @@ namespace fdl
       FF_inv_T.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_det_FF)
       det_FF.resize(this->fe_values->n_quadrature_points);
+    if (update_flags & MechanicsUpdateFlags::update_n23_det_FF)
+      n23_det_FF.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_position_values)
       position_values.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_velocity_values)
@@ -346,6 +372,13 @@ namespace fdl
           FF_inv_T[q] = transpose(invert(FF[q]));
         if (update_flags & update_det_FF)
           det_FF[q] = determinant(FF[q]);
+        if (update_flags & update_n23_det_FF)
+          {
+            // It is slightly more accurate (according to herbie) to do
+            // division, cbrt, and then multiply
+            const auto temp = std::cbrt(1.0 / det_FF[q]);
+            n23_det_FF[q]   = temp * temp;
+          }
         if (update_flags & update_right_cauchy_green)
           // TODO - get rid of the call to symmetrize()
           {
@@ -357,14 +390,26 @@ namespace fdl
           {
             Assert(update_flags & update_right_cauchy_green,
                    ExcFDLInternalError());
-            first_invariant[q] = dealii::first_invariant(right_cauchy_green[q]);
+            Assert(dim == 2 || dim == 3, ExcFDLInternalError());
+            if (dim == 2)
+              first_invariant[q] =
+                dealii::first_invariant(right_cauchy_green[q]) + 1.0;
+            else
+              first_invariant[q] =
+                dealii::first_invariant(right_cauchy_green[q]);
           }
         if (update_flags & update_second_invariant)
           {
             Assert(update_flags & update_right_cauchy_green,
                    ExcFDLInternalError());
-            second_invariant[q] =
-              dealii::second_invariant(right_cauchy_green[q]);
+            Assert(dim == 2 || dim == 3, ExcFDLInternalError());
+            if (dim == 2)
+              second_invariant[q] =
+                dealii::second_invariant(right_cauchy_green[q]) +
+                trace(right_cauchy_green[q]);
+            else
+              second_invariant[q] =
+                dealii::second_invariant(right_cauchy_green[q]);
           }
         if (update_flags & update_third_invariant)
           {
@@ -423,6 +468,15 @@ namespace fdl
   {
     Assert(update_flags & update_det_FF, ExcMessage("Needs update_det_FF"));
     return det_FF;
+  }
+
+  template <int dim, int spacedim, typename VectorType>
+  inline const std::vector<double> &
+  MechanicsValues<dim, spacedim, VectorType>::get_n23_det_FF() const
+  {
+    Assert(update_flags & update_n23_det_FF,
+           ExcMessage("Needs update_n23_det_FF"));
+    return n23_det_FF;
   }
 
   template <int dim, int spacedim, typename VectorType>

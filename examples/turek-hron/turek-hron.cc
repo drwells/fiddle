@@ -123,7 +123,7 @@ namespace ModelData
     virtual fdl::MechanicsUpdateFlags
     get_mechanics_update_flags() const override
     {
-      return fdl::update_det_FF | fdl::update_FF | fdl::update_FF_inv_T |
+      return fdl::update_n23_det_FF | fdl::update_FF | fdl::update_FF_inv_T |
              fdl::update_first_invariant;
     }
 
@@ -143,12 +143,11 @@ namespace ModelData
         {
           for (unsigned int qp_n = 0; qp_n < stresses.size(); ++qp_n)
             {
-              const auto &J        = me_values.get_det_FF()[qp_n];
+              const auto &n23_J    = me_values.get_n23_det_FF()[qp_n];
               const auto &FF       = me_values.get_FF()[qp_n];
               const auto &I1       = me_values.get_first_invariant()[qp_n];
               const auto &FF_inv_T = me_values.get_FF_inv_T()[qp_n];
-              // TODO make sure this is right in true 2D
-              stresses[qp_n] = mu_s / J * (FF - (I1 / 2.0) * FF_inv_T);
+              stresses[qp_n] = mu_s * n23_J * (FF - (I1 / 3.0) * FF_inv_T);
             }
         }
       else
