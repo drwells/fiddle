@@ -76,6 +76,9 @@ SETUP_3D(base nonintersecting_sphere_01.cc)
 SETUP_2D(grid collect_bboxes_01.cc)
 SETUP_3D(grid collect_bboxes_01.cc)
 
+SETUP_2D(grid exodus.cc)
+SETUP_2D(grid exodus_parallel.cc)
+
 SETUP(grid edge_lengths_01.cc fiddle2d)
 SETUP(grid edge_lengths_02.cc fiddle3d)
 SETUP(grid collect_edge_lengths_01.cc fiddle2d)
