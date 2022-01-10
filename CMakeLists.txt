@@ -51,6 +51,7 @@ SET(FIDDLE_SRC
   source/interaction/interaction_utilities.cc
 
   source/mechanics/mechanics_utilities.cc
+  source/mechanics/mechanics_values.cc
   source/mechanics/force_contribution_lib.cc
   source/mechanics/part.cc
   source/mechanics/part_vectors.cc
