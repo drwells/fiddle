@@ -20,13 +20,13 @@ namespace fdl
   template <int dim, int spacedim>
   void
   compute_volumetric_pk1_load_vector(
-    const DoFHandler<dim, spacedim> &                      dof_handler,
-    const Mapping<dim, spacedim> &                         mapping,
+    const DoFHandler<dim, spacedim>                       &dof_handler,
+    const Mapping<dim, spacedim>                          &mapping,
     const std::vector<ForceContribution<dim, spacedim> *> &stress_contributions,
     const double                                           time,
-    const LinearAlgebra::distributed::Vector<double> &     current_position,
-    const LinearAlgebra::distributed::Vector<double> &     current_velocity,
-    LinearAlgebra::distributed::Vector<double> &           force_rhs)
+    const LinearAlgebra::distributed::Vector<double>      &current_position,
+    const LinearAlgebra::distributed::Vector<double>      &current_velocity,
+    LinearAlgebra::distributed::Vector<double>            &force_rhs)
   {
     for (const auto *p : stress_contributions)
       {
@@ -49,13 +49,13 @@ namespace fdl
   void
   compute_volumetric_force_load_vector(
     const DoFHandler<dim, spacedim> &dof_handler,
-    const Mapping<dim, spacedim> &   mapping,
+    const Mapping<dim, spacedim>    &mapping,
     const std::vector<ForceContribution<dim, spacedim> *>
-      &          volume_force_contributions,
+                &volume_force_contributions,
     const double time,
     const LinearAlgebra::distributed::Vector<double> &current_position,
     const LinearAlgebra::distributed::Vector<double> &current_velocity,
-    LinearAlgebra::distributed::Vector<double> &      force_rhs)
+    LinearAlgebra::distributed::Vector<double>       &force_rhs)
   {
     for (const auto *p : volume_force_contributions)
       {
@@ -79,13 +79,13 @@ namespace fdl
   void
   compute_boundary_force_load_vector(
     const DoFHandler<dim, spacedim> &dof_handler,
-    const Mapping<dim, spacedim> &   mapping,
+    const Mapping<dim, spacedim>    &mapping,
     const std::vector<ForceContribution<dim, spacedim> *>
-      &          boundary_force_contributions,
+                &boundary_force_contributions,
     const double time,
     const LinearAlgebra::distributed::Vector<double> &current_position,
     const LinearAlgebra::distributed::Vector<double> &current_velocity,
-    LinearAlgebra::distributed::Vector<double> &      force_rhs)
+    LinearAlgebra::distributed::Vector<double>       &force_rhs)
   {
     Assert(dim == spacedim, ExcNotImplemented());
 
@@ -200,13 +200,13 @@ namespace fdl
   template <int dim, int spacedim>
   void
   compute_load_vector(
-    const DoFHandler<dim, spacedim> &                      dof_handler,
-    const Mapping<dim, spacedim> &                         mapping,
+    const DoFHandler<dim, spacedim>                       &dof_handler,
+    const Mapping<dim, spacedim>                          &mapping,
     const std::vector<ForceContribution<dim, spacedim> *> &force_contributions,
     const double                                           time,
-    const LinearAlgebra::distributed::Vector<double> &     current_position,
-    const LinearAlgebra::distributed::Vector<double> &     current_velocity,
-    LinearAlgebra::distributed::Vector<double> &           force_rhs)
+    const LinearAlgebra::distributed::Vector<double>      &current_position,
+    const LinearAlgebra::distributed::Vector<double>      &current_velocity,
+    LinearAlgebra::distributed::Vector<double>            &force_rhs)
   {
     Assert(dim == spacedim, ExcNotImplemented());
 

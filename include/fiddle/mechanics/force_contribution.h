@@ -129,7 +129,7 @@ namespace fdl
     virtual void
     compute_force(
       const double                            time,
-      const MechanicsValues<dim, spacedim> &  m_values,
+      const MechanicsValues<dim, spacedim>   &m_values,
       ArrayView<Tensor<1, spacedim, Number>> &forces) const // = 0 TODO fix this
     {
       // It shouldn't be possible to get here but since compute_surface_force
