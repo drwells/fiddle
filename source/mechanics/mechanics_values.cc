@@ -263,4 +263,40 @@ namespace fdl
   template class MechanicsValues<NDIM,
                                  NDIM,
                                  LinearAlgebra::distributed::Vector<double>>;
+
+  template
+  void
+  MechanicsValues<NDIM - 1, NDIM, Vector<double>>::reinit(
+    const DoFHandler<NDIM - 1, NDIM>::active_cell_iterator &cell);
+  template
+  void
+  MechanicsValues<NDIM - 1, NDIM, Vector<double>>::reinit(
+    const DoFHandler<NDIM - 1, NDIM>::active_face_iterator &cell);
+
+  template
+  void
+  MechanicsValues<NDIM, NDIM, Vector<double>>::reinit(
+    const DoFHandler<NDIM, NDIM>::active_cell_iterator &cell);
+  template
+  void
+  MechanicsValues<NDIM, NDIM, Vector<double>>::reinit(
+    const DoFHandler<NDIM, NDIM>::active_face_iterator &cell);
+
+  template
+  void
+  MechanicsValues<NDIM - 1, NDIM, LinearAlgebra::distributed::Vector<double>>::reinit(
+    const DoFHandler<NDIM - 1, NDIM>::active_cell_iterator &cell);
+  template
+  void
+  MechanicsValues<NDIM - 1, NDIM, LinearAlgebra::distributed::Vector<double>>::reinit(
+    const DoFHandler<NDIM - 1, NDIM>::active_face_iterator &cell);
+
+  template
+  void
+  MechanicsValues<NDIM, NDIM, LinearAlgebra::distributed::Vector<double>>::reinit(
+    const DoFHandler<NDIM, NDIM>::active_cell_iterator &cell);
+  template
+  void
+  MechanicsValues<NDIM, NDIM, LinearAlgebra::distributed::Vector<double>>::reinit(
+    const DoFHandler<NDIM, NDIM>::active_face_iterator &cell);
 } // namespace fdl
