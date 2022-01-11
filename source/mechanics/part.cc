@@ -229,6 +229,14 @@ namespace fdl
     return forces;
   }
 
+  template <int dim, int spacedim>
+  void
+  Part<dim, spacedim>::add_force_contribution(
+    std::unique_ptr<ForceContribution<dim, spacedim>> force)
+  {
+    force_contributions.push_back(std::move(force));
+  }
+
   template class Part<NDIM - 1, NDIM>;
   template class Part<NDIM, NDIM>;
 } // namespace fdl
