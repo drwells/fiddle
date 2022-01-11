@@ -15,11 +15,11 @@ namespace fdl
     // matrix_free doesn't work with codim != 0 so we need a helper function
     template <int dim>
     void
-    reinit_matrix_free(const Mapping<dim> &             mapping,
-                       const DoFHandler<dim> &          dof_handler,
+    reinit_matrix_free(const Mapping<dim>              &mapping,
+                       const DoFHandler<dim>           &dof_handler,
                        const AffineConstraints<double> &constraints,
-                       const Quadrature<dim> &          quadrature,
-                       MatrixFree<dim, double> &        matrix_free)
+                       const Quadrature<dim>           &quadrature,
+                       MatrixFree<dim, double>         &matrix_free)
     {
       matrix_free.reinit(mapping, dof_handler, constraints, quadrature);
     }

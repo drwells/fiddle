@@ -35,20 +35,20 @@ namespace fdl
      * Applies the force on every cell.
      */
     SpringForce(
-      const Quadrature<dim> &                           quad,
+      const Quadrature<dim>                            &quad,
       const double                                      spring_constant,
-      const DoFHandler<dim, spacedim> &                 dof_handler,
+      const DoFHandler<dim, spacedim>                  &dof_handler,
       const LinearAlgebra::distributed::Vector<double> &reference_position);
 
     /**
      * Same, but for an initial position set up by a Function instead of a
      * specified vector.
      */
-    SpringForce(const Quadrature<dim> &          quad,
+    SpringForce(const Quadrature<dim>           &quad,
                 const double                     spring_constant,
                 const DoFHandler<dim, spacedim> &dof_handler,
-                const Mapping<dim, spacedim> &   mapping,
-                const Function<spacedim> &       reference_function);
+                const Mapping<dim, spacedim>    &mapping,
+                const Function<spacedim>        &reference_function);
 
     /**
      * Constructor. Same idea, but only applies the force on cells with the
@@ -58,22 +58,22 @@ namespace fdl
      * any cell.
      */
     SpringForce(
-      const Quadrature<dim> &                           quad,
+      const Quadrature<dim>                            &quad,
       const double                                      spring_constant,
-      const DoFHandler<dim, spacedim> &                 dof_handler,
-      const std::vector<types::material_id> &           material_ids,
+      const DoFHandler<dim, spacedim>                  &dof_handler,
+      const std::vector<types::material_id>            &material_ids,
       const LinearAlgebra::distributed::Vector<double> &reference_position);
 
     /**
      * Same, but for an initial position set up by a Function instead of a
      * specified vector.
      */
-    SpringForce(const Quadrature<dim> &                quad,
+    SpringForce(const Quadrature<dim>                 &quad,
                 const double                           spring_constant,
-                const DoFHandler<dim, spacedim> &      dof_handler,
-                const Mapping<dim, spacedim> &         mapping,
+                const DoFHandler<dim, spacedim>       &dof_handler,
+                const Mapping<dim, spacedim>          &mapping,
                 const std::vector<types::material_id> &material_ids,
-                const Function<spacedim> &             reference_position);
+                const Function<spacedim>              &reference_position);
 
     /**
      * Set the reference position to a new value.

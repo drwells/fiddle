@@ -19,8 +19,8 @@ namespace fdl
     template <int dim, int spacedim>
     LinearAlgebra::distributed::Vector<double>
     do_interpolation(const DoFHandler<dim, spacedim> &dof_handler,
-                     const Mapping<dim, spacedim> &   mapping,
-                     const Function<spacedim> &       reference_position)
+                     const Mapping<dim, spacedim>    &mapping,
+                     const Function<spacedim>        &reference_position)
     {
       IndexSet locally_relevant_dofs;
       DoFTools::extract_locally_relevant_dofs(dof_handler,
@@ -57,9 +57,9 @@ namespace fdl
 
   template <int dim, int spacedim, typename Number>
   SpringForce<dim, spacedim, Number>::SpringForce(
-    const Quadrature<dim> &                           quad,
+    const Quadrature<dim>                            &quad,
     const double                                      spring_constant,
-    const DoFHandler<dim, spacedim> &                 dof_handler,
+    const DoFHandler<dim, spacedim>                  &dof_handler,
     const LinearAlgebra::distributed::Vector<double> &reference_position)
     : ForceContribution<dim, spacedim, double>(quad)
     , spring_constant(spring_constant)
@@ -71,11 +71,11 @@ namespace fdl
 
   template <int dim, int spacedim, typename Number>
   SpringForce<dim, spacedim, Number>::SpringForce(
-    const Quadrature<dim> &          quad,
+    const Quadrature<dim>           &quad,
     const double                     spring_constant,
     const DoFHandler<dim, spacedim> &dof_handler,
-    const Mapping<dim, spacedim> &   mapping,
-    const Function<spacedim> &       reference_position)
+    const Mapping<dim, spacedim>    &mapping,
+    const Function<spacedim>        &reference_position)
     : ForceContribution<dim, spacedim, double>(quad)
     , spring_constant(spring_constant)
     , dof_handler(&dof_handler)
@@ -87,10 +87,10 @@ namespace fdl
 
   template <int dim, int spacedim, typename Number>
   SpringForce<dim, spacedim, Number>::SpringForce(
-    const Quadrature<dim> &                           quad,
+    const Quadrature<dim>                            &quad,
     const double                                      spring_constant,
-    const DoFHandler<dim, spacedim> &                 dof_handler,
-    const std::vector<types::material_id> &           material_ids,
+    const DoFHandler<dim, spacedim>                  &dof_handler,
+    const std::vector<types::material_id>            &material_ids,
     const LinearAlgebra::distributed::Vector<double> &reference_position)
     : ForceContribution<dim, spacedim, double>(quad)
     , material_ids(setup_material_ids(material_ids))
@@ -103,12 +103,12 @@ namespace fdl
 
   template <int dim, int spacedim, typename Number>
   SpringForce<dim, spacedim, Number>::SpringForce(
-    const Quadrature<dim> &                quad,
+    const Quadrature<dim>                 &quad,
     const double                           spring_constant,
-    const DoFHandler<dim, spacedim> &      dof_handler,
-    const Mapping<dim, spacedim> &         mapping,
+    const DoFHandler<dim, spacedim>       &dof_handler,
+    const Mapping<dim, spacedim>          &mapping,
     const std::vector<types::material_id> &material_ids,
-    const Function<spacedim> &             reference_position)
+    const Function<spacedim>              &reference_position)
     : ForceContribution<dim, spacedim, double>(quad)
     , material_ids(setup_material_ids(material_ids))
     , spring_constant(spring_constant)
@@ -171,7 +171,7 @@ namespace fdl
   void
   SpringForce<dim, spacedim, Number>::compute_volume_force(
     const double /*time*/,
-    const MechanicsValues<dim, spacedim> &                             m_values,
+    const MechanicsValues<dim, spacedim>                              &m_values,
     const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
     ArrayView<Tensor<1, spacedim, Number>> &forces) const
   {
