@@ -92,7 +92,7 @@ public:
     ArrayView<Tensor<1, spacedim, double>> &forces) const
   {
     const auto &fe_values = m_values.get_fe_values();
-    auto &      extractor = fe_values[FEValuesExtractors::Vector(0)];
+    auto       &extractor = fe_values[FEValuesExtractors::Vector(0)];
     std::vector<Tensor<1, dim>> values(forces.size());
     extractor.get_function_values(sines, values);
     std::copy(values.begin(), values.end(), forces.begin());
@@ -185,7 +185,15 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   std::vector<std::unique_ptr<fdl::ForceContribution<dim, spacedim>>> forces;
   forces.emplace_back(new SineForce<dim, spacedim>());
   std::vector<fdl::Part<dim>> parts;
-  parts.emplace_back(tria, fe, std::move(forces));
+  if (input_db->getBoolWithDefault("add_force_late", true))
+    {
+      parts.emplace_back(tria, fe);
+      parts.back().add_force_contribution(std::move(forces.front()));
+    }
+  else
+    {
+      parts.emplace_back(tria, fe, std::move(forces));
+    }
   IFEDMethod2<dim, spacedim> ifed_method(test_db,
                                          input_db->getDatabase("IFEDMethod"),
                                          std::move(parts));
@@ -361,7 +369,7 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
     }
 
     {
-      const auto & part = ifed_method.get_part(0);
+      const auto  &part = ifed_method.get_part(0);
       DataOut<dim> data_out;
       data_out.attach_dof_handler(part.get_dof_handler());
       data_out.add_data_vector(ifed_method.get_force(), "F");
