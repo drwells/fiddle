@@ -28,6 +28,7 @@ BinPackParameters: false
 BraceWrapping:
   AfterClass: true
   AfterControlStatement: true
+  AfterCaseLabel: true
   AfterEnum: true
   AfterExternBlock: true
   AfterFunction: true
