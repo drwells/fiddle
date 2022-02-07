@@ -109,7 +109,7 @@ namespace fdl
     int
     get_variable_index(const int            ex_id,
                        const ex_entity_type entity_type,
-                       const std::string &  variable_name)
+                       const std::string   &variable_name)
     {
       int n_variables = -1;
       int ierr        = ex_get_variable_param(ex_id, entity_type, &n_variables);
@@ -190,49 +190,53 @@ namespace fdl
     permute_values(const ReferenceCell        type,
                    const int                  n_nodes_per_element,
                    std::vector<unsigned int> &permutation_to_deal_vertices,
-                   std::vector<double> &      component_dof_values)
+                   std::vector<double>       &component_dof_values)
     {
       AssertDimension(permutation_to_deal_vertices.size(), n_nodes_per_element);
       AssertDimension(component_dof_values.size(), n_nodes_per_element);
       const unsigned int X = numbers::invalid_unsigned_int;
       switch (type)
         {
-            // 1D:
+          // 1D:
 
-            // 2D: map exodus line DoFs to their vertices, translate to deal.II
-            // vertices, and then find the corresponding DoF.
-            case ReferenceCells::Triangle: {
-              switch (n_nodes_per_element)
-                {
-                  case 3:
-                    break; // only vertices, no more to do
-                    case 6: {
-                      const unsigned int exodus_line_dof_to_vertices[6][2] = {
-                        {X, X}, {X, X}, {X, X}, {0, 1}, {1, 2}, {2, 0}};
-                      const unsigned int line_to_dof_n[] = {3, 4, 5};
+          // 2D: map exodus line DoFs to their vertices, translate to deal.II
+          // vertices, and then find the corresponding DoF.
+          case ReferenceCells::Triangle:
+            switch (n_nodes_per_element)
+              {
+                case 3:
+                  break; // only vertices, no more to do
+                case 6:
+                  {
+                    const unsigned int exodus_line_dof_to_vertices[6][2] = {
+                      {X, X}, {X, X}, {X, X}, {0, 1}, {1, 2}, {2, 0}};
+                    const unsigned int line_to_dof_n[] = {3, 4, 5};
 
-                      for (int dof_n = type.n_vertices();
-                           dof_n < n_nodes_per_element;
-                           ++dof_n)
-                        {
-                          permutation_to_deal_vertices[dof_n] =
-                            translate_exodus_line_dof(
-                              type,
-                              permutation_to_deal_vertices,
-                              exodus_line_dof_to_vertices,
-                              line_to_dof_n,
-                              dof_n);
-                        }
-                    }
-                }
-            }
+                    for (int dof_n = type.n_vertices();
+                         dof_n < n_nodes_per_element;
+                         ++dof_n)
+                      {
+                        permutation_to_deal_vertices[dof_n] =
+                          translate_exodus_line_dof(
+                            type,
+                            permutation_to_deal_vertices,
+                            exodus_line_dof_to_vertices,
+                            line_to_dof_n,
+                            dof_n);
+                      }
+                  }
+                  break;
+                default:
+                  AssertThrow(false, ExcFDLNotImplemented());
+              }
             break;
           case ReferenceCells::Quadrilateral:
             switch (n_nodes_per_element)
               {
                 case 4:
                   break; // only vertices, no more to do
-                  case 9: {
+                case 9:
+                  {
                     const unsigned int X = numbers::invalid_unsigned_int;
                     const unsigned int exodus_line_dof_to_vertices[9][2] = {
                       {X, X},
@@ -264,7 +268,7 @@ namespace fdl
                   }
                   break;
                 default:
-                  AssertThrow(false, fdl::ExcFDLNotImplemented());
+                  AssertThrow(false, ExcFDLNotImplemented());
               }
             break;
 
@@ -284,11 +288,11 @@ namespace fdl
     template <int dim, int spacedim, typename VectorType>
     void
     read_nodal_components(const int                        ex_id,
-                          const std::vector<std::string> & variable_names,
+                          const std::vector<std::string>  &variable_names,
                           const int                        time_step_n,
                           const DoFHandler<dim, spacedim> &dof_handler,
                           const std::vector<unsigned int> &components,
-                          VectorType &                     dof_vector)
+                          VectorType                      &dof_vector)
     {
       // Read basic mesh information:
       std::vector<char> cell_kind_name(MAX_LINE_LENGTH + 1, '\0');
@@ -422,7 +426,8 @@ namespace fdl
                       for (unsigned int i = 0; i < fe.n_dofs_per_cell(); ++i)
                         {
                           const auto pair = fe.system_to_component_index(i);
-                          if (pair.first == component_n && index_set.is_element(cell_dofs[i]))
+                          if (pair.first == component_n &&
+                              index_set.is_element(cell_dofs[i]))
                             dof_vector[cell_dofs[i]] = cell_values[pair.second];
                         }
                     }
@@ -436,11 +441,11 @@ namespace fdl
 
   template <int dim, int spacedim, typename VectorType>
   void
-  read_elemental_data(const std::string &                 filename,
+  read_elemental_data(const std::string                  &filename,
                       const Triangulation<dim, spacedim> &tria,
                       const int                           time_step_n,
-                      const std::string &                 variable_name,
-                      VectorType &                        cell_vector)
+                      const std::string                  &variable_name,
+                      VectorType                         &cell_vector)
   {
     AssertDimension(cell_vector.size(), tria.n_active_cells());
     Assert(tria.n_levels() == 1,
@@ -600,13 +605,14 @@ namespace fdl
 
   template <int dim, int spacedim, typename VectorType>
   void
-  read_dof_data(const std::string &              filename,
+  read_dof_data(const std::string               &filename,
                 const DoFHandler<dim, spacedim> &dof_handler,
                 const int                        time_step_n,
-                const std::vector<std::string> & variable_names,
-                VectorType &                     dof_vector)
+                const std::vector<std::string>  &variable_names,
+                VectorType                      &dof_vector)
   // TODO - make this work with a ComponentMask
   {
+#ifdef DEAL_II_TRILINOS_WITH_SEACAS
     Assert(dof_handler.get_triangulation().n_levels() == 1,
            ExcMessage("This function can only be called on unrefined grids."));
     AssertDimension(dof_handler.n_dofs(), dof_vector.size());
@@ -687,89 +693,97 @@ namespace fdl
       const int ierr = ex_close(ex_id);
       AssertThrowExodusII(ierr);
     }
+#else
+    (void)filename;
+    (void)dof_handler;
+    (void)time_step_n;
+    (void)variable_names;
+    (void)dof_vector;
+    AssertThrow(false, ExcMessage("Only available with Trilinos + SEACAS"));
+#endif
   }
 
   template void
-  read_elemental_data(const std::string &                  filename,
+  read_elemental_data(const std::string                   &filename,
                       const Triangulation<NDIM - 1, NDIM> &tria,
                       const int                            time_step_n,
-                      const std::string &                  var_name,
-                      Vector<double> &                     cell_vector);
+                      const std::string                   &var_name,
+                      Vector<double>                      &cell_vector);
 
   template void
-  read_elemental_data(const std::string &              filename,
+  read_elemental_data(const std::string               &filename,
                       const Triangulation<NDIM, NDIM> &tria,
                       const int                        time_step_n,
-                      const std::string &              var_name,
-                      Vector<double> &                 cell_vector);
+                      const std::string               &var_name,
+                      Vector<double>                  &cell_vector);
 
   template void
-  read_elemental_data(const std::string &                         filename,
-                      const Triangulation<NDIM - 1, NDIM> &       tria,
+  read_elemental_data(const std::string                          &filename,
+                      const Triangulation<NDIM - 1, NDIM>        &tria,
                       const int                                   time_step_n,
-                      const std::string &                         var_name,
+                      const std::string                          &var_name,
                       LinearAlgebra::distributed::Vector<double> &cell_vector);
 
   template void
-  read_elemental_data(const std::string &                         filename,
-                      const Triangulation<NDIM, NDIM> &           tria,
+  read_elemental_data(const std::string                          &filename,
+                      const Triangulation<NDIM, NDIM>            &tria,
                       const int                                   time_step_n,
-                      const std::string &                         var_name,
+                      const std::string                          &var_name,
                       LinearAlgebra::distributed::Vector<double> &cell_vector);
 
   template void
-  read_dof_data(const std::string &               filename,
+  read_dof_data(const std::string                &filename,
                 const DoFHandler<NDIM - 1, NDIM> &dof_handler,
                 const int                         time_step_n,
-                const std::vector<std::string> &  var_names,
-                Vector<double> &                  dof_vector);
+                const std::vector<std::string>   &var_names,
+                Vector<double>                   &dof_vector);
 
   template void
-  read_dof_data(const std::string &             filename,
-                const DoFHandler<NDIM, NDIM> &  dof_handler,
+  read_dof_data(const std::string              &filename,
+                const DoFHandler<NDIM, NDIM>   &dof_handler,
                 const int                       time_step_n,
                 const std::vector<std::string> &var_names,
-                Vector<double> &                dof_vector);
+                Vector<double>                 &dof_vector);
 
   template void
-  read_dof_data(const std::string &                         filename,
-                const DoFHandler<NDIM - 1, NDIM> &          dof_handler,
+  read_dof_data(const std::string                          &filename,
+                const DoFHandler<NDIM - 1, NDIM>           &dof_handler,
                 const int                                   time_step_n,
-                const std::vector<std::string> &            var_names,
+                const std::vector<std::string>             &var_names,
                 LinearAlgebra::distributed::Vector<double> &dof_vector);
 
   template void
-  read_dof_data(const std::string &                         filename,
-                const DoFHandler<NDIM, NDIM> &              dof_handler,
+  read_dof_data(const std::string                          &filename,
+                const DoFHandler<NDIM, NDIM>               &dof_handler,
                 const int                                   time_step_n,
-                const std::vector<std::string> &            var_names,
+                const std::vector<std::string>             &var_names,
                 LinearAlgebra::distributed::Vector<double> &dof_vector);
 
   template void
-  read_dof_data(const std::string &               filename,
+  read_dof_data(const std::string                &filename,
                 const DoFHandler<NDIM - 1, NDIM> &dof_handler,
                 const int                         time_step_n,
-                const std::vector<std::string> &  var_names,
-                BlockVector<double> &             dof_vector);
+                const std::vector<std::string>   &var_names,
+                BlockVector<double>              &dof_vector);
 
   template void
-  read_dof_data(const std::string &             filename,
-                const DoFHandler<NDIM, NDIM> &  dof_handler,
+  read_dof_data(const std::string              &filename,
+                const DoFHandler<NDIM, NDIM>   &dof_handler,
                 const int                       time_step_n,
                 const std::vector<std::string> &var_names,
-                BlockVector<double> &           dof_vector);
+                BlockVector<double>            &dof_vector);
 
   template void
-  read_dof_data(const std::string &                              filename,
-                const DoFHandler<NDIM - 1, NDIM> &               dof_handler,
+  read_dof_data(const std::string                               &filename,
+                const DoFHandler<NDIM - 1, NDIM>                &dof_handler,
                 const int                                        time_step_n,
-                const std::vector<std::string> &                 var_names,
+                const std::vector<std::string>                  &var_names,
                 LinearAlgebra::distributed::BlockVector<double> &dof_vector);
 
   template void
-  read_dof_data(const std::string &                              filename,
-                const DoFHandler<NDIM, NDIM> &                   dof_handler,
+  read_dof_data(const std::string                               &filename,
+                const DoFHandler<NDIM, NDIM>                    &dof_handler,
                 const int                                        time_step_n,
-                const std::vector<std::string> &                 var_names,
+                const std::vector<std::string>                  &var_names,
                 LinearAlgebra::distributed::BlockVector<double> &dof_vector);
 } // namespace fdl
