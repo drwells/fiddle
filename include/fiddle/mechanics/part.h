@@ -123,6 +123,15 @@ namespace fdl
     get_force_contributions() const;
 
     /**
+     * Add another force contribution.
+     *
+     * Typically, force contributions should be set by the constructor, but it
+     * is sometimes necessary to add additional forces later on.
+     */
+    void
+    add_force_contribution(std::unique_ptr<ForceContribution<dim, spacedim>> force);
+
+    /**
      * Get a constant reference to the DoFHandler used for the position,
      * velocity, and force.
      */

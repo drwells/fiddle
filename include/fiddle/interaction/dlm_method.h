@@ -10,6 +10,8 @@
 
 namespace fdl
 {
+  using namespace dealii;
+
   /**
    * Abstract class implementing an interface for the distributed Lagrange
    * multiplier method.
@@ -19,29 +21,22 @@ namespace fdl
   {
   public:
     /**
-     * Update the stored value of the position of the externally managed
-     * structure.
+     * Get the position of the structure (from the point of view of the
+     * mechanics solver) at the specified time. This may involve interpolation
+     * in time.
      */
     virtual void
-    update_external_position(
-      const double                                      time,
-      const LinearAlgebra::distributed::Vector<double> &ib_position) = 0;
-
-    /**
-     * Get the position of the structure (from the point of view of this object)
-     * at the specified time. This may involve interpolation in time.
-     */
-    virtual void
-    get_position(
+    get_mechanics_position(
       const double                                time,
       LinearAlgebra::distributed::Vector<double> &position) const = 0;
 
     /**
-     * Get a reference to the current position, whereever it may be. Useful for
-     * initializing other classes that need some position vector to make sense.
+     * Get a reference to the current position (from the point of view of the
+     * mechanics solver), whereever it may be. Useful for initializing other
+     * classes that need some position vector to make sense.
      */
     virtual const LinearAlgebra::distributed::Vector<double> &
-    get_position() const = 0;
+    get_current_mechanics_position() const = 0;
   };
 
   /**

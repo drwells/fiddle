@@ -35,15 +35,7 @@ public:
   {}
 
   virtual void
-  update_external_position(
-    const double /*time*/,
-    const LinearAlgebra::distributed::Vector<double> & /*ib_position*/) override
-  {
-    // we don't compute anything based on the external positition
-  }
-
-  virtual void
-  get_position(
+  get_mechanics_position(
     const double                                time,
     LinearAlgebra::distributed::Vector<double> &position) const override
   {
@@ -55,7 +47,7 @@ public:
   }
 
   virtual const LinearAlgebra::distributed::Vector<double> &
-  get_position() const override
+  get_current_mechanics_position() const override
   {
     return reference_position;
   }
