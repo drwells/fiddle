@@ -204,70 +204,71 @@ namespace fdl
           case ReferenceCells::Triangle:
             switch (n_nodes_per_element)
               {
-              case 3:
-                break; // only vertices, no more to do
-              case 6:
-                {
-                  const unsigned int exodus_line_dof_to_vertices[6][2] = {
-                    {X, X}, {X, X}, {X, X}, {0, 1}, {1, 2}, {2, 0}};
-                  const unsigned int line_to_dof_n[] = {3, 4, 5};
+                case 3:
+                  break; // only vertices, no more to do
+                case 6:
+                  {
+                    const unsigned int exodus_line_dof_to_vertices[6][2] = {
+                      {X, X}, {X, X}, {X, X}, {0, 1}, {1, 2}, {2, 0}};
+                    const unsigned int line_to_dof_n[] = {3, 4, 5};
 
-                  for (int dof_n = type.n_vertices();
-                       dof_n < n_nodes_per_element;
-                       ++dof_n)
-                    {
-                      permutation_to_deal_vertices[dof_n] =
-                        translate_exodus_line_dof(
-                                                  type,
-                                                  permutation_to_deal_vertices,
-                                                  exodus_line_dof_to_vertices,
-                                                  line_to_dof_n,
-                                                  dof_n);
-                    }
-                }
-              default:
-                AssertThrow(false, ExcFDLNotImplemented());
+                    for (int dof_n = type.n_vertices();
+                         dof_n < n_nodes_per_element;
+                         ++dof_n)
+                      {
+                        permutation_to_deal_vertices[dof_n] =
+                          translate_exodus_line_dof(
+                            type,
+                            permutation_to_deal_vertices,
+                            exodus_line_dof_to_vertices,
+                            line_to_dof_n,
+                            dof_n);
+                      }
+                  }
+                  break;
+                default:
+                  AssertThrow(false, ExcFDLNotImplemented());
               }
             break;
           case ReferenceCells::Quadrilateral:
             switch (n_nodes_per_element)
               {
-              case 4:
-                break; // only vertices, no more to do
-              case 9:
-                {
-                  const unsigned int X = numbers::invalid_unsigned_int;
-                  const unsigned int exodus_line_dof_to_vertices[9][2] = {
-                    {X, X},
-                    {X, X},
-                    {X, X},
-                    {X, X},
-                    {0, 1},
-                    {1, 2},
-                    {2, 3},
-                    {3, 0},
-                    {X, X}};
+                case 4:
+                  break; // only vertices, no more to do
+                case 9:
+                  {
+                    const unsigned int X = numbers::invalid_unsigned_int;
+                    const unsigned int exodus_line_dof_to_vertices[9][2] = {
+                      {X, X},
+                      {X, X},
+                      {X, X},
+                      {X, X},
+                      {0, 1},
+                      {1, 2},
+                      {2, 3},
+                      {3, 0},
+                      {X, X}};
 
-                  const unsigned int line_to_dof_n[] = {4, 5, 6, 7};
+                    const unsigned int line_to_dof_n[] = {4, 5, 6, 7};
 
-                  for (int dof_n = type.n_vertices();
-                       dof_n < n_nodes_per_element - 1;
-                       ++dof_n)
-                    {
-                      permutation_to_deal_vertices[dof_n] =
-                        translate_exodus_line_dof(
-                                                  type,
-                                                  permutation_to_deal_vertices,
-                                                  exodus_line_dof_to_vertices,
-                                                  line_to_dof_n,
-                                                  dof_n);
-                    }
+                    for (int dof_n = type.n_vertices();
+                         dof_n < n_nodes_per_element - 1;
+                         ++dof_n)
+                      {
+                        permutation_to_deal_vertices[dof_n] =
+                          translate_exodus_line_dof(
+                            type,
+                            permutation_to_deal_vertices,
+                            exodus_line_dof_to_vertices,
+                            line_to_dof_n,
+                            dof_n);
+                      }
 
-                  permutation_to_deal_vertices[8] = 8;
-                }
-                break;
-              default:
-                AssertThrow(false, ExcFDLNotImplemented());
+                    permutation_to_deal_vertices[8] = 8;
+                  }
+                  break;
+                default:
+                  AssertThrow(false, ExcFDLNotImplemented());
               }
             break;
 
