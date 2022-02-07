@@ -11,7 +11,7 @@ namespace fdl
     : SpringForce<dim, spacedim>(quad,
                                  spring_constant,
                                  dof_handler,
-                                 dlm.get_position())
+                                 dlm.get_current_mechanics_position())
     , dlm(&dlm)
   {}
 
@@ -23,8 +23,7 @@ namespace fdl
     const LinearAlgebra::distributed::Vector<double> & /*velocity*/)
   {
     this->current_position = &position;
-    dlm->update_external_position(time, position);
-    dlm->get_position(time, this->reference_position);
+    dlm->get_mechanics_position(time, this->reference_position);
   }
 
 
