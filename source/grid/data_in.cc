@@ -17,9 +17,6 @@
 #  include <exodusII.h>
 #endif
 
-
-#include <boost/algorithm/apply_permutation.hpp>
-
 namespace fdl
 {
   using namespace dealii;
@@ -278,11 +275,19 @@ namespace fdl
                         fdl::ExcFDLNotImplemented());
         }
 
-      boost::algorithm::apply_reverse_permutation(
-        component_dof_values.begin(),
-        component_dof_values.end(),
-        permutation_to_deal_vertices.begin(),
-        permutation_to_deal_vertices.end());
+      // It would be best to use boost::algorithm::apply_inverse_permutation()
+      // here but that's not in the bundled version of boost shipped with
+      // deal.II: - for compatibility, implement our own version.
+      for (std::size_t i = 0; i < permutation_to_deal_vertices.size(); ++i)
+        {
+          while (i != permutation_to_deal_vertices[i])
+            {
+              const auto next = permutation_to_deal_vertices[i];
+              std::swap(component_dof_values[i], component_dof_values[next]);
+              std::swap(permutation_to_deal_vertices[i],
+                        permutation_to_deal_vertices[next]);
+            }
+        }
     }
 
     template <int dim, int spacedim, typename VectorType>
