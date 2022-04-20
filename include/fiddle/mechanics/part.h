@@ -147,6 +147,13 @@ namespace fdl
     get_partitioner() const;
 
     /**
+     * Get the MatrixFree object used to set up the matrix-free operators.
+     * Useful if a second FE solver also needs to do matrix-free calculations.
+     */
+    std::shared_ptr<const MatrixFree<dim, double>>
+    get_matrix_free() const;
+
+    /**
      * Return a reference to the quadrature used to set up the mass operator.
      */
     const Quadrature<dim> &
@@ -302,6 +309,13 @@ namespace fdl
   Part<dim, spacedim>::get_partitioner() const
   {
     return partitioner;
+  }
+
+  template <int dim, int spacedim>
+  std::shared_ptr<const MatrixFree<dim, double>>
+  Part<dim, spacedim>::get_matrix_free() const
+  {
+    return matrix_free;
   }
 
   template <int dim, int spacedim>
