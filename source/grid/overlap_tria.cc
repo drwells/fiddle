@@ -51,6 +51,8 @@ namespace fdl
     native_cell_subdomain_ids.clear();
     this->clear();
 
+    const auto native_manifold_ids = native_tria->get_manifold_ids();
+
     std::vector<CellData<dim>> cells;
     SubCellData                subcell_data;
 
@@ -112,18 +114,29 @@ namespace fdl
                   {
                     for (const auto &face : cell->face_iterators())
                       {
-                        CellData<2> boundary_quad;
-                        extract_subcell(face, boundary_quad);
-                        subcell_data.boundary_quads.push_back(
-                          std::move(boundary_quad));
-
-                        for (unsigned int line_n = 0; line_n < face->n_lines();
-                             ++line_n)
+                        // This neglects the obscure case in which lines have
+                        // manifold ids set to a non-flat value but faces don't.
+                        // It doesn't make sense, in practice, for all faces to
+                        // be flat with curved lines so this shouldn't be a
+                        // problem.
+                        if (face->at_boundary() ||
+                            face->manifold_id() != numbers::flat_manifold_id)
                           {
-                            CellData<1> boundary_line;
-                            extract_subcell(face->line(line_n), boundary_line);
-                            subcell_data.boundary_lines.push_back(
-                              std::move(boundary_line));
+                            CellData<2> boundary_quad;
+                            extract_subcell(face, boundary_quad);
+                            subcell_data.boundary_quads.push_back(
+                              std::move(boundary_quad));
+
+                            for (unsigned int line_n = 0;
+                                 line_n < face->n_lines();
+                                 ++line_n)
+                              {
+                                CellData<1> boundary_line;
+                                extract_subcell(face->line(line_n),
+                                                boundary_line);
+                                subcell_data.boundary_lines.push_back(
+                                  std::move(boundary_line));
+                              }
                           }
                       }
                   }
@@ -160,7 +173,7 @@ namespace fdl
         const auto native_cell = get_native_cell(cell);
         cell->set_material_id(native_cell->material_id());
       }
-    for (const auto manifold_id : native_tria->get_manifold_ids())
+    for (const auto manifold_id : native_manifold_ids)
       {
         if (manifold_id != numbers::flat_manifold_id)
           this->set_manifold(manifold_id,
