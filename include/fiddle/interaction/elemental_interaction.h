@@ -87,17 +87,11 @@ namespace fdl
     compute_spread_intermediate(
       std::unique_ptr<TransactionBase> transaction) override;
 
-    virtual std::unique_ptr<TransactionBase>
-    add_workload_start(
-      const int                                         workload_index,
-      const LinearAlgebra::distributed::Vector<double> &position,
-      const DoFHandler<dim, spacedim> &position_dof_handler) override;
-
+    /**
+     * Middle part of communicating workload. Does not communicate.
+     */
     virtual std::unique_ptr<TransactionBase>
     add_workload_intermediate(std::unique_ptr<TransactionBase> t_ptr) override;
-
-    virtual void
-    add_workload_finish(std::unique_ptr<TransactionBase> t_ptr) override;
 
   protected:
     virtual VectorOperation::values

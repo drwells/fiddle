@@ -125,6 +125,45 @@ namespace fdl
   };
 
   /**
+   * Transaction class used for workload calculations.
+   *
+   * @note Several of the arrays owned by this class will be asynchronously
+   * written into by MPI - moving or resizing these arrays can result in program
+   * crashes. It should normally not be necessary for objects that do not set up
+   * a transaction to modify it.
+   */
+  template <int dim, int spacedim>
+  struct WorkloadTransaction : public TransactionBase
+  {
+    int workload_index;
+
+    /// Native position DoFHandler.
+    SmartPointer<const DoFHandler<dim, spacedim>> native_position_dof_handler;
+
+    /// position scatter.
+    Scatter<double> position_scatter;
+
+    /// Native-partitioned position.
+    SmartPointer<const LinearAlgebra::distributed::Vector<double>>
+      native_position;
+
+    /// Overlap-partitioned position.
+    Vector<double> overlap_position;
+
+    /// Possible states for a transaction.
+    enum class State
+    {
+      Start,
+      Intermediate,
+      Finish,
+      Done
+    };
+
+    /// Next state. Used for consistency checking.
+    State next_state;
+  };
+
+  /**
    * Base class managing interaction between SAMRAI and deal.II data structures,
    * by interpolation and spreading, where the position of the structure is
    * described by a finite element field. This class sets up the data structures
