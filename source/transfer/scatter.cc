@@ -75,17 +75,19 @@ namespace fdl
     // communicate so we can't really check for consistent settings (i.e., there
     // is no correct value set on the owning processor). Hence we do a max
     // operation instead and hope the caller isn't doing anything too weird.
-    Assert(operation == VectorOperation::insert ||
-             operation == VectorOperation::add,
-           ExcNotImplemented());
     if (operation == VectorOperation::add)
       scatterer = 0.0;
-    else
+    else if (operation == VectorOperation::insert ||
+             operation == VectorOperation::max)
       {
         const auto size = scatterer.locally_owned_size() +
                           scatterer.get_partitioner()->n_ghost_indices();
         for (std::size_t i = 0; i < size; ++i)
-          scatterer.local_element(i) = std::numeric_limits<T>::min();
+          scatterer.local_element(i) = std::numeric_limits<T>::lowest();
+      }
+    else
+      {
+        Assert(false, ExcFDLNotImplemented());
       }
     // TODO: we can probably do the index translation just once and store it
     // so we could instead use scatterer::local_element(). It might be faster
@@ -97,8 +99,7 @@ namespace fdl
     scatterer.set_ghost_state(false);
 
     const VectorOperation::values actual_op =
-      operation == VectorOperation::add ? VectorOperation::add :
-                                          VectorOperation::max;
+      operation == VectorOperation::insert ? VectorOperation::max : operation;
     scatterer.compress_start(channel, actual_op);
   }
 
@@ -120,8 +121,7 @@ namespace fdl
                       "as were provided to the constructor in local"));
 
     const VectorOperation::values actual_op =
-      operation == VectorOperation::add ? VectorOperation::add :
-                                          VectorOperation::max;
+      operation == VectorOperation::insert ? VectorOperation::max : operation;
     scatterer.compress_finish(actual_op);
 
     for (std::size_t i = 0; i < scatterer.locally_owned_size(); ++i)
