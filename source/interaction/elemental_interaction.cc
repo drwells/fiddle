@@ -113,6 +113,13 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
+  bool
+  ElementalInteraction<dim, spacedim>::projection_is_interpolation() const
+  {
+    return false;
+  }
+
+  template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
   ElementalInteraction<dim, spacedim>::compute_projection_rhs_intermediate(
     std::unique_ptr<TransactionBase> t_ptr) const

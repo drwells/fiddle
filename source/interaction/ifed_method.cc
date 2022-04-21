@@ -320,34 +320,47 @@ namespace fdl
     IBAMR_TIMER_START(t_interpolate_velocity_solve);
     for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {
-        SolverControl control(
-          input_db->getIntegerWithDefault("solver_iterations", 100),
-          input_db->getDoubleWithDefault("solver_relative_tolerance", 1e-6) *
-            rhs_vecs[part_n].l2_norm());
-        SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
-        LinearAlgebra::distributed::Vector<double>           velocity(
-          parts[part_n].get_partitioner());
-
-        // If we mess up the matrix-free implementation will fix our
-        // partitioner: make sure we catch that case here
-        Assert(velocity.get_partitioner() == parts[part_n].get_partitioner(),
-               ExcFDLInternalError());
-        velocity_guesses[part_n].guess(velocity, rhs_vecs[part_n]);
-        cg.solve(parts[part_n].get_mass_operator(),
-                 velocity,
-                 rhs_vecs[part_n],
-                 parts[part_n].get_mass_preconditioner());
-        velocity_guesses[part_n].submit(velocity, rhs_vecs[part_n]);
-        // Same
-        Assert(velocity.get_partitioner() == parts[part_n].get_partitioner(),
-               ExcFDLInternalError());
-        part_vectors.set_velocity(part_n, data_time, std::move(velocity));
-
-        if (input_db->getBoolWithDefault("log_solver_iterations", false))
+        if (interactions[part_n]->projection_is_interpolation())
           {
-            tbox::plog << "IFEDMethod::interpolateVelocity(): "
-                       << "SolverCG<> converged in " << control.last_step()
-                       << " steps." << std::endl;
+            // If projection is actually interpolation we have a lot less to do
+            part_vectors.set_velocity(part_n,
+                                      data_time,
+                                      std::move(rhs_vecs[part_n]));
+          }
+        else
+          {
+            SolverControl control(
+              input_db->getIntegerWithDefault("solver_iterations", 100),
+              input_db->getDoubleWithDefault("solver_relative_tolerance",
+                                             1e-6) *
+                rhs_vecs[part_n].l2_norm());
+            SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
+            LinearAlgebra::distributed::Vector<double>           velocity(
+              parts[part_n].get_partitioner());
+
+            // If we mess up the matrix-free implementation will fix our
+            // partitioner: make sure we catch that case here
+            Assert(velocity.get_partitioner() ==
+                     parts[part_n].get_partitioner(),
+                   ExcFDLInternalError());
+            velocity_guesses[part_n].guess(velocity, rhs_vecs[part_n]);
+            cg.solve(parts[part_n].get_mass_operator(),
+                     velocity,
+                     rhs_vecs[part_n],
+                     parts[part_n].get_mass_preconditioner());
+            velocity_guesses[part_n].submit(velocity, rhs_vecs[part_n]);
+            // Same
+            Assert(velocity.get_partitioner() ==
+                     parts[part_n].get_partitioner(),
+                   ExcFDLInternalError());
+            part_vectors.set_velocity(part_n, data_time, std::move(velocity));
+
+            if (input_db->getBoolWithDefault("log_solver_iterations", false))
+              {
+                tbox::plog << "IFEDMethod::interpolateVelocity(): "
+                           << "SolverCG<> converged in " << control.last_step()
+                           << " steps." << std::endl;
+              }
           }
       }
     IBAMR_TIMER_STOP(t_interpolate_velocity_solve);
@@ -665,30 +678,40 @@ namespace fdl
         force_rhs.compress(VectorOperation::add);
         IBAMR_TIMER_STOP(t_compute_lagrangian_force_pk1);
 
-        IBAMR_TIMER_START(t_compute_lagrangian_force_solve);
-        SolverControl control(
-          input_db->getIntegerWithDefault("solver_iterations", 100),
-          input_db->getDoubleWithDefault("solver_relative_tolerance", 1e-6) *
-            force_rhs.l2_norm());
-        SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
-        force_guesses[part_n].guess(force, force_rhs);
-        cg.solve(part.get_mass_operator(),
-                 force,
-                 force_rhs,
-                 part.get_mass_preconditioner());
-        force.update_ghost_values();
-        force_guesses[part_n].submit(force, force_rhs);
-        if (input_db->getBoolWithDefault("log_solver_iterations", false))
+        if (interactions[part_n]->projection_is_interpolation())
           {
-            tbox::plog << "IFEDMethod::computeLagrangianForce(): "
-                       << "SolverCG<> converged in " << control.last_step()
-                       << " steps." << std::endl;
+            // TODO - we should probably call this the force density
+            part_vectors.set_force(part_n, data_time, std::move(force_rhs));
           }
-        part_vectors.set_force(part_n, data_time, std::move(force));
+        else
+          {
+            IBAMR_TIMER_START(t_compute_lagrangian_force_solve);
+            SolverControl control(
+              input_db->getIntegerWithDefault("solver_iterations", 100),
+              input_db->getDoubleWithDefault("solver_relative_tolerance",
+                                             1e-6) *
+                force_rhs.l2_norm());
+            SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
+            force_guesses[part_n].guess(force, force_rhs);
+            cg.solve(part.get_mass_operator(),
+                     force,
+                     force_rhs,
+                     part.get_mass_preconditioner());
+            force.update_ghost_values();
+            force_guesses[part_n].submit(force, force_rhs);
+            if (input_db->getBoolWithDefault("log_solver_iterations", false))
+              {
+                tbox::plog << "IFEDMethod::computeLagrangianForce(): "
+                           << "SolverCG<> converged in " << control.last_step()
+                           << " steps." << std::endl;
+              }
+            part_vectors.set_force(part_n, data_time, std::move(force));
+
+            IBAMR_TIMER_STOP(t_compute_lagrangian_force_solve);
+          }
 
         for (auto &force : part.get_force_contributions())
           force->finish_force(data_time);
-        IBAMR_TIMER_STOP(t_compute_lagrangian_force_solve);
       }
     IBAMR_TIMER_STOP(t_compute_lagrangian_force);
   }

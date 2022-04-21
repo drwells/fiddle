@@ -194,6 +194,14 @@ namespace fdl
     add_dof_handler(const DoFHandler<dim, spacedim> &native_dof_handler);
 
     /**
+     * For some interactions, the projection operator is actually interpolation.
+     * In that case the RHS is the solution and we can skip a lot of work.
+     * Defaults to returning false.
+     */
+    virtual bool
+    projection_is_interpolation() const;
+
+    /**
      * Start the computation of the RHS vector corresponding to projecting @p
      * data_idx onto the finite element space specified by @p dof_handler.
      * Since interpolation requires multiple data transfers it is split into

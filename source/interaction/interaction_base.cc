@@ -316,6 +316,15 @@ namespace fdl
 
 
   template <int dim, int spacedim>
+  bool
+  InteractionBase<dim, spacedim>::projection_is_interpolation() const
+  {
+    return false;
+  }
+
+
+
+  template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
   InteractionBase<dim, spacedim>::compute_projection_rhs_start(
     const std::string                                &kernel_name,

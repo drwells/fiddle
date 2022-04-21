@@ -65,6 +65,13 @@ namespace fdl
            const int level_number) override;
 
     /**
+     * Projection really is projection for this method so this always returns
+     * false.
+     */
+    virtual bool
+    projection_is_interpolation() const override;
+
+    /**
      * Middle part of velocity interpolation - performs the actual
      * computations and does not communicate.
      */
