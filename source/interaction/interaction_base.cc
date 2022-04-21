@@ -38,7 +38,7 @@ namespace fdl
   InteractionBase<dim, spacedim>::InteractionBase(
     const parallel::shared::Triangulation<dim, spacedim> &n_tria,
     const std::vector<BoundingBox<spacedim, float>> &global_active_cell_bboxes,
-    const std::vector<float> &                       global_active_cell_lengths,
+    const std::vector<float>                        &global_active_cell_lengths,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> p_hierarchy,
     const int                                         l_number)
     : communicator(MPI_COMM_NULL)
@@ -263,7 +263,7 @@ namespace fdl
   void
   InteractionBase<dim, spacedim>::return_scatter(
     const DoFHandler<dim, spacedim> &native_dof_handler,
-    Scatter<double> &&               scatter)
+    Scatter<double>                &&scatter)
   {
     auto iter = std::find(native_dof_handlers.begin(),
                           native_dof_handlers.end(),
@@ -318,13 +318,13 @@ namespace fdl
   template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
   InteractionBase<dim, spacedim>::compute_projection_rhs_start(
-    const std::string &                               kernel_name,
+    const std::string                                &kernel_name,
     const int                                         data_idx,
-    const DoFHandler<dim, spacedim> &                 position_dof_handler,
+    const DoFHandler<dim, spacedim>                  &position_dof_handler,
     const LinearAlgebra::distributed::Vector<double> &position,
-    const DoFHandler<dim, spacedim> &                 dof_handler,
-    const Mapping<dim, spacedim> &                    mapping,
-    LinearAlgebra::distributed::Vector<double> &      rhs)
+    const DoFHandler<dim, spacedim>                  &dof_handler,
+    const Mapping<dim, spacedim>                     &mapping,
+    LinearAlgebra::distributed::Vector<double>       &rhs)
   {
 #ifdef DEBUG
     {
@@ -442,12 +442,12 @@ namespace fdl
   template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
   InteractionBase<dim, spacedim>::compute_spread_start(
-    const std::string &                               kernel_name,
+    const std::string                                &kernel_name,
     const int                                         data_idx,
     const LinearAlgebra::distributed::Vector<double> &position,
-    const DoFHandler<dim, spacedim> &                 position_dof_handler,
-    const Mapping<dim, spacedim> &                    mapping,
-    const DoFHandler<dim, spacedim> &                 dof_handler,
+    const DoFHandler<dim, spacedim>                  &position_dof_handler,
+    const Mapping<dim, spacedim>                     &mapping,
+    const DoFHandler<dim, spacedim>                  &dof_handler,
     const LinearAlgebra::distributed::Vector<double> &solution)
   {
 #ifdef DEBUG
@@ -567,7 +567,7 @@ namespace fdl
   InteractionBase<dim, spacedim>::add_workload_start(
     const int                                         workload_index,
     const LinearAlgebra::distributed::Vector<double> &position,
-    const DoFHandler<dim, spacedim> &                 position_dof_handler)
+    const DoFHandler<dim, spacedim>                  &position_dof_handler)
   {
     (void)workload_index;
     (void)position;

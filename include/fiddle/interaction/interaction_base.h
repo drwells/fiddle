@@ -164,8 +164,8 @@ namespace fdl
      */
     InteractionBase(
       const parallel::shared::Triangulation<dim, spacedim> &native_tria,
-      const std::vector<BoundingBox<spacedim, float>> &     active_cell_bboxes,
-      const std::vector<float> &                            active_cell_lengths,
+      const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
+      const std::vector<float>                             &active_cell_lengths,
       tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
       const int                                             level_number);
 
@@ -175,7 +175,7 @@ namespace fdl
     virtual void
     reinit(const parallel::shared::Triangulation<dim, spacedim> &native_tria,
            const std::vector<BoundingBox<spacedim, float>> &active_cell_bboxes,
-           const std::vector<float> &                       active_cell_lengths,
+           const std::vector<float>                        &active_cell_lengths,
            tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
            const int                                         level_number);
 
@@ -210,13 +210,13 @@ namespace fdl
      */
     virtual std::unique_ptr<TransactionBase>
     compute_projection_rhs_start(
-      const std::string &                               kernel_name,
+      const std::string                                &kernel_name,
       const int                                         data_idx,
-      const DoFHandler<dim, spacedim> &                 position_dof_handler,
+      const DoFHandler<dim, spacedim>                  &position_dof_handler,
       const LinearAlgebra::distributed::Vector<double> &position,
-      const DoFHandler<dim, spacedim> &                 dof_handler,
-      const Mapping<dim, spacedim> &                    mapping,
-      LinearAlgebra::distributed::Vector<double> &      rhs);
+      const DoFHandler<dim, spacedim>                  &dof_handler,
+      const Mapping<dim, spacedim>                     &mapping,
+      LinearAlgebra::distributed::Vector<double>       &rhs);
 
     /**
      * Middle part of velocity interpolation - finalizes the forward scatters
@@ -255,12 +255,12 @@ namespace fdl
      */
     virtual std::unique_ptr<TransactionBase>
     compute_spread_start(
-      const std::string &                               kernel_name,
+      const std::string                                &kernel_name,
       const int                                         data_idx,
       const LinearAlgebra::distributed::Vector<double> &position,
-      const DoFHandler<dim, spacedim> &                 position_dof_handler,
-      const Mapping<dim, spacedim> &                    mapping,
-      const DoFHandler<dim, spacedim> &                 dof_handler,
+      const DoFHandler<dim, spacedim>                  &position_dof_handler,
+      const Mapping<dim, spacedim>                     &mapping,
+      const DoFHandler<dim, spacedim>                  &dof_handler,
       const LinearAlgebra::distributed::Vector<double> &solution);
 
     /**
@@ -293,7 +293,7 @@ namespace fdl
     add_workload_start(
       const int                                         workload_index,
       const LinearAlgebra::distributed::Vector<double> &position,
-      const DoFHandler<dim, spacedim> &                 position_dof_handler);
+      const DoFHandler<dim, spacedim>                  &position_dof_handler);
 
     virtual std::unique_ptr<TransactionBase>
     add_workload_intermediate(std::unique_ptr<TransactionBase> t_ptr);
@@ -345,7 +345,7 @@ namespace fdl
      */
     void
     return_scatter(const DoFHandler<dim, spacedim> &native_dof_handler,
-                   Scatter<double> &&               scatter);
+                   Scatter<double>                &&scatter);
 
     /**
      * @name Geometric data.

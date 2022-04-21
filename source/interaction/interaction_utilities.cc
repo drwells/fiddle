@@ -53,7 +53,7 @@ namespace fdl
 
     template <int dim, int spacedim>
     void
-    check_quadratures(const std::vector<unsigned char> &  quadrature_indices,
+    check_quadratures(const std::vector<unsigned char>   &quadrature_indices,
                       const std::vector<Quadrature<dim>> &quadratures,
                       const Triangulation<dim, spacedim> &tria)
     {
@@ -74,10 +74,10 @@ namespace fdl
   } // namespace
 
 
-  template <int spacedim, typename Number, typename TYPE>
+  template <int spacedim, typename Number, typename Scalar>
   void
   tag_cells_internal(
-    const std::vector<BoundingBox<spacedim, Number>> &        bboxes,
+    const std::vector<BoundingBox<spacedim, Number>>         &bboxes,
     const int                                                 tag_index,
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<spacedim>> patch_level)
   {
@@ -95,7 +95,7 @@ namespace fdl
     const std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches =
       extract_patches(patch_level);
 
-    std::vector<tbox::Pointer<pdat::CellData<spacedim, TYPE>>> tag_data;
+    std::vector<tbox::Pointer<pdat::CellData<spacedim, Scalar>>> tag_data;
     for (const auto &patch : patches)
       {
         Assert(patch->getPatchData(tag_index),
@@ -137,7 +137,7 @@ namespace fdl
                 domain_box.upper());
             const hier::Box<spacedim> box(i_lower, i_upper);
 
-            tag_data[patch_n]->fillAll(TYPE(1), box);
+            tag_data[patch_n]->fillAll(Scalar(1), box);
           }
       }
   }
@@ -149,7 +149,7 @@ namespace fdl
   template <int spacedim, typename Number>
   void
   tag_cells(
-    const std::vector<BoundingBox<spacedim, Number>> &        bboxes,
+    const std::vector<BoundingBox<spacedim, Number>>         &bboxes,
     const int                                                 tag_index,
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<spacedim>> patch_level)
   {
@@ -199,13 +199,13 @@ namespace fdl
 
 
 
-  template <int dim, int spacedim, typename TYPE>
+  template <int dim, int spacedim, typename Scalar>
   void
   count_quadrature_points_internal(
     const int                           qp_data_idx,
-    PatchMap<dim, spacedim> &           patch_map,
-    const Mapping<dim, spacedim> &      position_mapping,
-    const std::vector<unsigned char> &  quadrature_indices,
+    PatchMap<dim, spacedim>            &patch_map,
+    const Mapping<dim, spacedim>       &position_mapping,
+    const std::vector<unsigned char>   &quadrature_indices,
     const std::vector<Quadrature<dim>> &quadratures)
   {
     check_quadratures(quadrature_indices,
@@ -234,7 +234,7 @@ namespace fdl
     for (unsigned int patch_n = 0; patch_n < patch_map.size(); ++patch_n)
       {
         auto patch = patch_map.get_patch(patch_n);
-        tbox::Pointer<pdat::CellData<spacedim, TYPE>> qp_data =
+        tbox::Pointer<pdat::CellData<spacedim, Scalar>> qp_data =
           patch->getPatchData(qp_data_idx);
         Assert(qp_data, ExcMessage("Type mismatch"));
         Assert(qp_data->getDepth() == 1, ExcMessage("depth should be 1"));
@@ -262,7 +262,7 @@ namespace fdl
                                                      patch_geom,
                                                      patch_box);
                 if (patch_box.contains(i))
-                  (*qp_data)(i) += TYPE(1);
+                  (*qp_data)(i) += Scalar(1);
               }
           }
       }
@@ -273,8 +273,8 @@ namespace fdl
   template <int dim, int spacedim>
   void
   count_quadrature_points(const int                         qp_data_idx,
-                          PatchMap<dim, spacedim> &         patch_map,
-                          const Mapping<dim, spacedim> &    position_mapping,
+                          PatchMap<dim, spacedim>          &patch_map,
+                          const Mapping<dim, spacedim>     &position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
                           const std::vector<Quadrature<dim>> &quadratures)
   {
@@ -476,15 +476,15 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  compute_projection_rhs(const std::string &                 kernel_name,
+  compute_projection_rhs(const std::string                  &kernel_name,
                          const int                           data_idx,
-                         const PatchMap<dim, spacedim> &     patch_map,
-                         const Mapping<dim, spacedim> &      position_mapping,
-                         const std::vector<unsigned char> &  quadrature_indices,
+                         const PatchMap<dim, spacedim>      &patch_map,
+                         const Mapping<dim, spacedim>       &position_mapping,
+                         const std::vector<unsigned char>   &quadrature_indices,
                          const std::vector<Quadrature<dim>> &quadratures,
-                         const DoFHandler<dim, spacedim> &   dof_handler,
-                         const Mapping<dim, spacedim> &      mapping,
-                         Vector<double> &                    rhs)
+                         const DoFHandler<dim, spacedim>    &dof_handler,
+                         const Mapping<dim, spacedim>       &mapping,
+                         Vector<double>                     &rhs)
   {
 #define ARGUMENTS                                                         \
   kernel_name, data_idx, patch_map, position_mapping, quadrature_indices, \
@@ -537,7 +537,7 @@ namespace fdl
   void
   compute_values_generic(const FEValues<dim, spacedim> &fe_values,
                          const Vector<double>           fe_solution,
-                         std::vector<value_type> &      values)
+                         std::vector<value_type>       &values)
   {
     Assert(false, ExcNotImplemented());
   }
@@ -545,8 +545,8 @@ namespace fdl
   template <int dim, int spacedim>
   void
   compute_values_generic(const FEValues<dim, spacedim> &fe_values,
-                         const std::vector<double> &    fe_solution,
-                         std::vector<double> &          values)
+                         const std::vector<double>     &fe_solution,
+                         std::vector<double>           &values)
   {
     const FEValuesExtractors::Scalar scalar(0);
     fe_values[scalar].get_function_values_from_local_dof_values(fe_solution,
@@ -555,8 +555,8 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  compute_values_generic(const FEValues<dim, spacedim> &   fe_values,
-                         const std::vector<double> &       fe_solution,
+  compute_values_generic(const FEValues<dim, spacedim>    &fe_values,
+                         const std::vector<double>        &fe_solution,
                          std::vector<Tensor<1, spacedim>> &values)
   {
     const FEValuesExtractors::Vector vec(0);
@@ -566,15 +566,15 @@ namespace fdl
 
   template <int dim, int spacedim, typename value_type, typename patch_type>
   void
-  compute_spread_internal(const std::string &               kernel_name,
+  compute_spread_internal(const std::string                &kernel_name,
                           const int                         data_idx,
-                          PatchMap<dim, spacedim> &         patch_map,
-                          const Mapping<dim, spacedim> &    position_mapping,
+                          PatchMap<dim, spacedim>          &patch_map,
+                          const Mapping<dim, spacedim>     &position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
                           const std::vector<Quadrature<dim>> &quadratures,
-                          const DoFHandler<dim, spacedim> &   dof_handler,
-                          const Mapping<dim, spacedim> &      mapping,
-                          const Vector<double> &              solution)
+                          const DoFHandler<dim, spacedim>    &dof_handler,
+                          const Mapping<dim, spacedim>       &mapping,
+                          const Vector<double>               &solution)
   {
     check_quadratures(quadrature_indices,
                       quadratures,
@@ -677,15 +677,15 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  compute_spread(const std::string &                 kernel_name,
+  compute_spread(const std::string                  &kernel_name,
                  const int                           data_idx,
-                 PatchMap<dim, spacedim> &           patch_map,
-                 const Mapping<dim, spacedim> &      position_mapping,
-                 const std::vector<unsigned char> &  quadrature_indices,
+                 PatchMap<dim, spacedim>            &patch_map,
+                 const Mapping<dim, spacedim>       &position_mapping,
+                 const std::vector<unsigned char>   &quadrature_indices,
                  const std::vector<Quadrature<dim>> &quadratures,
-                 const DoFHandler<dim, spacedim> &   dof_handler,
-                 const Mapping<dim, spacedim> &      mapping,
-                 const Vector<double> &              solution)
+                 const DoFHandler<dim, spacedim>    &dof_handler,
+                 const Mapping<dim, spacedim>       &mapping,
+                 const Vector<double>               &solution)
   {
 #define ARGUMENTS                                                         \
   kernel_name, data_idx, patch_map, position_mapping, quadrature_indices, \

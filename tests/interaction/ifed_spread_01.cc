@@ -297,7 +297,7 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
     }
 
     {
-      const auto & part = ifed_method.get_part(0);
+      const auto  &part = ifed_method.get_part(0);
       DataOut<dim> data_out;
       data_out.attach_dof_handler(part.get_dof_handler());
       data_out.add_data_vector(ifed_method.get_force(), "F");

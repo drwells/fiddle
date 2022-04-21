@@ -19,10 +19,7 @@
 
 #include <deal.II/lac/vector.h>
 
-#include <ibtk/SAMRAIDataCache.h>
-#include <ibtk/SAMRAIGhostDataAccumulator.h>
-
-#include <PatchLevel.h>
+#include <BasePatchHierarchy.h>
 
 #include <memory>
 #include <vector>
@@ -48,8 +45,8 @@ namespace fdl
      */
     ElementalInteraction(
       const parallel::shared::Triangulation<dim, spacedim> &native_tria,
-      const std::vector<BoundingBox<spacedim, float>> &     active_cell_bboxes,
-      const std::vector<float> &                            active_cell_lengths,
+      const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
+      const std::vector<float>                             &active_cell_lengths,
       tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
       const int                                             level_number,
       const unsigned int                                    min_n_points_1D,
@@ -63,7 +60,7 @@ namespace fdl
     virtual void
     reinit(const parallel::shared::Triangulation<dim, spacedim> &native_tria,
            const std::vector<BoundingBox<spacedim, float>> &active_cell_bboxes,
-           const std::vector<float> &                       active_cell_lengths,
+           const std::vector<float>                        &active_cell_lengths,
            tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
            const int level_number) override;
 

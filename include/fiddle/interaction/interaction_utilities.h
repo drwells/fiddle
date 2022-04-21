@@ -1,27 +1,17 @@
 #ifndef included_fiddle_interaction_interaction_utilities_h
 #define included_fiddle_interaction_interaction_utilities_h
 
-#include <fiddle/base/quadrature_family.h>
-
-#include <fiddle/grid/overlap_tria.h>
+#include <fiddle/grid/nodal_patch_map.h>
 #include <fiddle/grid/patch_map.h>
 
-#include <fiddle/transfer/scatter.h>
-
 #include <deal.II/base/bounding_box.h>
-#include <deal.II/base/mpi_noncontiguous_partitioner.h>
 #include <deal.II/base/quadrature.h>
-
-#include <deal.II/distributed/shared_tria.h>
 
 #include <deal.II/dofs/dof_handler.h>
 
 #include <deal.II/fe/mapping.h>
 
 #include <deal.II/lac/vector.h>
-
-#include <ibtk/SAMRAIDataCache.h>
-#include <ibtk/SAMRAIGhostDataAccumulator.h>
 
 #include <PatchLevel.h>
 
@@ -75,8 +65,8 @@ namespace fdl
   template <int dim, int spacedim = dim>
   void
   count_quadrature_points(const int                         qp_data_idx,
-                          PatchMap<dim, spacedim> &         patch_map,
-                          const Mapping<dim, spacedim> &    position_mapping,
+                          PatchMap<dim, spacedim>          &patch_map,
+                          const Mapping<dim, spacedim>     &position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
                           const std::vector<Quadrature<dim>> &quadratures);
 
@@ -115,15 +105,15 @@ namespace fdl
    */
   template <int dim, int spacedim = dim>
   void
-  compute_projection_rhs(const std::string &                 kernel_name,
+  compute_projection_rhs(const std::string                  &kernel_name,
                          const int                           data_idx,
-                         const PatchMap<dim, spacedim> &     patch_map,
-                         const Mapping<dim, spacedim> &      position_mapping,
-                         const std::vector<unsigned char> &  quadrature_indices,
+                         const PatchMap<dim, spacedim>      &patch_map,
+                         const Mapping<dim, spacedim>       &position_mapping,
+                         const std::vector<unsigned char>   &quadrature_indices,
                          const std::vector<Quadrature<dim>> &quadratures,
-                         const DoFHandler<dim, spacedim> &   dof_handler,
-                         const Mapping<dim, spacedim> &      mapping,
-                         Vector<double> &                    rhs);
+                         const DoFHandler<dim, spacedim>    &dof_handler,
+                         const Mapping<dim, spacedim>       &mapping,
+                         Vector<double>                     &rhs);
 
   /**
    * Compute (by adding into the patch index @p data_idx) the forces on the
@@ -157,15 +147,15 @@ namespace fdl
    */
   template <int dim, int spacedim>
   void
-  compute_spread(const std::string &                 kernel_name,
+  compute_spread(const std::string                  &kernel_name,
                  const int                           data_idx,
-                 PatchMap<dim, spacedim> &           patch_map,
-                 const Mapping<dim, spacedim> &      position_mapping,
-                 const std::vector<unsigned char> &  quadrature_indices,
+                 PatchMap<dim, spacedim>            &patch_map,
+                 const Mapping<dim, spacedim>       &position_mapping,
+                 const std::vector<unsigned char>   &quadrature_indices,
                  const std::vector<Quadrature<dim>> &quadratures,
-                 const DoFHandler<dim, spacedim> &   dof_handler,
-                 const Mapping<dim, spacedim> &      mapping,
-                 const Vector<double> &              solution);
+                 const DoFHandler<dim, spacedim>    &dof_handler,
+                 const Mapping<dim, spacedim>       &mapping,
+                 const Vector<double>               &solution);
 
 } // namespace fdl
 #endif

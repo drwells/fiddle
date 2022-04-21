@@ -1,3 +1,5 @@
+#include <fiddle/base/exceptions.h>
+
 #include <fiddle/transfer/scatter.h>
 
 #include <deal.II/base/index_set.h>
@@ -12,7 +14,7 @@ namespace fdl
 
   IndexSet
   setup_ghost_dofs(const std::vector<types::global_dof_index> &overlap_dofs,
-                   const IndexSet &                            local_dofs)
+                   const IndexSet                             &local_dofs)
   {
     IndexSet ghost_dofs(local_dofs.size());
     // overlap dofs are usually not locally owned, so most of them are
@@ -28,8 +30,8 @@ namespace fdl
 
   template <typename T>
   Scatter<T>::Scatter(const std::vector<types::global_dof_index> &overlap,
-                      const IndexSet &                            local_dofs,
-                      const MPI_Comm &                            communicator)
+                      const IndexSet                             &local_dofs,
+                      const MPI_Comm                             &communicator)
     : overlap_dofs(overlap)
     , scatterer(local_dofs,
                 setup_ghost_dofs(overlap_dofs, local_dofs),
@@ -53,7 +55,7 @@ namespace fdl
   template <typename T>
   void
   Scatter<T>::overlap_to_global_start(
-    const Vector<T> &                      input,
+    const Vector<T>                       &input,
     const VectorOperation::values          operation,
     const unsigned int                     channel,
     LinearAlgebra::distributed::Vector<T> &output)
@@ -105,7 +107,7 @@ namespace fdl
   template <typename T>
   void
   Scatter<T>::overlap_to_global_finish(
-    const Vector<T> &                      input,
+    const Vector<T>                       &input,
     const VectorOperation::values          operation,
     LinearAlgebra::distributed::Vector<T> &output)
   {
@@ -133,7 +135,7 @@ namespace fdl
   Scatter<T>::global_to_overlap_start(
     const LinearAlgebra::distributed::Vector<T> &input,
     const unsigned int                           channel,
-    Vector<T> &                                  output)
+    Vector<T>                                   &output)
   {
     (void)output;
     Assert(output.size() == overlap_dofs.size(),
@@ -155,7 +157,7 @@ namespace fdl
   void
   Scatter<T>::global_to_overlap_finish(
     const LinearAlgebra::distributed::Vector<T> &input,
-    Vector<T> &                                  output)
+    Vector<T>                                   &output)
   {
       (void)input;
     Assert(output.size() == overlap_dofs.size(),

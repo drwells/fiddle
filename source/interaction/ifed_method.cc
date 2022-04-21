@@ -68,7 +68,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   IFEDMethod<dim, spacedim>::IFEDMethod(
-    const std::string &                object_name,
+    const std::string                 &object_name,
     tbox::Pointer<tbox::Database>      input_input_db,
     std::vector<Part<dim, spacedim>> &&input_parts,
     const bool                         register_for_restart)
@@ -264,7 +264,7 @@ namespace fdl
     const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>>
       &u_synch_scheds,
     const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
-      &    u_ghost_fill_scheds,
+          &u_ghost_fill_scheds,
     double data_time)
   {
     IBAMR_TIMER_START(t_interpolate_velocity);
@@ -638,7 +638,7 @@ namespace fdl
     for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {
         IBAMR_TIMER_START(t_compute_lagrangian_force_pk1);
-        const Part<dim, spacedim> &                part = parts[part_n];
+        const Part<dim, spacedim>                 &part = parts[part_n];
         LinearAlgebra::distributed::Vector<double> force(
           part.get_partitioner()),
           force_rhs(part.get_partitioner());
@@ -743,7 +743,8 @@ namespace fdl
 
 
   template <int dim, int spacedim>
-  void IFEDMethod<dim, spacedim>::beginDataRedistribution(
+  void
+  IFEDMethod<dim, spacedim>::beginDataRedistribution(
     tbox::Pointer<hier::PatchHierarchy<spacedim>> /*hierarchy*/,
     tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
   {
@@ -819,7 +820,8 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
-  void IFEDMethod<dim, spacedim>::endDataRedistribution(
+  void
+  IFEDMethod<dim, spacedim>::endDataRedistribution(
     tbox::Pointer<hier::PatchHierarchy<spacedim>> /*hierarchy*/,
     tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
   {

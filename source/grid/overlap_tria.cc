@@ -11,7 +11,7 @@ namespace fdl
   template <int dim, int spacedim>
   OverlapTriangulation<dim, spacedim>::OverlapTriangulation(
     const parallel::shared::Triangulation<dim, spacedim> &shared_tria,
-    const IntersectionPredicate<dim, spacedim> &          predicate)
+    const IntersectionPredicate<dim, spacedim>           &predicate)
   {
     reinit(shared_tria, predicate);
   }
@@ -31,7 +31,7 @@ namespace fdl
   void
   OverlapTriangulation<dim, spacedim>::reinit(
     const parallel::shared::Triangulation<dim, spacedim> &shared_tria,
-    const IntersectionPredicate<dim, spacedim> &          predicate)
+    const IntersectionPredicate<dim, spacedim>           &predicate)
   {
     // todo - clear signals, etc. if there is a new shared tria
     native_tria = &shared_tria;
