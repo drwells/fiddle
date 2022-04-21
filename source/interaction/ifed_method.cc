@@ -7,6 +7,7 @@
 #include <fiddle/interaction/elemental_interaction.h>
 #include <fiddle/interaction/ifed_method.h>
 #include <fiddle/interaction/interaction_utilities.h>
+#include <fiddle/interaction/nodal_interaction.h>
 
 #include <fiddle/mechanics/mechanics_utilities.h>
 
@@ -90,36 +91,52 @@ namespace fdl
     // here.
     MultithreadInfo::set_thread_limit(1);
 
-    // IBFEMethod uses this value - lower values aren't guaranteed to work. If
-    // dx = dX then we can use a lower density.
-    const double density =
-      input_db->getDoubleWithDefault("IB_point_density", 2.0);
-
-    // Default to minimum density:
-    auto        density_kind = DensityKind::Minimum;
-    std::string density_kind_string =
-      input_db->getStringWithDefault("density_kind", "Minimum");
-    std::transform(density_kind_string.begin(),
-                   density_kind_string.end(),
-                   density_kind_string.begin(),
-                   [](const unsigned char c) { return std::tolower(c); });
-    if (density_kind_string == "minimum")
-      density_kind = DensityKind::Minimum;
-    else if (density_kind_string == "average")
-      density_kind = DensityKind::Average;
-    else
-      AssertThrow(false, ExcFDLNotImplemented());
-
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
+    const std::string interaction =
+      input_db->getStringWithDefault("interaction", "ELEMENTAL");
+    if (interaction == "ELEMENTAL")
       {
-        const unsigned int n_points_1D =
-          parts[part_n].get_dof_handler().get_fe().tensor_degree() + 1;
-        interactions.emplace_back(new ElementalInteraction<dim, spacedim>(
-          n_points_1D, density, density_kind));
-        force_guesses.emplace_back(
-          input_db->getIntegerWithDefault("n_guess_vectors", 10));
-        velocity_guesses.emplace_back(
-          input_db->getIntegerWithDefault("n_guess_vectors", 10));
+        // IBFEMethod uses this value - lower values aren't guaranteed to work.
+        // If dx = dX then we can use a lower density.
+        const double density =
+          input_db->getDoubleWithDefault("IB_point_density", 2.0);
+
+        // Default to minimum density:
+        auto        density_kind = DensityKind::Minimum;
+        std::string density_kind_string =
+          input_db->getStringWithDefault("density_kind", "Minimum");
+        std::transform(density_kind_string.begin(),
+                       density_kind_string.end(),
+                       density_kind_string.begin(),
+                       [](const unsigned char c) { return std::tolower(c); });
+        if (density_kind_string == "minimum")
+          density_kind = DensityKind::Minimum;
+        else if (density_kind_string == "average")
+          density_kind = DensityKind::Average;
+        else
+          AssertThrow(false, ExcFDLNotImplemented());
+
+        for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
+          {
+            const unsigned int n_points_1D =
+              parts[part_n].get_dof_handler().get_fe().tensor_degree() + 1;
+            interactions.emplace_back(new ElementalInteraction<dim, spacedim>(
+              n_points_1D, density, density_kind));
+            force_guesses.emplace_back(
+              input_db->getIntegerWithDefault("n_guess_vectors", 10));
+            velocity_guesses.emplace_back(
+              input_db->getIntegerWithDefault("n_guess_vectors", 10));
+          }
+      }
+    else if (interaction == "NODAL")
+      {
+        for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
+          interactions.emplace_back(new NodalInteraction<dim, spacedim>());
+      }
+    else
+      {
+        AssertThrow(false,
+                    ExcMessage("unsupported interaction type " + interaction +
+                               "."));
       }
 
     AssertThrow(input_db->keyExists("IB_kernel"),
@@ -751,12 +768,28 @@ namespace fdl
         IBAMR_TIMER_STOP(t_reinit_interactions_edges);
 
         IBAMR_TIMER_START(t_reinit_interactions_objects);
-        interactions[part_n]->reinit(
-          tria,
-          global_bboxes,
-          global_edge_lengths,
-          secondary_hierarchy.getSecondaryHierarchy(),
-          primary_hierarchy->getFinestLevelNumber());
+        // We already check that this has a valid value earlier on
+        const std::string interaction =
+          input_db->getStringWithDefault("interaction", "ELEMENTAL");
+        if (interaction == "ELEMENTAL")
+          interactions[part_n]->reinit(
+            tria,
+            global_bboxes,
+            global_edge_lengths,
+            secondary_hierarchy.getSecondaryHierarchy(),
+            primary_hierarchy->getFinestLevelNumber());
+        else
+          {
+            dynamic_cast<NodalInteraction<dim, spacedim> &>(
+              *interactions[part_n])
+              .reinit(tria,
+                      global_bboxes,
+                      global_edge_lengths,
+                      secondary_hierarchy.getSecondaryHierarchy(),
+                      primary_hierarchy->getFinestLevelNumber(),
+                      part.get_dof_handler(),
+                      part.get_position());
+          }
         // TODO - we should probably add a reinit() function that sets up the
         // DoFHandler we always need
         interactions[part_n]->add_dof_handler(part.get_dof_handler());

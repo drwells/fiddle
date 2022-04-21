@@ -52,12 +52,14 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   center[1]       = 0.5;
   center[dim - 1] = 0.5; // works in 2D and 3D
   GridGenerator::hyper_ball(native_tria, center, 0.2);
-  native_tria.refine_global(3);
+  native_tria.refine_global(
+    test_db->getIntegerWithDefault("n_global_refinements", 3));
 
   tbox::pout << "Number of elements = " << native_tria.n_active_cells() << '\n';
 
   // fiddle stuff:
-  FESystem<dim>               fe(FE_Q<dim>(1), dim);
+  FESystem<dim> fe(FE_Q<dim>(test_db->getIntegerWithDefault("fe_degree", 1)),
+                   dim);
   std::vector<fdl::Part<dim>> parts;
   parts.emplace_back(native_tria, fe);
   tbox::Pointer<IBAMR::IBStrategy> ib_method_ops =
@@ -182,7 +184,7 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
                          spacedim,
                          LinearAlgebra::distributed::Vector<double>>
             position_mapping(part.get_dof_handler(), part.get_position());
-          data_out.build_patches(position_mapping);
+          data_out.build_patches(position_mapping, fe.tensor_degree());
           data_out.write_vtu_with_pvtu_record(
             "./", "solution", iteration_num, mpi_comm, 8);
         }

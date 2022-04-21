@@ -50,6 +50,7 @@ SET(FIDDLE_SRC
   source/interaction/ifed_method.cc
   source/interaction/interaction_base.cc
   source/interaction/interaction_utilities.cc
+  source/interaction/nodal_interaction.cc
 
   source/mechanics/mechanics_utilities.cc
   source/mechanics/mechanics_values.cc
