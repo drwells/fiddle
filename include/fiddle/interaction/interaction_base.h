@@ -82,6 +82,9 @@ namespace fdl
     /// The other scatter (used for assembly).
     Scatter<double> rhs_scatter;
 
+    /// The operation used in the scatter.
+    VectorOperation::values rhs_scatter_back_op;
+
     /// Mapping to use for the provided finite element field.
     SmartPointer<const Mapping<dim, spacedim>> mapping;
 
@@ -341,6 +344,17 @@ namespace fdl
     const DoFHandler<dim, spacedim> &
     get_overlap_dof_handler(
       const DoFHandler<dim, spacedim> &native_dof_handler) const;
+
+    /**
+     * Get the RHS scatter back operation when setting up the transactions. For
+     * nodal 'projection' (equivalent to interpolation) this is the max
+     * operation (since we set values) and for elemental projection this is
+     * addition.
+     *
+     * The default implementation returns VectorOperation::unknown.
+     */
+    virtual VectorOperation::values
+    get_rhs_scatter_type() const;
 
     /**
      * Return a scatter corresponding to the provided native dof handler.

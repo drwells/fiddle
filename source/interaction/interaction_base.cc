@@ -226,6 +226,15 @@ namespace fdl
 
 
   template <int dim, int spacedim>
+  VectorOperation::values
+  InteractionBase<dim, spacedim>::get_rhs_scatter_type() const
+  {
+    return VectorOperation::unknown;
+  }
+
+
+
+  template <int dim, int spacedim>
   Scatter<double>
   InteractionBase<dim, spacedim>::get_scatter(
     const DoFHandler<dim, spacedim> &native_dof_handler)
@@ -375,7 +384,8 @@ namespace fdl
     transaction.native_rhs         = &rhs;
     transaction.overlap_rhs.reinit(
       get_overlap_dof_handler(dof_handler).n_dofs());
-    transaction.rhs_scatter = get_scatter(dof_handler);
+    transaction.rhs_scatter         = get_scatter(dof_handler);
+    transaction.rhs_scatter_back_op = this->get_rhs_scatter_type();
 
     // Setup state:
     transaction.next_state = Transaction<dim, spacedim>::State::Intermediate;
@@ -413,7 +423,7 @@ namespace fdl
     // This object *cannot* get here without the first scatter finishing so
     // using channel 0 again is fine
     trans.rhs_scatter.overlap_to_global_start(trans.overlap_rhs,
-                                              VectorOperation::add,
+                                              trans.rhs_scatter_back_op,
                                               0,
                                               *trans.native_rhs);
 
@@ -437,7 +447,7 @@ namespace fdl
            ExcMessage("Transaction state should be Finish"));
 
     trans.rhs_scatter.overlap_to_global_finish(trans.overlap_rhs,
-                                               VectorOperation::add,
+                                               trans.rhs_scatter_back_op,
                                                *trans.native_rhs);
     trans.next_state = Transaction<dim, spacedim>::State::Done;
 

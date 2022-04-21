@@ -154,7 +154,7 @@ namespace fdl
 
     // After we compute we begin the scatter back to the native partitioning:
     trans.rhs_scatter.overlap_to_global_start(trans.overlap_rhs,
-                                              VectorOperation::add,
+                                              trans.rhs_scatter_back_op,
                                               0,
                                               *trans.native_rhs);
 
@@ -308,6 +308,17 @@ namespace fdl
     this->return_scatter(*trans.native_position_dof_handler,
                          std::move(trans.position_scatter));
   }
+
+
+
+  template <int dim, int spacedim>
+  VectorOperation::values
+  ElementalInteraction<dim, spacedim>::get_rhs_scatter_type() const
+  {
+    return VectorOperation::add;
+  }
+
+
 
   // instantiations
   template class ElementalInteraction<NDIM - 1, NDIM>;

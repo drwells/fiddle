@@ -100,6 +100,9 @@ namespace fdl
     add_workload_finish(std::unique_ptr<TransactionBase> t_ptr) override;
 
   protected:
+    virtual VectorOperation::values
+    get_rhs_scatter_type() const override;
+
     unsigned int min_n_points_1D;
 
     double point_density;
