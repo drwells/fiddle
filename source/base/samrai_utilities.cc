@@ -147,6 +147,7 @@ namespace fdl
   void
   fill_all(tbox::Pointer<hier::PatchData<spacedim>> p, const field_type value)
   {
+    Assert(p, ExcMessage("The provided pointer should not be null at this point."));
     if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, int>>(p))
       {
         p2->fillAll(value);
