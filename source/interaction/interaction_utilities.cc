@@ -29,23 +29,22 @@ namespace fdl
   {
     // There is no clean way to check this since we treat side-centered
     // data in a different way
-    template <int dim, int spacedim, typename patch_type>
+    template <int spacedim, typename patch_type>
     void
-    check_depth(const tbox::Pointer<patch_type> &   data,
-                const FiniteElement<dim, spacedim> &fe)
+    check_depth(const tbox::Pointer<patch_type> &data,
+                const unsigned int              &n_components)
     {
-      (void)fe;
       const int depth = data->getDepth();
       (void)depth;
       if (std::is_same<patch_type, pdat::SideData<spacedim, double>>::value)
         {
-          Assert(depth * spacedim == int(fe.n_components()),
+          Assert(depth * spacedim == int(n_components),
                  ExcMessage("The depth of the SAMRAI variable should equal the "
                             "number of components of the finite element."));
         }
       else
         {
-          Assert(depth == int(fe.n_components()),
+          Assert(depth == int(n_components),
                  ExcMessage("The depth of the SAMRAI variable should equal the "
                             "number of components of the finite element."));
         }
@@ -372,7 +371,7 @@ namespace fdl
       {
         auto                      patch      = patch_map.get_patch(patch_n);
         tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_idx);
-        check_depth(patch_data, fe);
+        check_depth<spacedim>(patch_data, fe.n_components());
 
         auto       iter = patch_map.begin(patch_n, dof_handler);
         const auto end  = patch_map.end(patch_n, dof_handler);
@@ -604,7 +603,7 @@ namespace fdl
         auto                      patch      = patch_map.get_patch(patch_n);
         tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_idx);
         Assert(patch_data, ExcMessage("Type mismatch"));
-        check_depth(patch_data, fe);
+        check_depth<spacedim>(patch_data, fe.n_components());
 
         auto       iter = patch_map.begin(patch_n, dof_handler);
         const auto end  = patch_map.end(patch_n, dof_handler);
