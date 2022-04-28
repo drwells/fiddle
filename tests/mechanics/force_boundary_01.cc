@@ -104,7 +104,7 @@ public:
   }
 
   virtual void
-  compute_surface_force(
+  compute_boundary_force(
     const double /*time*/,
     const fdl::MechanicsValues<dim, spacedim> &me_values,
     const typename Triangulation<dim, spacedim>::active_face_iterator &face,
@@ -135,7 +135,7 @@ public:
         ug0[1] = -4.0 * std::sin(p[0]) * std::sin(p[1]);
         ug1[0] = -4.0 * std::sin(p[0]) * std::sin(p[1]);
         ug1[1] = 4.0 * std::cos(p[0]) * std::cos(p[1]);
-        // we use two copies of this surface force in this test so this is
+        // we use two copies of this boundary force in this test so this is
         // halved
         const auto &N   = face_values.normal_vector(qp_n);
         forces[qp_n][0] = ug0 * N * 0.5;

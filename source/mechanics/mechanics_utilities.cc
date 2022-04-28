@@ -174,10 +174,10 @@ namespace fdl
                                 Tensor<1, spacedim, double>());
                       auto view =
                         make_array_view(one_force.begin(), one_force.end());
-                      fc->compute_surface_force(time,
-                                                me_values,
-                                                cell->face(face_n),
-                                                view);
+                      fc->compute_boundary_force(time,
+                                                 me_values,
+                                                 cell->face(face_n),
+                                                 view);
                       for (unsigned int qp_n = 0; qp_n < n_quadrature_points;
                            ++qp_n)
                         accumulated_forces[qp_n] += one_force[qp_n];
