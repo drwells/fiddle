@@ -34,7 +34,9 @@ namespace fdl
     check_depth(const tbox::Pointer<patch_type> &   data,
                 const FiniteElement<dim, spacedim> &fe)
     {
+      (void)fe;
       const int depth = data->getDepth();
+      (void)depth;
       if (std::is_same<patch_type, pdat::SideData<spacedim, double>>::value)
         {
           Assert(depth * spacedim == int(fe.n_components()),
@@ -55,6 +57,9 @@ namespace fdl
                       const std::vector<Quadrature<dim>> &quadratures,
                       const Triangulation<dim, spacedim> &tria)
     {
+      (void)quadrature_indices;
+      (void)quadratures;
+      (void)tria;
       Assert(quadrature_indices.size() == tria.n_active_cells(),
              ExcMessage(
                "There should be exactly one quadrature rule per active cell."));

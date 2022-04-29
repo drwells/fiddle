@@ -58,6 +58,7 @@ namespace fdl
     const unsigned int                     channel,
     LinearAlgebra::distributed::Vector<T> &output)
   {
+    (void)output;
     Assert(input.size() == overlap_dofs.size(),
            ExcMessage("Input vector should be indexed by overlap dofs"));
     Assert(output.locally_owned_elements() ==
@@ -108,6 +109,7 @@ namespace fdl
     const VectorOperation::values          operation,
     LinearAlgebra::distributed::Vector<T> &output)
   {
+      (void)input;
     Assert(input.size() == overlap_dofs.size(),
            ExcMessage("Input vector should be indexed by overlap dofs"));
     Assert(output.locally_owned_elements() ==
@@ -133,6 +135,7 @@ namespace fdl
     const unsigned int                           channel,
     Vector<T> &                                  output)
   {
+    (void)output;
     Assert(output.size() == overlap_dofs.size(),
            ExcMessage("output vector should be indexed by overlap dofs"));
     Assert(input.locally_owned_elements() == scatterer.locally_owned_elements(),
@@ -154,6 +157,7 @@ namespace fdl
     const LinearAlgebra::distributed::Vector<T> &input,
     Vector<T> &                                  output)
   {
+      (void)input;
     Assert(output.size() == overlap_dofs.size(),
            ExcMessage("output vector should be indexed by overlap dofs"));
     Assert(input.locally_owned_elements() == scatterer.locally_owned_elements(),

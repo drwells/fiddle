@@ -167,10 +167,10 @@ namespace fdl
         ++current_proc_cell_n[this_cell_proc_n];
       }
 
+#ifdef DEBUG
     for (const auto &bbox : global_bboxes)
-      {
-        Assert(bbox.volume() > 0, ExcMessage("bboxes should not be empty"));
-      }
+      Assert(bbox.volume() > 0, ExcMessage("bboxes should not be empty"));
+#endif
     return global_bboxes;
   }
 
