@@ -152,13 +152,21 @@ namespace fdl
     input_db->getStringArray("IB_kernel",
                              ib_kernels.data(),
                              static_cast<int>(ib_kernels.size()));
+    // ib_kernels is either length 1 or length n_parts(): deal with the first
+    // case.
+    if (n_ib_kernels == 1)
+      {
+        ib_kernels.resize(n_parts());
+        std::fill(ib_kernels.begin() + 1, ib_kernels.end(), ib_kernels.front());
+      }
+
     // now that we know that, we know the ghost requirements
     for (const std::string &ib_kernel : ib_kernels)
       {
         const int ghost_width =
           IBTK::LEInteractor::getMinimumGhostWidth(ib_kernel);
-        for (int i = 0; i < spacedim; ++i)
-          ghosts[i] = std::max(ghosts[i], ghost_width);
+        for (int d = 0; d < spacedim; ++d)
+          ghosts[d] = std::max(ghosts[d], ghost_width);
       }
 
     auto set_timer = [&](const char *name) {
