@@ -28,11 +28,13 @@ namespace fdl
     const LinearAlgebra::distributed::Vector<double>      &current_velocity,
     LinearAlgebra::distributed::Vector<double>            &force_rhs)
   {
+#ifdef DEBUG
     for (const auto *p : stress_contributions)
       {
         Assert(p, ExcMessage("stresses should not be nullptr"));
         Assert(p->is_stress(), ExcMessage("only valid for stresses"));
       }
+#endif
 
     compute_load_vector(dof_handler,
                         mapping,
@@ -57,12 +59,14 @@ namespace fdl
     const LinearAlgebra::distributed::Vector<double> &current_velocity,
     LinearAlgebra::distributed::Vector<double>       &force_rhs)
   {
+#ifdef DEBUG
     for (const auto *p : volume_force_contributions)
       {
         Assert(p, ExcMessage("volume forces should not be nullptr"));
         Assert(p->is_volume_force(),
                ExcMessage("only valid for volume forces"));
       }
+#endif
 
     compute_load_vector(dof_handler,
                         mapping,
@@ -88,13 +92,14 @@ namespace fdl
     LinearAlgebra::distributed::Vector<double>       &force_rhs)
   {
     Assert(dim == spacedim, ExcNotImplemented());
-
+#ifdef DEBUG
     for (const auto *p : boundary_force_contributions)
       {
         Assert(p, ExcMessage("boundary forces should not be nullptr"));
         Assert(p->is_boundary_force(),
                ExcMessage("only valid for boundary forces"));
       }
+#endif
 
     // Batch forces by the quadrature rules they use
     std::vector<ForceContribution<dim, spacedim> *> remaining_forces =

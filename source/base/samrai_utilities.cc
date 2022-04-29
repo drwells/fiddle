@@ -224,6 +224,7 @@ namespace fdl
            const bool                                    interior_only)
   {
     Assert(interior_only == false, ExcFDLNotImplemented());
+    (void)interior_only;
     for (int ln = coarsest_level_number; ln <= finest_level_number; ++ln)
       {
         auto patches = extract_patches(patch_hierarchy->getPatchLevel(ln));

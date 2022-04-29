@@ -220,10 +220,10 @@ namespace fdl
         ++current_proc_cell_n[this_cell_proc_n];
       }
 
+#ifdef DEBUG
     for (const float &length : global_active_edge_lengths)
-      {
-        Assert(length > 0, ExcMessage("max length should not be zero"));
-      }
+      Assert(length > 0, ExcMessage("max length should not be zero"));
+#endif
     return global_active_edge_lengths;
   }
 
