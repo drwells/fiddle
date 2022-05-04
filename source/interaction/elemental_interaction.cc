@@ -31,8 +31,8 @@ namespace fdl
   template <int dim, int spacedim>
   ElementalInteraction<dim, spacedim>::ElementalInteraction(
     const parallel::shared::Triangulation<dim, spacedim> &native_tria,
-    const std::vector<BoundingBox<spacedim, float>> &     active_cell_bboxes,
-    const std::vector<float> &                            active_cell_lengths,
+    const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
+    const std::vector<float>                             &active_cell_lengths,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
     const int                                             level_number,
     const unsigned int                                    min_n_points_1D,
@@ -53,8 +53,8 @@ namespace fdl
   void
   ElementalInteraction<dim, spacedim>::reinit(
     const parallel::shared::Triangulation<dim, spacedim> &native_tria,
-    const std::vector<BoundingBox<spacedim, float>> &     active_cell_bboxes,
-    const std::vector<float> &                            active_cell_lengths,
+    const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
+    const std::vector<float>                             &active_cell_lengths,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
     const int                                             level_number)
   {
@@ -113,6 +113,13 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
+  bool
+  ElementalInteraction<dim, spacedim>::projection_is_interpolation() const
+  {
+    return false;
+  }
+
+  template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
   ElementalInteraction<dim, spacedim>::compute_projection_rhs_intermediate(
     std::unique_ptr<TransactionBase> t_ptr) const
@@ -147,7 +154,7 @@ namespace fdl
 
     // After we compute we begin the scatter back to the native partitioning:
     trans.rhs_scatter.overlap_to_global_start(trans.overlap_rhs,
-                                              VectorOperation::add,
+                                              trans.rhs_scatter_back_op,
                                               0,
                                               *trans.native_rhs);
 
@@ -196,67 +203,6 @@ namespace fdl
     return t_ptr;
   }
 
-  // We use a custom internal class for transactions
-  template <int dim, int spacedim>
-  struct WorkloadTransaction : public TransactionBase
-  {
-    int workload_index;
-
-    /// Native position DoFHandler.
-    SmartPointer<const DoFHandler<dim, spacedim>> native_position_dof_handler;
-
-    /// position scatter.
-    Scatter<double> position_scatter;
-
-    /// Native-partitioned position.
-    SmartPointer<const LinearAlgebra::distributed::Vector<double>>
-      native_position;
-
-    /// Overlap-partitioned position.
-    Vector<double> overlap_position;
-
-    /// Possible states for a transaction.
-    enum class State
-    {
-      Start,
-      Intermediate,
-      Finish,
-      Done
-    };
-
-    /// Next state. Used for consistency checking.
-    State next_state;
-  };
-
-  template <int dim, int spacedim>
-  std::unique_ptr<TransactionBase>
-  ElementalInteraction<dim, spacedim>::add_workload_start(
-    const int                                         workload_index,
-    const LinearAlgebra::distributed::Vector<double> &position,
-    const DoFHandler<dim, spacedim> &                 position_dof_handler)
-  {
-    auto t_ptr = std::make_unique<WorkloadTransaction<dim, spacedim>>();
-    WorkloadTransaction<dim, spacedim> &transaction = *t_ptr;
-
-    transaction.workload_index = workload_index;
-
-    // Setup position info:
-    transaction.native_position_dof_handler = &position_dof_handler;
-    transaction.native_position             = &position;
-    transaction.position_scatter = this->get_scatter(position_dof_handler);
-    transaction.overlap_position.reinit(
-      this->get_overlap_dof_handler(position_dof_handler).n_dofs());
-
-    // Setup state:
-    transaction.next_state =
-      WorkloadTransaction<dim, spacedim>::State::Intermediate;
-
-    transaction.position_scatter.global_to_overlap_start(
-      *transaction.native_position, 0, transaction.overlap_position);
-
-    return t_ptr;
-  }
-
   template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
   ElementalInteraction<dim, spacedim>::add_workload_intermediate(
@@ -286,21 +232,16 @@ namespace fdl
     return t_ptr;
   }
 
+
+
   template <int dim, int spacedim>
-  void
-  ElementalInteraction<dim, spacedim>::add_workload_finish(
-    std::unique_ptr<TransactionBase> t_ptr)
+  VectorOperation::values
+  ElementalInteraction<dim, spacedim>::get_rhs_scatter_type() const
   {
-    auto &trans = dynamic_cast<WorkloadTransaction<dim, spacedim> &>(*t_ptr);
-    Assert((trans.next_state ==
-            WorkloadTransaction<dim, spacedim>::State::Finish),
-           ExcMessage("Transaction state should be Finish"));
-
-    trans.next_state = WorkloadTransaction<dim, spacedim>::State::Done;
-
-    this->return_scatter(*trans.native_position_dof_handler,
-                         std::move(trans.position_scatter));
+    return VectorOperation::add;
   }
+
+
 
   // instantiations
   template class ElementalInteraction<NDIM - 1, NDIM>;

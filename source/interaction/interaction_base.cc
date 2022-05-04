@@ -38,7 +38,7 @@ namespace fdl
   InteractionBase<dim, spacedim>::InteractionBase(
     const parallel::shared::Triangulation<dim, spacedim> &n_tria,
     const std::vector<BoundingBox<spacedim, float>> &global_active_cell_bboxes,
-    const std::vector<float> &                       global_active_cell_lengths,
+    const std::vector<float>                        &global_active_cell_lengths,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> p_hierarchy,
     const int                                         l_number)
     : communicator(MPI_COMM_NULL)
@@ -226,6 +226,15 @@ namespace fdl
 
 
   template <int dim, int spacedim>
+  VectorOperation::values
+  InteractionBase<dim, spacedim>::get_rhs_scatter_type() const
+  {
+    return VectorOperation::unknown;
+  }
+
+
+
+  template <int dim, int spacedim>
   Scatter<double>
   InteractionBase<dim, spacedim>::get_scatter(
     const DoFHandler<dim, spacedim> &native_dof_handler)
@@ -263,7 +272,7 @@ namespace fdl
   void
   InteractionBase<dim, spacedim>::return_scatter(
     const DoFHandler<dim, spacedim> &native_dof_handler,
-    Scatter<double> &&               scatter)
+    Scatter<double>                &&scatter)
   {
     auto iter = std::find(native_dof_handlers.begin(),
                           native_dof_handlers.end(),
@@ -316,15 +325,24 @@ namespace fdl
 
 
   template <int dim, int spacedim>
+  bool
+  InteractionBase<dim, spacedim>::projection_is_interpolation() const
+  {
+    return false;
+  }
+
+
+
+  template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
   InteractionBase<dim, spacedim>::compute_projection_rhs_start(
-    const std::string &                               kernel_name,
+    const std::string                                &kernel_name,
     const int                                         data_idx,
-    const DoFHandler<dim, spacedim> &                 position_dof_handler,
+    const DoFHandler<dim, spacedim>                  &position_dof_handler,
     const LinearAlgebra::distributed::Vector<double> &position,
-    const DoFHandler<dim, spacedim> &                 dof_handler,
-    const Mapping<dim, spacedim> &                    mapping,
-    LinearAlgebra::distributed::Vector<double> &      rhs)
+    const DoFHandler<dim, spacedim>                  &dof_handler,
+    const Mapping<dim, spacedim>                     &mapping,
+    LinearAlgebra::distributed::Vector<double>       &rhs)
   {
 #ifdef DEBUG
     {
@@ -366,7 +384,8 @@ namespace fdl
     transaction.native_rhs         = &rhs;
     transaction.overlap_rhs.reinit(
       get_overlap_dof_handler(dof_handler).n_dofs());
-    transaction.rhs_scatter = get_scatter(dof_handler);
+    transaction.rhs_scatter         = get_scatter(dof_handler);
+    transaction.rhs_scatter_back_op = this->get_rhs_scatter_type();
 
     // Setup state:
     transaction.next_state = Transaction<dim, spacedim>::State::Intermediate;
@@ -404,7 +423,7 @@ namespace fdl
     // This object *cannot* get here without the first scatter finishing so
     // using channel 0 again is fine
     trans.rhs_scatter.overlap_to_global_start(trans.overlap_rhs,
-                                              VectorOperation::add,
+                                              trans.rhs_scatter_back_op,
                                               0,
                                               *trans.native_rhs);
 
@@ -428,7 +447,7 @@ namespace fdl
            ExcMessage("Transaction state should be Finish"));
 
     trans.rhs_scatter.overlap_to_global_finish(trans.overlap_rhs,
-                                               VectorOperation::add,
+                                               trans.rhs_scatter_back_op,
                                                *trans.native_rhs);
     trans.next_state = Transaction<dim, spacedim>::State::Done;
 
@@ -442,12 +461,12 @@ namespace fdl
   template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
   InteractionBase<dim, spacedim>::compute_spread_start(
-    const std::string &                               kernel_name,
+    const std::string                                &kernel_name,
     const int                                         data_idx,
     const LinearAlgebra::distributed::Vector<double> &position,
-    const DoFHandler<dim, spacedim> &                 position_dof_handler,
-    const Mapping<dim, spacedim> &                    mapping,
-    const DoFHandler<dim, spacedim> &                 dof_handler,
+    const DoFHandler<dim, spacedim>                  &position_dof_handler,
+    const Mapping<dim, spacedim>                     &mapping,
+    const DoFHandler<dim, spacedim>                  &dof_handler,
     const LinearAlgebra::distributed::Vector<double> &solution)
   {
 #ifdef DEBUG
@@ -567,13 +586,28 @@ namespace fdl
   InteractionBase<dim, spacedim>::add_workload_start(
     const int                                         workload_index,
     const LinearAlgebra::distributed::Vector<double> &position,
-    const DoFHandler<dim, spacedim> &                 position_dof_handler)
+    const DoFHandler<dim, spacedim>                  &position_dof_handler)
   {
-    (void)workload_index;
-    (void)position;
-    (void)position_dof_handler;
+    auto t_ptr = std::make_unique<WorkloadTransaction<dim, spacedim>>();
+    WorkloadTransaction<dim, spacedim> &transaction = *t_ptr;
 
-    return {};
+    transaction.workload_index = workload_index;
+
+    // Setup position info:
+    transaction.native_position_dof_handler = &position_dof_handler;
+    transaction.native_position             = &position;
+    transaction.position_scatter = this->get_scatter(position_dof_handler);
+    transaction.overlap_position.reinit(
+      this->get_overlap_dof_handler(position_dof_handler).n_dofs());
+
+    // Setup state:
+    transaction.next_state =
+      WorkloadTransaction<dim, spacedim>::State::Intermediate;
+
+    transaction.position_scatter.global_to_overlap_start(
+      *transaction.native_position, 0, transaction.overlap_position);
+
+    return t_ptr;
   }
 
   template <int dim, int spacedim>
@@ -589,7 +623,15 @@ namespace fdl
   InteractionBase<dim, spacedim>::add_workload_finish(
     std::unique_ptr<TransactionBase> t_ptr)
   {
-    (void)t_ptr;
+    auto &trans = dynamic_cast<WorkloadTransaction<dim, spacedim> &>(*t_ptr);
+    Assert((trans.next_state ==
+            WorkloadTransaction<dim, spacedim>::State::Finish),
+           ExcMessage("Transaction state should be Finish"));
+
+    trans.next_state = WorkloadTransaction<dim, spacedim>::State::Done;
+
+    this->return_scatter(*trans.native_position_dof_handler,
+                         std::move(trans.position_scatter));
   }
 
   // instantiations

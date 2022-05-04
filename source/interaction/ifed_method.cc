@@ -7,6 +7,7 @@
 #include <fiddle/interaction/elemental_interaction.h>
 #include <fiddle/interaction/ifed_method.h>
 #include <fiddle/interaction/interaction_utilities.h>
+#include <fiddle/interaction/nodal_interaction.h>
 
 #include <fiddle/mechanics/mechanics_utilities.h>
 
@@ -68,7 +69,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   IFEDMethod<dim, spacedim>::IFEDMethod(
-    const std::string &                object_name,
+    const std::string                 &object_name,
     tbox::Pointer<tbox::Database>      input_input_db,
     std::vector<Part<dim, spacedim>> &&input_parts,
     const bool                         register_for_restart)
@@ -90,36 +91,52 @@ namespace fdl
     // here.
     MultithreadInfo::set_thread_limit(1);
 
-    // IBFEMethod uses this value - lower values aren't guaranteed to work. If
-    // dx = dX then we can use a lower density.
-    const double density =
-      input_db->getDoubleWithDefault("IB_point_density", 2.0);
-
-    // Default to minimum density:
-    auto        density_kind = DensityKind::Minimum;
-    std::string density_kind_string =
-      input_db->getStringWithDefault("density_kind", "Minimum");
-    std::transform(density_kind_string.begin(),
-                   density_kind_string.end(),
-                   density_kind_string.begin(),
-                   [](const unsigned char c) { return std::tolower(c); });
-    if (density_kind_string == "minimum")
-      density_kind = DensityKind::Minimum;
-    else if (density_kind_string == "average")
-      density_kind = DensityKind::Average;
-    else
-      AssertThrow(false, ExcFDLNotImplemented());
-
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
+    const std::string interaction =
+      input_db->getStringWithDefault("interaction", "ELEMENTAL");
+    if (interaction == "ELEMENTAL")
       {
-        const unsigned int n_points_1D =
-          parts[part_n].get_dof_handler().get_fe().tensor_degree() + 1;
-        interactions.emplace_back(new ElementalInteraction<dim, spacedim>(
-          n_points_1D, density, density_kind));
-        force_guesses.emplace_back(
-          input_db->getIntegerWithDefault("n_guess_vectors", 10));
-        velocity_guesses.emplace_back(
-          input_db->getIntegerWithDefault("n_guess_vectors", 10));
+        // IBFEMethod uses this value - lower values aren't guaranteed to work.
+        // If dx = dX then we can use a lower density.
+        const double density =
+          input_db->getDoubleWithDefault("IB_point_density", 2.0);
+
+        // Default to minimum density:
+        auto        density_kind = DensityKind::Minimum;
+        std::string density_kind_string =
+          input_db->getStringWithDefault("density_kind", "Minimum");
+        std::transform(density_kind_string.begin(),
+                       density_kind_string.end(),
+                       density_kind_string.begin(),
+                       [](const unsigned char c) { return std::tolower(c); });
+        if (density_kind_string == "minimum")
+          density_kind = DensityKind::Minimum;
+        else if (density_kind_string == "average")
+          density_kind = DensityKind::Average;
+        else
+          AssertThrow(false, ExcFDLNotImplemented());
+
+        for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
+          {
+            const unsigned int n_points_1D =
+              parts[part_n].get_dof_handler().get_fe().tensor_degree() + 1;
+            interactions.emplace_back(new ElementalInteraction<dim, spacedim>(
+              n_points_1D, density, density_kind));
+            force_guesses.emplace_back(
+              input_db->getIntegerWithDefault("n_guess_vectors", 10));
+            velocity_guesses.emplace_back(
+              input_db->getIntegerWithDefault("n_guess_vectors", 10));
+          }
+      }
+    else if (interaction == "NODAL")
+      {
+        for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
+          interactions.emplace_back(new NodalInteraction<dim, spacedim>());
+      }
+    else
+      {
+        AssertThrow(false,
+                    ExcMessage("unsupported interaction type " + interaction +
+                               "."));
       }
 
     AssertThrow(input_db->keyExists("IB_kernel"),
@@ -264,7 +281,7 @@ namespace fdl
     const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>>
       &u_synch_scheds,
     const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
-      &    u_ghost_fill_scheds,
+          &u_ghost_fill_scheds,
     double data_time)
   {
     IBAMR_TIMER_START(t_interpolate_velocity);
@@ -320,34 +337,47 @@ namespace fdl
     IBAMR_TIMER_START(t_interpolate_velocity_solve);
     for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {
-        SolverControl control(
-          input_db->getIntegerWithDefault("solver_iterations", 100),
-          input_db->getDoubleWithDefault("solver_relative_tolerance", 1e-6) *
-            rhs_vecs[part_n].l2_norm());
-        SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
-        LinearAlgebra::distributed::Vector<double>           velocity(
-          parts[part_n].get_partitioner());
-
-        // If we mess up the matrix-free implementation will fix our
-        // partitioner: make sure we catch that case here
-        Assert(velocity.get_partitioner() == parts[part_n].get_partitioner(),
-               ExcFDLInternalError());
-        velocity_guesses[part_n].guess(velocity, rhs_vecs[part_n]);
-        cg.solve(parts[part_n].get_mass_operator(),
-                 velocity,
-                 rhs_vecs[part_n],
-                 parts[part_n].get_mass_preconditioner());
-        velocity_guesses[part_n].submit(velocity, rhs_vecs[part_n]);
-        // Same
-        Assert(velocity.get_partitioner() == parts[part_n].get_partitioner(),
-               ExcFDLInternalError());
-        part_vectors.set_velocity(part_n, data_time, std::move(velocity));
-
-        if (input_db->getBoolWithDefault("log_solver_iterations", false))
+        if (interactions[part_n]->projection_is_interpolation())
           {
-            tbox::plog << "IFEDMethod::interpolateVelocity(): "
-                       << "SolverCG<> converged in " << control.last_step()
-                       << " steps." << std::endl;
+            // If projection is actually interpolation we have a lot less to do
+            part_vectors.set_velocity(part_n,
+                                      data_time,
+                                      std::move(rhs_vecs[part_n]));
+          }
+        else
+          {
+            SolverControl control(
+              input_db->getIntegerWithDefault("solver_iterations", 100),
+              input_db->getDoubleWithDefault("solver_relative_tolerance",
+                                             1e-6) *
+                rhs_vecs[part_n].l2_norm());
+            SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
+            LinearAlgebra::distributed::Vector<double>           velocity(
+              parts[part_n].get_partitioner());
+
+            // If we mess up the matrix-free implementation will fix our
+            // partitioner: make sure we catch that case here
+            Assert(velocity.get_partitioner() ==
+                     parts[part_n].get_partitioner(),
+                   ExcFDLInternalError());
+            velocity_guesses[part_n].guess(velocity, rhs_vecs[part_n]);
+            cg.solve(parts[part_n].get_mass_operator(),
+                     velocity,
+                     rhs_vecs[part_n],
+                     parts[part_n].get_mass_preconditioner());
+            velocity_guesses[part_n].submit(velocity, rhs_vecs[part_n]);
+            // Same
+            Assert(velocity.get_partitioner() ==
+                     parts[part_n].get_partitioner(),
+                   ExcFDLInternalError());
+            part_vectors.set_velocity(part_n, data_time, std::move(velocity));
+
+            if (input_db->getBoolWithDefault("log_solver_iterations", false))
+              {
+                tbox::plog << "IFEDMethod::interpolateVelocity(): "
+                           << "SolverCG<> converged in " << control.last_step()
+                           << " steps." << std::endl;
+              }
           }
       }
     IBAMR_TIMER_STOP(t_interpolate_velocity_solve);
@@ -638,7 +668,7 @@ namespace fdl
     for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {
         IBAMR_TIMER_START(t_compute_lagrangian_force_pk1);
-        const Part<dim, spacedim> &                part = parts[part_n];
+        const Part<dim, spacedim>                 &part = parts[part_n];
         LinearAlgebra::distributed::Vector<double> force(
           part.get_partitioner()),
           force_rhs(part.get_partitioner());
@@ -665,30 +695,40 @@ namespace fdl
         force_rhs.compress(VectorOperation::add);
         IBAMR_TIMER_STOP(t_compute_lagrangian_force_pk1);
 
-        IBAMR_TIMER_START(t_compute_lagrangian_force_solve);
-        SolverControl control(
-          input_db->getIntegerWithDefault("solver_iterations", 100),
-          input_db->getDoubleWithDefault("solver_relative_tolerance", 1e-6) *
-            force_rhs.l2_norm());
-        SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
-        force_guesses[part_n].guess(force, force_rhs);
-        cg.solve(part.get_mass_operator(),
-                 force,
-                 force_rhs,
-                 part.get_mass_preconditioner());
-        force.update_ghost_values();
-        force_guesses[part_n].submit(force, force_rhs);
-        if (input_db->getBoolWithDefault("log_solver_iterations", false))
+        if (interactions[part_n]->projection_is_interpolation())
           {
-            tbox::plog << "IFEDMethod::computeLagrangianForce(): "
-                       << "SolverCG<> converged in " << control.last_step()
-                       << " steps." << std::endl;
+            // TODO - we should probably call this the force density
+            part_vectors.set_force(part_n, data_time, std::move(force_rhs));
           }
-        part_vectors.set_force(part_n, data_time, std::move(force));
+        else
+          {
+            IBAMR_TIMER_START(t_compute_lagrangian_force_solve);
+            SolverControl control(
+              input_db->getIntegerWithDefault("solver_iterations", 100),
+              input_db->getDoubleWithDefault("solver_relative_tolerance",
+                                             1e-6) *
+                force_rhs.l2_norm());
+            SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
+            force_guesses[part_n].guess(force, force_rhs);
+            cg.solve(part.get_mass_operator(),
+                     force,
+                     force_rhs,
+                     part.get_mass_preconditioner());
+            force.update_ghost_values();
+            force_guesses[part_n].submit(force, force_rhs);
+            if (input_db->getBoolWithDefault("log_solver_iterations", false))
+              {
+                tbox::plog << "IFEDMethod::computeLagrangianForce(): "
+                           << "SolverCG<> converged in " << control.last_step()
+                           << " steps." << std::endl;
+              }
+            part_vectors.set_force(part_n, data_time, std::move(force));
+
+            IBAMR_TIMER_STOP(t_compute_lagrangian_force_solve);
+          }
 
         for (auto &force : part.get_force_contributions())
           force->finish_force(data_time);
-        IBAMR_TIMER_STOP(t_compute_lagrangian_force_solve);
       }
     IBAMR_TIMER_STOP(t_compute_lagrangian_force);
   }
@@ -728,12 +768,28 @@ namespace fdl
         IBAMR_TIMER_STOP(t_reinit_interactions_edges);
 
         IBAMR_TIMER_START(t_reinit_interactions_objects);
-        interactions[part_n]->reinit(
-          tria,
-          global_bboxes,
-          global_edge_lengths,
-          secondary_hierarchy.getSecondaryHierarchy(),
-          primary_hierarchy->getFinestLevelNumber());
+        // We already check that this has a valid value earlier on
+        const std::string interaction =
+          input_db->getStringWithDefault("interaction", "ELEMENTAL");
+        if (interaction == "ELEMENTAL")
+          interactions[part_n]->reinit(
+            tria,
+            global_bboxes,
+            global_edge_lengths,
+            secondary_hierarchy.getSecondaryHierarchy(),
+            primary_hierarchy->getFinestLevelNumber());
+        else
+          {
+            dynamic_cast<NodalInteraction<dim, spacedim> &>(
+              *interactions[part_n])
+              .reinit(tria,
+                      global_bboxes,
+                      global_edge_lengths,
+                      secondary_hierarchy.getSecondaryHierarchy(),
+                      primary_hierarchy->getFinestLevelNumber(),
+                      part.get_dof_handler(),
+                      part.get_position());
+          }
         // TODO - we should probably add a reinit() function that sets up the
         // DoFHandler we always need
         interactions[part_n]->add_dof_handler(part.get_dof_handler());
@@ -743,7 +799,8 @@ namespace fdl
 
 
   template <int dim, int spacedim>
-  void IFEDMethod<dim, spacedim>::beginDataRedistribution(
+  void
+  IFEDMethod<dim, spacedim>::beginDataRedistribution(
     tbox::Pointer<hier::PatchHierarchy<spacedim>> /*hierarchy*/,
     tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
   {
@@ -819,7 +876,8 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
-  void IFEDMethod<dim, spacedim>::endDataRedistribution(
+  void
+  IFEDMethod<dim, spacedim>::endDataRedistribution(
     tbox::Pointer<hier::PatchHierarchy<spacedim>> /*hierarchy*/,
     tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
   {

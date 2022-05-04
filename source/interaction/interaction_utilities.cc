@@ -29,23 +29,22 @@ namespace fdl
   {
     // There is no clean way to check this since we treat side-centered
     // data in a different way
-    template <int dim, int spacedim, typename patch_type>
+    template <int spacedim, typename patch_type>
     void
-    check_depth(const tbox::Pointer<patch_type> &   data,
-                const FiniteElement<dim, spacedim> &fe)
+    check_depth(const tbox::Pointer<patch_type> &data,
+                const unsigned int              &n_components)
     {
-      (void)fe;
       const int depth = data->getDepth();
       (void)depth;
       if (std::is_same<patch_type, pdat::SideData<spacedim, double>>::value)
         {
-          Assert(depth * spacedim == int(fe.n_components()),
+          Assert(depth * spacedim == int(n_components),
                  ExcMessage("The depth of the SAMRAI variable should equal the "
                             "number of components of the finite element."));
         }
       else
         {
-          Assert(depth == int(fe.n_components()),
+          Assert(depth == int(n_components),
                  ExcMessage("The depth of the SAMRAI variable should equal the "
                             "number of components of the finite element."));
         }
@@ -53,7 +52,7 @@ namespace fdl
 
     template <int dim, int spacedim>
     void
-    check_quadratures(const std::vector<unsigned char> &  quadrature_indices,
+    check_quadratures(const std::vector<unsigned char>   &quadrature_indices,
                       const std::vector<Quadrature<dim>> &quadratures,
                       const Triangulation<dim, spacedim> &tria)
     {
@@ -74,10 +73,10 @@ namespace fdl
   } // namespace
 
 
-  template <int spacedim, typename Number, typename TYPE>
+  template <int spacedim, typename Number, typename Scalar>
   void
   tag_cells_internal(
-    const std::vector<BoundingBox<spacedim, Number>> &        bboxes,
+    const std::vector<BoundingBox<spacedim, Number>>         &bboxes,
     const int                                                 tag_index,
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<spacedim>> patch_level)
   {
@@ -95,7 +94,7 @@ namespace fdl
     const std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches =
       extract_patches(patch_level);
 
-    std::vector<tbox::Pointer<pdat::CellData<spacedim, TYPE>>> tag_data;
+    std::vector<tbox::Pointer<pdat::CellData<spacedim, Scalar>>> tag_data;
     for (const auto &patch : patches)
       {
         Assert(patch->getPatchData(tag_index),
@@ -137,7 +136,7 @@ namespace fdl
                 domain_box.upper());
             const hier::Box<spacedim> box(i_lower, i_upper);
 
-            tag_data[patch_n]->fillAll(TYPE(1), box);
+            tag_data[patch_n]->fillAll(Scalar(1), box);
           }
       }
   }
@@ -149,7 +148,7 @@ namespace fdl
   template <int spacedim, typename Number>
   void
   tag_cells(
-    const std::vector<BoundingBox<spacedim, Number>> &        bboxes,
+    const std::vector<BoundingBox<spacedim, Number>>         &bboxes,
     const int                                                 tag_index,
     SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<spacedim>> patch_level)
   {
@@ -199,13 +198,13 @@ namespace fdl
 
 
 
-  template <int dim, int spacedim, typename TYPE>
+  template <int dim, int spacedim, typename Scalar>
   void
   count_quadrature_points_internal(
     const int                           qp_data_idx,
-    PatchMap<dim, spacedim> &           patch_map,
-    const Mapping<dim, spacedim> &      position_mapping,
-    const std::vector<unsigned char> &  quadrature_indices,
+    PatchMap<dim, spacedim>            &patch_map,
+    const Mapping<dim, spacedim>       &position_mapping,
+    const std::vector<unsigned char>   &quadrature_indices,
     const std::vector<Quadrature<dim>> &quadratures)
   {
     check_quadratures(quadrature_indices,
@@ -234,7 +233,7 @@ namespace fdl
     for (unsigned int patch_n = 0; patch_n < patch_map.size(); ++patch_n)
       {
         auto patch = patch_map.get_patch(patch_n);
-        tbox::Pointer<pdat::CellData<spacedim, TYPE>> qp_data =
+        tbox::Pointer<pdat::CellData<spacedim, Scalar>> qp_data =
           patch->getPatchData(qp_data_idx);
         Assert(qp_data, ExcMessage("Type mismatch"));
         Assert(qp_data->getDepth() == 1, ExcMessage("depth should be 1"));
@@ -262,7 +261,7 @@ namespace fdl
                                                      patch_geom,
                                                      patch_box);
                 if (patch_box.contains(i))
-                  (*qp_data)(i) += TYPE(1);
+                  (*qp_data)(i) += Scalar(1);
               }
           }
       }
@@ -273,8 +272,8 @@ namespace fdl
   template <int dim, int spacedim>
   void
   count_quadrature_points(const int                         qp_data_idx,
-                          PatchMap<dim, spacedim> &         patch_map,
-                          const Mapping<dim, spacedim> &    position_mapping,
+                          PatchMap<dim, spacedim>          &patch_map,
+                          const Mapping<dim, spacedim>     &position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
                           const std::vector<Quadrature<dim>> &quadratures)
   {
@@ -324,18 +323,109 @@ namespace fdl
 
 
 
+  template <int dim, int spacedim, typename Scalar>
+  void
+  count_nodes_internal(const int                     node_count_data_idx,
+                       NodalPatchMap<dim, spacedim> &nodal_patch_map,
+                       const Vector<double>         &position)
+  {
+    for (std::size_t patch_n = 0; patch_n < nodal_patch_map.size(); ++patch_n)
+      {
+        std::pair<const IndexSet &, tbox::Pointer<hier::Patch<spacedim>>> p =
+          nodal_patch_map[patch_n];
+        const IndexSet                                 &dofs  = p.first;
+        tbox::Pointer<hier::Patch<spacedim>>           &patch = p.second;
+        tbox::Pointer<pdat::CellData<spacedim, Scalar>> node_count_data =
+          patch->getPatchData(node_count_data_idx);
+        Assert(node_count_data, ExcMessage("Type mismatch"));
+        check_depth<spacedim>(node_count_data, 1);
+        const hier::Box<spacedim> &patch_box = patch->getBox();
+        tbox::Pointer<geom::CartesianPatchGeometry<spacedim>> patch_geom =
+          patch->getPatchGeometry();
+        Assert(patch_geom, ExcMessage("Type mismatch"));
+
+        for (auto it = dofs.begin_intervals(); it != dofs.end_intervals(); ++it)
+          {
+            const auto nodes_begin = *it->begin() / spacedim;
+            const auto n_nodes     = (it->end() - it->begin()) / spacedim;
+            const auto position_view =
+              make_array_view(position.begin() + nodes_begin * spacedim,
+                              position.begin() +
+                                (nodes_begin + n_nodes) * spacedim);
+            for (std::ptrdiff_t node_n = 0; node_n < n_nodes; ++node_n)
+              {
+                Point<spacedim> node;
+                for (unsigned int d = 0; d < spacedim; ++d)
+                  node[d] = position_view[spacedim * node_n + d];
+
+                const hier::Index<spacedim> i =
+                  IBTK::IndexUtilities::getCellIndex(node,
+                                                     patch_geom,
+                                                     patch_box);
+                if (patch_box.contains(i))
+                  (*node_count_data)(i) += Scalar(1);
+              }
+          }
+      }
+  }
+
+
+
+  template <int dim, int spacedim>
+  void
+  count_nodes(const int                     node_count_data_idx,
+              NodalPatchMap<dim, spacedim> &nodal_patch_map,
+              const Vector<double>         &position)
+  {
+    // SAMRAI doesn't offer a way to dispatch on data type so we have to do it
+    // ourselves
+    if (nodal_patch_map.size() == 0)
+      {
+        return;
+      }
+    else
+      {
+        const tbox::Pointer<hier::Patch<spacedim>> patch =
+          nodal_patch_map[0].second;
+
+        const tbox::Pointer<pdat::CellData<spacedim, int>> int_data =
+          patch->getPatchData(node_count_data_idx);
+        const tbox::Pointer<pdat::CellData<spacedim, float>> float_data =
+          patch->getPatchData(node_count_data_idx);
+        const tbox::Pointer<pdat::CellData<spacedim, double>> double_data =
+          patch->getPatchData(node_count_data_idx);
+
+        if (int_data)
+          count_nodes_internal<dim, spacedim, int>(node_count_data_idx,
+                                                   nodal_patch_map,
+                                                   position);
+        else if (float_data)
+          count_nodes_internal<dim, spacedim, float>(node_count_data_idx,
+                                                     nodal_patch_map,
+                                                     position);
+        else if (double_data)
+          count_nodes_internal<dim, spacedim, double>(node_count_data_idx,
+                                                      nodal_patch_map,
+                                                      position);
+        else
+          Assert(false, ExcFDLNotImplemented());
+      }
+  }
+
+
+
   template <int dim, int spacedim, typename patch_type>
   void
   compute_projection_rhs_internal(
-    const std::string &                 kernel_name,
+    const std::string                  &kernel_name,
     const int                           data_idx,
-    const PatchMap<dim, spacedim> &     patch_map,
-    const Mapping<dim, spacedim> &      position_mapping,
-    const std::vector<unsigned char> &  quadrature_indices,
+    const PatchMap<dim, spacedim>      &patch_map,
+    const Mapping<dim, spacedim>       &position_mapping,
+    const std::vector<unsigned char>   &quadrature_indices,
     const std::vector<Quadrature<dim>> &quadratures,
-    const DoFHandler<dim, spacedim> &   dof_handler,
-    const Mapping<dim, spacedim> &      mapping,
-    Vector<double> &                    rhs)
+    const DoFHandler<dim, spacedim>    &dof_handler,
+    const Mapping<dim, spacedim>       &mapping,
+    Vector<double>                     &rhs)
   {
     check_quadratures(quadrature_indices,
                       quadratures,
@@ -372,7 +462,7 @@ namespace fdl
       {
         auto                      patch      = patch_map.get_patch(patch_n);
         tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_idx);
-        check_depth(patch_data, fe);
+        check_depth<spacedim>(patch_data, fe.n_components());
 
         auto       iter = patch_map.begin(patch_n, dof_handler);
         const auto end  = patch_map.end(patch_n, dof_handler);
@@ -476,15 +566,15 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  compute_projection_rhs(const std::string &                 kernel_name,
+  compute_projection_rhs(const std::string                  &kernel_name,
                          const int                           data_idx,
-                         const PatchMap<dim, spacedim> &     patch_map,
-                         const Mapping<dim, spacedim> &      position_mapping,
-                         const std::vector<unsigned char> &  quadrature_indices,
+                         const PatchMap<dim, spacedim>      &patch_map,
+                         const Mapping<dim, spacedim>       &position_mapping,
+                         const std::vector<unsigned char>   &quadrature_indices,
                          const std::vector<Quadrature<dim>> &quadratures,
-                         const DoFHandler<dim, spacedim> &   dof_handler,
-                         const Mapping<dim, spacedim> &      mapping,
-                         Vector<double> &                    rhs)
+                         const DoFHandler<dim, spacedim>    &dof_handler,
+                         const Mapping<dim, spacedim>       &mapping,
+                         Vector<double>                     &rhs)
   {
 #define ARGUMENTS                                                         \
   kernel_name, data_idx, patch_map, position_mapping, quadrature_indices, \
@@ -530,6 +620,128 @@ namespace fdl
 #undef ARGUMENTS
   }
 
+  template <int dim, int spacedim, typename patch_type>
+  void
+  compute_nodal_interpolation_internal(
+    const std::string                  &kernel_name,
+    const int                           data_idx,
+    const NodalPatchMap<dim, spacedim> &patch_map,
+    const Vector<double>               &position,
+    Vector<double>                     &interpolated_values)
+  {
+    // This is valid with any number of components in interpolated_values
+    Assert(position.size() % spacedim == 0,
+           ExcMessage("Should have spacedim values per node"));
+    Assert(interpolated_values.size() % (position.size() / spacedim) == 0,
+           ExcMessage("There should be a fixed number of values to interpolate "
+                      "per node"));
+    const auto n_components =
+      interpolated_values.size() / (position.size() / spacedim);
+
+    // For debugging (and tracking points that are truly outside the domain) we
+    // set all values to -DBL_MAX. If the points are in the domain they will get
+    // set to correct values later. The caller should decide what to do with
+    // values that do not get interpolated here (e.g., for points outside the
+    // domain the velocity should be zero).
+    //
+    // We scatter with a max reduction to resolve any duplicated interpolated
+    // values.
+    std::fill(interpolated_values.begin(),
+              interpolated_values.end(),
+              std::numeric_limits<double>::lowest());
+
+    for (std::size_t patch_n = 0; patch_n < patch_map.size(); ++patch_n)
+      {
+        std::pair<const IndexSet &, tbox::Pointer<hier::Patch<spacedim>>> p =
+          patch_map[patch_n];
+        const IndexSet                       &dofs  = p.first;
+        tbox::Pointer<hier::Patch<spacedim>> &patch = p.second;
+        tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_idx);
+        Assert(patch_data, ExcMessage("Type mismatch"));
+        check_depth<spacedim>(patch_data, n_components);
+
+        for (auto it = dofs.begin_intervals(); it != dofs.end_intervals(); ++it)
+          {
+            const auto nodes_begin = *it->begin() / spacedim;
+            const auto n_nodes     = (it->end() - it->begin()) / spacedim;
+            const auto position_view =
+              make_array_view(position.begin() + nodes_begin * spacedim,
+                              position.begin() +
+                                (nodes_begin + n_nodes) * spacedim);
+            Assert(position_view.size() % spacedim == 0, ExcFDLInternalError());
+            auto values_view =
+              make_array_view(interpolated_values.begin() +
+                                nodes_begin * n_components,
+                              interpolated_values.begin() +
+                                (nodes_begin + n_nodes) * n_components);
+            Assert(values_view.size() % n_components == 0,
+                   ExcFDLInternalError());
+
+            IBTK::LEInteractor::interpolate(values_view.data(),
+                                            values_view.size(),
+                                            n_components,
+                                            position_view.data(),
+                                            position_view.size(),
+                                            spacedim,
+                                            patch_data,
+                                            patch,
+                                            patch->getBox(),
+                                            kernel_name);
+          }
+      }
+  }
+
+  template <int dim, int spacedim>
+  void
+  compute_nodal_interpolation(const std::string                  &kernel_name,
+                              const int                           data_idx,
+                              const NodalPatchMap<dim, spacedim> &patch_map,
+                              const Vector<double>               &position,
+                              Vector<double> &interpolated_values)
+  {
+#define ARGUMENTS \
+  kernel_name, data_idx, patch_map, position, interpolated_values
+    if (patch_map.size() != 0)
+      {
+        auto patch_data = patch_map[0].second->getPatchData(data_idx);
+        auto pair       = extract_types(patch_data);
+
+        AssertThrow(pair.second == SAMRAIFieldType::Double,
+                    ExcFDLNotImplemented());
+        switch (pair.first)
+          {
+            case SAMRAIPatchType::Edge:
+              compute_nodal_interpolation_internal<
+                dim,
+                spacedim,
+                pdat::EdgeData<spacedim, double>>(ARGUMENTS);
+              break;
+
+            case SAMRAIPatchType::Cell:
+              compute_nodal_interpolation_internal<
+                dim,
+                spacedim,
+                pdat::CellData<spacedim, double>>(ARGUMENTS);
+              break;
+
+            case SAMRAIPatchType::Side:
+              compute_nodal_interpolation_internal<
+                dim,
+                spacedim,
+                pdat::SideData<spacedim, double>>(ARGUMENTS);
+              break;
+
+            case SAMRAIPatchType::Node:
+              compute_nodal_interpolation_internal<
+                dim,
+                spacedim,
+                pdat::NodeData<spacedim, double>>(ARGUMENTS);
+              break;
+          }
+      }
+#undef ARGUMENTS
+  }
+
 
   // Generic function for retrieving scalar or vector-valued finite element
   // fields
@@ -537,7 +749,7 @@ namespace fdl
   void
   compute_values_generic(const FEValues<dim, spacedim> &fe_values,
                          const Vector<double>           fe_solution,
-                         std::vector<value_type> &      values)
+                         std::vector<value_type>       &values)
   {
     Assert(false, ExcNotImplemented());
   }
@@ -545,8 +757,8 @@ namespace fdl
   template <int dim, int spacedim>
   void
   compute_values_generic(const FEValues<dim, spacedim> &fe_values,
-                         const std::vector<double> &    fe_solution,
-                         std::vector<double> &          values)
+                         const std::vector<double>     &fe_solution,
+                         std::vector<double>           &values)
   {
     const FEValuesExtractors::Scalar scalar(0);
     fe_values[scalar].get_function_values_from_local_dof_values(fe_solution,
@@ -555,8 +767,8 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  compute_values_generic(const FEValues<dim, spacedim> &   fe_values,
-                         const std::vector<double> &       fe_solution,
+  compute_values_generic(const FEValues<dim, spacedim>    &fe_values,
+                         const std::vector<double>        &fe_solution,
                          std::vector<Tensor<1, spacedim>> &values)
   {
     const FEValuesExtractors::Vector vec(0);
@@ -566,15 +778,15 @@ namespace fdl
 
   template <int dim, int spacedim, typename value_type, typename patch_type>
   void
-  compute_spread_internal(const std::string &               kernel_name,
+  compute_spread_internal(const std::string                &kernel_name,
                           const int                         data_idx,
-                          PatchMap<dim, spacedim> &         patch_map,
-                          const Mapping<dim, spacedim> &    position_mapping,
+                          PatchMap<dim, spacedim>          &patch_map,
+                          const Mapping<dim, spacedim>     &position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
                           const std::vector<Quadrature<dim>> &quadratures,
-                          const DoFHandler<dim, spacedim> &   dof_handler,
-                          const Mapping<dim, spacedim> &      mapping,
-                          const Vector<double> &              solution)
+                          const DoFHandler<dim, spacedim>    &dof_handler,
+                          const Mapping<dim, spacedim>       &mapping,
+                          const Vector<double>               &solution)
   {
     check_quadratures(quadrature_indices,
                       quadratures,
@@ -604,7 +816,7 @@ namespace fdl
         auto                      patch      = patch_map.get_patch(patch_n);
         tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_idx);
         Assert(patch_data, ExcMessage("Type mismatch"));
-        check_depth(patch_data, fe);
+        check_depth<spacedim>(patch_data, fe.n_components());
 
         auto       iter = patch_map.begin(patch_n, dof_handler);
         const auto end  = patch_map.end(patch_n, dof_handler);
@@ -677,15 +889,15 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  compute_spread(const std::string &                 kernel_name,
+  compute_spread(const std::string                  &kernel_name,
                  const int                           data_idx,
-                 PatchMap<dim, spacedim> &           patch_map,
-                 const Mapping<dim, spacedim> &      position_mapping,
-                 const std::vector<unsigned char> &  quadrature_indices,
+                 PatchMap<dim, spacedim>            &patch_map,
+                 const Mapping<dim, spacedim>       &position_mapping,
+                 const std::vector<unsigned char>   &quadrature_indices,
                  const std::vector<Quadrature<dim>> &quadratures,
-                 const DoFHandler<dim, spacedim> &   dof_handler,
-                 const Mapping<dim, spacedim> &      mapping,
-                 const Vector<double> &              solution)
+                 const DoFHandler<dim, spacedim>    &dof_handler,
+                 const Mapping<dim, spacedim>       &mapping,
+                 const Vector<double>               &solution)
   {
 #define ARGUMENTS                                                         \
   kernel_name, data_idx, patch_map, position_mapping, quadrature_indices, \
@@ -779,73 +991,223 @@ namespace fdl
 #undef ARGUMENTS
   }
 
+  template <int dim, int spacedim, typename patch_type>
+  void
+  compute_nodal_spread_internal(const std::string            &kernel_name,
+                                const int                     data_idx,
+                                NodalPatchMap<dim, spacedim> &patch_map,
+                                const Vector<double>         &position,
+                                const Vector<double>         &spread_values)
+  {
+    // This is valid with any number of components in spread_values (well, it
+    // does need to match the patch depth)
+    Assert(position.size() % spacedim == 0,
+           ExcMessage("Should have spacedim values per node"));
+    Assert(spread_values.size() % (position.size() / spacedim) == 0,
+           ExcMessage("There should be a fixed number of values to spread "
+                      "per node"));
+    const auto n_components =
+      spread_values.size() / (position.size() / spacedim);
+
+    for (std::size_t patch_n = 0; patch_n < patch_map.size(); ++patch_n)
+      {
+        std::pair<const IndexSet &, tbox::Pointer<hier::Patch<spacedim>>> p =
+          patch_map[patch_n];
+        const IndexSet                       &dofs  = p.first;
+        tbox::Pointer<hier::Patch<spacedim>> &patch = p.second;
+        tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_idx);
+        Assert(patch_data, ExcMessage("Type mismatch"));
+        check_depth<spacedim>(patch_data, n_components);
+
+        for (auto it = dofs.begin_intervals(); it != dofs.end_intervals(); ++it)
+          {
+            const auto nodes_begin = *it->begin() / spacedim;
+            const auto n_nodes     = (it->end() - it->begin()) / spacedim;
+            const auto position_view =
+              make_array_view(position.begin() + nodes_begin * spacedim,
+                              position.begin() +
+                                (nodes_begin + n_nodes) * spacedim);
+            Assert(position_view.size() % spacedim == 0, ExcFDLInternalError());
+            auto values_view = make_array_view(
+              spread_values.begin() + nodes_begin * n_components,
+              spread_values.begin() + (nodes_begin + n_nodes) * n_components);
+            Assert(values_view.size() % n_components == 0,
+                   ExcFDLInternalError());
+
+            IBTK::LEInteractor::spread(patch_data,
+                                       values_view.data(),
+                                       values_view.size(),
+                                       n_components,
+                                       position_view.data(),
+                                       position_view.size(),
+                                       spacedim,
+                                       patch,
+                                       patch->getBox(),
+                                       kernel_name);
+          }
+      }
+  }
+
+
+
+  template <int dim, int spacedim>
+  void
+  compute_nodal_spread(const std::string            &kernel_name,
+                       const int                     data_idx,
+                       NodalPatchMap<dim, spacedim> &patch_map,
+                       const Vector<double>         &position,
+                       const Vector<double>         &spread_values)
+  {
+#define ARGUMENTS kernel_name, data_idx, patch_map, position, spread_values
+    if (patch_map.size() != 0)
+      {
+        auto patch_data = patch_map[0].second->getPatchData(data_idx);
+        auto pair       = extract_types(patch_data);
+
+        AssertThrow(pair.second == SAMRAIFieldType::Double,
+                    ExcFDLNotImplemented());
+        switch (pair.first)
+          {
+            case SAMRAIPatchType::Edge:
+              compute_nodal_spread_internal<dim,
+                                            spacedim,
+                                            pdat::EdgeData<spacedim, double>>(
+                ARGUMENTS);
+              break;
+
+            case SAMRAIPatchType::Cell:
+              compute_nodal_spread_internal<dim,
+                                            spacedim,
+                                            pdat::CellData<spacedim, double>>(
+                ARGUMENTS);
+              break;
+
+            case SAMRAIPatchType::Side:
+              compute_nodal_spread_internal<dim,
+                                            spacedim,
+                                            pdat::SideData<spacedim, double>>(
+                ARGUMENTS);
+              break;
+
+            case SAMRAIPatchType::Node:
+              compute_nodal_spread_internal<dim,
+                                            spacedim,
+                                            pdat::NodeData<spacedim, double>>(
+                ARGUMENTS);
+              break;
+          }
+      }
+#undef ARGUMENTS
+  }
+
+
   // instantiations
 
   template void
-  tag_cells(const std::vector<BoundingBox<NDIM, float>> &         bboxes,
+  tag_cells(const std::vector<BoundingBox<NDIM, float>>          &bboxes,
             const int                                             tag_index,
             SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> patch_level);
 
   template void
-  tag_cells(const std::vector<BoundingBox<NDIM, double>> &        bboxes,
+  tag_cells(const std::vector<BoundingBox<NDIM, double>>         &bboxes,
             const int                                             tag_index,
             SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> patch_level);
 
   template void
   count_quadrature_points(const int                         qp_data_idx,
-                          PatchMap<NDIM - 1, NDIM> &        patch_map,
-                          const Mapping<NDIM - 1, NDIM> &   position_mapping,
+                          PatchMap<NDIM - 1, NDIM>         &patch_map,
+                          const Mapping<NDIM - 1, NDIM>    &position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
                           const std::vector<Quadrature<NDIM - 1>> &quadratures);
 
   template void
   count_quadrature_points(const int                         qp_data_idx,
-                          PatchMap<NDIM, NDIM> &            patch_map,
-                          const Mapping<NDIM, NDIM> &       position_mapping,
+                          PatchMap<NDIM, NDIM>             &patch_map,
+                          const Mapping<NDIM, NDIM>        &position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
                           const std::vector<Quadrature<NDIM>> &quadratures);
 
   template void
-  compute_projection_rhs(const std::string &               kernel_name,
+  count_nodes(const int                      node_count_data_idx,
+              NodalPatchMap<NDIM - 1, NDIM> &nodal_patch_map,
+              const Vector<double>          &position);
+
+  template void
+  count_nodes(const int                  node_count_data_idx,
+              NodalPatchMap<NDIM, NDIM> &nodal_patch_map,
+              const Vector<double>      &position);
+
+  template void
+  compute_projection_rhs(const std::string                &kernel_name,
                          const int                         data_idx,
-                         const PatchMap<NDIM - 1, NDIM> &  patch_map,
-                         const Mapping<NDIM - 1, NDIM> &   position_mapping,
+                         const PatchMap<NDIM - 1, NDIM>   &patch_map,
+                         const Mapping<NDIM - 1, NDIM>    &position_mapping,
                          const std::vector<unsigned char> &quadrature_indices,
                          const std::vector<Quadrature<NDIM - 1>> &quadratures,
-                         const DoFHandler<NDIM - 1, NDIM> &       dof_handler,
-                         const Mapping<NDIM - 1, NDIM> &          mapping,
-                         Vector<double> &                         rhs);
+                         const DoFHandler<NDIM - 1, NDIM>        &dof_handler,
+                         const Mapping<NDIM - 1, NDIM>           &mapping,
+                         Vector<double>                          &rhs);
 
   template void
-  compute_projection_rhs(const std::string &               kernel_name,
+  compute_projection_rhs(const std::string                &kernel_name,
                          const int                         data_idx,
-                         const PatchMap<NDIM> &            patch_map,
-                         const Mapping<NDIM> &             position_mapping,
+                         const PatchMap<NDIM>             &patch_map,
+                         const Mapping<NDIM>              &position_mapping,
                          const std::vector<unsigned char> &quadrature_indices,
                          const std::vector<Quadrature<NDIM>> &quadratures,
-                         const DoFHandler<NDIM> &             dof_handler,
-                         const Mapping<NDIM> &                mapping,
-                         Vector<double> &                     rhs);
+                         const DoFHandler<NDIM>              &dof_handler,
+                         const Mapping<NDIM>                 &mapping,
+                         Vector<double>                      &rhs);
 
   template void
-  compute_spread(const std::string &                      kernel_name,
+  compute_nodal_interpolation(const std::string                   &kernel_name,
+                              const int                            data_idx,
+                              const NodalPatchMap<NDIM - 1, NDIM> &patch_map,
+                              const Vector<double>                &position,
+                              Vector<double> &interpolated_values);
+
+
+  template void
+  compute_nodal_interpolation(const std::string               &kernel_name,
+                              const int                        data_idx,
+                              const NodalPatchMap<NDIM, NDIM> &patch_map,
+                              const Vector<double>            &position,
+                              Vector<double> &interpolated_values);
+
+  template void
+  compute_spread(const std::string                       &kernel_name,
                  const int                                data_idx,
-                 PatchMap<NDIM - 1, NDIM> &               patch_map,
-                 const Mapping<NDIM - 1, NDIM> &          position_mapping,
-                 const std::vector<unsigned char> &       quadrature_indices,
+                 PatchMap<NDIM - 1, NDIM>                &patch_map,
+                 const Mapping<NDIM - 1, NDIM>           &position_mapping,
+                 const std::vector<unsigned char>        &quadrature_indices,
                  const std::vector<Quadrature<NDIM - 1>> &quadratures,
-                 const DoFHandler<NDIM - 1, NDIM> &       dof_handler,
-                 const Mapping<NDIM - 1, NDIM> &          mapping,
-                 const Vector<double> &                   solution);
+                 const DoFHandler<NDIM - 1, NDIM>        &dof_handler,
+                 const Mapping<NDIM - 1, NDIM>           &mapping,
+                 const Vector<double>                    &solution);
 
   template void
-  compute_spread(const std::string &                  kernel_name,
+  compute_spread(const std::string                   &kernel_name,
                  const int                            data_idx,
-                 PatchMap<NDIM, NDIM> &               patch_map,
-                 const Mapping<NDIM, NDIM> &          position_mapping,
-                 const std::vector<unsigned char> &   quadrature_indices,
+                 PatchMap<NDIM, NDIM>                &patch_map,
+                 const Mapping<NDIM, NDIM>           &position_mapping,
+                 const std::vector<unsigned char>    &quadrature_indices,
                  const std::vector<Quadrature<NDIM>> &quadratures,
-                 const DoFHandler<NDIM, NDIM> &       dof_handler,
-                 const Mapping<NDIM, NDIM> &          mapping,
-                 const Vector<double> &               solution);
+                 const DoFHandler<NDIM, NDIM>        &dof_handler,
+                 const Mapping<NDIM, NDIM>           &mapping,
+                 const Vector<double>                &solution);
+
+  template void
+  compute_nodal_spread(const std::string             &kernel_name,
+                       const int                      data_idx,
+                       NodalPatchMap<NDIM - 1, NDIM> &patch_map,
+                       const Vector<double>          &position,
+                       const Vector<double>          &spread_values);
+
+
+  template void
+  compute_nodal_spread(const std::string         &kernel_name,
+                       const int                  data_idx,
+                       NodalPatchMap<NDIM, NDIM> &patch_map,
+                       const Vector<double>      &position,
+                       const Vector<double>      &spread_values);
 } // namespace fdl

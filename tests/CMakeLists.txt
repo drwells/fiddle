@@ -94,6 +94,7 @@ SETUP(grid tag_cells_01.cc fiddle2d)
 
 # interaction:
 SETUP(interaction count_quadrature_points_01.cc fiddle2d)
+SETUP(interaction count_nodes_01.cc fiddle2d)
 
 SETUP(interaction dlm_01.cc fiddle2d)
 
@@ -111,8 +112,10 @@ SETUP_2D(interaction elemental_interpolate_01.cc)
 
 SETUP(interaction interpolate_01.cc fiddle2d)
 SETUP(interaction interpolate_02.cc fiddle3d)
+SETUP(interaction nodal_interpolate_01.cc fiddle2d)
 
 SETUP(interaction spread_01.cc fiddle2d)
+SETUP(interaction nodal_spread_01.cc fiddle2d)
 
 SETUP(interaction interaction_base_01.cc fiddle2d)
 

@@ -135,10 +135,13 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                                   F_dof_handler,
                                                   F_mapping,
                                                   F_rhs);
+  // This is necessary since InteractionBase isn't really intended to be used on
+  // its own anyway
+  auto &trans = dynamic_cast<fdl::Transaction<dim> &>(*transaction);
+  trans.rhs_scatter_back_op = VectorOperation::add;
 
   transaction = interaction_base.compute_projection_rhs_intermediate(
     std::move(transaction));
-  auto &trans = dynamic_cast<fdl::Transaction<dim> &>(*transaction);
 
   std::ofstream output;
   if (rank == 0)

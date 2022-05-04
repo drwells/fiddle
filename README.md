@@ -15,7 +15,7 @@ https://github.com/IBAMR/IBAMR/blob/master/doc/cmake.md
 ```
 mkdir build
 cd build
-cmake -DDEAL_II_ROOT=$HOME/Applications/deal.ii \
+cmake -DDEAL_II_ROOT=$HOME/Applications/deal.II \
       -DIBAMR_ROOT=$HOME/Applications/ibamr \
       -DCMAKE_BUILD_TYPE=Debug \
       -DCMAKE_CXX_FLAGS="-g -DDEBUG -Wall -Wextra -Wpedantic -fopenmp"   \
@@ -25,7 +25,7 @@ for a debug build (uses deal.II's debug settings) or
 ```
 mkdir build-release
 cd build-release
-cmake -DDEAL_II_ROOT=$HOME/Applications/deal.ii \
+cmake -DDEAL_II_ROOT=$HOME/Applications/deal.II \
       -DIBAMR_ROOT=$HOME/Applications/ibamr \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_CXX_FLAGS="-O3 -mach=native -g"   \

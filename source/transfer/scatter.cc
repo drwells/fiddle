@@ -1,3 +1,5 @@
+#include <fiddle/base/exceptions.h>
+
 #include <fiddle/transfer/scatter.h>
 
 #include <deal.II/base/index_set.h>
@@ -12,7 +14,7 @@ namespace fdl
 
   IndexSet
   setup_ghost_dofs(const std::vector<types::global_dof_index> &overlap_dofs,
-                   const IndexSet &                            local_dofs)
+                   const IndexSet                             &local_dofs)
   {
     IndexSet ghost_dofs(local_dofs.size());
     // overlap dofs are usually not locally owned, so most of them are
@@ -28,8 +30,8 @@ namespace fdl
 
   template <typename T>
   Scatter<T>::Scatter(const std::vector<types::global_dof_index> &overlap,
-                      const IndexSet &                            local_dofs,
-                      const MPI_Comm &                            communicator)
+                      const IndexSet                             &local_dofs,
+                      const MPI_Comm                             &communicator)
     : overlap_dofs(overlap)
     , scatterer(local_dofs,
                 setup_ghost_dofs(overlap_dofs, local_dofs),
@@ -53,7 +55,7 @@ namespace fdl
   template <typename T>
   void
   Scatter<T>::overlap_to_global_start(
-    const Vector<T> &                      input,
+    const Vector<T>                       &input,
     const VectorOperation::values          operation,
     const unsigned int                     channel,
     LinearAlgebra::distributed::Vector<T> &output)
@@ -73,17 +75,19 @@ namespace fdl
     // communicate so we can't really check for consistent settings (i.e., there
     // is no correct value set on the owning processor). Hence we do a max
     // operation instead and hope the caller isn't doing anything too weird.
-    Assert(operation == VectorOperation::insert ||
-             operation == VectorOperation::add,
-           ExcNotImplemented());
     if (operation == VectorOperation::add)
       scatterer = 0.0;
-    else
+    else if (operation == VectorOperation::insert ||
+             operation == VectorOperation::max)
       {
         const auto size = scatterer.locally_owned_size() +
                           scatterer.get_partitioner()->n_ghost_indices();
         for (std::size_t i = 0; i < size; ++i)
-          scatterer.local_element(i) = std::numeric_limits<T>::min();
+          scatterer.local_element(i) = std::numeric_limits<T>::lowest();
+      }
+    else
+      {
+        Assert(false, ExcFDLNotImplemented());
       }
     // TODO: we can probably do the index translation just once and store it
     // so we could instead use scatterer::local_element(). It might be faster
@@ -95,8 +99,7 @@ namespace fdl
     scatterer.set_ghost_state(false);
 
     const VectorOperation::values actual_op =
-      operation == VectorOperation::add ? VectorOperation::add :
-                                          VectorOperation::max;
+      operation == VectorOperation::insert ? VectorOperation::max : operation;
     scatterer.compress_start(channel, actual_op);
   }
 
@@ -105,7 +108,7 @@ namespace fdl
   template <typename T>
   void
   Scatter<T>::overlap_to_global_finish(
-    const Vector<T> &                      input,
+    const Vector<T>                       &input,
     const VectorOperation::values          operation,
     LinearAlgebra::distributed::Vector<T> &output)
   {
@@ -118,8 +121,7 @@ namespace fdl
                       "as were provided to the constructor in local"));
 
     const VectorOperation::values actual_op =
-      operation == VectorOperation::add ? VectorOperation::add :
-                                          VectorOperation::max;
+      operation == VectorOperation::insert ? VectorOperation::max : operation;
     scatterer.compress_finish(actual_op);
 
     for (std::size_t i = 0; i < scatterer.locally_owned_size(); ++i)
@@ -133,7 +135,7 @@ namespace fdl
   Scatter<T>::global_to_overlap_start(
     const LinearAlgebra::distributed::Vector<T> &input,
     const unsigned int                           channel,
-    Vector<T> &                                  output)
+    Vector<T>                                   &output)
   {
     (void)output;
     Assert(output.size() == overlap_dofs.size(),
@@ -155,7 +157,7 @@ namespace fdl
   void
   Scatter<T>::global_to_overlap_finish(
     const LinearAlgebra::distributed::Vector<T> &input,
-    Vector<T> &                                  output)
+    Vector<T>                                   &output)
   {
       (void)input;
     Assert(output.size() == overlap_dofs.size(),

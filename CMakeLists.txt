@@ -43,12 +43,14 @@ SET(FIDDLE_SRC
   source/grid/grid_utilities.cc
   source/grid/overlap_tria.cc
   source/grid/patch_map.cc
+  source/grid/nodal_patch_map.cc
 
   source/interaction/dlm_method.cc
   source/interaction/elemental_interaction.cc
   source/interaction/ifed_method.cc
   source/interaction/interaction_base.cc
   source/interaction/interaction_utilities.cc
+  source/interaction/nodal_interaction.cc
 
   source/mechanics/mechanics_utilities.cc
   source/mechanics/mechanics_values.cc

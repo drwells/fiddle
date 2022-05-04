@@ -1,0 +1,5 @@
+Number of elements: 16
+max error = 8.88178e-15
+patch
+patch lower = 0, 0
+patch upper = 1, 1

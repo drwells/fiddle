@@ -82,6 +82,9 @@ namespace fdl
     /// The other scatter (used for assembly).
     Scatter<double> rhs_scatter;
 
+    /// The operation used in the scatter.
+    VectorOperation::values rhs_scatter_back_op;
+
     /// Mapping to use for the provided finite element field.
     SmartPointer<const Mapping<dim, spacedim>> mapping;
 
@@ -119,6 +122,45 @@ namespace fdl
 
     /// Operation of the current transaction. Used for consistency checking.
     Operation operation;
+  };
+
+  /**
+   * Transaction class used for workload calculations.
+   *
+   * @note Several of the arrays owned by this class will be asynchronously
+   * written into by MPI - moving or resizing these arrays can result in program
+   * crashes. It should normally not be necessary for objects that do not set up
+   * a transaction to modify it.
+   */
+  template <int dim, int spacedim>
+  struct WorkloadTransaction : public TransactionBase
+  {
+    int workload_index;
+
+    /// Native position DoFHandler.
+    SmartPointer<const DoFHandler<dim, spacedim>> native_position_dof_handler;
+
+    /// position scatter.
+    Scatter<double> position_scatter;
+
+    /// Native-partitioned position.
+    SmartPointer<const LinearAlgebra::distributed::Vector<double>>
+      native_position;
+
+    /// Overlap-partitioned position.
+    Vector<double> overlap_position;
+
+    /// Possible states for a transaction.
+    enum class State
+    {
+      Start,
+      Intermediate,
+      Finish,
+      Done
+    };
+
+    /// Next state. Used for consistency checking.
+    State next_state;
   };
 
   /**
@@ -164,8 +206,8 @@ namespace fdl
      */
     InteractionBase(
       const parallel::shared::Triangulation<dim, spacedim> &native_tria,
-      const std::vector<BoundingBox<spacedim, float>> &     active_cell_bboxes,
-      const std::vector<float> &                            active_cell_lengths,
+      const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
+      const std::vector<float>                             &active_cell_lengths,
       tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
       const int                                             level_number);
 
@@ -175,7 +217,7 @@ namespace fdl
     virtual void
     reinit(const parallel::shared::Triangulation<dim, spacedim> &native_tria,
            const std::vector<BoundingBox<spacedim, float>> &active_cell_bboxes,
-           const std::vector<float> &                       active_cell_lengths,
+           const std::vector<float>                        &active_cell_lengths,
            tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
            const int                                         level_number);
 
@@ -194,6 +236,14 @@ namespace fdl
     add_dof_handler(const DoFHandler<dim, spacedim> &native_dof_handler);
 
     /**
+     * For some interactions, the projection operator is actually interpolation.
+     * In that case the RHS is the solution and we can skip a lot of work.
+     * Defaults to returning false.
+     */
+    virtual bool
+    projection_is_interpolation() const;
+
+    /**
      * Start the computation of the RHS vector corresponding to projecting @p
      * data_idx onto the finite element space specified by @p dof_handler.
      * Since interpolation requires multiple data transfers it is split into
@@ -210,13 +260,13 @@ namespace fdl
      */
     virtual std::unique_ptr<TransactionBase>
     compute_projection_rhs_start(
-      const std::string &                               kernel_name,
+      const std::string                                &kernel_name,
       const int                                         data_idx,
-      const DoFHandler<dim, spacedim> &                 position_dof_handler,
+      const DoFHandler<dim, spacedim>                  &position_dof_handler,
       const LinearAlgebra::distributed::Vector<double> &position,
-      const DoFHandler<dim, spacedim> &                 dof_handler,
-      const Mapping<dim, spacedim> &                    mapping,
-      LinearAlgebra::distributed::Vector<double> &      rhs);
+      const DoFHandler<dim, spacedim>                  &dof_handler,
+      const Mapping<dim, spacedim>                     &mapping,
+      LinearAlgebra::distributed::Vector<double>       &rhs);
 
     /**
      * Middle part of velocity interpolation - finalizes the forward scatters
@@ -255,12 +305,12 @@ namespace fdl
      */
     virtual std::unique_ptr<TransactionBase>
     compute_spread_start(
-      const std::string &                               kernel_name,
+      const std::string                                &kernel_name,
       const int                                         data_idx,
       const LinearAlgebra::distributed::Vector<double> &position,
-      const DoFHandler<dim, spacedim> &                 position_dof_handler,
-      const Mapping<dim, spacedim> &                    mapping,
-      const DoFHandler<dim, spacedim> &                 dof_handler,
+      const DoFHandler<dim, spacedim>                  &position_dof_handler,
+      const Mapping<dim, spacedim>                     &mapping,
+      const DoFHandler<dim, spacedim>                  &dof_handler,
       const LinearAlgebra::distributed::Vector<double> &solution);
 
     /**
@@ -293,7 +343,7 @@ namespace fdl
     add_workload_start(
       const int                                         workload_index,
       const LinearAlgebra::distributed::Vector<double> &position,
-      const DoFHandler<dim, spacedim> &                 position_dof_handler);
+      const DoFHandler<dim, spacedim>                  &position_dof_handler);
 
     virtual std::unique_ptr<TransactionBase>
     add_workload_intermediate(std::unique_ptr<TransactionBase> t_ptr);
@@ -335,6 +385,17 @@ namespace fdl
       const DoFHandler<dim, spacedim> &native_dof_handler) const;
 
     /**
+     * Get the RHS scatter back operation when setting up the transactions. For
+     * nodal 'projection' (equivalent to interpolation) this is the max
+     * operation (since we set values) and for elemental projection this is
+     * addition.
+     *
+     * The default implementation returns VectorOperation::unknown.
+     */
+    virtual VectorOperation::values
+    get_rhs_scatter_type() const;
+
+    /**
      * Return a scatter corresponding to the provided native dof handler.
      */
     Scatter<double>
@@ -345,7 +406,7 @@ namespace fdl
      */
     void
     return_scatter(const DoFHandler<dim, spacedim> &native_dof_handler,
-                   Scatter<double> &&               scatter);
+                   Scatter<double>                &&scatter);
 
     /**
      * @name Geometric data.

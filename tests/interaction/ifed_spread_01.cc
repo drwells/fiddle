@@ -17,6 +17,7 @@
 
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools_interpolate.h>
+#include <deal.II/numerics/vector_tools_rhs.h>
 
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
 #include <ibamr/IBFEMethod.h>
@@ -60,7 +61,7 @@ public:
   computeLagrangianForce(const double /*time*/) override
   {
     // everything else is at the current time so just roll with that
-    const auto &                               part = this->parts[0];
+    const auto                                &part = this->parts[0];
     LinearAlgebra::distributed::Vector<double> current_force(
       part.get_partitioner());
 
@@ -68,10 +69,25 @@ public:
                                   test_db->getDatabase("f_exact")),
                                 "PI=" + std::to_string(numbers::PI),
                                 dim == 2 ? "X_0,X_1" : "X_0,X_1,X_2");
-    VectorTools::interpolate(part.get_mapping(),
-                             part.get_dof_handler(),
-                             fp,
-                             current_force);
+    // For nodal interaction we assume that the stored force vector is actually
+    // a density, not pointwise values
+    if (this->input_db->getStringWithDefault("interaction", "ELEMENTAL") ==
+        "NODAL")
+      {
+        VectorTools::create_right_hand_side(part.get_mapping(),
+                                            part.get_dof_handler(),
+                                            part.get_quadrature(),
+                                            fp,
+                                            current_force);
+        current_force.compress(VectorOperation::add);
+      }
+    else
+      {
+        VectorTools::interpolate(part.get_mapping(),
+                                 part.get_dof_handler(),
+                                 fp,
+                                 current_force);
+      }
 
     current_force.update_ghost_values();
     this->part_vectors.set_force(0,
@@ -234,6 +250,8 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
           tbox::Pointer<pdat::CellVariable<spacedim, double>> f_error_cc_var =
             new pdat::CellVariable<spacedim, double>("f_error_cc",
                                                      n_components);
+          tbox::Pointer<pdat::SideVariable<spacedim, double>> f_var =
+            var_db->getVariable("f_sc");
 
           auto f_exact_cc_index =
             var_db->registerVariableAndContext(f_exact_cc_var,
@@ -251,12 +269,6 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
               level->allocatePatchData(f_exact_cc_index, 0.0);
               level->allocatePatchData(f_error_cc_index, 0.0);
             }
-
-          tbox::Pointer<pdat::SideVariable<spacedim, double>> f_var;
-          // This is why you shouldn't invent your own type system...
-          tbox::Pointer<hier::Variable<spacedim>> other_f_var;
-          var_db->mapIndexToVariable(f_index, other_f_var);
-          f_var = other_f_var;
 
           IBTK::HierarchyMathOps hier_math_ops("hier_math_ops",
                                                patch_hierarchy);
@@ -280,6 +292,13 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                0.0,
                                true);
 
+          tbox::Pointer<pdat::CellVariable<spacedim, double>> f_cc_var =
+            var_db->getVariable("f_cc");
+          const int f_cc_index = var_db->mapVariableAndContextToIndex(
+            f_cc_var, var_db->getContext("context"));
+          hier_math_ops.interp(
+            f_cc_index, f_cc_var, f_index, f_var, NULL, 0.0, true);
+
           for (int d = 0; d < n_components; ++d)
             {
               visit_data_writer->registerPlotQuantity(
@@ -297,7 +316,7 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
     }
 
     {
-      const auto & part = ifed_method.get_part(0);
+      const auto  &part = ifed_method.get_part(0);
       DataOut<dim> data_out;
       data_out.attach_dof_handler(part.get_dof_handler());
       data_out.add_data_vector(ifed_method.get_force(), "F");
