@@ -38,14 +38,17 @@ namespace fdl
       return result;
     }
 
-    std::vector<types::material_id>
-    setup_material_ids(const std::vector<types::material_id> &material_ids)
+    // set up either material or boundary ids
+    template <typename id_type>
+    std::vector<id_type>
+    setup_ids(const std::vector<id_type> &ids, const id_type invalid_id)
     {
-      std::vector<types::material_id> result = material_ids;
-      // If the user doesn't want any material ids, let them do it. This utility
-      // function is only for the explicit material id case.
+      std::vector<id_type> result = ids;
+      // If the user doesn't want any material/boundary ids, let them do it.
+      // This utility function is only for the explicit material/boundary id
+      // case.
       if (result.size() == 0)
-        result.push_back(numbers::invalid_material_id);
+        result.push_back(invalid_id);
 
       // permit duplicates in the input array
       std::sort(result.begin(), result.end());
@@ -55,9 +58,14 @@ namespace fdl
     }
   } // namespace
 
+  //
+  // SpringForceBase
+  //
+
   template <int dim, int spacedim, typename Number>
-  SpringForce<dim, spacedim, Number>::SpringForce(
-    const Quadrature<dim>                            &quad,
+  template <int q_dim>
+  SpringForceBase<dim, spacedim, Number>::SpringForceBase(
+    const Quadrature<q_dim>                          &quad,
     const double                                      spring_constant,
     const DoFHandler<dim, spacedim>                  &dof_handler,
     const LinearAlgebra::distributed::Vector<double> &reference_position)
@@ -65,94 +73,36 @@ namespace fdl
     , spring_constant(spring_constant)
     , dof_handler(&dof_handler)
     , reference_position(reference_position)
-  {
-    this->reference_position.update_ghost_values();
-  }
-
-  template <int dim, int spacedim, typename Number>
-  SpringForce<dim, spacedim, Number>::SpringForce(
-    const Quadrature<dim>           &quad,
-    const double                     spring_constant,
-    const DoFHandler<dim, spacedim> &dof_handler,
-    const Mapping<dim, spacedim>    &mapping,
-    const Function<spacedim>        &reference_position)
-    : ForceContribution<dim, spacedim, double>(quad)
-    , spring_constant(spring_constant)
-    , dof_handler(&dof_handler)
-    , reference_position(
-        do_interpolation(dof_handler, mapping, reference_position))
-  {
-    this->reference_position.update_ghost_values();
-  }
-
-  template <int dim, int spacedim, typename Number>
-  SpringForce<dim, spacedim, Number>::SpringForce(
-    const Quadrature<dim>                            &quad,
-    const double                                      spring_constant,
-    const DoFHandler<dim, spacedim>                  &dof_handler,
-    const std::vector<types::material_id>            &material_ids,
-    const LinearAlgebra::distributed::Vector<double> &reference_position)
-    : ForceContribution<dim, spacedim, double>(quad)
-    , material_ids(setup_material_ids(material_ids))
-    , spring_constant(spring_constant)
-    , dof_handler(&dof_handler)
-    , reference_position(reference_position)
-  {
-    this->reference_position.update_ghost_values();
-  }
-
-  template <int dim, int spacedim, typename Number>
-  SpringForce<dim, spacedim, Number>::SpringForce(
-    const Quadrature<dim>                 &quad,
-    const double                           spring_constant,
-    const DoFHandler<dim, spacedim>       &dof_handler,
-    const Mapping<dim, spacedim>          &mapping,
-    const std::vector<types::material_id> &material_ids,
-    const Function<spacedim>              &reference_position)
-    : ForceContribution<dim, spacedim, double>(quad)
-    , material_ids(setup_material_ids(material_ids))
-    , spring_constant(spring_constant)
-    , dof_handler(&dof_handler)
-    , reference_position(
-        do_interpolation(dof_handler, mapping, reference_position))
   {
     this->reference_position.update_ghost_values();
   }
 
   template <int dim, int spacedim, typename Number>
   void
-  SpringForce<dim, spacedim, Number>::set_reference_position(
+  SpringForceBase<dim, spacedim, Number>::set_reference_position(
     const LinearAlgebra::distributed::Vector<double> &reference_position)
   {
     this->reference_position = reference_position;
     this->reference_position.update_ghost_values();
   }
 
-
   template <int dim, int spacedim, typename Number>
   MechanicsUpdateFlags
-  SpringForce<dim, spacedim, Number>::get_mechanics_update_flags() const
+  SpringForceBase<dim, spacedim, Number>::get_mechanics_update_flags() const
   {
     return MechanicsUpdateFlags::update_nothing;
   }
 
   template <int dim, int spacedim, typename Number>
   UpdateFlags
-  SpringForce<dim, spacedim, Number>::get_update_flags() const
+  SpringForceBase<dim, spacedim, Number>::get_update_flags() const
   {
     return UpdateFlags::update_values;
   }
 
   template <int dim, int spacedim, typename Number>
-  bool
-  SpringForce<dim, spacedim, Number>::is_volume_force() const
-  {
-    return true;
-  }
-
-  template <int dim, int spacedim, typename Number>
   void
-  SpringForce<dim, spacedim, Number>::setup_force(
+  SpringForceBase<dim, spacedim, Number>::setup_force(
     const double /*time*/,
     const LinearAlgebra::distributed::Vector<double> &position,
     const LinearAlgebra::distributed::Vector<double> & /*velocity*/)
@@ -162,10 +112,70 @@ namespace fdl
 
   template <int dim, int spacedim, typename Number>
   void
-  SpringForce<dim, spacedim, Number>::finish_force(const double /*time*/)
+  SpringForceBase<dim, spacedim, Number>::finish_force(const double /*time*/)
   {
     current_position = nullptr;
   }
+
+  //
+  // SpringForce
+  //
+
+  template <int dim, int spacedim, typename Number>
+  SpringForce<dim, spacedim, Number>::SpringForce(
+    const Quadrature<dim>                            &quad,
+    const double                                      spring_constant,
+    const DoFHandler<dim, spacedim>                  &dof_handler,
+    const LinearAlgebra::distributed::Vector<double> &reference_position)
+    : SpringForceBase<dim, spacedim, Number>(quad,
+                                             spring_constant,
+                                             dof_handler,
+                                             reference_position)
+  {}
+
+  template <int dim, int spacedim, typename Number>
+  SpringForce<dim, spacedim, Number>::SpringForce(
+    const Quadrature<dim>                            &quad,
+    const double                                      spring_constant,
+    const DoFHandler<dim, spacedim>                  &dof_handler,
+    const std::vector<types::material_id>            &material_ids,
+    const LinearAlgebra::distributed::Vector<double> &reference_position)
+    : SpringForceBase<dim, spacedim, Number>(quad,
+                                             spring_constant,
+                                             dof_handler,
+                                             reference_position)
+    , material_ids(setup_ids(material_ids, numbers::invalid_material_id))
+  {}
+
+  template <int dim, int spacedim, typename Number>
+  SpringForce<dim, spacedim, Number>::SpringForce(
+    const Quadrature<dim>                 &quad,
+    const double                           spring_constant,
+    const DoFHandler<dim, spacedim>       &dof_handler,
+    const Mapping<dim, spacedim>          &mapping,
+    const std::vector<types::material_id> &material_ids,
+    const Function<spacedim>              &reference_position)
+    : SpringForceBase<dim, spacedim, Number>(
+        quad,
+        spring_constant,
+        dof_handler,
+        do_interpolation(dof_handler, mapping, reference_position))
+    , material_ids(setup_ids(material_ids, numbers::invalid_material_id))
+  {}
+
+  template <int dim, int spacedim, typename Number>
+  SpringForce<dim, spacedim, Number>::SpringForce(
+    const Quadrature<dim>           &quad,
+    const double                     spring_constant,
+    const DoFHandler<dim, spacedim> &dof_handler,
+    const Mapping<dim, spacedim>    &mapping,
+    const Function<spacedim>        &reference_position)
+    : SpringForceBase<dim, spacedim, Number>(
+        quad,
+        spring_constant,
+        dof_handler,
+        do_interpolation(dof_handler, mapping, reference_position))
+  {}
 
   template <int dim, int spacedim, typename Number>
   void
@@ -175,9 +185,10 @@ namespace fdl
     const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
     ArrayView<Tensor<1, spacedim, Number>> &forces) const
   {
-    if (material_ids.size() > 0 && !std::binary_search(material_ids.begin(),
-                                                       material_ids.end(),
-                                                       cell->material_id()))
+    if (this->material_ids.size() > 0 &&
+        !std::binary_search(this->material_ids.begin(),
+                            this->material_ids.end(),
+                            cell->material_id()))
       {
         // the user specified a subset of material ids and we currently don't
         // match - fill with zeros
@@ -190,31 +201,205 @@ namespace fdl
 
         const auto dof_cell =
           typename DoFHandler<dim, spacedim>::active_cell_iterator(
-            &dof_handler->get_triangulation(),
+            &this->dof_handler->get_triangulation(),
             cell->level(),
             cell->index(),
-            &*dof_handler);
+            &*this->dof_handler);
 
-        scratch_cell_dofs.resize(fe_values.dofs_per_cell);
-        dof_cell->get_dof_indices(scratch_cell_dofs);
-        scratch_dof_values.resize(fe_values.dofs_per_cell);
-        scratch_qp_values.resize(fe_values.n_quadrature_points);
+        this->scratch_cell_dofs.resize(fe_values.dofs_per_cell);
+        dof_cell->get_dof_indices(this->scratch_cell_dofs);
+        this->scratch_dof_values.resize(fe_values.dofs_per_cell);
+        this->scratch_qp_values.resize(fe_values.n_quadrature_points);
 
         auto &extractor = fe_values[FEValuesExtractors::Vector(0)];
-        for (unsigned int i = 0; i < scratch_cell_dofs.size(); ++i)
-          scratch_dof_values[i] =
-            spring_constant * (reference_position[scratch_cell_dofs[i]] -
-                               (*current_position)[scratch_cell_dofs[i]]);
-        extractor.get_function_values_from_local_dof_values(scratch_dof_values,
-                                                            scratch_qp_values);
-        std::copy(scratch_qp_values.begin(),
-                  scratch_qp_values.end(),
+        for (unsigned int i = 0; i < this->scratch_cell_dofs.size(); ++i)
+          this->scratch_dof_values[i] =
+            this->spring_constant *
+            (this->reference_position[this->scratch_cell_dofs[i]] -
+             (*this->current_position)[this->scratch_cell_dofs[i]]);
+        extractor.get_function_values_from_local_dof_values(
+          this->scratch_dof_values, this->scratch_qp_values);
+        std::copy(this->scratch_qp_values.begin(),
+                  this->scratch_qp_values.end(),
                   forces.begin());
       }
   }
 
+  template <int dim, int spacedim, typename Number>
+  bool
+  SpringForce<dim, spacedim, Number>::is_volume_force() const
+  {
+    return true;
+  }
 
+  //
+  // BoundarySpringForce
+  //
+  template <int dim, int spacedim, typename Number>
+  BoundarySpringForce<dim, spacedim, Number>::BoundarySpringForce(
+    const Quadrature<dim - 1>                        &quad,
+    const double                                      spring_constant,
+    const DoFHandler<dim, spacedim>                  &dof_handler,
+    const LinearAlgebra::distributed::Vector<double> &reference_position)
+    : SpringForceBase<dim, spacedim, Number>(quad,
+                                             spring_constant,
+                                             dof_handler,
+                                             reference_position)
+  {}
 
+  template <int dim, int spacedim, typename Number>
+  BoundarySpringForce<dim, spacedim, Number>::BoundarySpringForce(
+    const Quadrature<dim - 1>                        &quad,
+    const double                                      spring_constant,
+    const DoFHandler<dim, spacedim>                  &dof_handler,
+    const std::vector<types::boundary_id>            &boundary_ids,
+    const LinearAlgebra::distributed::Vector<double> &reference_position)
+    : SpringForceBase<dim, spacedim, Number>(quad,
+                                             spring_constant,
+                                             dof_handler,
+                                             reference_position)
+    , boundary_ids(setup_ids(boundary_ids, numbers::invalid_boundary_id))
+  {}
+
+  template <int dim, int spacedim, typename Number>
+  BoundarySpringForce<dim, spacedim, Number>::BoundarySpringForce(
+    const Quadrature<dim - 1>             &quad,
+    const double                           spring_constant,
+    const DoFHandler<dim, spacedim>       &dof_handler,
+    const Mapping<dim, spacedim>          &mapping,
+    const std::vector<types::boundary_id> &boundary_ids,
+    const Function<spacedim>              &reference_position)
+    : SpringForceBase<dim, spacedim, Number>(
+        quad,
+        spring_constant,
+        dof_handler,
+        do_interpolation(dof_handler, mapping, reference_position))
+    , boundary_ids(setup_ids(boundary_ids, numbers::invalid_boundary_id))
+  {}
+
+  template <int dim, int spacedim, typename Number>
+  BoundarySpringForce<dim, spacedim, Number>::BoundarySpringForce(
+    const Quadrature<dim - 1>       &quad,
+    const double                     spring_constant,
+    const DoFHandler<dim, spacedim> &dof_handler,
+    const Mapping<dim, spacedim>    &mapping,
+    const Function<spacedim>        &reference_position)
+    : SpringForceBase<dim, spacedim, Number>(
+        quad,
+        spring_constant,
+        dof_handler,
+        do_interpolation(dof_handler, mapping, reference_position))
+  {}
+
+  template <int dim, int spacedim, typename Number>
+  bool
+  BoundarySpringForce<dim, spacedim, Number>::is_boundary_force() const
+  {
+    return true;
+  }
+
+  template <int dim, int spacedim, typename Number>
+  void
+  BoundarySpringForce<dim, spacedim, Number>::compute_boundary_force(
+    const double /*time*/,
+    const MechanicsValues<dim, spacedim>                              &m_values,
+    const typename Triangulation<dim, spacedim>::active_face_iterator &face,
+    ArrayView<Tensor<1, spacedim, Number>> &forces) const
+  {
+    if (this->boundary_ids.size() > 0 &&
+        !std::binary_search(this->boundary_ids.begin(),
+                            this->boundary_ids.end(),
+                            face->boundary_id()))
+      {
+        // the user specified a subset of boundary ids and we currently don't
+        // match - fill with zeros
+        for (auto &force : forces)
+          force = 0.0;
+      }
+    else
+      {
+        const FEValuesBase<dim, spacedim> &fe_values = m_values.get_fe_values();
+        const auto                         cell      = fe_values.get_cell();
+        const auto                         dof_cell =
+          typename DoFHandler<dim, spacedim>::active_cell_iterator(
+            &this->dof_handler->get_triangulation(),
+            cell->level(),
+            cell->index(),
+            &*this->dof_handler);
+
+        this->scratch_cell_dofs.resize(fe_values.dofs_per_cell);
+        dof_cell->get_dof_indices(this->scratch_cell_dofs);
+        this->scratch_dof_values.resize(fe_values.dofs_per_cell);
+        this->scratch_qp_values.resize(fe_values.n_quadrature_points);
+
+        auto &extractor = fe_values[FEValuesExtractors::Vector(0)];
+        for (unsigned int i = 0; i < this->scratch_cell_dofs.size(); ++i)
+          this->scratch_dof_values[i] =
+            this->spring_constant *
+            (this->reference_position[this->scratch_cell_dofs[i]] -
+             (*this->current_position)[this->scratch_cell_dofs[i]]);
+        extractor.get_function_values_from_local_dof_values(
+          this->scratch_dof_values, this->scratch_qp_values);
+        std::copy(this->scratch_qp_values.begin(),
+                  this->scratch_qp_values.end(),
+                  forces.begin());
+      }
+  }
+
+  //
+  // DampingForce
+  //
+
+  template <int dim, int spacedim, typename Number>
+  DampingForce<dim, spacedim, Number>::DampingForce(
+    const Quadrature<dim> &quad,
+    const double           damping_constant)
+    : ForceContribution<dim, spacedim, double>(quad)
+    , damping_constant(damping_constant)
+  {}
+
+  template <int dim, int spacedim, typename Number>
+  MechanicsUpdateFlags
+  DampingForce<dim, spacedim, Number>::get_mechanics_update_flags() const
+  {
+    return MechanicsUpdateFlags::update_velocity_values;
+  }
+
+  template <int dim, int spacedim, typename Number>
+  UpdateFlags
+  DampingForce<dim, spacedim, Number>::get_update_flags() const
+  {
+    return UpdateFlags::update_default;
+  }
+
+  template <int dim, int spacedim, typename Number>
+  bool
+  DampingForce<dim, spacedim, Number>::is_volume_force() const
+  {
+    return true;
+  }
+
+  template <int dim, int spacedim, typename Number>
+  void
+  DampingForce<dim, spacedim, Number>::compute_volume_force(
+    const double /*time*/,
+    const MechanicsValues<dim, spacedim>                              &m_values,
+    const typename Triangulation<dim, spacedim>::active_cell_iterator &/*cell*/,
+    ArrayView<Tensor<1, spacedim, Number>> &forces) const
+  {
+    std::copy(m_values.get_velocity_values().begin(),
+              m_values.get_velocity_values().end(),
+              forces.begin());
+    for (auto &force : forces)
+      force *= -damping_constant;
+  }
+
+  template class SpringForceBase<NDIM - 1, NDIM, double>;
+  template class SpringForceBase<NDIM, NDIM, double>;
   template class SpringForce<NDIM - 1, NDIM, double>;
   template class SpringForce<NDIM, NDIM, double>;
+  template class BoundarySpringForce<NDIM - 1, NDIM, double>;
+  template class BoundarySpringForce<NDIM, NDIM, double>;
+  template class DampingForce<NDIM - 1, NDIM, double>;
+  template class DampingForce<NDIM, NDIM, double>;
 } // namespace fdl

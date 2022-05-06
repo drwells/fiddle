@@ -99,7 +99,7 @@ namespace fdl
      * To aid in the user definition of such things,
      * IFEDMethod::computeLagrangianForce() and related functions will call this
      * function for each force contribution before calling any of
-     * compute_force(), compute_surface_force(), etc. at a specific time.
+     * compute_force(), compute_boundary_force(), etc. at a specific time.
      */
     virtual void
     setup_force(const double                                      time,
@@ -124,7 +124,7 @@ namespace fdl
 
     /**
      * Compute forces at quadrature points. Should work regardless of whether
-     * we are on the surface of the element or inside it.
+     * we are on the boundary of the element or inside it.
      */
     virtual void
     compute_force(
@@ -132,7 +132,7 @@ namespace fdl
       const MechanicsValues<dim, spacedim>   &m_values,
       ArrayView<Tensor<1, spacedim, Number>> &forces) const // = 0 TODO fix this
     {
-      // It shouldn't be possible to get here but since compute_surface_force
+      // It shouldn't be possible to get here but since compute_boundary_force
       // and compute_volume_force both call this function we need it to make the
       // linker happy
       (void)time;
@@ -142,10 +142,10 @@ namespace fdl
     }
 
     /**
-     * Compute a surface force. Defaults to calling compute_force.
+     * Compute a boundary force. Defaults to calling compute_force.
      */
     virtual void
-    compute_surface_force(
+    compute_boundary_force(
       const double                          time,
       const MechanicsValues<dim, spacedim> &m_values,
       const typename Triangulation<dim, spacedim>::active_face_iterator

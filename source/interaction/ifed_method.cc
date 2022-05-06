@@ -152,13 +152,21 @@ namespace fdl
     input_db->getStringArray("IB_kernel",
                              ib_kernels.data(),
                              static_cast<int>(ib_kernels.size()));
+    // ib_kernels is either length 1 or length n_parts(): deal with the first
+    // case.
+    if (n_ib_kernels == 1)
+      {
+        ib_kernels.resize(n_parts());
+        std::fill(ib_kernels.begin() + 1, ib_kernels.end(), ib_kernels.front());
+      }
+
     // now that we know that, we know the ghost requirements
     for (const std::string &ib_kernel : ib_kernels)
       {
         const int ghost_width =
           IBTK::LEInteractor::getMinimumGhostWidth(ib_kernel);
-        for (int i = 0; i < spacedim; ++i)
-          ghosts[i] = std::max(ghosts[i], ghost_width);
+        for (int d = 0; d < spacedim; ++d)
+          ghosts[d] = std::max(ghosts[d], ghost_width);
       }
 
     auto set_timer = [&](const char *name) {
@@ -665,13 +673,13 @@ namespace fdl
   IFEDMethod<dim, spacedim>::computeLagrangianForce(double data_time)
   {
     IBAMR_TIMER_START(t_compute_lagrangian_force);
+    std::deque<LinearAlgebra::distributed::Vector<double>> forces;
+    std::deque<LinearAlgebra::distributed::Vector<double>> right_hand_sides;
     for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {
-        IBAMR_TIMER_START(t_compute_lagrangian_force_pk1);
-        const Part<dim, spacedim>                 &part = parts[part_n];
-        LinearAlgebra::distributed::Vector<double> force(
-          part.get_partitioner()),
-          force_rhs(part.get_partitioner());
+        const Part<dim, spacedim> &part = parts[part_n];
+        forces.emplace_back(part.get_partitioner());
+        right_hand_sides.emplace_back(part.get_partitioner());
 
         // The velocity isn't available at data_time so use current_time -
         // IBFEMethod does this too.
@@ -685,49 +693,61 @@ namespace fdl
         for (auto &force : part.get_force_contributions())
           force->setup_force(data_time, position, velocity);
 
+        IBAMR_TIMER_START(t_compute_lagrangian_force_pk1);
         compute_load_vector(part.get_dof_handler(),
                             part.get_mapping(),
                             part.get_force_contributions(),
                             data_time,
                             position,
                             velocity,
-                            force_rhs);
-        force_rhs.compress(VectorOperation::add);
+                            right_hand_sides[part_n]);
         IBAMR_TIMER_STOP(t_compute_lagrangian_force_pk1);
+      }
 
+    // Allow compression to overlap:
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
+      right_hand_sides[part_n].compress_start(part_n, VectorOperation::add);
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
+      right_hand_sides[part_n].compress_finish(VectorOperation::add);
+
+    // And do the actual solve:
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
+      {
         if (interactions[part_n]->projection_is_interpolation())
           {
             // TODO - we should probably call this the force density
-            part_vectors.set_force(part_n, data_time, std::move(force_rhs));
+            part_vectors.set_force(part_n, data_time, std::move(right_hand_sides[part_n]));
           }
         else
           {
             IBAMR_TIMER_START(t_compute_lagrangian_force_solve);
-            SolverControl control(
+            const Part<dim, spacedim> &part = parts[part_n];
+            SolverControl              control(
               input_db->getIntegerWithDefault("solver_iterations", 100),
               input_db->getDoubleWithDefault("solver_relative_tolerance",
                                              1e-6) *
-                force_rhs.l2_norm());
+                right_hand_sides[part_n].l2_norm());
             SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
-            force_guesses[part_n].guess(force, force_rhs);
+            force_guesses[part_n].guess(forces[part_n],
+                                        right_hand_sides[part_n]);
             cg.solve(part.get_mass_operator(),
-                     force,
-                     force_rhs,
+                     forces[part_n],
+                     right_hand_sides[part_n],
                      part.get_mass_preconditioner());
-            force.update_ghost_values();
-            force_guesses[part_n].submit(force, force_rhs);
+            force_guesses[part_n].submit(forces[part_n],
+                                         right_hand_sides[part_n]);
             if (input_db->getBoolWithDefault("log_solver_iterations", false))
               {
                 tbox::plog << "IFEDMethod::computeLagrangianForce(): "
-                           << "SolverCG<> converged in " << control.last_step()
-                           << " steps." << std::endl;
+                           << "SolverCG<> converged in "
+                           << control.last_step() << " steps." << std::endl;
               }
-            part_vectors.set_force(part_n, data_time, std::move(force));
-
+            part_vectors.set_force(part_n,
+                                   data_time,
+                                   std::move(forces[part_n]));
             IBAMR_TIMER_STOP(t_compute_lagrangian_force_solve);
           }
-
-        for (auto &force : part.get_force_contributions())
+        for (auto &force : parts[part_n].get_force_contributions())
           force->finish_force(data_time);
       }
     IBAMR_TIMER_STOP(t_compute_lagrangian_force);
