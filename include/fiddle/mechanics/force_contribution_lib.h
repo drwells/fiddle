@@ -241,13 +241,6 @@ namespace fdl
     virtual MechanicsUpdateFlags
     get_mechanics_update_flags() const override;
 
-    /**
-     * Get the update flags this force contribution requires for FEValues
-     * objects.
-     */
-    virtual UpdateFlags
-    get_update_flags() const override;
-
     virtual bool
     is_volume_force() const override;
 

@@ -366,13 +366,6 @@ namespace fdl
   }
 
   template <int dim, int spacedim, typename Number>
-  UpdateFlags
-  DampingForce<dim, spacedim, Number>::get_update_flags() const
-  {
-    return UpdateFlags::update_default;
-  }
-
-  template <int dim, int spacedim, typename Number>
   bool
   DampingForce<dim, spacedim, Number>::is_volume_force() const
   {

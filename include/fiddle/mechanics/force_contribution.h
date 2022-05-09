@@ -67,10 +67,19 @@ namespace fdl
 
     /**
      * Get the update flags this force contribution requires for FEValues
-     * objects.
+     * objects. Defaults to using compute_flag_dependencies() to return whatever
+     * UpdateFlags are required by the provided MechanicsUpdateFlags.
+     *
+     * This function usually does not need to be changed by inheriting classes,
+     * but if you do, then remember to either call the base class function, use
+     * compute_flag_dependencies(), or manually resolve the flag dependencies
+     * yourself.
      */
     virtual UpdateFlags
-    get_update_flags() const = 0;
+    get_update_flags() const
+    {
+      return compute_flag_dependencies(get_mechanics_update_flags());
+    }
 
     virtual bool
     is_stress() const
