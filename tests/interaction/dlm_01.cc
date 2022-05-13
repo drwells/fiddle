@@ -52,6 +52,26 @@ public:
     return reference_position;
   }
 
+  // TODO: make this a real test instead of just duplicating the position
+  virtual void
+  get_mechanics_velocity(
+    const double                                time,
+    LinearAlgebra::distributed::Vector<double> &velocity) const override
+  {
+    velocity = reference_position;
+    for (std::size_t i = 0; i < velocity.locally_owned_size(); ++i)
+      velocity.local_element(i) += time;
+
+    velocity.update_ghost_values();
+  }
+
+  virtual const LinearAlgebra::distributed::Vector<double> &
+  get_current_mechanics_velocity() const override
+  {
+    return reference_position;
+  }
+
+
 protected:
   LinearAlgebra::distributed::Vector<double> reference_position;
 };
@@ -86,6 +106,7 @@ main()
   const double     spring_constant = 10.0;
   fdl::DLMForce<2> dlm_force(quadrature,
                              spring_constant,
+                             0.0,
                              dof_handler,
                              dlm_method);
 
