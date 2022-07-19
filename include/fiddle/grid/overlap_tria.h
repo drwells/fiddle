@@ -1,6 +1,8 @@
 #ifndef included_fiddle_overlap_tria_h
 #define included_fiddle_overlap_tria_h
 
+#include <fiddle/base/config.h>
+
 #include <fiddle/base/exceptions.h>
 
 #include <fiddle/grid/intersection_predicate.h>

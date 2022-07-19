@@ -1,6 +1,8 @@
 #ifndef included_fiddle_interaction_dlm_method_h
 #define included_fiddle_interaction_dlm_method_h
 
+#include <fiddle/base/config.h>
+
 #include <fiddle/mechanics/force_contribution_lib.h>
 
 #include <deal.II/base/quadrature.h>

@@ -1,6 +1,8 @@
 #ifndef included_fiddle_interaction_nodal_interaction_h
 #define included_fiddle_interaction_nodal_interaction_h
 
+#include <fiddle/base/config.h>
+
 #include <fiddle/base/quadrature_family.h>
 
 #include <fiddle/grid/nodal_patch_map.h>
@@ -11,7 +13,6 @@
 #include <fiddle/transfer/scatter.h>
 
 #include <deal.II/base/bounding_box.h>
-#include <deal.II/base/mpi_noncontiguous_partitioner.h>
 #include <deal.II/base/quadrature.h>
 
 #include <deal.II/distributed/shared_tria.h>

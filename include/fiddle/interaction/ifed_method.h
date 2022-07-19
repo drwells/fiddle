@@ -1,6 +1,8 @@
 #ifndef included_fiddle_interaction_ifed_method_h
 #define included_fiddle_interaction_ifed_method_h
 
+#include <fiddle/base/config.h>
+
 #include <fiddle/base/exceptions.h>
 #include <fiddle/base/initial_guess.h>
 

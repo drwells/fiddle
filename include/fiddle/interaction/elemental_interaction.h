@@ -1,6 +1,8 @@
 #ifndef included_fiddle_interaction_elemental_interaction_h
 #define included_fiddle_interaction_elemental_interaction_h
 
+#include <fiddle/base/config.h>
+
 #include <fiddle/base/quadrature_family.h>
 
 #include <fiddle/interaction/interaction_base.h>
@@ -8,7 +10,6 @@
 #include <fiddle/transfer/scatter.h>
 
 #include <deal.II/base/bounding_box.h>
-#include <deal.II/base/mpi_noncontiguous_partitioner.h>
 #include <deal.II/base/quadrature.h>
 
 #include <deal.II/distributed/shared_tria.h>

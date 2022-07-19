@@ -471,6 +471,8 @@ namespace fdl
                               &component_word_size,
                               &floating_point_word_size,
                               &ex_version);
+    AssertThrow(floating_point_word_size == component_word_size,
+                ExcFDLNotImplemented());
     AssertThrow(ex_id > 0,
                 ExcMessage(
                   "ExodusII failed to open the specified input file."));

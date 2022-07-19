@@ -1,6 +1,8 @@
 #ifndef included_fiddle_base_quadrature_family_h
 #define included_fiddle_base_quadrature_family_h
 
+#include <fiddle/base/config.h>
+
 #include <fiddle/base/exceptions.h>
 
 #include <deal.II/base/quadrature.h>

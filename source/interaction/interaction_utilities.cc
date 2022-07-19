@@ -36,6 +36,7 @@ namespace fdl
     {
       const int depth = data->getDepth();
       (void)depth;
+      (void)n_components;
       if (std::is_same<patch_type, pdat::SideData<spacedim, double>>::value)
         {
           Assert(depth * spacedim == int(n_components),

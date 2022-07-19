@@ -1,6 +1,8 @@
 #ifndef included_fiddle_interaction_interaction_base_h
 #define included_fiddle_interaction_interaction_base_h
 
+#include <fiddle/base/config.h>
+
 #include <fiddle/grid/overlap_tria.h>
 #include <fiddle/grid/patch_map.h>
 

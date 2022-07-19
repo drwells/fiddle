@@ -1,6 +1,8 @@
 #ifndef included_fiddle_part_vectors_h
 #define included_fiddle_part_vectors_h
 
+#include <fiddle/base/config.h>
+
 #include <fiddle/base/exceptions.h>
 
 #include <fiddle/mechanics/part.h>

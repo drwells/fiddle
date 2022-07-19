@@ -1,6 +1,8 @@
 #ifndef included_fiddle_mechanics_mechanics_values_h
 #define included_fiddle_mechanics_mechanics_values_h
 
+#include <fiddle/base/config.h>
+
 #include <deal.II/base/subscriptor.h>
 #include <deal.II/base/symmetric_tensor.h>
 #include <deal.II/base/tensor.h>

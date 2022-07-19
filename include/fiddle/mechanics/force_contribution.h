@@ -1,6 +1,8 @@
 #ifndef included_fiddle_mechanics_force_contribution_h
 #define included_fiddle_mechanics_force_contribution_h
 
+#include <fiddle/base/config.h>
+
 #include <fiddle/base/exceptions.h>
 
 #include <fiddle/mechanics/mechanics_values.h>

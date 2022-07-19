@@ -1,6 +1,8 @@
 #ifndef included_fiddle_exceptions_h
 #define included_fiddle_exceptions_h
 
+#include <fiddle/base/config.h>
+
 #include <deal.II/base/exceptions.h>
 
 namespace fdl

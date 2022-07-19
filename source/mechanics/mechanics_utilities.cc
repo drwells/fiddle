@@ -216,7 +216,10 @@ namespace fdl
     Assert(dim == spacedim, ExcNotImplemented());
 
     for (const auto *p : force_contributions)
-      Assert(p, ExcMessage("force contributions should not be nullptr"));
+      {
+        (void)p;
+        Assert(p, ExcMessage("force contributions should not be nullptr"));
+      }
 
     std::vector<ForceContribution<dim, spacedim> *> stress_contributions;
     std::vector<ForceContribution<dim, spacedim> *> volume_force_contributions;

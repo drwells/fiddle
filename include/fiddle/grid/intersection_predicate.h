@@ -1,6 +1,8 @@
 #ifndef included_fiddle_intersection_predicate_h
 #define included_fiddle_intersection_predicate_h
 
+#include <fiddle/base/config.h>
+
 #include <fiddle/base/exceptions.h>
 
 #include <fiddle/grid/box_utilities.h>

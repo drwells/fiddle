@@ -1,6 +1,8 @@
 #ifndef included_fiddle_mechanics_utilities_h
 #define included_fiddle_mechanics_utilities_h
 
+#include <fiddle/base/config.h>
+
 #include <fiddle/mechanics/force_contribution.h>
 
 #include <deal.II/dofs/dof_handler.h>

@@ -188,6 +188,7 @@ namespace fdl
   InteractionBase<dim, spacedim>::~InteractionBase()
   {
     int ierr = MPI_Comm_free(&communicator);
+    (void)ierr;
     AssertNothrow(ierr == 0, ExcMessage("Unable to free the MPI communicator"));
   }
 
