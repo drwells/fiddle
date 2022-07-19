@@ -43,7 +43,7 @@ namespace fdl
   {
     using VectorType = LinearAlgebra::distributed::Vector<double>;
     auto result =
-      VectorTools::point_values<n_components, dim, spacedim, VectorType>(
+      VectorTools::point_values<n_components>(
         *mapping,
         *dof_handler,
         vector,

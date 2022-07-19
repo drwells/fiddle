@@ -11,7 +11,6 @@
 #include <fiddle/transfer/scatter.h>
 
 #include <deal.II/base/bounding_box.h>
-#include <deal.II/base/mpi_noncontiguous_partitioner.h>
 #include <deal.II/base/quadrature.h>
 
 #include <deal.II/distributed/shared_tria.h>

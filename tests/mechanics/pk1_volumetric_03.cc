@@ -125,6 +125,7 @@ public:
   {
     Assert(spacedim == 2, fdl::ExcFDLNotImplemented());
     const FEValuesBase<dim, spacedim> &fe_values = me_values.get_fe_values();
+    (void)fe_values;
     Assert(stresses.size() == fe_values.get_quadrature_points().size(),
            fdl::ExcFDLInternalError());
     Assert(this->get_cell_quadrature().size() ==
