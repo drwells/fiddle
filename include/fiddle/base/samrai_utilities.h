@@ -1,6 +1,8 @@
 #ifndef included_fiddle_base_samrai_utilities_h
 #define included_fiddle_base_samrai_utilities_h
 
+#include <fiddle/base/config.h>
+
 #include <BasePatchLevel.h>
 #include <HierarchyDataOpsReal.h>
 #include <PatchData.h>

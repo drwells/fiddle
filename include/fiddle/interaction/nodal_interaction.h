@@ -1,6 +1,8 @@
 #ifndef included_fiddle_interaction_nodal_interaction_h
 #define included_fiddle_interaction_nodal_interaction_h
 
+#include <fiddle/base/config.h>
+
 #include <fiddle/base/quadrature_family.h>
 
 #include <fiddle/grid/nodal_patch_map.h>

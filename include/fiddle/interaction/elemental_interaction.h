@@ -1,6 +1,8 @@
 #ifndef included_fiddle_interaction_elemental_interaction_h
 #define included_fiddle_interaction_elemental_interaction_h
 
+#include <fiddle/base/config.h>
+
 #include <fiddle/base/quadrature_family.h>
 
 #include <fiddle/interaction/interaction_base.h>

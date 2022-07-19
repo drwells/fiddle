@@ -1,3 +1,5 @@
+#include <fiddle/base/config.h>
+
 #include <fiddle/grid/overlap_tria.h>
 
 #include <deal.II/base/types.h>

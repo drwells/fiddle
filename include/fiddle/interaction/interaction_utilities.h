@@ -1,6 +1,8 @@
 #ifndef included_fiddle_interaction_interaction_utilities_h
 #define included_fiddle_interaction_interaction_utilities_h
 
+#include <fiddle/base/config.h>
+
 #include <fiddle/grid/nodal_patch_map.h>
 #include <fiddle/grid/patch_map.h>
 

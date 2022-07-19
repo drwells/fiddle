@@ -1,6 +1,8 @@
 #ifndef included_fiddle_grid_patch_map_h
 #define included_fiddle_grid_patch_map_h
 
+#include <fiddle/base/config.h>
+
 #include <fiddle/base/exceptions.h>
 
 #include <deal.II/dofs/dof_handler.h>

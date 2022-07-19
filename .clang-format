@@ -66,6 +66,8 @@ FixNamespaceComments: true
 IncludeBlocks: Regroup
 IncludeCategories:
 # fiddle headers should be first:
+  - Regex:    "fiddle/base/config.h"
+    Priority: 1
   - Regex:    "fiddle/base/.*\\.h"
     Priority: 10
   - Regex:    "fiddle/grid/.*\\.h"

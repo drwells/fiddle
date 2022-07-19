@@ -1,6 +1,8 @@
 #ifndef included_fiddle_scatter_h
 #define included_fiddle_scatter_h
 
+#include <fiddle/base/config.h>
+
 #include <deal.II/base/index_set.h>
 
 #include <deal.II/lac/la_parallel_vector.h>

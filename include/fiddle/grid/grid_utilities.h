@@ -1,6 +1,8 @@
 #ifndef included_fiddle_grid_grid_utilities_h
 #define included_fiddle_grid_grid_utilities_h
 
+#include <fiddle/base/config.h>
+
 #include <deal.II/base/quadrature.h>
 
 #include <deal.II/distributed/shared_tria.h>

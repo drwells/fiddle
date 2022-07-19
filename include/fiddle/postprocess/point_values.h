@@ -1,7 +1,11 @@
 #ifndef included_fiddle_postprocess_point_values_h
 #define included_fiddle_postprocess_point_values_h
 
+#include <fiddle/base/config.h>
+
+FDL_DISABLE_EXTRA_DIAGNOSTICS
 #include <deal.II/base/mpi_remote_point_evaluation.h>
+FDL_ENABLE_EXTRA_DIAGNOSTICS
 #include <deal.II/base/point.h>
 #include <deal.II/base/smartpointer.h>
 #include <deal.II/base/tensor.h>

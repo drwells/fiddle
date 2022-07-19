@@ -1,6 +1,8 @@
-#include <deal.II/numerics/vector_tools_evaluate.h>
-
 #include <fiddle/postprocess/point_values.h>
+
+FDL_DISABLE_EXTRA_DIAGNOSTICS
+#include <deal.II/numerics/vector_tools_evaluate.h>
+FDL_ENABLE_EXTRA_DIAGNOSTICS
 
 namespace fdl
 {

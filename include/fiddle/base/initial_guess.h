@@ -1,6 +1,8 @@
 #ifndef included_fiddle_initial_guess_h
 #define included_fiddle_initial_guess_h
 
+#include <fiddle/base/config.h>
+
 #include <ibtk/config.h>
 
 IBTK_DISABLE_EXTRA_WARNINGS

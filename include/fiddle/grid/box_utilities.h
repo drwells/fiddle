@@ -1,7 +1,11 @@
 #ifndef included_fiddle_grid_box_utilities_h
 #define included_fiddle_grid_box_utilities_h
 
+#include <fiddle/base/config.h>
+
+FDL_DISABLE_EXTRA_DIAGNOSTICS
 #include <deal.II/base/bounding_box.h>
+FDL_ENABLE_EXTRA_DIAGNOSTICS
 
 #include <deal.II/distributed/shared_tria.h>
 
