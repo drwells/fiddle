@@ -54,38 +54,44 @@ namespace fdl
     update_n23_det_FF = 0x0008,
 
     /**
+     * Update the normal vectors in the deformed configuration. Only available
+     * for surface elements.
+     */
+    update_deformed_normal_vectors = 0x0010,
+
+    /**
      * Update the positions at the quadrature points.
      */
-    update_position_values = 0x0010,
+    update_position_values = 0x0020,
 
     /**
      * Update the velocities at the quadrature points.
      */
-    update_velocity_values = 0x0020,
+    update_velocity_values = 0x0040,
 
     /**
      * The right Cauchy-Green deformation tensor: C := F^T F.
      */
-    update_right_cauchy_green = 0x0040,
+    update_right_cauchy_green = 0x0080,
 
     /**
      * The first invariant: tr(C) in 3D. In 2D this is tr(C) + 1 to account for
      * the 'missing' row and column.
      */
-    update_first_invariant = 0x0080,
+    update_first_invariant = 0x0100,
 
     /**
      * The second invariant: 1/2(tr(C)^2 - tr(C^2)) in 3D. Like the first
      * invariant, this is 1/2(tr(C)^2 - tr(C^2)) + tr(C) in 2D to account for
      * the missing component.
      */
-    update_second_invariant = 0x0100,
+    update_second_invariant = 0x0200,
 
     /**
      * The third invariant: det(C). If dim == spacedim then this is also
      * det(FF)^2.
      */
-    update_third_invariant = 0x0200,
+    update_third_invariant = 0x0400,
   };
 
   // Manipulation routines for flags
@@ -165,6 +171,9 @@ namespace fdl
     get_n23_det_FF() const;
 
     const std::vector<Tensor<1, spacedim>> &
+    get_deformed_normal_vectors() const;
+
+    const std::vector<Tensor<1, spacedim>> &
     get_position_values() const;
 
     const std::vector<Tensor<1, spacedim>> &
@@ -198,6 +207,8 @@ namespace fdl
     std::vector<double> det_FF;
 
     std::vector<double> n23_det_FF;
+
+    std::vector<Tensor<1, spacedim>> deformed_normal_vectors;
 
     std::vector<Tensor<1, spacedim>> position_values;
 
@@ -258,6 +269,15 @@ namespace fdl
     Assert(update_flags & update_n23_det_FF,
            ExcMessage("Needs update_n23_det_FF"));
     return n23_det_FF;
+  }
+
+  template <int dim, int spacedim, typename VectorType>
+  inline const std::vector<Tensor<1, spacedim>> &
+  MechanicsValues<dim, spacedim, VectorType>::get_deformed_normal_vectors() const
+  {
+    Assert(update_flags & update_deformed_normal_vectors,
+           ExcMessage("Needs update_deformed_normal_vectors"));
+    return deformed_normal_vectors;
   }
 
   template <int dim, int spacedim, typename VectorType>

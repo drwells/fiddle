@@ -35,6 +35,8 @@ namespace fdl
             result |= update_FF;
           if (result & update_n23_det_FF)
             result |= update_det_FF;
+          if (result & update_deformed_normal_vectors)
+            result |= update_FF_inv_T;
           if (result & update_right_cauchy_green)
             result |= update_FF;
           if (result & update_first_invariant)
@@ -56,17 +58,20 @@ namespace fdl
   UpdateFlags
   compute_flag_dependencies(const MechanicsUpdateFlags me_flags)
   {
+    MechanicsUpdateFlags actual_flags = resolve_flag_dependencies(me_flags);
     UpdateFlags flags = UpdateFlags::update_default;
 
-    if (me_flags & update_FF)
+    if (actual_flags & update_FF)
       flags |= update_gradients;
-    if (me_flags & update_FF_inv_T)
+    if (actual_flags & update_FF_inv_T)
       flags |= update_gradients;
-    if (me_flags & update_det_FF)
+    if (actual_flags & update_det_FF)
       flags |= update_gradients;
-    if (me_flags & update_position_values)
+    if (actual_flags & update_deformed_normal_vectors)
+      flags |= update_normal_vectors;
+    if (actual_flags & update_position_values)
       flags |= update_values;
-    if (me_flags & update_velocity_values)
+    if (actual_flags & update_velocity_values)
       flags |= update_values;
 
     return flags;
@@ -103,6 +108,12 @@ namespace fdl
                ExcMessage("This class needs values"));
       }
 
+    if ((update_flags & update_deformed_normal_vectors))
+      {
+        AssertThrow((dynamic_cast<const FEFaceValues<dim, spacedim> *>(&fe_values) != nullptr),
+                    ExcMessage("Normal vectors can only be requested with face integration."));
+      }
+
     // Set up arrays:
     const auto n_dofs_per_cell = this->fe_values->get_fe().n_dofs_per_cell();
     if (update_flags & MechanicsUpdateFlags::update_position_values ||
@@ -128,6 +139,8 @@ namespace fdl
       n23_det_FF.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_position_values)
       position_values.resize(this->fe_values->n_quadrature_points);
+    if (update_flags & MechanicsUpdateFlags::update_deformed_normal_vectors)
+      deformed_normal_vectors.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_velocity_values)
       velocity_values.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_right_cauchy_green)
@@ -194,6 +207,11 @@ namespace fdl
             // division, cbrt, and then multiply
             const auto temp = std::cbrt(1.0 / det_FF[q]);
             n23_det_FF[q]   = temp * temp;
+          }
+        if (update_flags & update_deformed_normal_vectors)
+          {
+            deformed_normal_vectors[q] = FF_inv_T[q] * fe_values->normal_vector(q);
+            deformed_normal_vectors[q] /= deformed_normal_vectors[q].norm();
           }
         if (update_flags & update_right_cauchy_green)
           // TODO - get rid of the call to symmetrize()
