@@ -259,6 +259,89 @@ namespace fdl
     double damping_constant;
   };
 
+  /**
+   * Pericardium Model Boundary Force
+   * F = n * ( k_spring * ( X_ref - x ) - k_damping * U ) * n   
+   */
+  template <int dim, int spacedim = dim, typename Number = double>
+  class OrthogonalSpringDashpotForce : public SpringForceBase<dim, spacedim, Number>
+  {
+  public:
+    /**
+     * Constructor. This class stores a pointer to the DoFHandler so that it can
+     * access DoFs on cells and copies the provided references position vector.
+     * Applies the force on every cell.
+     */
+    OrthogonalSpringDashpotForce(
+      const Quadrature<dim - 1>                        &quad,
+      const double                                      spring_constant,
+      const double                                      damping_constant,
+      const DoFHandler<dim, spacedim>                  &dof_handler,
+      const LinearAlgebra::distributed::Vector<double> &reference_position);
+
+    /**
+     * Same, but for an initial position set up by a Function instead of a
+     * specified vector.
+     */
+    OrthogonalSpringDashpotForce(const Quadrature<dim - 1>       &quad,
+                          const double                     spring_constant,
+                          const double                     damping_constant,
+                          const DoFHandler<dim, spacedim> &dof_handler,
+                          const Mapping<dim, spacedim>    &mapping,
+                          const Function<spacedim>        &reference_function);
+
+    /**
+     * Constructor. Same idea, but only applies the force on faces with the
+     * provided boundary ids.
+     *
+     * @note if @p boundary_ids is empty then the force will not be applied on
+     * any boundary.
+     */
+    OrthogonalSpringDashpotForce(
+      const Quadrature<dim - 1>                        &quad,
+      const double                                      spring_constant,
+      const double                                      damping_constant,
+      const DoFHandler<dim, spacedim>                  &dof_handler,
+      const std::vector<types::boundary_id>            &boundary_ids,
+      const LinearAlgebra::distributed::Vector<double> &reference_position);
+
+    /**
+     * Same, but for an initial position set up by a Function instead of a
+     * specified vector.
+     */
+    OrthogonalSpringDashpotForce(const Quadrature<dim - 1>             &quad,
+                          const double                           spring_constant,
+                          const double                           damping_constant,
+                          const DoFHandler<dim, spacedim>       &dof_handler,
+                          const Mapping<dim, spacedim>          &mapping,
+                          const std::vector<types::boundary_id> &boundary_ids,
+                          const Function<spacedim> &reference_position);
+    
+    /**
+     * Get the update flags this force contribution requires for MechanicsValues
+     * objects.
+     */
+    virtual MechanicsUpdateFlags
+    get_mechanics_update_flags() const override;
+
+    /**
+     * Define this force as a boundary force
+     */ 
+    virtual bool
+    is_boundary_force() const override;
+
+    virtual void
+    compute_boundary_force(
+      const double                          time,
+      const MechanicsValues<dim, spacedim> &m_values,
+      const typename Triangulation<dim, spacedim>::active_face_iterator &face,
+      ArrayView<Tensor<1, spacedim, Number>> &forces) const override;
+
+  protected:
+    double damping_constant;    
+
+    std::vector<types::boundary_id> boundary_ids;
+  };
 } // namespace fdl
 
 #endif

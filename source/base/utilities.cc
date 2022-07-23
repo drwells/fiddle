@@ -1,3 +1,5 @@
+#include <array>
+
 #include <fiddle/base/exceptions.h>
 #include <fiddle/base/utilities.h>
 
