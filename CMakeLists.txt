@@ -44,6 +44,8 @@ SET(FIDDLE_SRC
   source/grid/overlap_tria.cc
   source/grid/patch_map.cc
   source/grid/nodal_patch_map.cc
+  source/grid/surface_tria.cc
+  source/grid/triangle.c
 
   source/interaction/dlm_method.cc
   source/interaction/elemental_interaction.cc
@@ -63,6 +65,8 @@ SET(FIDDLE_SRC
   source/transfer/overlap_partitioning_tools.cc
   source/transfer/scatter.cc
   )
+# Always compile triangle as C++
+SET_SOURCE_FILES_PROPERTIES(${FIDDLE_SRC} PROPERTIES LANGUAGE CXX)
 
 # like IBAMR, we compile in 2D and 3D but only install the headers once.
 ADD_LIBRARY(FIDDLEHeaders INTERFACE)
@@ -110,6 +114,10 @@ FOREACH(_d ${FIDDLE_DIMENSIONS})
 
   TARGET_LINK_LIBRARIES(${_lib} PUBLIC FIDDLEHeaders)
   # if we want to write a config header it should be added as a dependency here
+
+  # add some flags to get triangle compiling
+  TARGET_COMPILE_OPTIONS(${_lib} PRIVATE -DANSI_DECLARATORS)
+  TARGET_COMPILE_OPTIONS(${_lib} PRIVATE -DTRILIBRARY)
 
   IF(${CMAKE_BUILD_TYPE} STREQUAL "Debug" OR ${CMAKE_BUILD_TYPE} STREQUAL "DEBUG")
     TARGET_LINK_LIBRARIES(${_lib} PUBLIC ${DEAL_II_LIBRARIES_DEBUG})

@@ -76,6 +76,8 @@ SETUP_3D(base nonintersecting_sphere_01.cc)
 SETUP_2D(grid collect_bboxes_01.cc)
 SETUP_3D(grid collect_bboxes_01.cc)
 
+SETUP_2D(grid surface_tria_01.cc)
+
 IF("${DEAL_II_TRILINOS_WITH_SEACAS}" STREQUAL "ON")
   SETUP_2D(grid exodus.cc)
   SETUP_2D(grid exodus_parallel.cc)
