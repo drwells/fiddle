@@ -23,7 +23,7 @@ namespace fdl
    * necessary, expand each bounding box by @p extra_ghost_cell_fraction times
    * the length of a cell in each coordinate direction.
    */
-  template <int spacedim, typename Number = double>
+  template <int spacedim, typename Number>
   std::vector<BoundingBox<spacedim, Number>>
   compute_patch_bboxes(
     const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>>
