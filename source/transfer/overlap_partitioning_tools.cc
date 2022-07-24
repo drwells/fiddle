@@ -11,12 +11,12 @@ namespace fdl
 {
   using namespace dealii;
 
-  template <int dim, int spacedim = dim>
+  template <int dim, int spacedim>
   std::vector<types::global_dof_index>
   compute_overlap_to_native_dof_translation(
     const fdl::OverlapTriangulation<dim, spacedim> &overlap_tria,
-    const DoFHandler<dim, spacedim> &               overlap_dof_handler,
-    const DoFHandler<dim, spacedim> &               native_dof_handler)
+    const DoFHandler<dim, spacedim>                &overlap_dof_handler,
+    const DoFHandler<dim, spacedim>                &native_dof_handler)
   {
     const Triangulation<dim, spacedim> &native_tria =
       overlap_tria.get_native_triangulation();
@@ -71,7 +71,7 @@ namespace fdl
         const types::subdomain_id             requested_rank = pair.first;
         std::vector<types::global_dof_index> &requested_dofs =
           dofs_on_native[requested_rank];
-        const std::vector<CellId> &          cell_ids = pair.second;
+        const std::vector<CellId>           &cell_ids = pair.second;
         std::vector<types::global_dof_index> cell_dofs(fe.dofs_per_cell);
         for (const auto &id : cell_ids)
           {
@@ -166,12 +166,12 @@ namespace fdl
   template std::vector<types::global_dof_index>
   compute_overlap_to_native_dof_translation(
     const fdl::OverlapTriangulation<NDIM - 1, NDIM> &overlap_tria,
-    const DoFHandler<NDIM - 1, NDIM> &               overlap_dof_handler,
-    const DoFHandler<NDIM - 1, NDIM> &               native_dof_handler);
+    const DoFHandler<NDIM - 1, NDIM>                &overlap_dof_handler,
+    const DoFHandler<NDIM - 1, NDIM>                &native_dof_handler);
 
   template std::vector<types::global_dof_index>
   compute_overlap_to_native_dof_translation(
     const fdl::OverlapTriangulation<NDIM, NDIM> &overlap_tria,
-    const DoFHandler<NDIM, NDIM> &               overlap_dof_handler,
-    const DoFHandler<NDIM, NDIM> &               native_dof_handler);
+    const DoFHandler<NDIM, NDIM>                &overlap_dof_handler,
+    const DoFHandler<NDIM, NDIM>                &native_dof_handler);
 } // namespace fdl

@@ -4,10 +4,10 @@ namespace fdl
 {
   template <int dim, int spacedim>
   DLMForce<dim, spacedim>::DLMForce(
-    const Quadrature<dim> &          quad,
+    const Quadrature<dim>           &quad,
     const double                     spring_constant,
     const DoFHandler<dim, spacedim> &dof_handler,
-    DLMMethodBase<dim, spacedim> &   dlm)
+    DLMMethodBase<dim, spacedim>    &dlm)
     : SpringForce<dim, spacedim>(quad,
                                  spring_constant,
                                  dof_handler,

@@ -147,7 +147,8 @@ namespace fdl
   void
   fill_all(tbox::Pointer<hier::PatchData<spacedim>> p, const field_type value)
   {
-    Assert(p, ExcMessage("The provided pointer should not be null at this point."));
+    Assert(
+      p, ExcMessage("The provided pointer should not be null at this point."));
     if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, int>>(p))
       {
         p2->fillAll(value);
@@ -333,16 +334,16 @@ namespace fdl
   }
 
   void
-  save_binary(const std::string &            key,
-              const char *                   begin,
-              const char *                   end,
+  save_binary(const std::string             &key,
+              const char                    *begin,
+              const char                    *end,
               tbox::Pointer<tbox::Database> &database)
   {
     database->putString(key, encode_base64(begin, end));
   }
 
   std::string
-  load_binary(const std::string &                  key,
+  load_binary(const std::string                   &key,
               const tbox::Pointer<tbox::Database> &database)
   {
     const std::string base64 = database->getString(key);

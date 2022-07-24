@@ -102,7 +102,7 @@ public:
 
     for (unsigned int qp_n : fe_values.quadrature_point_indices())
       {
-        const auto &                 p  = fe_values.quadrature_point(qp_n);
+        const auto                  &p  = fe_values.quadrature_point(qp_n);
         Tensor<2, spacedim, double> &PP = stresses[qp_n];
         // must be 0 when x = 0 or x = 1
         PP[0][0] = std::sin(tau * p[0]);
@@ -206,7 +206,7 @@ public:
       }
 
     const FEValuesBase<dim, spacedim> &fe_values = me_values.get_fe_values();
-    const auto &                       face_values =
+    const auto                        &face_values =
       dynamic_cast<const FEFaceValues<dim, spacedim> &>(fe_values);
     Assert(this->get_face_quadrature().size() ==
              face_values.get_quadrature_points().size(),
@@ -214,7 +214,7 @@ public:
 
     for (unsigned int qp_n : face_values.quadrature_point_indices())
       {
-        const auto &                p = fe_values.quadrature_point(qp_n);
+        const auto                 &p = fe_values.quadrature_point(qp_n);
         Tensor<1, spacedim, double> ug0, ug1;
         ug0[0] = 4.0 * std::cos(p[0]) * std::cos(p[1]);
         ug0[1] = -4.0 * std::sin(p[0]) * std::sin(p[1]);

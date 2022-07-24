@@ -46,7 +46,7 @@ namespace fdl
       {
         Point<spacedim> node;
         for (unsigned int d = 0; d < spacedim; ++d)
-          node[d] = nodal_coordinates[spacedim*node_n + d];
+          node[d] = nodal_coordinates[spacedim * node_n + d];
 
         namespace bgi = boost::geometry::index;
         for (const std::size_t patch_n :

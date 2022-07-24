@@ -74,10 +74,11 @@ public:
   }
 
   virtual void
-  compute_stress(const double                   /*time*/,
-                 const fdl::MechanicsValues<2> &me_values,
-                 const typename Triangulation<2>::active_cell_iterator &/*cell*/,
-                 ArrayView<Tensor<2, 2>> &stresses) const override
+  compute_stress(
+    const double /*time*/,
+    const fdl::MechanicsValues<2> &me_values,
+    const typename Triangulation<2>::active_cell_iterator & /*cell*/,
+    ArrayView<Tensor<2, 2>> &stresses) const override
   {
     for (unsigned int qp_n = 0; qp_n < stresses.size(); ++qp_n)
       {
@@ -124,10 +125,11 @@ public:
   }
 
   virtual void
-  compute_stress(const double                   /*time*/,
-                 const fdl::MechanicsValues<2> &me_values,
-                 const typename Triangulation<2>::active_cell_iterator &/*cell*/,
-                 ArrayView<Tensor<2, 2>> &stresses) const override
+  compute_stress(
+    const double /*time*/,
+    const fdl::MechanicsValues<2> &me_values,
+    const typename Triangulation<2>::active_cell_iterator & /*cell*/,
+    ArrayView<Tensor<2, 2>> &stresses) const override
   {
     for (unsigned int qp_n = 0; qp_n < stresses.size(); ++qp_n)
       {
@@ -172,10 +174,11 @@ public:
   }
 
   virtual void
-  compute_stress(const double                   /*time*/,
-                 const fdl::MechanicsValues<2> &me_values,
-                 const typename Triangulation<2>::active_cell_iterator &/*cell*/,
-                 ArrayView<Tensor<2, 2>> &stresses) const override
+  compute_stress(
+    const double /*time*/,
+    const fdl::MechanicsValues<2> &me_values,
+    const typename Triangulation<2>::active_cell_iterator & /*cell*/,
+    ArrayView<Tensor<2, 2>> &stresses) const override
   {
     for (unsigned int qp_n = 0; qp_n < stresses.size(); ++qp_n)
       {
@@ -195,15 +198,15 @@ private:
 class JacobianPostprocessor : public DataPostprocessorScalar<2>
 {
 public:
-    JacobianPostprocessor()
-        : DataPostprocessorScalar<2>("Jacobian", UpdateFlags::update_gradients)
-    {}
+  JacobianPostprocessor()
+    : DataPostprocessorScalar<2>("Jacobian", UpdateFlags::update_gradients)
+  {}
 
-    virtual void evaluate_vector_field(
-      const DataPostprocessorInputs::Vector<2> &inputs,
-      std::vector<Vector<double>> &computed_quantities) const override
-    {
-
+  virtual void
+  evaluate_vector_field(
+    const DataPostprocessorInputs::Vector<2> &inputs,
+    std::vector<Vector<double>> &computed_quantities) const override
+  {
     Assert(computed_quantities.size() == inputs.solution_values.size(),
            ExcDimensionMismatch(computed_quantities.size(),
                                 inputs.solution_values.size()));
@@ -213,11 +216,11 @@ public:
                ExcDimensionMismatch(computed_quantities[i].size(), 1));
 
         Tensor<2, 2> FF;
-        FF[0] = inputs.solution_gradients[i][0];
-        FF[1] = inputs.solution_gradients[i][1];
+        FF[0]                     = inputs.solution_gradients[i][0];
+        FF[1]                     = inputs.solution_gradients[i][1];
         computed_quantities[i][0] = determinant(FF);
       }
-    }
+  }
 };
 
 /*******************************************************************************
@@ -250,11 +253,13 @@ main(int argc, char *argv[])
     // Get various standard options set in the input file.
     const bool dump_viz_data     = app_initializer->dumpVizData();
     const int  viz_dump_interval = app_initializer->getVizDumpInterval();
-    const bool uses_visit = dump_viz_data && app_initializer->getVisItDataWriter();
+    const bool uses_visit =
+      dump_viz_data && app_initializer->getVisItDataWriter();
 
     const bool dump_restart_data    = app_initializer->dumpRestartData();
     const int restart_dump_interval = app_initializer->getRestartDumpInterval();
-    const std::string restart_dump_dirname = app_initializer->getRestartDumpDirectory();
+    const std::string restart_dump_dirname =
+      app_initializer->getRestartDumpDirectory();
 
     const bool dump_timer_data     = app_initializer->dumpTimerData();
     const int  timer_dump_interval = app_initializer->getTimerDumpInterval();
@@ -513,7 +518,7 @@ main(int argc, char *argv[])
     auto write_fe_output = [&]() {
       for (unsigned int part_n = 0; part_n < ib_method_ops->n_parts(); ++part_n)
         {
-          const auto & part = ib_method_ops->get_part(part_n);
+          const auto           &part = ib_method_ops->get_part(part_n);
           JacobianPostprocessor postprocessor;
 
           DataOut<2> data_out;
@@ -525,12 +530,12 @@ main(int argc, char *argv[])
           data_out.add_data_vector(part.get_position(), postprocessor);
           data_out.build_patches(position_mapping);
 
-          data_out.write_vtu_with_pvtu_record(app_initializer->getVizDumpDirectory() +
-                                                "/",
-                                              "structure-" + std::to_string(part_n),
-                                              iteration_num,
-                                              communicator,
-                                              8);
+          data_out.write_vtu_with_pvtu_record(
+            app_initializer->getVizDumpDirectory() + "/",
+            "structure-" + std::to_string(part_n),
+            iteration_num,
+            communicator,
+            8);
         }
     };
     if (dump_viz_data)

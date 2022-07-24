@@ -94,7 +94,7 @@ namespace ModelData
   static double mu_s, beta_s;
   void
   beam_PK1_dev_stress_function(
-    libMesh::TensorValue<double> &      PP,
+    libMesh::TensorValue<double>       &PP,
     const libMesh::TensorValue<double> &FF,
     const libMesh::Point & /*X*/,
     const libMesh::Point & /*s*/,
@@ -114,7 +114,7 @@ namespace ModelData
   double J_dil_min, J_dil_max;
   void
   beam_PK1_dil_stress_function(
-    libMesh::TensorValue<double> &      PP,
+    libMesh::TensorValue<double>       &PP,
     const libMesh::TensorValue<double> &FF,
     const libMesh::Point & /*X*/,
     const libMesh::Point & /*s*/,
@@ -150,7 +150,7 @@ namespace ModelData
 
   template <class node_set>
   double
-  compute_deformed_length(node_set &                nodes,
+  compute_deformed_length(node_set                 &nodes,
                           libMesh::EquationSystems *equation_systems)
   {
     libMesh::System &X_system = equation_systems->get_system<libMesh::System>(
@@ -199,7 +199,7 @@ namespace ModelData
 
   template <class node_set>
   double
-  compute_displaced_area(node_set &                nodes,
+  compute_displaced_area(node_set                 &nodes,
                          libMesh::EquationSystems *equation_systems)
   {
     libMesh::System &X_system = equation_systems->get_system<libMesh::System>(

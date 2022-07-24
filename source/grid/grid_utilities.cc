@@ -30,7 +30,7 @@ namespace fdl
     template <int spacedim>
     std::vector<float>
     compute_longest_edge_lengths(const Triangulation<2, spacedim> &tria,
-                                 const Mapping<2, spacedim> &      mapping,
+                                 const Mapping<2, spacedim>       &mapping,
                                  const Quadrature<1> &line_quadrature)
     {
       std::vector<float> result;
@@ -69,7 +69,7 @@ namespace fdl
 
     std::vector<float>
     compute_longest_edge_lengths(const Triangulation<3, 3> &tria,
-                                 const Mapping<3, 3> &      mapping,
+                                 const Mapping<3, 3>       &mapping,
                                  const Quadrature<1> &input_line_quadrature)
     {
       Assert(tria.get_reference_cells().size() == 1, ExcNotImplemented());
@@ -146,7 +146,7 @@ namespace fdl
   template <int dim, int spacedim>
   std::vector<float>
   compute_longest_edge_lengths(const Triangulation<dim, spacedim> &tria,
-                               const Mapping<dim, spacedim> &      mapping,
+                               const Mapping<dim, spacedim>       &mapping,
                                const Quadrature<1> &line_quadrature)
   {
     return internal::compute_longest_edge_lengths(tria,

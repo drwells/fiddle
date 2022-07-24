@@ -80,7 +80,7 @@ public:
 
     for (unsigned int qp_n : fe_values.quadrature_point_indices())
       {
-        const auto &                 p  = fe_values.quadrature_point(qp_n);
+        const auto                  &p  = fe_values.quadrature_point(qp_n);
         Tensor<2, spacedim, double> &PP = stresses[qp_n];
         // must be 0 when x = 0 or x = 1
         PP[0][0] = std::sin(tau * p[0]);
