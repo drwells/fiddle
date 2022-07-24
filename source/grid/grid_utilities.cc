@@ -11,6 +11,10 @@
 
 #include <vector>
 
+#ifdef DEAL_II_TRILINOS_WITH_SEACAS
+#  include <exodusII.h>
+#endif
+
 namespace fdl
 {
   using namespace dealii;
@@ -227,39 +231,117 @@ namespace fdl
     return global_active_edge_lengths;
   }
 
+  template <int spacedim>
+  std::pair<std::vector<int>, std::vector<Point<spacedim>>>
+  extract_nodeset(const std::string &filename, const int nodeset_id)
+  {
+#ifdef DEAL_II_TRILINOS_WITH_SEACAS
+    // deal.II always uses double precision numbers for geometry
+    int component_word_size = sizeof(double);
+    // setting to zero uses the stored word size
+    int   floating_point_word_size = 0;
+    float ex_version               = 0.0;
+
+    const int ex_id = ex_open(filename.c_str(),
+                              EX_READ,
+                              &component_word_size,
+                              &floating_point_word_size,
+                              &ex_version);
+    AssertThrow(ex_id > 0,
+                ExcMessage(
+                  "ExodusII failed to open the specified input file."));
+    std::vector<char> cell_kind_name(MAX_LINE_LENGTH + 1, '\0');
+    int               mesh_dimension   = 0;
+    int               n_nodes          = 0;
+    int               n_elements       = 0;
+    int               n_element_blocks = 0;
+    int               n_node_sets      = 0;
+    int               n_side_sets      = 0;
+
+    int ierr = ex_get_init(ex_id,
+                           cell_kind_name.data(),
+                           &mesh_dimension,
+                           &n_nodes,
+                           &n_elements,
+                           &n_element_blocks,
+                           &n_node_sets,
+                           &n_side_sets);
+    AssertThrowExodusII(ierr);
+    AssertDimension(mesh_dimension, spacedim);
+
+    int n_nodeset_nodes = 0;
+    int n_dist_fact     = 0; // not used
+    ierr                = ex_get_set_param(
+      ex_id, EX_NODE_SET, nodeset_id, &n_nodeset_nodes, &n_dist_fact);
+    AssertThrowExodusII(ierr);
+
+    std::vector<int> node_ids(n_nodeset_nodes);
+    ierr = ex_get_set(ex_id, EX_NODE_SET, nodeset_id, node_ids.data(), nullptr);
+    AssertThrowExodusII(ierr);
+
+    // Perhaps there is a better way to do this than getting all nodes
+    std::vector<double> xs(n_nodes);
+    std::vector<double> ys(n_nodes);
+    std::vector<double> zs(n_nodes);
+
+    ierr = ex_get_coord(ex_id, xs.data(), ys.data(), zs.data());
+    AssertThrowExodusII(ierr);
+
+    std::vector<Point<spacedim>> vertices;
+    vertices.reserve(n_nodeset_nodes);
+    for (const int &node_id : node_ids)
+      {
+        auto vertex_n = node_id - 1;
+        Assert(vertex_n >= 0 && vertex_n < n_nodes,
+               ExcFDLInternalError());
+        switch (spacedim)
+          {
+            case 1:
+              vertices.emplace_back(xs[vertex_n]);
+              break;
+            case 2:
+              vertices.emplace_back(xs[vertex_n], ys[vertex_n]);
+              break;
+            case 3:
+              vertices.emplace_back(xs[vertex_n], ys[vertex_n], zs[vertex_n]);
+              break;
+            default:
+              Assert(spacedim <= 3, ExcNotImplemented());
+          }
+      }
+
+    ierr = ex_close(ex_id);
+    AssertThrowExodusII(ierr);
+
+    return std::make_pair(std::move(node_ids), std::move(vertices));
+#else
+    (void)filename;
+    (void)nodeset_id;
+    AssertThrow(false, ExcMessage("Only available with Trilinos + SEACAS"));
+
+    return {};
+#endif
+  }
+
   template std::vector<float>
-  compute_longest_edge_lengths(const Triangulation<1, 2> &,
-                               const Mapping<1, 2> &,
+  compute_longest_edge_lengths(const Triangulation<NDIM - 1, NDIM> &,
+                               const Mapping<NDIM - 1, NDIM> &,
+                               const Quadrature<1> &);
+  template std::vector<float>
+  compute_longest_edge_lengths(const Triangulation<NDIM, NDIM> &,
+                               const Mapping<NDIM, NDIM> &,
                                const Quadrature<1> &);
 
   template std::vector<float>
-  compute_longest_edge_lengths(const Triangulation<2, 2> &,
-                               const Mapping<2, 2> &,
-                               const Quadrature<1> &);
+  collect_longest_edge_lengths(
+    const parallel::shared::Triangulation<NDIM - 1, NDIM> &,
+    const std::vector<float> &);
 
   template std::vector<float>
-  compute_longest_edge_lengths(const Triangulation<2, 3> &,
-                               const Mapping<2, 3> &,
-                               const Quadrature<1> &);
+  collect_longest_edge_lengths(
+    const parallel::shared::Triangulation<NDIM, NDIM> &,
+    const std::vector<float> &);
 
-  template std::vector<float>
-  compute_longest_edge_lengths(const Triangulation<3, 3> &,
-                               const Mapping<3, 3> &,
-                               const Quadrature<1> &);
-
-  template std::vector<float>
-  collect_longest_edge_lengths(const parallel::shared::Triangulation<1, 2> &,
-                               const std::vector<float> &);
-
-  template std::vector<float>
-  collect_longest_edge_lengths(const parallel::shared::Triangulation<2, 2> &,
-                               const std::vector<float> &);
-
-  template std::vector<float>
-  collect_longest_edge_lengths(const parallel::shared::Triangulation<2, 3> &,
-                               const std::vector<float> &);
-
-  template std::vector<float>
-  collect_longest_edge_lengths(const parallel::shared::Triangulation<3, 3> &,
-                               const std::vector<float> &);
+  template std::pair<std::vector<int>, std::vector<Point<NDIM>>>
+  extract_nodeset<NDIM>(const std::string &filename, const int nodeset_id);
 } // namespace fdl

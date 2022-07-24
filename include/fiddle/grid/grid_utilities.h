@@ -3,6 +3,7 @@
 
 #include <fiddle/base/config.h>
 
+#include <deal.II/base/point.h>
 #include <deal.II/base/quadrature.h>
 
 #include <deal.II/distributed/shared_tria.h>
@@ -11,6 +12,7 @@
 
 #include <deal.II/grid/tria.h>
 
+#include <utility>
 #include <vector>
 
 namespace fdl
@@ -35,6 +37,14 @@ namespace fdl
   collect_longest_edge_lengths(
     const parallel::shared::Triangulation<dim, spacedim> &tria,
     const std::vector<float> &local_active_edge_lengths);
+
+  /**
+   * Extract a nodeset from an ExodusII file.
+   */
+  template <int spacedim>
+  std::pair<std::vector<int>, std::vector<Point<spacedim>>>
+  extract_nodeset(const std::string &filename,
+                  const int          nodeset_id);
 } // namespace fdl
 
 #endif
