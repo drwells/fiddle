@@ -716,7 +716,9 @@ namespace fdl
         if (interactions[part_n]->projection_is_interpolation())
           {
             // TODO - we should probably call this the force density
-            part_vectors.set_force(part_n, data_time, std::move(right_hand_sides[part_n]));
+            part_vectors.set_force(part_n,
+                                   data_time,
+                                   std::move(right_hand_sides[part_n]));
           }
         else
           {
@@ -739,8 +741,8 @@ namespace fdl
             if (input_db->getBoolWithDefault("log_solver_iterations", false))
               {
                 tbox::plog << "IFEDMethod::computeLagrangianForce(): "
-                           << "SolverCG<> converged in "
-                           << control.last_step() << " steps." << std::endl;
+                           << "SolverCG<> converged in " << control.last_step()
+                           << " steps." << std::endl;
               }
             part_vectors.set_force(part_n,
                                    data_time,

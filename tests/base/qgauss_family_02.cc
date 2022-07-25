@@ -7,7 +7,7 @@
 template <int dim>
 void
 test_max_point_distances(const fdl::QGaussFamily<dim> &q_family,
-                         std::ofstream &               out)
+                         std::ofstream                &out)
 {
   // populate cached entries
   for (unsigned char i = 0; i < 10; ++i)

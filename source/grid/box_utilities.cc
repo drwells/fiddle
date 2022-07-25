@@ -23,11 +23,11 @@ namespace fdl
    * necessary, expand each bounding box by @p extra_ghost_cell_fraction times
    * the length of a cell in each coordinate direction.
    */
-  template <int spacedim, typename Number = double>
+  template <int spacedim, typename Number>
   std::vector<BoundingBox<spacedim, Number>>
   compute_patch_bboxes(
     const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<spacedim>>>
-      &          patches,
+                &patches,
     const double extra_ghost_cell_fraction)
   {
     Assert(
@@ -59,7 +59,7 @@ namespace fdl
   template <int dim, int spacedim, typename Number>
   std::vector<BoundingBox<spacedim, Number>>
   compute_cell_bboxes(const DoFHandler<dim, spacedim> &dof_handler,
-                      const Mapping<dim, spacedim> &   mapping)
+                      const Mapping<dim, spacedim>    &mapping)
   {
     // TODO: support multiple FEs
     const FiniteElement<dim, spacedim> &fe = dof_handler.get_fe();
@@ -181,31 +181,31 @@ namespace fdl
   template std::vector<BoundingBox<NDIM, float>>
   compute_patch_bboxes(
     const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>>
-      &          patches,
+                &patches,
     const double extra_ghost_cell_fraction);
 
   template std::vector<BoundingBox<NDIM, double>>
   compute_patch_bboxes(
     const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>>
-      &          patches,
+                &patches,
     const double extra_ghost_cell_fraction);
 
   // compute_cell_bboxes:
   template std::vector<BoundingBox<NDIM, float>>
   compute_cell_bboxes(const DoFHandler<NDIM - 1, NDIM> &dof_handler,
-                      const Mapping<NDIM - 1, NDIM> &   mapping);
+                      const Mapping<NDIM - 1, NDIM>    &mapping);
 
   template std::vector<BoundingBox<NDIM, float>>
   compute_cell_bboxes(const DoFHandler<NDIM, NDIM> &dof_handler,
-                      const Mapping<NDIM, NDIM> &   mapping);
+                      const Mapping<NDIM, NDIM>    &mapping);
 
   template std::vector<BoundingBox<NDIM, double>>
   compute_cell_bboxes(const DoFHandler<NDIM - 1, NDIM> &dof_handler,
-                      const Mapping<NDIM - 1, NDIM> &   mapping);
+                      const Mapping<NDIM - 1, NDIM>    &mapping);
 
   template std::vector<BoundingBox<NDIM, double>>
   compute_cell_bboxes(const DoFHandler<NDIM, NDIM> &dof_handler,
-                      const Mapping<NDIM, NDIM> &   mapping);
+                      const Mapping<NDIM, NDIM>    &mapping);
 
   // collect_all_active_cell_bboxes:
   template std::vector<BoundingBox<NDIM, float>>

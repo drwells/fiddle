@@ -376,8 +376,9 @@ namespace fdl
   void
   DampingForce<dim, spacedim, Number>::compute_volume_force(
     const double /*time*/,
-    const MechanicsValues<dim, spacedim>                              &m_values,
-    const typename Triangulation<dim, spacedim>::active_cell_iterator &/*cell*/,
+    const MechanicsValues<dim, spacedim> &m_values,
+    const typename Triangulation<dim, spacedim>::active_cell_iterator
+      & /*cell*/,
     ArrayView<Tensor<1, spacedim, Number>> &forces) const
   {
     std::copy(m_values.get_velocity_values().begin(),

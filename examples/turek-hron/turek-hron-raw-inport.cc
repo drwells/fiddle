@@ -70,8 +70,8 @@ namespace ModelData
     const libMesh::VectorValue<double> & /*n*/,
     const libMesh::VectorValue<double> & /*N*/,
     const libMesh::TensorValue<double> & /*FF*/,
-    const libMesh::Point &                          x,
-    const libMesh::Point &                          X,
+    const libMesh::Point                           &x,
+    const libMesh::Point                           &X,
     libMesh::Elem *const                            elem,
     const unsigned short                            side,
     const std::vector<const std::vector<double> *> &var_data,
@@ -100,7 +100,7 @@ namespace ModelData
   static double c1_s;
   void
   block_PK1_stress_function(
-    libMesh::TensorValue<double> &      PP,
+    libMesh::TensorValue<double>       &PP,
     const libMesh::TensorValue<double> &FF,
     const libMesh::Point & /*X*/,
     const libMesh::Point & /*s*/,
@@ -119,7 +119,7 @@ namespace ModelData
   static double mu_s, lambda_s;
   void
   beam_PK1_dev_stress_function(
-    libMesh::TensorValue<double> &      PP,
+    libMesh::TensorValue<double>       &PP,
     const libMesh::TensorValue<double> &FF,
     const libMesh::Point & /*X*/,
     const libMesh::Point & /*s*/,
@@ -173,7 +173,7 @@ namespace ModelData
   static double beta_s;
   void
   beam_PK1_dil_stress_function(
-    libMesh::TensorValue<double> &      PP,
+    libMesh::TensorValue<double>       &PP,
     const libMesh::TensorValue<double> &FF,
     const libMesh::Point & /*X*/,
     const libMesh::Point & /*s*/,
@@ -198,13 +198,13 @@ static std::ofstream drag_stream, lift_stream, A_x_posn_stream, A_y_posn_stream;
 void
 postprocess_data(tbox::Pointer<PatchHierarchy<NDIM>>   patch_hierarchy,
                  tbox::Pointer<INSHierarchyIntegrator> navier_stokes_integrator,
-                 libMesh::MeshBase &                   beam_mesh,
-                 libMesh::EquationSystems *            beam_equation_systems,
-                 libMesh::MeshBase &                   block_mesh,
-                 libMesh::EquationSystems *            block_equation_systems,
+                 libMesh::MeshBase                    &beam_mesh,
+                 libMesh::EquationSystems             *beam_equation_systems,
+                 libMesh::MeshBase                    &block_mesh,
+                 libMesh::EquationSystems             *block_equation_systems,
                  const int                             iteration_num,
                  const double                          loop_time,
-                 const std::string &                   data_dump_dirname);
+                 const std::string                    &data_dump_dirname);
 
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *
@@ -745,9 +745,9 @@ void
 postprocess_data(
   tbox::Pointer<PatchHierarchy<NDIM>> /*patch_hierarchy*/,
   tbox::Pointer<INSHierarchyIntegrator> /*navier_stokes_integrator*/,
-  libMesh::MeshBase &       beam_mesh,
+  libMesh::MeshBase        &beam_mesh,
   libMesh::EquationSystems *beam_equation_systems,
-  libMesh::MeshBase &       block_mesh,
+  libMesh::MeshBase        &block_mesh,
   libMesh::EquationSystems *block_equation_systems,
   const int /*iteration_num*/,
   const double loop_time,
@@ -756,13 +756,13 @@ postprocess_data(
   double F_integral[NDIM];
   for (unsigned int d = 0; d < NDIM; ++d)
     F_integral[d] = 0.0;
-  libMesh::MeshBase *       mesh[2]             = {&beam_mesh, &block_mesh};
+  libMesh::MeshBase        *mesh[2]             = {&beam_mesh, &block_mesh};
   libMesh::EquationSystems *equation_systems[2] = {beam_equation_systems,
                                                    block_equation_systems};
   for (unsigned int k = 0; k < 2; ++k)
     {
       const unsigned int dim = mesh[k]->mesh_dimension();
-      libMesh::System &  F_system =
+      libMesh::System   &F_system =
         equation_systems[k]->get_system<libMesh::System>(
           IBAMR::IBFEMethod::FORCE_SYSTEM_NAME);
       libMesh::NumericVector<double> *F_vec = F_system.solution.get();
@@ -784,15 +784,15 @@ postprocess_data(
         U_system.current_local_solution.get();
       U_vec->localize(*U_ghost_vec);
 
-      libMesh::DofMap &                      F_dof_map = F_system.get_dof_map();
+      libMesh::DofMap                       &F_dof_map = F_system.get_dof_map();
       std::vector<std::vector<unsigned int>> F_dof_indices(NDIM);
 
       std::unique_ptr<FEBase> fe(
         FEBase::build(dim, F_dof_map.variable_type(0)));
       std::unique_ptr<QBase> qrule = QBase::build(QGAUSS, dim, SEVENTH);
       fe->attach_quadrature_rule(qrule.get());
-      const std::vector<double> &             JxW     = fe->get_JxW();
-      const std::vector<libMesh::Point> &     q_point = fe->get_xyz();
+      const std::vector<double>              &JxW     = fe->get_JxW();
+      const std::vector<libMesh::Point>      &q_point = fe->get_xyz();
       const std::vector<std::vector<double>> &phi     = fe->get_phi();
       const std::vector<std::vector<libMesh::VectorValue<double>>> &dphi =
         fe->get_dphi();
@@ -885,7 +885,7 @@ postprocess_data(
     libMesh::NumericVector<double>::build(X_vec->comm());
   X_serial_vec->init(X_vec->size(), true, SERIAL);
   X_vec->localize(*X_serial_vec);
-  libMesh::DofMap &         X_dof_map = X_system.get_dof_map();
+  libMesh::DofMap          &X_dof_map = X_system.get_dof_map();
   std::vector<unsigned int> vars(2);
   vars[0] = 0;
   vars[1] = 1;

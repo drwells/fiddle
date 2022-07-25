@@ -59,7 +59,7 @@ namespace fdl
   compute_flag_dependencies(const MechanicsUpdateFlags me_flags)
   {
     MechanicsUpdateFlags actual_flags = resolve_flag_dependencies(me_flags);
-    UpdateFlags flags = UpdateFlags::update_default;
+    UpdateFlags          flags        = UpdateFlags::update_default;
 
     if (actual_flags & update_FF)
       flags |= update_gradients;
@@ -110,8 +110,11 @@ namespace fdl
 
     if ((update_flags & update_deformed_normal_vectors))
       {
-        AssertThrow((dynamic_cast<const FEFaceValues<dim, spacedim> *>(&fe_values) != nullptr),
-                    ExcMessage("Normal vectors can only be requested with face integration."));
+        AssertThrow(
+          (dynamic_cast<const FEFaceValues<dim, spacedim> *>(&fe_values) !=
+           nullptr),
+          ExcMessage(
+            "Normal vectors can only be requested with face integration."));
       }
 
     // Set up arrays:
@@ -210,7 +213,8 @@ namespace fdl
           }
         if (update_flags & update_deformed_normal_vectors)
           {
-            deformed_normal_vectors[q] = FF_inv_T[q] * fe_values->normal_vector(q);
+            deformed_normal_vectors[q] =
+              FF_inv_T[q] * fe_values->normal_vector(q);
             deformed_normal_vectors[q] /= deformed_normal_vectors[q].norm();
           }
         if (update_flags & update_right_cauchy_green)
@@ -282,39 +286,31 @@ namespace fdl
                                  NDIM,
                                  LinearAlgebra::distributed::Vector<double>>;
 
-  template
-  void
+  template void
   MechanicsValues<NDIM - 1, NDIM, Vector<double>>::reinit(
     const DoFHandler<NDIM - 1, NDIM>::active_cell_iterator &cell);
-  template
-  void
+  template void
   MechanicsValues<NDIM - 1, NDIM, Vector<double>>::reinit(
     const DoFHandler<NDIM - 1, NDIM>::active_face_iterator &cell);
 
-  template
-  void
+  template void
   MechanicsValues<NDIM, NDIM, Vector<double>>::reinit(
     const DoFHandler<NDIM, NDIM>::active_cell_iterator &cell);
-  template
-  void
+  template void
   MechanicsValues<NDIM, NDIM, Vector<double>>::reinit(
     const DoFHandler<NDIM, NDIM>::active_face_iterator &cell);
 
-  template
-  void
-  MechanicsValues<NDIM - 1, NDIM, LinearAlgebra::distributed::Vector<double>>::reinit(
-    const DoFHandler<NDIM - 1, NDIM>::active_cell_iterator &cell);
-  template
-  void
-  MechanicsValues<NDIM - 1, NDIM, LinearAlgebra::distributed::Vector<double>>::reinit(
-    const DoFHandler<NDIM - 1, NDIM>::active_face_iterator &cell);
+  template void
+  MechanicsValues<NDIM - 1, NDIM, LinearAlgebra::distributed::Vector<double>>::
+    reinit(const DoFHandler<NDIM - 1, NDIM>::active_cell_iterator &cell);
+  template void
+  MechanicsValues<NDIM - 1, NDIM, LinearAlgebra::distributed::Vector<double>>::
+    reinit(const DoFHandler<NDIM - 1, NDIM>::active_face_iterator &cell);
 
-  template
-  void
-  MechanicsValues<NDIM, NDIM, LinearAlgebra::distributed::Vector<double>>::reinit(
-    const DoFHandler<NDIM, NDIM>::active_cell_iterator &cell);
-  template
-  void
-  MechanicsValues<NDIM, NDIM, LinearAlgebra::distributed::Vector<double>>::reinit(
-    const DoFHandler<NDIM, NDIM>::active_face_iterator &cell);
+  template void
+  MechanicsValues<NDIM, NDIM, LinearAlgebra::distributed::Vector<double>>::
+    reinit(const DoFHandler<NDIM, NDIM>::active_cell_iterator &cell);
+  template void
+  MechanicsValues<NDIM, NDIM, LinearAlgebra::distributed::Vector<double>>::
+    reinit(const DoFHandler<NDIM, NDIM>::active_face_iterator &cell);
 } // namespace fdl

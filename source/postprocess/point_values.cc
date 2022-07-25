@@ -30,8 +30,8 @@ namespace fdl
 
   template <int n_components, int dim, int spacedim>
   PointValues<n_components, dim, spacedim>::PointValues(
-    const Mapping<dim, spacedim> &      mapping,
-    const DoFHandler<dim, spacedim> &   dof_handler,
+    const Mapping<dim, spacedim>       &mapping,
+    const DoFHandler<dim, spacedim>    &dof_handler,
     const std::vector<Point<spacedim>> &evaluation_points)
     : mapping(&mapping)
     , dof_handler(&dof_handler)
@@ -43,14 +43,12 @@ namespace fdl
   PointValues<n_components, dim, spacedim>::evaluate(
     const LinearAlgebra::distributed::Vector<double> &vector) const
   {
-    using VectorType = LinearAlgebra::distributed::Vector<double>;
     auto result =
-      VectorTools::point_values<n_components>(
-        *mapping,
-        *dof_handler,
-        vector,
-        evaluation_points,
-        remote_point_evaluation);
+      VectorTools::point_values<n_components>(*mapping,
+                                              *dof_handler,
+                                              vector,
+                                              evaluation_points,
+                                              remote_point_evaluation);
 
     return convert(result);
   }

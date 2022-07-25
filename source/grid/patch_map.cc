@@ -13,7 +13,7 @@ namespace fdl
   PatchMap<dim, spacedim>::PatchMap(
     const std::vector<tbox::Pointer<hier::Patch<spacedim>>> &patches,
     const double                                      extra_ghost_cell_fraction,
-    const Triangulation<dim, spacedim> &              tria,
+    const Triangulation<dim, spacedim>               &tria,
     const std::vector<BoundingBox<spacedim, Number>> &cell_bboxes)
   {
     reinit(patches, extra_ghost_cell_fraction, tria, cell_bboxes);
@@ -25,7 +25,7 @@ namespace fdl
   PatchMap<dim, spacedim>::reinit(
     const std::vector<tbox::Pointer<hier::Patch<spacedim>>> &patches,
     const double                                      extra_ghost_cell_fraction,
-    const Triangulation<dim, spacedim> &              tria,
+    const Triangulation<dim, spacedim>               &tria,
     const std::vector<BoundingBox<spacedim, Number>> &cell_bboxes)
   {
     this->tria    = &tria;

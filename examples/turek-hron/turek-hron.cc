@@ -44,7 +44,7 @@ namespace ModelData
 
   void
   make_turek_hron_grid(Triangulation<2> &tria,
-                       const Point<2> &  cylinder_center = Point<2>(0.2, 0.2),
+                       const Point<2>   &cylinder_center = Point<2>(0.2, 0.2),
                        const double      cylinder_radius = 0.05,
                        const double      tail_height     = 0.02,
                        const double      tail_length     = 0.35,
@@ -106,7 +106,7 @@ namespace ModelData
   {
   public:
     // todo more parameters
-    BeamNeoHookeanStress(const Quadrature<2> &    quad,
+    BeamNeoHookeanStress(const Quadrature<2>     &quad,
                          const types::material_id beam_id,
                          const double             mu_s)
       : ForceContribution<2>(quad)
@@ -164,7 +164,7 @@ namespace ModelData
   class BeamDilatationalStress : public fdl::ForceContribution<2>
   {
   public:
-    BeamDilatationalStress(const Quadrature<2> &    quad,
+    BeamDilatationalStress(const Quadrature<2>     &quad,
                            const types::material_id beam_id,
                            const double             beta_s)
       : ForceContribution<2>(quad)
@@ -226,7 +226,7 @@ postprocess_data(
   SAMRAI::tbox::Pointer<IBAMR::INSHierarchyIntegrator> navier_stokes_integrator,
   const int                                            iteration_num,
   const double                                         loop_time,
-  const std::string &                                  data_dump_dirname);
+  const std::string                                   &data_dump_dirname);
 
 /*******************************************************************************
  * For each run, the input filename and restart information (if needed) must   *

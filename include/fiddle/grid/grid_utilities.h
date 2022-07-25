@@ -26,7 +26,7 @@ namespace fdl
   template <int dim, int spacedim>
   std::vector<float>
   compute_longest_edge_lengths(const Triangulation<dim, spacedim> &tria,
-                               const Mapping<dim, spacedim> &      mapping,
+                               const Mapping<dim, spacedim>       &mapping,
                                const Quadrature<1> &line_quadrature);
 
   /**

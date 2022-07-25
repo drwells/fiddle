@@ -92,7 +92,7 @@ public:
 
     for (unsigned int qp_n : fe_values.quadrature_point_indices())
       {
-        const auto &                 p = fe_values.quadrature_point(qp_n);
+        const auto                  &p = fe_values.quadrature_point(qp_n);
         Tensor<1, spacedim, double> &F = forces[qp_n];
         F[0]                           = std::sin(p[0]) * std::cos(p[1]);
         F[1]                           = std::cos(p[0]) * std::sin(p[1]);

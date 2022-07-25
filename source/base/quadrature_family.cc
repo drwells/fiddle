@@ -200,7 +200,8 @@ namespace fdl
     Tensor<2, dim> transformation;
     switch (dim)
       {
-          case 2: {
+        case 2:
+          {
             // (0, 0) -> (0, 0)
             // (1, 0) -> (0, 1)
             // (0, 1) -> (0.5, sqrt(3)/2)

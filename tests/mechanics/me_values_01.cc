@@ -81,14 +81,15 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     fdl::MechanicsUpdateFlags face_me_flags =
       fdl::update_deformed_normal_vectors;
 
-    QGauss<dim - 1> face_quadrature(fe.degree + 1);
-    FEFaceValues<dim, spacedim> fe_face_values(
-      mapping, fe, face_quadrature, fdl::compute_flag_dependencies(face_me_flags));
+    QGauss<dim - 1>             face_quadrature(fe.degree + 1);
+    FEFaceValues<dim, spacedim> fe_face_values(mapping,
+                                               fe,
+                                               face_quadrature,
+                                               fdl::compute_flag_dependencies(
+                                                 face_me_flags));
 
-    fdl::MechanicsValues<dim, spacedim> face_mechanics_values(fe_face_values,
-                                                              part.get_position(),
-                                                              part.get_velocity(),
-                                                              face_me_flags);
+    fdl::MechanicsValues<dim, spacedim> face_mechanics_values(
+      fe_face_values, part.get_position(), part.get_velocity(), face_me_flags);
 
     for (const auto &cell : dof_handler.active_cell_iterators())
       for (const auto &face : cell->face_iterators())
@@ -98,7 +99,8 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
             face_mechanics_values.reinit(cell);
 
             out << "deformed normal vectors:\n";
-            for (const auto &n : face_mechanics_values.get_deformed_normal_vectors())
+            for (const auto &n :
+                 face_mechanics_values.get_deformed_normal_vectors())
               out << n << '\n';
           }
   }

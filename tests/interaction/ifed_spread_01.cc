@@ -294,8 +294,9 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
           tbox::Pointer<pdat::CellVariable<spacedim, double>> f_cc_var =
             var_db->getVariable("f_cc");
-          const int f_cc_index = var_db->mapVariableAndContextToIndex(
-            f_cc_var, var_db->getContext("context"));
+          const int f_cc_index =
+            var_db->mapVariableAndContextToIndex(f_cc_var,
+                                                 var_db->getContext("context"));
           hier_math_ops.interp(
             f_cc_index, f_cc_var, f_index, f_var, NULL, 0.0, true);
 

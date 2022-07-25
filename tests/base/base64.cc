@@ -21,8 +21,8 @@ test_printable(const std::string &input, std::ofstream &out)
 void
 test_not_printable(const std::vector<int> &input, std::ofstream &out)
 {
-  const int *       begin = input.data();
-  const int *       end   = input.data() + input.size();
+  const int        *begin = input.data();
+  const int        *end   = input.data() + input.size();
   const std::string base64 =
     fdl::encode_base64(reinterpret_cast<const char *>(begin),
                        reinterpret_cast<const char *>(end));

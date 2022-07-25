@@ -125,7 +125,7 @@ public:
       & /*cell*/,
     ArrayView<Tensor<2, spacedim, double>> &stresses) const override
   {
-    const std::vector<double> &             det_FF   = me_values.get_det_FF();
+    const std::vector<double>              &det_FF   = me_values.get_det_FF();
     const std::vector<Tensor<2, spacedim>> &FF_inv_T = me_values.get_FF_inv_T();
     Assert(det_FF.size() == stresses.size(), ExcMessage("sizes should match"));
     for (unsigned int qp_n = 0; qp_n < det_FF.size(); ++qp_n)
@@ -270,7 +270,7 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   time_integrator->setupPlotData();
   visit_data_writer->writePlotData(patch_hierarchy, iteration_num, loop_time);
   {
-    const auto & part = ib_method_ops->get_part(0);
+    const auto  &part = ib_method_ops->get_part(0);
     DataOut<dim> data_out;
     data_out.attach_dof_handler(part.get_dof_handler());
     data_out.add_data_vector(part.get_velocity(), "U");
