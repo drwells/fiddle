@@ -81,6 +81,8 @@ SETUP_2D(grid surface_tria_01.cc)
 IF("${DEAL_II_TRILINOS_WITH_SEACAS}" STREQUAL "ON")
   SETUP_2D(grid exodus.cc)
   SETUP_2D(grid exodus_parallel.cc)
+
+  SETUP_3D(grid extract_nodeset_01.cc)
 ENDIF()
 
 SETUP(grid edge_lengths_01.cc fiddle2d)
