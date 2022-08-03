@@ -513,10 +513,10 @@ namespace fdl
           this->scratch_dof_values, this->scratch_qp_values);                     
 
         for (unsigned int i = 0; i < this->scratch_qp_values.size(); ++i)         
-          this->scratch_qp_values[i] = fe_values.normal_vector(i) *              
+          this->scratch_qp_values[i] = m_values.get_deformed_normal_vectors()[i] *               
             (this->scratch_qp_values[i] -  
-             this->damping_constant * m_values.get_deformed_normal_vectors()[i]) *        
-            fe_values.normal_vector(i); 
+             this->damping_constant * m_values.get_velocity_values()[i]) *        
+            m_values.get_deformed_normal_vectors()[i]; 
 
         std::copy(this->scratch_qp_values.begin(),                                
                   this->scratch_qp_values.end(),

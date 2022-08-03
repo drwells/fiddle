@@ -138,6 +138,8 @@ SETUP(mechanics force_boundary_01.cc fiddle2d)
 
 SETUP(mechanics spring_01.cc fiddle2d)
 
+SETUP(mechanics orthogonal_spring_dashpot_01.cc fiddle2d)
+
 # postprocess:
 SETUP(postprocess point_values_01.cc fiddle2d)
 

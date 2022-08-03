@@ -1,0 +1,11 @@
+test 1:
+displace (2, 2), spring constant = 10
+velocity (1, 1), damping constant = 5
+forces =   -25 0
+forces =   0 -25
+forces =   -25 -0
+forces =   0 -25
+forces =   -25 0
+forces =   -0 -25
+forces =   -25 -0
+forces =   -0 -25
