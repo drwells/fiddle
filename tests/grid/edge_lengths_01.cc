@@ -4,6 +4,8 @@
 
 #include <deal.II/distributed/shared_tria.h>
 
+#include <deal.II/fe/mapping_q1.h>
+
 #include <deal.II/grid/grid_generator.h>
 
 #include <deal.II/numerics/data_out.h>

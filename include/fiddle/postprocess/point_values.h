@@ -14,6 +14,8 @@ FDL_ENABLE_EXTRA_DIAGNOSTICS
 
 #include <deal.II/fe/mapping.h>
 
+#include <deal.II/lac/la_parallel_vector.h>
+
 #include <vector>
 
 namespace fdl
