@@ -1,8 +1,8 @@
 #include <fiddle/base/config.h>
 
-#include <deal.II/grid/tria.h>
-
 #include <deal.II/dofs/dof_handler.h>
+
+#include <deal.II/grid/tria.h>
 
 #include <string>
 

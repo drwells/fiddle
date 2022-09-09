@@ -2,13 +2,14 @@
 
 #include <fstream>
 
-int main()
+int
+main()
 {
   using namespace dealii;
 
   const std::string test_file = SOURCE_DIR "/two-nodesets.e";
 
-  auto pair_42 = fdl::extract_nodeset<3>(test_file, 42);
+  auto pair_42  = fdl::extract_nodeset<3>(test_file, 42);
   auto pair_100 = fdl::extract_nodeset<3>(test_file, 100);
 
   std::ofstream output("output");

@@ -1,3 +1,5 @@
+#include <deal.II/lac/la_parallel_vector.h>
+
 #include <fiddle/postprocess/point_values.h>
 
 FDL_DISABLE_EXTRA_DIAGNOSTICS
