@@ -28,7 +28,7 @@ cd build-release
 cmake -DDEAL_II_ROOT=$HOME/Applications/deal.II \
       -DIBAMR_ROOT=$HOME/Applications/ibamr \
       -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_CXX_FLAGS="-O3 -mach=native -g"   \
+      -DCMAKE_CXX_FLAGS="-O3 -march=native -g"   \
       ../
 ```
 for a release build. In both cases you need to signal to fiddle where IBAMR and
@@ -46,9 +46,11 @@ to a non-default location (e.g., inside your home directory).
 - (WIP) Scalable implementations of all fundamental IFED algorithms.
 - Simple to understand internal classes which can be composed in a variety of
   ways for different applications.
-- (WIP) `fdl::IFEDMethod` is a complete implementation of an `IBAMR::IBStrategy`
+- `fdl::IFEDMethod` is a complete implementation of an `IBAMR::IBStrategy`
   object which performs either elemental or nodal coupling between a
   Lagrangian hyperelastic solid and Eulerian grid.
+- (WIP) lots of useful utilities, like meter meshes.
+- (WIP) examples.
 
 # Style Guide
 1. "The lost art of structured programming": code is built recursively out of
@@ -66,7 +68,7 @@ to a non-default location (e.g., inside your home directory).
    functions. This enforces a clean design and separation of concerns - e.g.,
    force spreading doesn't need anything besides the patch hierarchy, patch map,
    mapping, and FE vectors.
-4. Avoid SAMRAI - there are a lot of bugs and poor design decisions in samrai
+4. Avoid SAMRAI - there are a lot of bugs and poor design decisions in SAMRAI
    (some examples: only one visit data writer can be created at once, several
    classes must be registered for restarts or the program will crash, the string
    processing doesn't support binary data, lack of `const`, `PatchHierarchy`
