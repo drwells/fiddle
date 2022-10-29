@@ -49,7 +49,9 @@ namespace fdl
               const DoFHandler<dim, spacedim>    &position_dof_handler,
               const std::vector<Point<spacedim>> &convex_hull,
               tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
-              const int                                         level_number);
+              const int                                         level_number,
+              const LinearAlgebra::distributed::Vector<double> &position,
+              const LinearAlgebra::distributed::Vector<double> &velocity);
 
     /**
      * Reinitialize the meter mesh to have its coordinates specified by @p
@@ -91,14 +93,14 @@ namespace fdl
 
   protected:
     /**
-     * Original DoFHandler.
-     */
-    SmartPointer<const DoFHandler<dim, spacedim>> position_dof_handler;
-
-    /**
      * Original Mapping.
      */
     SmartPointer<const Mapping<dim, spacedim>> mapping;
+
+    /**
+     * Original DoFHandler.
+     */
+    SmartPointer<const DoFHandler<dim, spacedim>> position_dof_handler;
 
     /**
      * Cartesian-grid data.
