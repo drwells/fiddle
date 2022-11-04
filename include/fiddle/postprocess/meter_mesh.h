@@ -17,6 +17,7 @@
 
 #include <fiddle/postprocess/point_values.h>
 
+#include <memory>
 #include <vector>
 
 namespace fdl
@@ -34,7 +35,7 @@ namespace fdl
     /**
      * Constructor.
      *
-     * @param[in] mapping Mapping defined in reference coordinates (e.g.,, the
+     * @param[in] mapping Mapping defined in reference coordinates (e.g., the
      * mapping returned by Part::get_mapping())
      *
      * @param[in] position_dof_handler DoFHandler describing the position and
@@ -50,23 +51,30 @@ namespace fdl
               const std::vector<Point<spacedim>> &convex_hull,
               tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
               const int                                         level_number,
-              const LinearAlgebra::distributed::Vector<double> &position,
-              const LinearAlgebra::distributed::Vector<double> &velocity);
+              const LinearAlgebra::distributed::Vector<double> &position);
 
     /**
      * Reinitialize the meter mesh to have its coordinates specified by @p
      * position and velocity by @p velocity.
      */
     void
-    reinit(const LinearAlgebra::distributed::Vector<double> &position,
-           const LinearAlgebra::distributed::Vector<double> &velocity);
+    reinit(const LinearAlgebra::distributed::Vector<double> &position);
+
+    /**
+     * Return a reference to the meter Triangulation. This triangulation is
+     * not in reference coordinates: instead its absolute position is
+     * determined by the position of the original volumetric structure.
+     */
+    const Triangulation<dim - 1, spacedim> &
+    get_meter_tria() const;
 
     /**
      * Return the mean meter velocity, defined as the average value of the
-     * volumetric finite element velocity evaluated on the convex hull.
+     * velocity field specified by @p data_idx on the boundary of the meter
+     * mesh.
      */
     Tensor<1, spacedim>
-    mean_meter_velocity() const;
+    mean_meter_velocity(const int data_idx, const std::string &kernel_name);
 
     /**
      * Compute the mean flux of some vector-valued quantity through the meter
@@ -98,17 +106,10 @@ namespace fdl
     SmartPointer<const Mapping<dim, spacedim>> mapping;
 
     /**
-     * Original DoFHandler.
-     */
-    SmartPointer<const DoFHandler<dim, spacedim>> position_dof_handler;
-
-    /**
      * Cartesian-grid data.
      * @{
      */
-    tbox::Pointer<hier::BasePatchHierachy<spacedim>> patch_hierarchy;
-
-    std::shared_ptr<IBTK::SAMRAIDataCache> eulerian_data_cache;
+    tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy;
 
     int level_number;
     /**
@@ -116,7 +117,7 @@ namespace fdl
      */
 
     /**
-     * PointValues object for computing the mesh's position and velocity.
+     * PointValues object for computing the mesh's position.
      */
     std::unique_ptr<PointValues<spacedim, dim, spacedim>> point_values;
 
@@ -126,12 +127,12 @@ namespace fdl
     parallel::shared::Triangulation<dim - 1, spacedim> meter_tria;
 
     /**
-     * Scalar FiniteElement used on meter_tria;
+     * Scalar FiniteElement used on meter_tria
      */
     std::unique_ptr<FiniteElement<dim - 1, spacedim>> scalar_fe;
 
     /**
-     * Vector FiniteElement used on meter_tria;
+     * Vector FiniteElement used on meter_tria
      */
     std::unique_ptr<FiniteElement<dim - 1, spacedim>> vector_fe;
 
@@ -145,11 +146,23 @@ namespace fdl
      */
     DoFHandler<dim - 1, spacedim> vector_dof_handler;
 
+
+    std::shared_ptr<Utilities::MPI::Partitioner> vector_partitioner;
+
+    std::shared_ptr<Utilities::MPI::Partitioner> scalar_partitioner;
+
     /**
      * Interaction object.
      */
-    NodalInteraction<dim - 1, spacedim> nodal_interaction;
+    std::unique_ptr<NodalInteraction<dim - 1, spacedim>> nodal_interaction;
   };
+
+  template <int dim, int spacedim>
+  inline const Triangulation<dim - 1, spacedim> &
+  MeterMesh<dim, spacedim>::get_meter_tria() const
+  {
+      return meter_tria;
+  }
 } // namespace fdl
 
 #endif
