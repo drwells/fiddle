@@ -173,7 +173,7 @@ namespace fdl
     // Actually do the work:
     compute_nodal_interpolation(trans.kernel_name,
                                 trans.current_data_idx,
-                                this->nodal_patch_map,
+                                nodal_patch_map,
                                 trans.overlap_position,
                                 trans.overlap_rhs);
 
@@ -211,7 +211,7 @@ namespace fdl
     // Actually do the spreading:
     compute_nodal_spread(trans.kernel_name,
                          trans.current_data_idx,
-                         this->nodal_patch_map,
+                         nodal_patch_map,
                          trans.overlap_position,
                          trans.overlap_solution);
 
@@ -235,7 +235,7 @@ namespace fdl
                                                     trans.overlap_position);
 
     count_nodes(trans.workload_index,
-                this->nodal_patch_map,
+                nodal_patch_map,
                 trans.overlap_position);
 
     trans.next_state = WorkloadTransaction<dim, spacedim>::State::Finish;
