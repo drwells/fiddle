@@ -135,7 +135,8 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     all_bboxes,
     all_edge_lengths,
     patch_hierarchy,
-    patch_hierarchy->getFinestLevelNumber(),
+    std::make_pair(patch_hierarchy->getFinestLevelNumber(),
+                   patch_hierarchy->getFinestLevelNumber()),
     fe_degree + 1,
     1.0,
     fdl::DensityKind::Minimum);

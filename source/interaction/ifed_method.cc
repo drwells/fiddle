@@ -793,13 +793,14 @@ namespace fdl
         // We already check that this has a valid value earlier on
         const std::string interaction =
           input_db->getStringWithDefault("interaction", "ELEMENTAL");
+        const int ln = primary_hierarchy->getFinestLevelNumber();
         if (interaction == "ELEMENTAL")
           interactions[part_n]->reinit(
             tria,
             global_bboxes,
             global_edge_lengths,
             secondary_hierarchy.getSecondaryHierarchy(),
-            primary_hierarchy->getFinestLevelNumber());
+            std::make_pair(ln, ln));
         else
           {
             dynamic_cast<NodalInteraction<dim, spacedim> &>(
@@ -807,7 +808,7 @@ namespace fdl
               .reinit(tria,
                       global_bboxes,
                       secondary_hierarchy.getSecondaryHierarchy(),
-                      primary_hierarchy->getFinestLevelNumber(),
+                      std::make_pair(ln, ln),
                       part.get_dof_handler(),
                       part.get_position());
           }

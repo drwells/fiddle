@@ -39,7 +39,7 @@ namespace fdl
     const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
     const std::vector<float>                             &active_cell_lengths,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
-    const int                                             level_number,
+    const std::pair<int, int>                            &level_numbers,
     const unsigned int                                    min_n_points_1D,
     const double                                          point_density,
     const DensityKind                                     density_kind)
@@ -51,7 +51,7 @@ namespace fdl
            active_cell_bboxes,
            active_cell_lengths,
            patch_hierarchy,
-           level_number);
+           level_numbers);
   }
 
   template <int dim, int spacedim>
@@ -61,15 +61,24 @@ namespace fdl
     const std::vector<BoundingBox<spacedim, float>>  &global_active_cell_bboxes,
     const std::vector<float>                         &active_cell_lengths,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
-    const int                                         level_number)
+    const std::pair<int, int>                        &level_numbers)
   {
     InteractionBase<dim, spacedim>::reinit(native_tria,
                                            global_active_cell_bboxes,
                                            active_cell_lengths,
                                            patch_hierarchy,
-                                           level_number);
-    const auto patches =
-      extract_patches(patch_hierarchy->getPatchLevel(level_number));
+                                           level_numbers);
+    Assert(level_numbers.first == level_numbers.second, ExcFDLNotImplemented());
+
+    std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches;
+    for (int ln = level_numbers.first; ln <= level_numbers.second; ++ln)
+      {
+        const auto level_patches =
+          extract_patches(patch_hierarchy->getPatchLevel(ln));
+        patches.insert(patches.end(),
+                       level_patches.begin(),
+                       level_patches.end());
+      }
 
     // Set up the patch map:
     {

@@ -29,7 +29,8 @@ namespace fdl
   template <int dim, int spacedim>
   InteractionBase<dim, spacedim>::InteractionBase()
     : communicator(MPI_COMM_NULL)
-    , level_number(std::numeric_limits<int>::max())
+    , level_numbers(
+        {std::numeric_limits<int>::max(), std::numeric_limits<int>::max()})
   {}
 
   template <int dim, int spacedim>
@@ -38,17 +39,17 @@ namespace fdl
     const std::vector<BoundingBox<spacedim, float>> &global_active_cell_bboxes,
     const std::vector<float>                        &global_active_cell_lengths,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> p_hierarchy,
-    const int                                         l_number)
+    const std::pair<int, int>                        &l_numbers)
     : communicator(MPI_COMM_NULL)
     , native_tria(&n_tria)
     , patch_hierarchy(p_hierarchy)
-    , level_number(l_number)
+    , level_numbers(l_numbers)
   {
     reinit(n_tria,
            global_active_cell_bboxes,
            global_active_cell_lengths,
            p_hierarchy,
-           l_number);
+           l_numbers);
   }
 
 
@@ -60,7 +61,7 @@ namespace fdl
     const std::vector<BoundingBox<spacedim, float>> &global_active_cell_bboxes,
     const std::vector<float> & /*global_active_cell_lengths*/,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> p_hierarchy,
-    const int                                         l_number)
+    const std::pair<int, int>                        &l_numbers)
   {
     // We don't need to create a communicator unless its the first time we are
     // here or if we, for some reason, get reinitialized with a totally new
@@ -85,7 +86,7 @@ namespace fdl
 
     native_tria     = &n_tria;
     patch_hierarchy = p_hierarchy;
-    level_number    = l_number;
+    level_numbers   = l_numbers;
 
     // Check inputs
     Assert(global_active_cell_bboxes.size() == native_tria->n_active_cells(),
@@ -93,7 +94,9 @@ namespace fdl
     Assert(patch_hierarchy,
            ExcMessage("The provided pointer to a patch hierarchy should not be "
                       "null."));
-    AssertIndexRange(l_number, patch_hierarchy->getNumberOfLevels());
+    Assert(l_numbers.first <= l_numbers.second,
+           ExcMessage("The coarser level number should be first"));
+    AssertIndexRange(l_numbers.second, patch_hierarchy->getNumberOfLevels());
 
     // clear old dof info
     native_dof_handlers.clear();
@@ -101,8 +104,15 @@ namespace fdl
     overlap_to_native_dof_translations.clear();
     scatters.clear();
 
-    const auto patches =
-      extract_patches(patch_hierarchy->getPatchLevel(level_number));
+    std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches;
+    for (int ln = level_numbers.first; ln <= level_numbers.second; ++ln)
+      {
+        const auto level_patches =
+          extract_patches(patch_hierarchy->getPatchLevel(ln));
+        patches.insert(patches.end(),
+                       level_patches.begin(),
+                       level_patches.end());
+      }
     // TODO we need to make extra ghost cell fraction a parameter
     const std::vector<BoundingBox<spacedim>> patch_bboxes =
       compute_patch_bboxes(patches, 1.0);

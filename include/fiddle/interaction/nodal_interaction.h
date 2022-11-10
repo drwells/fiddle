@@ -49,7 +49,7 @@ namespace fdl
       const parallel::shared::Triangulation<dim, spacedim> &native_tria,
       const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
       tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
-      const int                                             level_number,
+      const std::pair<int, int>                            &level_numbers,
       const DoFHandler<dim, spacedim>                  &position_dof_handler,
       const LinearAlgebra::distributed::Vector<double> &position);
 
@@ -64,16 +64,16 @@ namespace fdl
            const std::vector<BoundingBox<spacedim, float>> &active_cell_bboxes,
            const std::vector<float>                        &active_cell_lengths,
            tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
-           const int level_number) override;
+           const std::pair<int, int> &level_numbers) override;
 
     /**
      * Reinitialize the object. Same as the constructor.
      */
     virtual void
     reinit(const parallel::shared::Triangulation<dim, spacedim> &native_tria,
-           const std::vector<BoundingBox<spacedim, float>> &active_cell_bboxes,
+           const std::vector<BoundingBox<spacedim, float>>  &active_cell_bboxes,
            tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
-           const int                                         level_number,
+           const std::pair<int, int>                        &level_numbers,
            const DoFHandler<dim, spacedim> &position_dof_handler,
            const LinearAlgebra::distributed::Vector<double> &position);
 

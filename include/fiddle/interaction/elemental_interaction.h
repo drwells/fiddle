@@ -49,7 +49,7 @@ namespace fdl
       const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
       const std::vector<float>                             &active_cell_lengths,
       tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
-      const int                                             level_number,
+      const std::pair<int, int>                            &level_numbers,
       const unsigned int                                    min_n_points_1D,
       const double                                          point_density,
       const DensityKind                                     density_kind);
@@ -63,7 +63,7 @@ namespace fdl
            const std::vector<BoundingBox<spacedim, float>> &active_cell_bboxes,
            const std::vector<float>                        &active_cell_lengths,
            tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
-           const int level_number) override;
+           const std::pair<int, int> &level_numbers) override;
 
     /**
      * Projection really is projection for this method so this always returns

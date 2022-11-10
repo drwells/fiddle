@@ -24,14 +24,14 @@ namespace fdl
     const parallel::shared::Triangulation<dim, spacedim> &native_tria,
     const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
-    const int                                             level_number,
+    const std::pair<int, int>                            &level_numbers,
     const DoFHandler<dim, spacedim>                      &position_dof_handler,
     const LinearAlgebra::distributed::Vector<double>     &position)
   {
     reinit(native_tria,
            active_cell_bboxes,
            patch_hierarchy,
-           level_number,
+           level_numbers,
            position_dof_handler,
            position);
   }
@@ -43,7 +43,7 @@ namespace fdl
     const std::vector<BoundingBox<spacedim, float>> & /*active_cell_bboxes*/,
     const std::vector<float> & /*active_cell_lengths*/,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> /*patch_hierarchy*/,
-    const int /*level_number*/)
+    const std::pair<int, int> & /*level_numbers*/)
   {
     AssertThrow(false,
                 ExcMessage(
@@ -58,7 +58,7 @@ namespace fdl
     const parallel::shared::Triangulation<dim, spacedim> &native_tria,
     const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
-    const int                                             level_number,
+    const std::pair<int, int>                            &level_numbers,
     const DoFHandler<dim, spacedim>                      &position_dof_handler,
     const LinearAlgebra::distributed::Vector<double>     &position)
   {
@@ -68,7 +68,7 @@ namespace fdl
                                            active_cell_bboxes,
                                            active_cell_lengths,
                                            patch_hierarchy,
-                                           level_number);
+                                           level_numbers);
     add_dof_handler(position_dof_handler);
     Vector<double> overlap_position(
       this->get_overlap_dof_handler(position_dof_handler).n_dofs());
@@ -82,8 +82,10 @@ namespace fdl
 
     // TODO - same as InteractionBase - add extra_ghost_cell_fraction as an
     // input argument
-    nodal_patch_map.reinit(extract_patches(
-                             patch_hierarchy->getPatchLevel(level_number)),
+    //
+    // TODO: multilevel!
+    nodal_patch_map.reinit(extract_patches(patch_hierarchy->getPatchLevel(
+                             level_numbers.first)),
                            1.0,
                            overlap_position);
   }
@@ -233,9 +235,7 @@ namespace fdl
     trans.position_scatter.global_to_overlap_finish(*trans.native_position,
                                                     trans.overlap_position);
 
-    count_nodes(trans.workload_index,
-                nodal_patch_map,
-                trans.overlap_position);
+    count_nodes(trans.workload_index, nodal_patch_map, trans.overlap_position);
 
     trans.next_state = WorkloadTransaction<dim, spacedim>::State::Finish;
 
