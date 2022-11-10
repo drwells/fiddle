@@ -98,10 +98,20 @@ namespace fdl
     virtual VectorOperation::values
     get_rhs_scatter_type() const override;
 
+    /**
+     * Minimum number of points to use in each coordinate direction.
+     */
     unsigned int min_n_points_1D;
 
+    /**
+     * Density of quadrature points.
+     */
     double point_density;
 
+    /**
+     * Description of the density calculation: see the documentation of
+     * QuadratureFamily for more information.
+     */
     DensityKind density_kind;
 
     /**
