@@ -115,6 +115,11 @@ namespace fdl
     DensityKind density_kind;
 
     /**
+     * Mapping from SAMRAI patches to deal.II cells.
+     */
+    PatchMap<dim, spacedim> patch_map;
+
+    /**
      * Indices of the quadrature rules that should be used on each cell.
      */
     std::vector<unsigned char> quadrature_indices;

@@ -428,11 +428,6 @@ namespace fdl
     OverlapTriangulation<dim, spacedim> overlap_tria;
 
     /**
-     * Mapping from SAMRAI patches to deal.II cells.
-     */
-    PatchMap<dim, spacedim> patch_map;
-
-    /**
      * Pointer to the patch hierarchy.
      */
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy;
