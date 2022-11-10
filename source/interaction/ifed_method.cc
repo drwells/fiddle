@@ -806,7 +806,6 @@ namespace fdl
               *interactions[part_n])
               .reinit(tria,
                       global_bboxes,
-                      global_edge_lengths,
                       secondary_hierarchy.getSecondaryHierarchy(),
                       primary_hierarchy->getFinestLevelNumber(),
                       part.get_dof_handler(),

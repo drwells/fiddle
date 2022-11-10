@@ -23,7 +23,6 @@ namespace fdl
   NodalInteraction<dim, spacedim>::NodalInteraction(
     const parallel::shared::Triangulation<dim, spacedim> &native_tria,
     const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
-    const std::vector<float>                             &active_cell_lengths,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
     const int                                             level_number,
     const DoFHandler<dim, spacedim>                      &position_dof_handler,
@@ -31,7 +30,6 @@ namespace fdl
   {
     reinit(native_tria,
            active_cell_bboxes,
-           active_cell_lengths,
            patch_hierarchy,
            level_number,
            position_dof_handler,
@@ -59,12 +57,13 @@ namespace fdl
   NodalInteraction<dim, spacedim>::reinit(
     const parallel::shared::Triangulation<dim, spacedim> &native_tria,
     const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
-    const std::vector<float>                             &active_cell_lengths,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
     const int                                             level_number,
     const DoFHandler<dim, spacedim>                      &position_dof_handler,
     const LinearAlgebra::distributed::Vector<double>     &position)
   {
+    // base class doesn't actually read this value
+    std::vector<float> active_cell_lengths;
     InteractionBase<dim, spacedim>::reinit(native_tria,
                                            active_cell_bboxes,
                                            active_cell_lengths,
