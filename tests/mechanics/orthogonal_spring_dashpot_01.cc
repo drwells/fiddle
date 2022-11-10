@@ -78,14 +78,15 @@ main(int argc, char **argv)
     }
 
   // We have to do some manual setup of stuff normally done inside the library
-  fdl::MechanicsUpdateFlags face_me_flags = fdl::MechanicsUpdateFlags::update_deformed_normal_vectors | 
+  fdl::MechanicsUpdateFlags face_me_flags =
+    fdl::MechanicsUpdateFlags::update_deformed_normal_vectors |
     fdl::MechanicsUpdateFlags::update_velocity_values;
   MappingCartesian<2>     mapping;
   QMidpoint<1>            face_quadrature;
-  FEFaceValues<2>         fe_face_values(mapping, 
-                                         fe, 
-                                         face_quadrature, 
-                                         fdl::compute_flag_dependencies(face_me_flags));
+  FEFaceValues<2>         fe_face_values(mapping,
+                                 fe,
+                                 face_quadrature,
+                                 fdl::compute_flag_dependencies(face_me_flags));
   fdl::MechanicsValues<2> m_values(fe_face_values,
                                    current_position,
                                    current_velocity,
@@ -94,13 +95,20 @@ main(int argc, char **argv)
   const double spring_constant  = 10.0;
   const double damping_constant = 5.0;
 
-  std::unique_ptr<fdl::OrthogonalSpringDashpotForce<2>> orthogonal_spring_dashpot_force;
-  
+  std::unique_ptr<fdl::OrthogonalSpringDashpotForce<2>>
+    orthogonal_spring_dashpot_force;
+
   if (input_db->getBoolWithDefault("use_function", false))
-      orthogonal_spring_dashpot_force = std::make_unique<fdl::OrthogonalSpringDashpotForce<2>>(
-        face_quadrature, spring_constant, damping_constant, dof_handler, mapping, IP2<2>());
+    orthogonal_spring_dashpot_force =
+      std::make_unique<fdl::OrthogonalSpringDashpotForce<2>>(face_quadrature,
+                                                             spring_constant,
+                                                             damping_constant,
+                                                             dof_handler,
+                                                             mapping,
+                                                             IP2<2>());
   else
-    orthogonal_spring_dashpot_force = std::make_unique<fdl::OrthogonalSpringDashpotForce<2>>(face_quadrature,
+    orthogonal_spring_dashpot_force =
+      std::make_unique<fdl::OrthogonalSpringDashpotForce<2>>(face_quadrature,
                                                              spring_constant,
                                                              damping_constant,
                                                              dof_handler,
@@ -108,24 +116,29 @@ main(int argc, char **argv)
 
   orthogonal_spring_dashpot_force->set_reference_position(reference);
 
-  orthogonal_spring_dashpot_force->setup_force(0.0, current_position, current_velocity);
+  orthogonal_spring_dashpot_force->setup_force(0.0,
+                                               current_position,
+                                               current_velocity);
   std::vector<Tensor<1, 2>> face_forces(face_quadrature.size());
   std::ofstream             output("output");
-  output << "test 1:\ndisplace (2, 2), spring constant = " << spring_constant << "\n" 
-         << "velocity (1, 1), damping constant = " << damping_constant 
-         << '\n';
+  output << "test 1:\ndisplace (2, 2), spring constant = " << spring_constant
+         << "\n"
+         << "velocity (1, 1), damping constant = " << damping_constant << '\n';
   for (const auto &cell : dof_handler.active_cell_iterators())
     {
-      for (const auto & face : cell->face_iterators())
+      for (const auto &face : cell->face_iterators())
         if (face->at_boundary())
           {
             fe_face_values.reinit(cell, face);
             m_values.reinit(cell);
             auto view = make_array_view(face_forces);
-            orthogonal_spring_dashpot_force->compute_boundary_force(0.0, m_values, face, view);
-            output << "forces = "; 
+            orthogonal_spring_dashpot_force->compute_boundary_force(0.0,
+                                                                    m_values,
+                                                                    face,
+                                                                    view);
+            output << "forces = ";
             for (const Tensor<1, 2> &f : face_forces)
               output << "  " << f << '\n';
-          } 
+          }
     }
 }

@@ -275,7 +275,8 @@ namespace fdl
 
   template <int dim, int spacedim, typename VectorType>
   inline const std::vector<Tensor<1, spacedim>> &
-  MechanicsValues<dim, spacedim, VectorType>::get_deformed_normal_vectors() const
+  MechanicsValues<dim, spacedim, VectorType>::get_deformed_normal_vectors()
+    const
   {
     Assert(update_flags & update_deformed_normal_vectors,
            ExcMessage("Needs update_deformed_normal_vectors"));

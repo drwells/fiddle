@@ -292,8 +292,7 @@ namespace fdl
     for (const int &node_id : node_ids)
       {
         auto vertex_n = node_id - 1;
-        Assert(vertex_n >= 0 && vertex_n < n_nodes,
-               ExcFDLInternalError());
+        Assert(vertex_n >= 0 && vertex_n < n_nodes, ExcFDLInternalError());
         switch (spacedim)
           {
             case 1:
