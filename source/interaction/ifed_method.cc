@@ -794,8 +794,14 @@ namespace fdl
         const std::string interaction =
           input_db->getStringWithDefault("interaction", "ELEMENTAL");
         const int ln = primary_hierarchy->getFinestLevelNumber();
+
+        tbox::Pointer<tbox::Database> interaction_db =
+          new tbox::InputDatabase("interaction");
+        // default database values are OK
+
         if (interaction == "ELEMENTAL")
           interactions[part_n]->reinit(
+            interaction_db,
             tria,
             global_bboxes,
             global_edge_lengths,
@@ -805,7 +811,8 @@ namespace fdl
           {
             dynamic_cast<NodalInteraction<dim, spacedim> &>(
               *interactions[part_n])
-              .reinit(tria,
+              .reinit(interaction_db,
+                      tria,
                       global_bboxes,
                       secondary_hierarchy.getSecondaryHierarchy(),
                       std::make_pair(ln, ln),

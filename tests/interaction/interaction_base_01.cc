@@ -80,7 +80,6 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   auto patch_hierarchy = std::get<0>(tuple);
   auto f_idx           = std::get<5>(tuple);
 
-
   // Now set up fiddle things for the test:
   std::vector<BoundingBox<spacedim, float>> cell_bboxes;
   for (const auto &cell : native_tria.active_cell_iterators())
@@ -92,6 +91,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
   const auto level_number = patch_hierarchy->getFinestLevelNumber();
   fdl::InteractionBase<dim, spacedim> interaction_base(
+    input_db,
     native_tria,
     cell_bboxes,
     {}, // This class doesn't read edge lengths

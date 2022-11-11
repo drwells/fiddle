@@ -21,6 +21,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   NodalInteraction<dim, spacedim>::NodalInteraction(
+    const tbox::Pointer<tbox::Database>                  &input_db,
     const parallel::shared::Triangulation<dim, spacedim> &native_tria,
     const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
@@ -28,7 +29,8 @@ namespace fdl
     const DoFHandler<dim, spacedim>                      &position_dof_handler,
     const LinearAlgebra::distributed::Vector<double>     &position)
   {
-    reinit(native_tria,
+    reinit(input_db,
+           native_tria,
            active_cell_bboxes,
            patch_hierarchy,
            level_numbers,
@@ -39,6 +41,7 @@ namespace fdl
   template <int dim, int spacedim>
   void
   NodalInteraction<dim, spacedim>::reinit(
+    const tbox::Pointer<tbox::Database> &input_db,
     const parallel::shared::Triangulation<dim, spacedim> & /*native_tria*/,
     const std::vector<BoundingBox<spacedim, float>> & /*active_cell_bboxes*/,
     const std::vector<float> & /*active_cell_lengths*/,
@@ -55,6 +58,7 @@ namespace fdl
   template <int dim, int spacedim>
   void
   NodalInteraction<dim, spacedim>::reinit(
+    const tbox::Pointer<tbox::Database>                  &input_db,
     const parallel::shared::Triangulation<dim, spacedim> &native_tria,
     const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
@@ -64,7 +68,8 @@ namespace fdl
   {
     // base class doesn't actually read this value
     std::vector<float> active_cell_lengths;
-    InteractionBase<dim, spacedim>::reinit(native_tria,
+    InteractionBase<dim, spacedim>::reinit(input_db,
+                                           native_tria,
                                            active_cell_bboxes,
                                            active_cell_lengths,
                                            patch_hierarchy,
@@ -80,8 +85,6 @@ namespace fdl
       this->return_scatter(position_dof_handler, std::move(scatter));
     }
 
-    // TODO - same as InteractionBase - add extra_ghost_cell_fraction as an
-    // input argument
     std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches;
     for (int ln = level_numbers.first; ln <= level_numbers.second; ++ln)
       {
@@ -92,7 +95,10 @@ namespace fdl
                        level_patches.end());
       }
 
-    nodal_patch_map.reinit(patches, 1.0, overlap_position);
+    nodal_patch_map.reinit(patches,
+                           input_db->getDoubleWithDefault("ghost_cell_fraction",
+                                                          1.0),
+                           overlap_position);
   }
 
   template <int dim, int spacedim>

@@ -131,6 +131,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     fdl::collect_longest_edge_lengths(native_tria, local_edge_lengths);
 
   fdl::ElementalInteraction<dim, spacedim> interaction(
+    input_db,
     native_tria,
     all_bboxes,
     all_edge_lengths,
