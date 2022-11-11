@@ -42,6 +42,10 @@ namespace fdl
      *
      * Here @p nodal_coordinates contains the (x, y, z) positions of nodes in
      * the order described in the general class documentation.
+     *
+     * The hier::Patch objects in @p patches may come from multiple patch
+     * levels. If a node is present on multiple levels then it will be assigned
+     * to the finest one.
      */
     NodalPatchMap(
       const std::vector<tbox::Pointer<hier::Patch<spacedim>>> &patches,
