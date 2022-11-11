@@ -82,12 +82,17 @@ namespace fdl
 
     // TODO - same as InteractionBase - add extra_ghost_cell_fraction as an
     // input argument
-    //
-    // TODO: multilevel!
-    nodal_patch_map.reinit(extract_patches(patch_hierarchy->getPatchLevel(
-                             level_numbers.first)),
-                           1.0,
-                           overlap_position);
+    std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches;
+    for (int ln = level_numbers.first; ln <= level_numbers.second; ++ln)
+      {
+        const auto level_patches =
+          extract_patches(patch_hierarchy->getPatchLevel(ln));
+        patches.insert(patches.end(),
+                       level_patches.begin(),
+                       level_patches.end());
+      }
+
+    nodal_patch_map.reinit(patches, 1.0, overlap_position);
   }
 
   template <int dim, int spacedim>
