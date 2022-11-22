@@ -14,6 +14,7 @@ FDL_ENABLE_EXTRA_DIAGNOSTICS
 #include <deal.II/fe/mapping.h>
 
 #include <Patch.h>
+#include <BasePatchLevel.h>
 
 #include <vector>
 
@@ -40,6 +41,17 @@ namespace fdl
   compute_patch_bboxes(
     const std::vector<tbox::Pointer<hier::Patch<spacedim>>> &patches,
     const double extra_ghost_cell_fraction = 0.0);
+
+  /**
+   * For each patch in @p c_level, return the list of boxes which intersect
+   * that patch but not any patch in @p f_level. This intersection may be
+   * empty.
+   */
+  template <int spacedim>
+  std::vector<std::vector<hier::Box<spacedim>>>
+  compute_nonoverlapping_patch_boxes(
+    const tbox::Pointer<hier::BasePatchLevel<spacedim>> &c_level,
+    const tbox::Pointer<hier::BasePatchLevel<spacedim>> &f_level);
 
   /**
    * Compute the bounding boxes for all locally owned and active cells for a
