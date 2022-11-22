@@ -56,6 +56,60 @@ namespace fdl
     return patch_bboxes;
   }
 
+  template <int spacedim>
+  std::vector<std::vector<hier::Box<spacedim>>>
+  compute_nonoverlapping_patch_boxes(
+    const tbox::Pointer<hier::BasePatchLevel<spacedim>> &c_level,
+    const tbox::Pointer<hier::BasePatchLevel<spacedim>> &f_level)
+  {
+    const tbox::Pointer<hier::PatchLevel<spacedim>> coarse_level = c_level;
+    AssertThrow(coarse_level, ExcFDLNotImplemented());
+    const tbox::Pointer<hier::PatchLevel<spacedim>> fine_level = f_level;
+    AssertThrow(fine_level, ExcFDLNotImplemented());
+    AssertThrow(coarse_level->getLevelNumber() + 1 ==
+                  fine_level->getLevelNumber(),
+                ExcFDLNotImplemented());
+    const hier::IntVector<spacedim> ratio =
+      fine_level->getRatioToCoarserLevel();
+
+    // Get all (including those not on this processor) fine-level boxes:
+    hier::BoxList<spacedim> finer_box_list;
+    long combined_size = 0;
+    for (int i = 0; i < fine_level->getNumberOfPatches(); ++i)
+      {
+        hier::Box<spacedim> patch_box = fine_level->getBoxForPatch(i);
+        patch_box.coarsen(ratio);
+        combined_size += patch_box.size();
+        finer_box_list.addItem(patch_box);
+      }
+    finer_box_list.simplifyBoxes();
+
+    // Remove said boxes from each coarse-level patch:
+    std::vector<std::vector<hier::Box<spacedim>>> result;
+    long coarse_size = 0;
+    for (int i = 0; i < coarse_level->getNumberOfPatches(); ++i)
+      {
+        hier::BoxList<spacedim> coarse_box_list;
+        coarse_box_list.addItem(coarse_level->getBoxForPatch(i));
+        coarse_size += coarse_box_list.getFirstItem().size();
+        coarse_box_list.removeIntersections(finer_box_list);
+
+        result.emplace_back();
+        std::vector<hier::Box<spacedim>> &boxes = result.back();
+        typename tbox::List<hier::Box<spacedim>>::Iterator it(coarse_box_list);
+        while (it)
+          {
+            boxes.push_back(*it);
+            combined_size += boxes.back().size();
+            it++;
+          }
+      }
+
+    AssertThrow(coarse_size == combined_size, ExcFDLInternalError());
+
+    return result;
+  }
+
   template <int dim, int spacedim, typename Number>
   std::vector<BoundingBox<spacedim, Number>>
   compute_cell_bboxes(const DoFHandler<dim, spacedim> &dof_handler,
@@ -189,6 +243,13 @@ namespace fdl
     const std::vector<SAMRAI::tbox::Pointer<SAMRAI::hier::Patch<NDIM>>>
                 &patches,
     const double extra_ghost_cell_fraction);
+
+  // compute_nonoverlapping_patch_boxes:
+  template
+  std::vector<std::vector<hier::Box<NDIM>>>
+  compute_nonoverlapping_patch_boxes(
+    const tbox::Pointer<hier::BasePatchLevel<NDIM>> &c_level,
+    const tbox::Pointer<hier::BasePatchLevel<NDIM>> &f_level);
 
   // compute_cell_bboxes:
   template std::vector<BoundingBox<NDIM, float>>
