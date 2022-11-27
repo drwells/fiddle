@@ -51,7 +51,7 @@ namespace fdl
         
         ~FiberNetwork(){};
 
-        const ArrayView<const Tensor<1, spacedim>> &
+        std::vector<dealii::Tensor<1, spacedim>> &
         get_fibers(typename Triangulation<dim, spacedim>::active_cell_iterator &cell) const;
 
     private:
