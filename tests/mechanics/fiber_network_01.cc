@@ -2,11 +2,9 @@
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/distributed/shared_tria.h>
-#include <deal.II/dofs/dof_handler.h>
 #include <deal.II/grid/tria.h>
-#include <deal.II/base/table.h>
 
-#include <fiddle/postprocess/fiber_network.h>
+#include <fiddle/mechanics/fiber_network.h>
 
 #include <ibtk/AppInitializer.h>
 #include <ibtk/IBTKInit.h>
@@ -14,8 +12,6 @@
 #include <fstream>
 
 #include "../tests.h"
-#include "../../source/postprocess/fiber_network.cc"
-
 
 using namespace SAMRAI;
 using namespace dealii;
@@ -25,8 +21,6 @@ void
 test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
 {
     const MPI_Comm mpi_comm = MPI_COMM_WORLD;
-    auto           input_db = app_initializer->getInputDatabase();
-    auto           test_db  = input_db->getDatabase("test");
     dealii::Triangulation<2,2> tria;
 
     // create 2D mesh with 4 elements    

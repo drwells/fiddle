@@ -139,10 +139,11 @@ SETUP(mechanics force_boundary_01.cc fiddle2d)
 SETUP(mechanics spring_01.cc fiddle2d)
 
 SETUP(mechanics orthogonal_spring_dashpot_01.cc fiddle2d)
+SETUP(mechanics fiber_network_01.cc fiddle2d)
 
 # postprocess:
 SETUP(postprocess point_values_01.cc fiddle2d)
-SETUP(postprocess fiber_network_01.cc fiddle2d)
+
 
 ADD_CUSTOM_COMMAND(TARGET tests
   POST_BUILD
