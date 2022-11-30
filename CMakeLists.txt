@@ -59,8 +59,10 @@ SET(FIDDLE_SRC
   source/mechanics/force_contribution_lib.cc
   source/mechanics/part.cc
   source/mechanics/part_vectors.cc
-
+  source/mechanics/fiber_network.cc
+  
   source/postprocess/point_values.cc
+
 
   source/transfer/overlap_partitioning_tools.cc
   source/transfer/scatter.cc
