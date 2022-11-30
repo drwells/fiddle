@@ -1,10 +1,10 @@
-#include <deal.II/grid/tria.h>
+#include <fiddle/mechanics/fiber_network.h>
+
+#include <deal.II/distributed/shared_tria.h>
+
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_out.h>
-#include <deal.II/distributed/shared_tria.h>
 #include <deal.II/grid/tria.h>
-
-#include <fiddle/mechanics/fiber_network.h>
 
 #include <ibtk/AppInitializer.h>
 #include <ibtk/IBTKInit.h>
@@ -20,45 +20,46 @@ template <int dim, int spacedim = dim>
 void
 test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
 {
-    const MPI_Comm mpi_comm = MPI_COMM_WORLD;
-    dealii::Triangulation<2,2> tria;
+  const MPI_Comm              mpi_comm = MPI_COMM_WORLD;
+  dealii::Triangulation<2, 2> tria;
 
-    // create 2D mesh with 4 elements    
-    dealii::GridGenerator::hyper_cube(tria);
-    tria.refine_global(1);
+  // create 2D mesh with 4 elements
+  dealii::GridGenerator::hyper_cube(tria);
+  tria.refine_global(1);
 
-    // let's say all cells have constant fiber fields:
-    dealii::Tensor<1, spacedim> f1, f2;
-    f1[0] = 1;
-    f1[1] = 0;
-    f2[0] = 0;
-    f2[1] = 1;
+  // let's say all cells have constant fiber fields:
+  dealii::Tensor<1, spacedim> f1, f2;
+  f1[0] = 1;
+  f1[1] = 0;
+  f2[0] = 0;
+  f2[1] = 1;
 
-    std::vector<dealii::Tensor<1, spacedim>> fibers1;
-    std::vector<dealii::Tensor<1, spacedim>> fibers2;
+  std::vector<dealii::Tensor<1, spacedim>> fibers1;
+  std::vector<dealii::Tensor<1, spacedim>> fibers2;
 
-    for(unsigned int i=0; i<tria.n_active_cells(); i++)
+  for (unsigned int i = 0; i < tria.n_active_cells(); i++)
     {
-        fibers1.push_back(f1);
-        fibers2.push_back(f2);
+      fibers1.push_back(f1);
+      fibers2.push_back(f2);
     }
 
-    std::vector<std::vector<dealii::Tensor<1, spacedim>>> fibers;
-    fibers.push_back(fibers1);
-    fibers.push_back(fibers2);
+  std::vector<std::vector<dealii::Tensor<1, spacedim>>> fibers;
+  fibers.push_back(fibers1);
+  fibers.push_back(fibers2);
 
-    fdl::FiberNetwork<dim,spacedim> fiber_network(tria,fibers);
+  fdl::FiberNetwork<dim, spacedim> fiber_network(tria, fibers);
 
-    std::ostringstream local_out;
+  std::ostringstream local_out;
 
-    local_out << "Test with two constant vector fields\n";
-   
+  local_out << "Test with two constant vector fields\n";
 
-   for (const auto cell_iterator : tria.active_cell_iterators())
+
+  for (const auto cell_iterator : tria.active_cell_iterators())
     {
-        auto cell = cell_iterator;
-        auto array = fiber_network.get_fibers(cell);
-        local_out << cell->active_cell_index() << " " << array[0] << " " << array[1] << std::endl;
+      auto cell  = cell_iterator;
+      auto array = fiber_network.get_fibers(cell);
+      local_out << cell->active_cell_index() << " " << array[0] << " "
+                << array[1] << std::endl;
     }
 
   std::ofstream output;
@@ -75,5 +76,5 @@ main(int argc, char **argv)
   tbox::Pointer<IBTK::AppInitializer> app_initializer =
     new IBTK::AppInitializer(argc, argv, "fiber_network_01.log");
 
-  test<NDIM>(app_initializer);
+  test<2>(app_initializer);
 }
