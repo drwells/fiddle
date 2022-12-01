@@ -20,22 +20,22 @@ template <int dim, int spacedim = dim>
 void
 test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
 {
-  const MPI_Comm              mpi_comm = MPI_COMM_WORLD;
-  dealii::Triangulation<2, 2> tria;
+  const MPI_Comm      mpi_comm = MPI_COMM_WORLD;
+  Triangulation<2, 2> tria;
 
   // create 2D mesh with 4 elements
-  dealii::GridGenerator::hyper_cube(tria);
+  GridGenerator::hyper_cube(tria);
   tria.refine_global(1);
 
   // let's say all cells have constant fiber fields:
-  dealii::Tensor<1, spacedim> f1, f2;
+  Tensor<1, spacedim> f1, f2;
   f1[0] = 1;
   f1[1] = 0;
   f2[0] = 0;
   f2[1] = 1;
 
-  std::vector<dealii::Tensor<1, spacedim>> fibers1;
-  std::vector<dealii::Tensor<1, spacedim>> fibers2;
+  std::vector<Tensor<1, spacedim>> fibers1;
+  std::vector<Tensor<1, spacedim>> fibers2;
 
   for (unsigned int i = 0; i < tria.n_active_cells(); i++)
     {
@@ -43,7 +43,7 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
       fibers2.push_back(f2);
     }
 
-  std::vector<std::vector<dealii::Tensor<1, spacedim>>> fibers;
+  std::vector<std::vector<Tensor<1, spacedim>>> fibers;
   fibers.push_back(fibers1);
   fibers.push_back(fibers2);
 
@@ -53,10 +53,8 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
   local_out << "Test with two constant vector fields\n";
 
-
-  for (const auto cell_iterator : tria.active_cell_iterators())
+  for (const auto &cell : tria.active_cell_iterators())
     {
-      auto cell  = cell_iterator;
       auto array = fiber_network.get_fibers(cell);
       local_out << cell->active_cell_index() << " " << array[0] << " "
                 << array[1] << std::endl;
