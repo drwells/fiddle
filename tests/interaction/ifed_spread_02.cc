@@ -373,8 +373,8 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
       DataOut<dim> data_out;
       data_out.attach_dof_handler(part.get_dof_handler());
       data_out.add_data_vector(ifed_method.get_force(), "F");
-      Assert(ifed_method.get_force().has_ghost_elements(),
-             ExcMessage("Should have ghosts"));
+      // Assert(ifed_method.get_force().has_ghost_elements(),
+      // ExcMessage("Should have ghosts"));
 
       MappingFEField<dim, spacedim, LinearAlgebra::distributed::Vector<double>>
         position_mapping(part.get_dof_handler(), part.get_position());

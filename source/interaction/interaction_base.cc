@@ -11,8 +11,6 @@
 
 #include <deal.II/fe/fe_values.h>
 
-#include <deal.II/grid/grid_tools.h>
-
 #include <deal.II/numerics/rtree.h>
 
 #include <boost/container/small_vector.hpp>
@@ -31,7 +29,8 @@ namespace fdl
   template <int dim, int spacedim>
   InteractionBase<dim, spacedim>::InteractionBase()
     : communicator(MPI_COMM_NULL)
-    , level_number(std::numeric_limits<int>::max())
+    , level_numbers(
+        {std::numeric_limits<int>::max(), std::numeric_limits<int>::max()})
   {}
 
   template <int dim, int spacedim>
@@ -40,17 +39,17 @@ namespace fdl
     const std::vector<BoundingBox<spacedim, float>> &global_active_cell_bboxes,
     const std::vector<float>                        &global_active_cell_lengths,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> p_hierarchy,
-    const int                                         l_number)
+    const std::pair<int, int>                        &l_numbers)
     : communicator(MPI_COMM_NULL)
     , native_tria(&n_tria)
     , patch_hierarchy(p_hierarchy)
-    , level_number(l_number)
+    , level_numbers(l_numbers)
   {
     reinit(n_tria,
            global_active_cell_bboxes,
            global_active_cell_lengths,
            p_hierarchy,
-           l_number);
+           l_numbers);
   }
 
 
@@ -62,7 +61,7 @@ namespace fdl
     const std::vector<BoundingBox<spacedim, float>> &global_active_cell_bboxes,
     const std::vector<float> & /*global_active_cell_lengths*/,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> p_hierarchy,
-    const int                                         l_number)
+    const std::pair<int, int>                        &l_numbers)
   {
     // We don't need to create a communicator unless its the first time we are
     // here or if we, for some reason, get reinitialized with a totally new
@@ -87,7 +86,7 @@ namespace fdl
 
     native_tria     = &n_tria;
     patch_hierarchy = p_hierarchy;
-    level_number    = l_number;
+    level_numbers   = l_numbers;
 
     // Check inputs
     Assert(global_active_cell_bboxes.size() == native_tria->n_active_cells(),
@@ -95,91 +94,32 @@ namespace fdl
     Assert(patch_hierarchy,
            ExcMessage("The provided pointer to a patch hierarchy should not be "
                       "null."));
-    AssertIndexRange(l_number, patch_hierarchy->getNumberOfLevels());
+    Assert(l_numbers.first <= l_numbers.second,
+           ExcMessage("The coarser level number should be first"));
+    AssertIndexRange(l_numbers.second, patch_hierarchy->getNumberOfLevels());
 
-    // Set up the patch map:
-    {
-      const auto patches =
-        extract_patches(patch_hierarchy->getPatchLevel(level_number));
-      // TODO we need to make extra ghost cell fraction a parameter
-      const std::vector<BoundingBox<spacedim>> patch_bboxes =
-        compute_patch_bboxes(patches, 1.0);
-      BoxIntersectionPredicate<dim, spacedim> predicate(
-        global_active_cell_bboxes, patch_bboxes, *native_tria);
-      overlap_tria.reinit(*native_tria, predicate);
-
-      // Yes, this is much more complex than necessary since
-      // global_active_cell_bboxes is an argument to this function, but we don't
-      // want to rely on that and p::s::T more than we have to since that
-      // approach ultimately needs to go.
-      //
-      // TODO - we should refactor this into a more general function so we can
-      // test it
-      std::vector<CellId> bbox_cellids;
-      for (const auto &cell : overlap_tria.active_cell_iterators())
-        bbox_cellids.push_back(overlap_tria.get_native_cell_id(cell));
-
-      // 1. Figure out who owns the bounding boxes we need:
-      std::vector<types::subdomain_id> ranks =
-        GridTools::get_subdomain_association(*native_tria, bbox_cellids);
-
-      // 2. Send each processor the list of bboxes we need:
-      std::map<types::subdomain_id,
-               std::vector<std::pair<unsigned int, CellId>>>
-        corresponding_requested_cellids;
-      // Keep the overlap active cell index along for the ride
-      for (unsigned int i = 0; i < ranks.size(); ++i)
-        corresponding_requested_cellids[ranks[i]].emplace_back(i,
-                                                               bbox_cellids[i]);
-
-      const std::map<types::subdomain_id,
-                     std::vector<std::pair<unsigned int, CellId>>>
-        corresponding_cellids_to_send =
-          Utilities::MPI::some_to_some(communicator,
-                                       corresponding_requested_cellids);
-
-      // 3. Send each processor the actual bboxes:
-      std::map<
-        types::subdomain_id,
-        std::vector<std::pair<unsigned int, BoundingBox<spacedim, float>>>>
-        requested_bboxes;
-      for (const auto &pair : corresponding_cellids_to_send)
-        {
-          const auto  rank                = pair.first;
-          const auto &indices_and_cellids = pair.second;
-
-          auto &bboxes = requested_bboxes[rank];
-          for (const auto &index_and_cellid : indices_and_cellids)
-            {
-              auto it =
-                native_tria->create_cell_iterator(index_and_cellid.second);
-              bboxes.emplace_back(
-                index_and_cellid.first,
-                global_active_cell_bboxes[it->active_cell_index()]);
-            }
-        }
-
-      const auto received_bboxes =
-        Utilities::MPI::some_to_some(communicator, requested_bboxes);
-
-      std::vector<BoundingBox<spacedim, float>> overlap_bboxes(
-        overlap_tria.n_active_cells());
-      for (const auto &pair : received_bboxes)
-        for (const auto &index_and_bbox : pair.second)
-          {
-            AssertIndexRange(index_and_bbox.first, overlap_bboxes.size());
-            overlap_bboxes[index_and_bbox.first] = index_and_bbox.second;
-          }
-
-      // TODO add the ghost cell width as an input argument to this class
-      patch_map.reinit(patches, 1.0, overlap_tria, overlap_bboxes);
-    }
-
-    // clear old dof info:
+    // clear old dof info
     native_dof_handlers.clear();
     overlap_dof_handlers.clear();
     overlap_to_native_dof_translations.clear();
     scatters.clear();
+
+    std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches;
+    for (int ln = level_numbers.first; ln <= level_numbers.second; ++ln)
+      {
+        const auto level_patches =
+          extract_patches(patch_hierarchy->getPatchLevel(ln));
+        patches.insert(patches.end(),
+                       level_patches.begin(),
+                       level_patches.end());
+      }
+    // TODO we need to make extra ghost cell fraction a parameter
+    const std::vector<BoundingBox<spacedim>> patch_bboxes =
+      compute_patch_bboxes(patches, 1.0);
+    BoxIntersectionPredicate<dim, spacedim> predicate(global_active_cell_bboxes,
+                                                      patch_bboxes,
+                                                      *native_tria);
+    overlap_tria.reinit(*native_tria, predicate);
   }
 
 

@@ -96,7 +96,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     cell_bboxes,
     {}, // This class doesn't read edge lengths
     patch_hierarchy,
-    level_number);
+    std::make_pair(level_number, level_number));
 
   FESystem<dim>             position_fe(FE_Q<dim>(1), dim);
   DoFHandler<dim, spacedim> position_dof_handler(native_tria);

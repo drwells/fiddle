@@ -22,6 +22,7 @@
 #include <PatchLevel.h>
 
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace fdl
@@ -200,8 +201,9 @@ namespace fdl
      * @param[inout] patch_hierarchy The patch hierarchy with which we will
      *               interact (i.e., for spreading and interpolation).
      *
-     * @param[in] level_number Number of the level on which we are interacting.
-     *            Multilevel IBFE is not yet supported.
+     * @param[in] level_numbers Level numbers (coarsest and finest) on which we
+     *            are interacting. Presently nodal interaction supports multiple
+     *            levels.
      *
      * @param[inout] eulerian_data_cache Pointer to the shared cache of
      *               scratch patch indices of @p patch_hierarchy.
@@ -211,7 +213,7 @@ namespace fdl
       const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
       const std::vector<float>                             &active_cell_lengths,
       tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
-      const int                                             level_number);
+      const std::pair<int, int>                            &level_numbers);
 
     /**
      * Reinitialize the object. Same as the constructor.
@@ -221,7 +223,7 @@ namespace fdl
            const std::vector<BoundingBox<spacedim, float>> &active_cell_bboxes,
            const std::vector<float>                        &active_cell_lengths,
            tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
-           const int                                         level_number);
+           const std::pair<int, int>                        &level_number);
 
     /**
      * Destructor.
@@ -428,11 +430,6 @@ namespace fdl
     OverlapTriangulation<dim, spacedim> overlap_tria;
 
     /**
-     * Mapping from SAMRAI patches to deal.II cells.
-     */
-    PatchMap<dim, spacedim> patch_map;
-
-    /**
      * Pointer to the patch hierarchy.
      */
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy;
@@ -440,7 +437,7 @@ namespace fdl
     /**
      * Number of the patch level we interact with.
      */
-    int level_number;
+    std::pair<int, int> level_numbers;
 
     /**
      * @}
