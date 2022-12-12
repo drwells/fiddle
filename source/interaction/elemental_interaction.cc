@@ -35,6 +35,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   ElementalInteraction<dim, spacedim>::ElementalInteraction(
+    const tbox::Pointer<tbox::Database>                  &input_db,
     const parallel::shared::Triangulation<dim, spacedim> &native_tria,
     const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
     const std::vector<float>                             &active_cell_lengths,
@@ -47,7 +48,8 @@ namespace fdl
                                           point_density,
                                           density_kind)
   {
-    reinit(native_tria,
+    reinit(input_db,
+           native_tria,
            active_cell_bboxes,
            active_cell_lengths,
            patch_hierarchy,
@@ -57,13 +59,15 @@ namespace fdl
   template <int dim, int spacedim>
   void
   ElementalInteraction<dim, spacedim>::reinit(
+    const tbox::Pointer<tbox::Database>                  &input_db,
     const parallel::shared::Triangulation<dim, spacedim> &native_tria,
     const std::vector<BoundingBox<spacedim, float>>  &global_active_cell_bboxes,
     const std::vector<float>                         &active_cell_lengths,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
     const std::pair<int, int>                        &level_numbers)
   {
-    InteractionBase<dim, spacedim>::reinit(native_tria,
+    InteractionBase<dim, spacedim>::reinit(input_db,
+                                           native_tria,
                                            global_active_cell_bboxes,
                                            active_cell_lengths,
                                            patch_hierarchy,
@@ -145,8 +149,11 @@ namespace fdl
             overlap_bboxes[index_and_bbox.first] = index_and_bbox.second;
           }
 
-      // TODO add the ghost cell width as an input argument to this class
-      patch_map.reinit(patches, 1.0, this->overlap_tria, overlap_bboxes);
+      patch_map.reinit(patches,
+                       input_db->getDoubleWithDefault("ghost_cell_fraction",
+                                                      1.0),
+                       this->overlap_tria,
+                       overlap_bboxes);
     }
 
     // We need to implement some more quadrature families

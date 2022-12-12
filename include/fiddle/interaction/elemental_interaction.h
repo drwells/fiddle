@@ -45,6 +45,7 @@ namespace fdl
      * Constructor.
      */
     ElementalInteraction(
+      const tbox::Pointer<tbox::Database>                  &input_db,
       const parallel::shared::Triangulation<dim, spacedim> &native_tria,
       const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
       const std::vector<float>                             &active_cell_lengths,
@@ -59,7 +60,8 @@ namespace fdl
      * point_density, and density_kind are unchanged.
      */
     virtual void
-    reinit(const parallel::shared::Triangulation<dim, spacedim> &native_tria,
+    reinit(const tbox::Pointer<tbox::Database>                  &input_db,
+           const parallel::shared::Triangulation<dim, spacedim> &native_tria,
            const std::vector<BoundingBox<spacedim, float>> &active_cell_bboxes,
            const std::vector<float>                        &active_cell_lengths,
            tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,

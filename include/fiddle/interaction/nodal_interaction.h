@@ -46,6 +46,7 @@ namespace fdl
      * Constructor.
      */
     NodalInteraction(
+      const tbox::Pointer<tbox::Database>                  &input_db,
       const parallel::shared::Triangulation<dim, spacedim> &native_tria,
       const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
       tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
@@ -60,7 +61,8 @@ namespace fdl
      * called.
      */
     virtual void
-    reinit(const parallel::shared::Triangulation<dim, spacedim> &native_tria,
+    reinit(const tbox::Pointer<tbox::Database>                  &input_db,
+           const parallel::shared::Triangulation<dim, spacedim> &native_tria,
            const std::vector<BoundingBox<spacedim, float>> &active_cell_bboxes,
            const std::vector<float>                        &active_cell_lengths,
            tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
@@ -70,7 +72,8 @@ namespace fdl
      * Reinitialize the object. Same as the constructor.
      */
     virtual void
-    reinit(const parallel::shared::Triangulation<dim, spacedim> &native_tria,
+    reinit(const tbox::Pointer<tbox::Database>                  &input_db,
+           const parallel::shared::Triangulation<dim, spacedim> &native_tria,
            const std::vector<BoundingBox<spacedim, float>>  &active_cell_bboxes,
            tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
            const std::pair<int, int>                        &level_numbers,

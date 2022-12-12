@@ -185,6 +185,13 @@ namespace fdl
     /**
      * Constructor. This call is collective.
      *
+     * @param[in] input_db Input database. The only value read from the database
+     *            is ghost_cell_fraction, which controls the fraction of ghost
+     *            cells added to each patch boundary box for the purposes of
+     *            associating nodes or elements with a given patch. The default
+     *            value is 1.0, which is typically the correct value for
+     *            problems with moving meshes.
+     *
      * @param[in] native_tria The Triangulation used to define the finite
      *            element fields. This class will use the same MPI communicator
      *            as the one used by this Triangulation.
@@ -209,6 +216,7 @@ namespace fdl
      *               scratch patch indices of @p patch_hierarchy.
      */
     InteractionBase(
+      const tbox::Pointer<tbox::Database>                  &input_db,
       const parallel::shared::Triangulation<dim, spacedim> &native_tria,
       const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
       const std::vector<float>                             &active_cell_lengths,
@@ -219,7 +227,8 @@ namespace fdl
      * Reinitialize the object. Same as the constructor.
      */
     virtual void
-    reinit(const parallel::shared::Triangulation<dim, spacedim> &native_tria,
+    reinit(const tbox::Pointer<tbox::Database>                  &input_db,
+           const parallel::shared::Triangulation<dim, spacedim> &native_tria,
            const std::vector<BoundingBox<spacedim, float>> &active_cell_bboxes,
            const std::vector<float>                        &active_cell_lengths,
            tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,

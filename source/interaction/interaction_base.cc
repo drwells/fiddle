@@ -35,6 +35,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   InteractionBase<dim, spacedim>::InteractionBase(
+    const tbox::Pointer<tbox::Database>                  &input_db,
     const parallel::shared::Triangulation<dim, spacedim> &n_tria,
     const std::vector<BoundingBox<spacedim, float>> &global_active_cell_bboxes,
     const std::vector<float>                        &global_active_cell_lengths,
@@ -45,7 +46,8 @@ namespace fdl
     , patch_hierarchy(p_hierarchy)
     , level_numbers(l_numbers)
   {
-    reinit(n_tria,
+    reinit(input_db,
+           n_tria,
            global_active_cell_bboxes,
            global_active_cell_lengths,
            p_hierarchy,
@@ -57,6 +59,7 @@ namespace fdl
   template <int dim, int spacedim>
   void
   InteractionBase<dim, spacedim>::reinit(
+    const tbox::Pointer<tbox::Database>                  &input_db,
     const parallel::shared::Triangulation<dim, spacedim> &n_tria,
     const std::vector<BoundingBox<spacedim, float>> &global_active_cell_bboxes,
     const std::vector<float> & /*global_active_cell_lengths*/,
@@ -113,9 +116,10 @@ namespace fdl
                        level_patches.begin(),
                        level_patches.end());
       }
-    // TODO we need to make extra ghost cell fraction a parameter
     const std::vector<BoundingBox<spacedim>> patch_bboxes =
-      compute_patch_bboxes(patches, 1.0);
+      compute_patch_bboxes(patches,
+                           input_db->getDoubleWithDefault("ghost_cell_fraction",
+                                                          1.0));
     BoxIntersectionPredicate<dim, spacedim> predicate(global_active_cell_bboxes,
                                                       patch_bboxes,
                                                       *native_tria);
