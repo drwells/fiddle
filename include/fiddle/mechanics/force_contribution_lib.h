@@ -344,6 +344,113 @@ namespace fdl
 
     std::vector<types::boundary_id> boundary_ids;
   };
+
+  /**
+   * Modified Neo-Hookean material model.
+   *
+   * By 'modified', we mean that the first invariant is the modified one -
+   * i.e., we use $I1_bar = J^{-2/3} I1$.
+   *
+   * This leads to a PK1 stress
+   *
+   *     PP = G J^{-2/3} (FF - I1 / 3 FF^-T)
+   *
+   * in which G is the shear modulus.
+   */
+  template <int dim, int spacedim = dim, typename Number = double>
+  class ModifiedNeoHookeanStress
+    : public ForceContribution<dim, spacedim, Number>
+  {
+  public:
+    /**
+     * Constructor.
+     */
+    ModifiedNeoHookeanStress(
+      const Quadrature<dim> &                quad,
+      const double                           shear_modulus,
+      const std::vector<types::material_id> &material_ids);
+
+    /**
+     * Get the update flags this force contribution requires for MechanicsValues
+     * objects.
+     */
+    virtual MechanicsUpdateFlags
+    get_mechanics_update_flags() const override;
+
+    /**
+     * Define this force as a PK1 stress.
+     */
+    virtual bool
+    is_stress() const override;
+
+    virtual void
+    compute_stress(
+      const double                          time,
+      const MechanicsValues<dim, spacedim> &me_values,
+      const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
+      ArrayView<Tensor<2, spacedim, Number>> &stresses) const override;
+
+  protected:
+    double shear_modulus;
+
+    std::vector<types::material_id> material_ids;
+  };
+
+  /**
+   * Modified Mooney-Rivlin material model.
+   *
+   * By 'modified', we mean that the first and second invariants are the
+   * modified ones - i.e., we use $I1_bar = J^{-2/3} I1$ and $I2_bar = J^{-4/3}
+   * I2$.
+   *
+   * This leads to a PK1 stress
+   *
+   *     PP = 2 c_1 J^{-2/3} (FF - I1 / 3 FF^-T) + 2 c_2 J^{-4/3} (I1 FF - FF CC
+   * - 2 I2 / 3 FF^-T)
+   *
+   * in which c_1 and c_2 are material constants.
+   */
+  template <int dim, int spacedim = dim, typename Number = double>
+  class ModifiedMooneyRivlinStress
+    : public ForceContribution<dim, spacedim, Number>
+  {
+  public:
+    /**
+     * Constructor.
+     */
+    ModifiedMooneyRivlinStress(
+      const Quadrature<dim> &                quad,
+      const double                           material_constant_1,
+      const double                           material_constant_2,
+      const std::vector<types::material_id> &material_ids);
+
+    /**
+     * Get the update flags this force contribution requires for MechanicsValues
+     * objects.
+     */
+    virtual MechanicsUpdateFlags
+    get_mechanics_update_flags() const override;
+
+    /**
+     * Define this force as a PK1 stress.
+     */
+    virtual bool
+    is_stress() const override;
+
+    virtual void
+    compute_stress(
+      const double                          time,
+      const MechanicsValues<dim, spacedim> &me_values,
+      const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
+      ArrayView<Tensor<2, spacedim, Number>> &stresses) const override;
+
+  protected:
+    double material_constant_1;
+
+    double material_constant_2;
+
+    std::vector<types::material_id> material_ids;
+  };
 } // namespace fdl
 
 #endif
