@@ -67,14 +67,16 @@ test(const Mapping<dim, spacedim> &                    mapping,
      const LinearAlgebra::distributed::Vector<double> &velocity,
      std::ostream &                                    output)
 {
-  FEValues<dim>               fe_values(mapping,
+  FEValues<dim> fe_values(mapping,
                           dof_handler.get_fe(),
                           quadrature,
                           stress.get_update_flags());
-  fdl::MechanicsValues<dim>   me_values(fe_values,
+
+  fdl::MechanicsValues<dim> me_values(fe_values,
                                       position,
                                       velocity,
                                       stress.get_mechanics_update_flags());
+
   std::vector<Tensor<2, dim>> stresses(quadrature.size());
   for (const auto &cell : dof_handler.active_cell_iterators())
     {
