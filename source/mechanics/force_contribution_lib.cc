@@ -595,6 +595,63 @@ namespace fdl
       }
   }
 
+  template <int dim, int spacedim, typename Number>
+  MechanicsUpdateFlags
+  ModifiedMooneyRivlinStress<dim, spacedim, Number>::
+    get_mechanics_update_flags() const
+  {
+    return MechanicsUpdateFlags::update_n23_det_FF |
+           MechanicsUpdateFlags::update_FF |
+           MechanicsUpdateFlags::update_FF_inv_T |
+           MechanicsUpdateFlags::update_first_invariant |
+           MechanicsUpdateFlags::update_second_invariant |
+           MechanicsUpdateFlags::update_right_cauchy_green;
+  }
+
+  template <int dim, int spacedim, typename Number>
+  bool
+  ModifiedMooneyRivlinStress<dim, spacedim, Number>::is_stress() const
+  {
+    return true;
+  }
+
+  template <int dim, int spacedim, typename Number>
+  void
+  ModifiedMooneyRivlinStress<dim, spacedim, Number>::compute_stress(
+    const double /*time*/,
+    const MechanicsValues<dim, spacedim> &                             m_values,
+    const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
+    ArrayView<Tensor<2, spacedim, Number>> &stresses) const
+  {
+    if (this->material_ids.size() > 0 &&
+        !std::binary_search(this->material_ids.begin(),
+                            this->material_ids.end(),
+                            cell->material_id()))
+      {
+        // the user specified a subset of material ids and we currently don't
+        // match - fill with zeros
+        for (auto &stress : stresses)
+          stress = 0.0;
+      }
+    else
+      {
+        for (unsigned int qp_n = 0; qp_n < stresses.size(); ++qp_n)
+          {
+            const auto J_n23    = m_values.get_n23_det_FF()[qp_n];
+            const auto FF       = m_values.get_FF()[qp_n];
+            const auto FF_inv_T = m_values.get_FF_inv_T()[qp_n];
+            const auto CC       = m_values.get_right_cauchy_green()[qp_n];
+            const auto I1       = m_values.get_first_invariant()[qp_n];
+            const auto I2       = m_values.get_second_invariant()[qp_n];
+
+            stresses[qp_n] =
+              2.0 * material_constant_1 * (FF - I1 / 3.0 * FF_inv_T) +
+              2.0 * material_constant_2 * J_n23 * J_n23 *
+                (I1 * FF - FF * CC - 2.0 * I2 / 3.0 * FF_inv_T);
+          }
+      }
+  }
+
 
   template class SpringForceBase<NDIM - 1, NDIM, double>;
   template class SpringForceBase<NDIM, NDIM, double>;
@@ -607,4 +664,5 @@ namespace fdl
   template class OrthogonalSpringDashpotForce<NDIM - 1, NDIM, double>;
   template class OrthogonalSpringDashpotForce<NDIM, NDIM, double>;
   template class ModifiedNeoHookeanStress<NDIM, NDIM, double>;
+  template class ModifiedMooneyRivlinStress<NDIM, NDIM, double>;
 } // namespace fdl
