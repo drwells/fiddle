@@ -596,6 +596,24 @@ namespace fdl
   }
 
   template <int dim, int spacedim, typename Number>
+  ModifiedMooneyRivlinStress<dim, spacedim, Number>::ModifiedMooneyRivlinStress(
+    const Quadrature<dim> &                quad,
+    const double                           material_constant_1,
+    const double                           material_constant_2,
+    const std::vector<types::material_id> &material_ids)
+    : ForceContribution<dim, spacedim, Number>(quad)
+    , material_constant_1(material_constant_1)
+    , material_constant_2(material_constant_2)
+    , material_ids(material_ids)
+  {
+    // permit duplicates in the input array
+    std::sort(this->material_ids.begin(), this->material_ids.end());
+    this->material_ids.erase(std::unique(this->material_ids.begin(),
+                                         this->material_ids.end()),
+                             this->material_ids.end());
+  }
+
+  template <int dim, int spacedim, typename Number>
   MechanicsUpdateFlags
   ModifiedMooneyRivlinStress<dim, spacedim, Number>::
     get_mechanics_update_flags() const
@@ -645,7 +663,7 @@ namespace fdl
             const auto I2       = m_values.get_second_invariant()[qp_n];
 
             stresses[qp_n] =
-              2.0 * material_constant_1 * (FF - I1 / 3.0 * FF_inv_T) +
+              2.0 * material_constant_1 * J_n23 * (FF - I1 / 3.0 * FF_inv_T) +
               2.0 * material_constant_2 * J_n23 * J_n23 *
                 (I1 * FF - FF * CC - 2.0 * I2 / 3.0 * FF_inv_T);
           }
