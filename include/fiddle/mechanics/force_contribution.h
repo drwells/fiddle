@@ -55,7 +55,7 @@ namespace fdl
     {
       Assert(!is_volumetric,
              ExcMessage("This function can only be called on forces "
-                        "constructed with a face (codimension one) quadrature"
+                        "constructed with a face (codimension one) quadrature "
                         "rule."));
       return face_quadrature;
     }

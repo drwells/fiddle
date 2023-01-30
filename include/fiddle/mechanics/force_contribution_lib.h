@@ -344,6 +344,57 @@ namespace fdl
 
     std::vector<types::boundary_id> boundary_ids;
   };
+
+  /**
+   * Modified Neo-Hookean material model.
+   *
+   * By 'modified', we mean that the first invariant is the modified one -
+   * i.e., we use $I1_bar = J^{-2/3} I1$.
+   *
+   * This leads to a PK1 stress
+   *
+   *     PP = G J^{-2/3} (FF - I1 / 3 FF^-T)
+   *
+   * in which G is the shear modulus.
+   */
+  template <int dim, int spacedim = dim, typename Number = double>
+  class ModifiedNeoHookeanStress
+    : public ForceContribution<dim, spacedim, Number>
+  {
+  public:
+    /**
+     * Constructor.
+     */
+    ModifiedNeoHookeanStress(
+      const Quadrature<dim> &                quad,
+      const double                           shear_modulus,
+      const std::vector<types::material_id> &material_ids);
+
+    /**
+     * Get the update flags this force contribution requires for MechanicsValues
+     * objects.
+     */
+    virtual MechanicsUpdateFlags
+    get_mechanics_update_flags() const override;
+
+    /**
+     * Define this force as a PK1 stress.
+     */
+    virtual bool
+    is_stress() const override;
+
+    virtual void
+    compute_stress(
+      const double                          time,
+      const MechanicsValues<dim, spacedim> &me_values,
+      const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
+      ArrayView<Tensor<2, spacedim, Number>> &stresses) const override;
+
+  protected:
+    double shear_modulus;
+
+    std::vector<types::material_id> material_ids;
+  };
 } // namespace fdl
 
 #endif

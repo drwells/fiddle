@@ -531,6 +531,71 @@ namespace fdl
       }
   }
 
+  template <int dim, int spacedim, typename Number>
+  ModifiedNeoHookeanStress<dim, spacedim, Number>::ModifiedNeoHookeanStress(
+    const Quadrature<dim> &                quad,
+    const double                           shear_modulus,
+    const std::vector<types::material_id> &material_ids)
+    : ForceContribution<dim, spacedim, Number>(quad)
+    , shear_modulus(shear_modulus)
+    , material_ids(material_ids)
+  {
+    // permit duplicates in the input array
+    std::sort(this->material_ids.begin(), this->material_ids.end());
+    this->material_ids.erase(std::unique(this->material_ids.begin(),
+                                         this->material_ids.end()),
+                             this->material_ids.end());
+  }
+
+  template <int dim, int spacedim, typename Number>
+  MechanicsUpdateFlags
+  ModifiedNeoHookeanStress<dim, spacedim, Number>::get_mechanics_update_flags()
+    const
+  {
+    return MechanicsUpdateFlags::update_n23_det_FF |
+           MechanicsUpdateFlags::update_FF |
+           MechanicsUpdateFlags::update_FF_inv_T |
+           MechanicsUpdateFlags::update_first_invariant;
+  }
+
+  template <int dim, int spacedim, typename Number>
+  bool
+  ModifiedNeoHookeanStress<dim, spacedim, Number>::is_stress() const
+  {
+    return true;
+  }
+
+  template <int dim, int spacedim, typename Number>
+  void
+  ModifiedNeoHookeanStress<dim, spacedim, Number>::compute_stress(
+    const double /*time*/,
+    const MechanicsValues<dim, spacedim> &                             m_values,
+    const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
+    ArrayView<Tensor<2, spacedim, Number>> &stresses) const
+  {
+    if (this->material_ids.size() > 0 &&
+        !std::binary_search(this->material_ids.begin(),
+                            this->material_ids.end(),
+                            cell->material_id()))
+      {
+        // the user specified a subset of material ids and we currently don't
+        // match - fill with zeros
+        for (auto &stress : stresses)
+          stress = 0.0;
+      }
+    else
+      {
+        for (unsigned int qp_n = 0; qp_n < stresses.size(); ++qp_n)
+          {
+            stresses[qp_n] =
+              shear_modulus * m_values.get_n23_det_FF()[qp_n] *
+              (m_values.get_FF()[qp_n] - m_values.get_first_invariant()[qp_n] /
+                                           3.0 * m_values.get_FF_inv_T()[qp_n]);
+          }
+      }
+  }
+
+
   template class SpringForceBase<NDIM - 1, NDIM, double>;
   template class SpringForceBase<NDIM, NDIM, double>;
   template class SpringForce<NDIM - 1, NDIM, double>;
@@ -541,4 +606,5 @@ namespace fdl
   template class DampingForce<NDIM, NDIM, double>;
   template class OrthogonalSpringDashpotForce<NDIM - 1, NDIM, double>;
   template class OrthogonalSpringDashpotForce<NDIM, NDIM, double>;
+  template class ModifiedNeoHookeanStress<NDIM, NDIM, double>;
 } // namespace fdl
