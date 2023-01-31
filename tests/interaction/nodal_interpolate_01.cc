@@ -1,5 +1,6 @@
 #include <fiddle/base/exceptions.h>
 
+#include <fiddle/grid/box_utilities.h>
 #include <fiddle/grid/nodal_patch_map.h>
 
 #include <fiddle/interaction/interaction_utilities.h>
@@ -67,7 +68,24 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   // Now set up fiddle things for the test:
   const auto patches = fdl::extract_patches(
     patch_hierarchy->getPatchLevel(patch_hierarchy->getFinestLevelNumber()));
-  fdl::NodalPatchMap<dim, spacedim> patch_map(patches, 1.0, nodal_coordinates);
+  const tbox::Pointer<geom::CartesianPatchGeometry<spacedim>> geometry =
+    patches.back()->getPatchGeometry();
+  Assert(geometry, fdl::ExcFDLNotImplemented());
+  const double *const                             patch_dx = geometry->getDx();
+  std::vector<std::vector<BoundingBox<spacedim>>> bboxes;
+  for (const auto &patch : patches)
+    {
+      bboxes.emplace_back();
+      bboxes.back().push_back(
+        fdl::box_to_bbox(patch->getBox(),
+                         patch_hierarchy->getPatchLevel(
+                           patch_hierarchy->getFinestLevelNumber())));
+      bboxes.back().back().extend(1.0 * patch_dx[0]);
+    }
+
+  fdl::NodalPatchMap<dim, spacedim> patch_map(patches,
+                                              bboxes,
+                                              nodal_coordinates);
 
   // Actual test:
   std::ofstream output;

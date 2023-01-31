@@ -1,5 +1,6 @@
 #include <fiddle/base/exceptions.h>
 
+#include <fiddle/grid/box_utilities.h>
 #include <fiddle/grid/nodal_patch_map.h>
 #include <fiddle/grid/overlap_tria.h>
 
@@ -57,12 +58,15 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
   const auto mpi_comm = MPI_COMM_WORLD;
   const auto rank     = Utilities::MPI::this_mpi_process(mpi_comm);
-  const auto n_procs  = Utilities::MPI::n_mpi_processes(mpi_comm);
 
   // setup deal.II stuff:
   parallel::shared::Triangulation<dim, spacedim> tria(MPI_COMM_WORLD);
   GridGenerator::hyper_ball(tria);
   tria.refine_global(2);
+  {
+    std::ofstream out("grid.vtu");
+    GridOut().write_vtu(tria, out);
+  }
 
   // setup SAMRAI stuff (its always the same):
   auto tuple           = setup_hierarchy<spacedim>(app_initializer);
@@ -78,12 +82,43 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   // Now set up fiddle things for the test:
   std::ostringstream                                out;
   std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches;
+  std::vector<std::vector<BoundingBox<spacedim>>>   bboxes;
   for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
     {
       const auto new_patches =
         fdl::extract_patches(patch_hierarchy->getPatchLevel(ln));
       patches.insert(patches.end(), new_patches.begin(), new_patches.end());
+
+      if (ln < patch_hierarchy->getFinestLevelNumber())
+        {
+          const auto nonoverlapping_boxes =
+            fdl::compute_nonoverlapping_patch_boxes(
+              patch_hierarchy->getPatchLevel(ln),
+              patch_hierarchy->getPatchLevel(ln + 1));
+          for (const auto &vec : nonoverlapping_boxes)
+            {
+              bboxes.emplace_back();
+              for (const auto &box : vec)
+                bboxes.back().push_back(
+                  fdl::box_to_bbox(box, patch_hierarchy->getPatchLevel(ln)));
+            }
+        }
+      else
+        {
+          for (const auto &patch : new_patches)
+            {
+              bboxes.emplace_back();
+              bboxes.back().push_back(
+                fdl::box_to_bbox(patch->getBox(),
+                                 patch_hierarchy->getPatchLevel(ln)));
+            }
+        }
     }
+  // extend boxes slightly to avoid problems with roundoff - for some reason
+  // the center node is not consistently assigned to patches
+  for (auto &vec : bboxes)
+    for (auto &bbox : vec)
+      bbox.extend(1e-6);
   for (const auto &patch : patches)
     {
       tbox::Pointer<geom::CartesianPatchGeometry<spacedim>> geom =
@@ -103,7 +138,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     }
 
   fdl::NodalPatchMap<dim, spacedim> nodal_patch_map(patches,
-                                                    0.0,
+                                                    bboxes,
                                                     nodal_coordinates);
 
   // write SAMRAI data:
@@ -118,6 +153,8 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     tbox::Pointer<hier::PatchLevel<spacedim>> level =
       patch_hierarchy->getPatchLevel(ln);
 
+    out << std::endl << "NodalPatchMap" << std::endl;
+    IndexSet all_indices(nodal_coordinates.size());
     for (std::size_t i = 0; i < nodal_patch_map.size(); ++i)
       {
         const auto &pair = nodal_patch_map[i];
@@ -145,10 +182,17 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
         const BoundingBox<spacedim> bbox(std::make_pair(lower, upper));
         for (const auto &index : pair.first)
           {
-            const Point<spacedim> &vertex = tria.get_vertices()[index / spacedim];
+            const Point<spacedim> &vertex =
+              tria.get_vertices()[index / spacedim];
             AssertThrow(bbox.point_inside(vertex), fdl::ExcFDLInternalError());
           }
+
+        all_indices.add_indices(pair.first);
       }
+    out << "all indices = ";
+    all_indices.print(out);
+    out << std::endl;
+    out << "vector size = " << nodal_coordinates.size() << std::endl;
   }
 
   std::ofstream output;

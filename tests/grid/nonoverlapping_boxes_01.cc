@@ -102,7 +102,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     fdl::compute_nonoverlapping_patch_boxes(patch_hierarchy->getPatchLevel(0),
                                             patch_hierarchy->getPatchLevel(1));
 
-  const int     rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+  const int rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
   output << "rank = " << rank << std::endl;
   for (const std::vector<hier::Box<spacedim>> &patch_boxes : boxes)
     {

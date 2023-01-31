@@ -128,7 +128,23 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                            position);
 
   // and fiddle:
-  fdl::NodalPatchMap<dim, spacedim> nodal_patch_map(patches, 1.0, position);
+  std::vector<std::vector<BoundingBox<spacedim>>> bboxes;
+  {
+    const tbox::Pointer<geom::CartesianPatchGeometry<spacedim>> geometry =
+      patches.back()->getPatchGeometry();
+    Assert(geometry, fdl::ExcFDLNotImplemented());
+    const double *const patch_dx = geometry->getDx();
+    for (const auto &patch : patches)
+      {
+        bboxes.emplace_back();
+        bboxes.back().push_back(
+          fdl::box_to_bbox(patch->getBox(),
+                           patch_hierarchy->getPatchLevel(
+                             patch_hierarchy->getFinestLevelNumber())));
+        bboxes.back().back().extend(1.0 * patch_dx[0]);
+      }
+  }
+  fdl::NodalPatchMap<dim, spacedim> nodal_patch_map(patches, bboxes, position);
 
   fdl::compute_nodal_spread(
     "BSPLINE_3", f_idx, nodal_patch_map, position, spread_values);

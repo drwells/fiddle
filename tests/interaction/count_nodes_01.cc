@@ -85,8 +85,24 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     patch_hierarchy->getPatchLevel(patch_hierarchy->getFinestLevelNumber()));
   for (auto &patch : patches)
     fdl::fill_all(patch->getPatchData(f_idx), 0.0);
+
+  const tbox::Pointer<geom::CartesianPatchGeometry<spacedim>> geometry =
+    patches.back()->getPatchGeometry();
+  Assert(geometry, fdl::ExcFDLNotImplemented());
+  const double *const                             patch_dx = geometry->getDx();
+  std::vector<std::vector<BoundingBox<spacedim>>> bboxes;
+  for (const auto &patch : patches)
+    {
+      bboxes.emplace_back();
+      bboxes.back().push_back(
+        fdl::box_to_bbox(patch->getBox(),
+                         patch_hierarchy->getPatchLevel(
+                           patch_hierarchy->getFinestLevelNumber())));
+      bboxes.back().back().extend(1.0 * patch_dx[0]);
+    }
+
   fdl::NodalPatchMap<dim, spacedim> nodal_patch_map(patches,
-                                                    1.0,
+                                                    bboxes,
                                                     nodal_coordinates);
 
   fdl::count_nodes(f_idx, nodal_patch_map, nodal_coordinates);
