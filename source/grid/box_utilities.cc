@@ -7,6 +7,7 @@
 
 #include <deal.II/fe/fe_values.h>
 
+#include <CartesianGridGeometry.h>
 #include <CartesianPatchGeometry.h>
 #include <MultiblockPatchLevel.h>
 #include <Patch.h>
@@ -228,6 +229,33 @@ namespace fdl
     return global_bboxes;
   }
 
+  template <int spacedim>
+  BoundingBox<spacedim>
+  box_to_bbox(
+    const hier::Box<spacedim>                           &box,
+    const tbox::Pointer<hier::BasePatchLevel<spacedim>> &base_patch_level)
+  {
+    const tbox::Pointer<hier::PatchLevel<spacedim>> patch_level =
+      base_patch_level;
+    AssertThrow(patch_level, ExcFDLNotImplemented());
+    const tbox::Pointer<geom::CartesianGridGeometry<spacedim>> grid_geom =
+      patch_level->getGridGeometry();
+    AssertThrow(grid_geom, ExcFDLNotImplemented());
+
+    std::pair<Point<spacedim>, Point<spacedim>> result;
+    const auto                                  ratio = patch_level->getRatio();
+    for (unsigned int d = 0; d < spacedim; ++d)
+      {
+        result.first[d] = grid_geom->getXLower()[d] +
+                          box.lower()(d) * grid_geom->getDx()[d] / ratio(d);
+        result.second[d] = grid_geom->getXLower()[d] + (box.upper()(d) + 1) *
+                                                         grid_geom->getDx()[d] /
+                                                         ratio(d);
+      }
+
+    return BoundingBox<spacedim>(result);
+  }
+
   // these depend on SAMRAI types, and SAMRAI only has 2D and 3D libraries, so
   // use whatever IBTK is using
 
@@ -245,8 +273,7 @@ namespace fdl
     const double extra_ghost_cell_fraction);
 
   // compute_nonoverlapping_patch_boxes:
-  template
-  std::vector<std::vector<hier::Box<NDIM>>>
+  template std::vector<std::vector<hier::Box<NDIM>>>
   compute_nonoverlapping_patch_boxes(
     const tbox::Pointer<hier::BasePatchLevel<NDIM>> &c_level,
     const tbox::Pointer<hier::BasePatchLevel<NDIM>> &f_level);
@@ -288,4 +315,8 @@ namespace fdl
   collect_all_active_cell_bboxes(
     const parallel::shared::Triangulation<NDIM, NDIM> &tria,
     const std::vector<BoundingBox<NDIM, double>> &local_active_cell_bboxes);
+
+  template BoundingBox<NDIM>
+  box_to_bbox(const hier::Box<NDIM>                           &box,
+              const tbox::Pointer<hier::BasePatchLevel<NDIM>> &patch_level);
 } // namespace fdl

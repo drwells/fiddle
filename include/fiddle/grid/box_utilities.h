@@ -71,6 +71,13 @@ namespace fdl
     const parallel::shared::Triangulation<dim, spacedim> &tria,
     const std::vector<BoundingBox<spacedim, Number>> &local_active_cell_bboxes);
 
+  /**
+   * Convert a Box (in SAMRAI's index space) to a BoundingBox (in real space).
+   */
+  template <int spacedim>
+  BoundingBox<spacedim>
+  box_to_bbox(const hier::Box<spacedim> &box,
+              const tbox::Pointer<hier::BasePatchLevel<spacedim>> &patch_level);
 
   // --------------------------- inline functions --------------------------- //
 
