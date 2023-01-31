@@ -40,9 +40,14 @@ namespace fdl
 
   /**
    * Extract a nodeset from an ExodusII file.
+   *
+   * Returns the node numbers and spatial coordinates.
+   *
+   * @note If the mesh has duplicated or unused nodes then the node numbers may
+   * no longer be meaningful.
    */
   template <int spacedim>
-  std::pair<std::vector<int>, std::vector<Point<spacedim>>>
+  std::pair<std::vector<unsigned int>, std::vector<Point<spacedim>>>
   extract_nodeset(const std::string &filename,
                   const int          nodeset_id);
 } // namespace fdl

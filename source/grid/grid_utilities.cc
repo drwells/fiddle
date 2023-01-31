@@ -232,7 +232,7 @@ namespace fdl
   }
 
   template <int spacedim>
-  std::pair<std::vector<int>, std::vector<Point<spacedim>>>
+  std::pair<std::vector<unsigned int>, std::vector<Point<spacedim>>>
   extract_nodeset(const std::string &filename, const int nodeset_id)
   {
 #ifdef DEAL_II_TRILINOS_WITH_SEACAS
@@ -288,11 +288,14 @@ namespace fdl
     AssertThrowExodusII(ierr);
 
     std::vector<Point<spacedim>> vertices;
+    std::vector<unsigned int>    vertex_indices;
     vertices.reserve(n_nodeset_nodes);
+    vertex_indices.reserve(n_nodeset_nodes);
     for (const int &node_id : node_ids)
       {
         auto vertex_n = node_id - 1;
         Assert(vertex_n >= 0 && vertex_n < n_nodes, ExcFDLInternalError());
+        vertex_indices.push_back(vertex_n);
         switch (spacedim)
           {
             case 1:
@@ -312,7 +315,7 @@ namespace fdl
     ierr = ex_close(ex_id);
     AssertThrowExodusII(ierr);
 
-    return std::make_pair(std::move(node_ids), std::move(vertices));
+    return std::make_pair(std::move(vertex_indices), std::move(vertices));
 #else
     (void)filename;
     (void)nodeset_id;
@@ -341,6 +344,6 @@ namespace fdl
     const parallel::shared::Triangulation<NDIM, NDIM> &,
     const std::vector<float> &);
 
-  template std::pair<std::vector<int>, std::vector<Point<NDIM>>>
+  template std::pair<std::vector<unsigned int>, std::vector<Point<NDIM>>>
   extract_nodeset<NDIM>(const std::string &filename, const int nodeset_id);
 } // namespace fdl
