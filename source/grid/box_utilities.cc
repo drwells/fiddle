@@ -74,7 +74,7 @@ namespace fdl
 
     // Get all (including those not on this processor) fine-level boxes:
     hier::BoxList<spacedim> finer_box_list;
-    long combined_size = 0;
+    long                    combined_size = 0;
     for (int i = 0; i < fine_level->getNumberOfPatches(); ++i)
       {
         hier::Box<spacedim> patch_box = fine_level->getBoxForPatch(i);
@@ -86,7 +86,7 @@ namespace fdl
 
     // Remove said boxes from each coarse-level patch:
     std::vector<std::vector<hier::Box<spacedim>>> result;
-    long coarse_size = 0;
+    long                                          coarse_size = 0;
     for (int i = 0; i < coarse_level->getNumberOfPatches(); ++i)
       {
         hier::BoxList<spacedim> coarse_box_list;
