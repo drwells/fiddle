@@ -12,6 +12,7 @@
 #include <MultiblockPatchLevel.h>
 #include <Patch.h>
 #include <PatchLevel.h>
+#include <tbox/SAMRAI_MPI.h>
 
 #include <vector>
 
@@ -86,6 +87,7 @@ namespace fdl
     finer_box_list.simplifyBoxes();
 
     // Remove said boxes from each coarse-level patch:
+    const auto rank = tbox::SAMRAI_MPI::getRank();
     std::vector<std::vector<hier::Box<spacedim>>> result;
     long                                          coarse_size = 0;
     for (int i = 0; i < coarse_level->getNumberOfPatches(); ++i)
@@ -95,13 +97,15 @@ namespace fdl
         coarse_size += coarse_box_list.getFirstItem().size();
         coarse_box_list.removeIntersections(finer_box_list);
 
-        result.emplace_back();
-        std::vector<hier::Box<spacedim>> &boxes = result.back();
+        const bool patch_is_local = rank == coarse_level->getMappingForPatch(i);
+        if (patch_is_local)
+          result.emplace_back();
         typename tbox::List<hier::Box<spacedim>>::Iterator it(coarse_box_list);
         while (it)
           {
-            boxes.push_back(*it);
-            combined_size += boxes.back().size();
+            if (patch_is_local)
+              result.back().push_back(*it);
+            combined_size += (*it).size();
             it++;
           }
       }

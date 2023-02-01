@@ -102,20 +102,18 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     fdl::compute_nonoverlapping_patch_boxes(patch_hierarchy->getPatchLevel(0),
                                             patch_hierarchy->getPatchLevel(1));
 
-  const int rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-  if (rank == 0)
+  const int     rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+  output << "rank = " << rank << std::endl;
+  for (const std::vector<hier::Box<spacedim>> &patch_boxes : boxes)
     {
-      for (const std::vector<hier::Box<spacedim>> &patch_boxes : boxes)
+      if (patch_boxes.size() == 0)
+        output << "  Box has an empty intersection\n";
+      else
         {
-          if (patch_boxes.size() == 0)
-            output << "Box has an empty intersection\n";
-          else
-            {
-              output << "boxes =";
-              for (const hier::Box<spacedim> &box : patch_boxes)
-                output << " " << box;
-              output << '\n';
-            }
+          output << "  boxes =";
+          for (const hier::Box<spacedim> &box : patch_boxes)
+            output << " " << box;
+          output << '\n';
         }
     }
 
