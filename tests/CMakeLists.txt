@@ -85,6 +85,7 @@ IF("${DEAL_II_TRILINOS_WITH_SEACAS}" STREQUAL "ON")
   SETUP_3D(grid extract_nodeset_01.cc)
 ENDIF()
 
+SETUP(grid box_to_bbox.cc fiddle2d)
 SETUP(grid edge_lengths_01.cc fiddle2d)
 SETUP(grid edge_lengths_02.cc fiddle3d)
 SETUP(grid collect_edge_lengths_01.cc fiddle2d)

@@ -1,0 +1,27 @@
+Patch Level = 0
+
+Patch Lower = -2 -2
+Patch Upper = 0 0
+Patch bounding box Lower = -2 -2
+Patch bounding box Upper = 0 0
+
+Patch Lower = -2 0
+Patch Upper = 0 2
+Patch bounding box Lower = -2 0
+Patch bounding box Upper = 0 2
+
+Patch Lower = 0 -2
+Patch Upper = 2 0
+Patch bounding box Lower = 0 -2
+Patch bounding box Upper = 2 0
+
+Patch Lower = 0 0
+Patch Upper = 2 2
+Patch bounding box Lower = 0 0
+Patch bounding box Upper = 2 2
+Patch Level = 1
+
+Patch Lower = 0 0
+Patch Upper = 2 2
+Patch bounding box Lower = 0 0
+Patch bounding box Upper = 2 2

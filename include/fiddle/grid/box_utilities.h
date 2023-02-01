@@ -43,9 +43,10 @@ namespace fdl
     const double extra_ghost_cell_fraction = 0.0);
 
   /**
-   * For each patch in @p c_level, return the list of boxes which intersect
-   * that patch but not any patch in @p f_level. This intersection may be
-   * empty.
+   * For each patch in @p c_level, return the list of boxes which intersect that
+   * patch but not any patch in @p f_level. This intersection may be empty. Like
+   * the other functions this is only done for coarse patches owned by the
+   * current processor.
    */
   template <int spacedim>
   std::vector<std::vector<hier::Box<spacedim>>>
@@ -71,6 +72,13 @@ namespace fdl
     const parallel::shared::Triangulation<dim, spacedim> &tria,
     const std::vector<BoundingBox<spacedim, Number>> &local_active_cell_bboxes);
 
+  /**
+   * Convert a Box (in SAMRAI's index space) to a BoundingBox (in real space).
+   */
+  template <int spacedim>
+  BoundingBox<spacedim>
+  box_to_bbox(const hier::Box<spacedim> &box,
+              const tbox::Pointer<hier::BasePatchLevel<spacedim>> &patch_level);
 
   // --------------------------- inline functions --------------------------- //
 
