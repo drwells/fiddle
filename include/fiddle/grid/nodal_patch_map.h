@@ -5,6 +5,7 @@
 
 #include <fiddle/base/exceptions.h>
 
+#include <deal.II/base/bounding_box.h>
 #include <deal.II/base/index_set.h>
 #include <deal.II/base/point.h>
 
@@ -49,7 +50,7 @@ namespace fdl
      */
     NodalPatchMap(
       const std::vector<tbox::Pointer<hier::Patch<spacedim>>> &patches,
-      const double          extra_ghost_cell_fraction,
+      const std::vector<std::vector<BoundingBox<spacedim>>> &  patch_bboxes,
       const Vector<double> &nodal_coordinates);
 
     /**
@@ -57,7 +58,7 @@ namespace fdl
      */
     void
     reinit(const std::vector<tbox::Pointer<hier::Patch<spacedim>>> &patches,
-           const double          extra_ghost_cell_fraction,
+           const std::vector<std::vector<BoundingBox<spacedim>>> &patch_bboxes,
            const Vector<double> &nodal_coordinates);
 
     /**

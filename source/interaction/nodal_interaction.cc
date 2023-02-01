@@ -5,7 +5,11 @@
 
 #include <fiddle/transfer/overlap_partitioning_tools.h>
 
+#include <fiddle/grid/box_utilities.h>
+
 #include <deal.II/dofs/dof_renumbering.h>
+
+#include <CartesianPatchGeometry.h>
 
 #include <cmath>
 #include <numeric>
@@ -85,20 +89,66 @@ namespace fdl
       this->return_scatter(position_dof_handler, std::move(scatter));
     }
 
-    std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches;
-    for (int ln = level_numbers.first; ln <= level_numbers.second; ++ln)
+    {
+      const double ghost_cell_fraction =
+        input_db->getDoubleWithDefault("ghost_cell_fraction", 1.0);
+
+      // This won't work correctly yet with no ghost cell fraction
+      AssertThrow(ghost_cell_fraction > 0.0, ExcFDLNotImplemented());
+
+      std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches;
+      std::vector<std::vector<BoundingBox<spacedim>>>   bboxes;
+      // add boxes which do not intersect the next finest patch level...
+      for (int ln = level_numbers.first; ln < level_numbers.second; ++ln)
+        {
+          const auto patch_level       = patch_hierarchy->getPatchLevel(ln);
+          const auto level_patches     = extract_patches(patch_level);
+          const auto level_patch_boxes = compute_nonoverlapping_patch_boxes(
+            patch_level, patch_hierarchy->getPatchLevel(ln + 1));
+          AssertDimension(level_patches.size(), level_patch_boxes.size());
+
+          patches.insert(patches.end(),
+                         level_patches.begin(),
+                         level_patches.end());
+          for (const auto &patch_boxes : level_patch_boxes)
+            {
+              bboxes.emplace_back();
+              for (const auto &box : patch_boxes)
+                bboxes.back().push_back(box_to_bbox(box, patch_level));
+            }
+        }
+      // ... and boxes on the finest patch level.
+      const auto patch_level =
+        patch_hierarchy->getPatchLevel(level_numbers.second);
+      const auto level_patches =
+        extract_patches(patch_hierarchy->getPatchLevel(level_numbers.second));
+      patches.insert(patches.end(), level_patches.begin(), level_patches.end());
+      for (const auto &patch : level_patches)
+        {
+          bboxes.emplace_back();
+          bboxes.back().push_back(box_to_bbox(patch->getBox(), patch_level));
+        }
+
+      // Increase all the boxes by the ghost cell fraction:
       {
-        const auto level_patches =
-          extract_patches(patch_hierarchy->getPatchLevel(ln));
-        patches.insert(patches.end(),
-                       level_patches.begin(),
-                       level_patches.end());
+        double patch_dx_min = std::numeric_limits<double>::max();
+        if (patches.size() > 0)
+          {
+            const tbox::Pointer<geom::CartesianPatchGeometry<spacedim>>
+              geometry = patches.back()->getPatchGeometry();
+            Assert(geometry, ExcFDLNotImplemented());
+            const double *const patch_dx = geometry->getDx();
+            patch_dx_min = *std::min_element(patch_dx, patch_dx + spacedim);
+          }
+        for (auto &vec : bboxes)
+          for (auto &box : vec)
+            box.extend(patch_dx_min * ghost_cell_fraction);
       }
 
-    nodal_patch_map.reinit(patches,
-                           input_db->getDoubleWithDefault("ghost_cell_fraction",
-                                                          1.0),
-                           overlap_position);
+      nodal_patch_map.reinit(patches, bboxes, overlap_position);
+      // TODO: we should save patches and bboxes for later to set up any
+      // additional DoFHandlers which use different nodes
+    }
   }
 
   template <int dim, int spacedim>
@@ -136,7 +186,17 @@ namespace fdl
           overlap_dof_handler.n_dofs());
         DoFRenumbering::compute_support_point_wise(nodal_renumbering,
                                                    overlap_dof_handler);
-        overlap_dof_handler.renumber_dofs(nodal_renumbering);
+        // if there is no renumbering then create one anyway - we still need it
+        // for dof translation later
+        if (nodal_renumbering.size() == 0)
+          {
+            nodal_renumbering.resize(overlap_dof_handler.n_dofs());
+            std::iota(nodal_renumbering.begin(), nodal_renumbering.end(), 0u);
+          }
+        else
+          {
+            overlap_dof_handler.renumber_dofs(nodal_renumbering);
+          }
 
         // Apply the permutation in reverse order:
         {
@@ -212,6 +272,11 @@ namespace fdl
     Assert((trans.next_state ==
             Transaction<dim, spacedim>::State::Intermediate),
            ExcMessage("Transaction state should be Intermediate"));
+
+    // It's not yet clear how to handle IB kernels with support on multiple
+    // grid levels
+    AssertThrow(this->level_numbers.first == this->level_numbers.second,
+                ExcFDLNotImplemented());
 
     // Finish communication:
     trans.position_scatter.global_to_overlap_finish(*trans.native_position,

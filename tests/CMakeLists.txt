@@ -125,6 +125,7 @@ SETUP(interaction spread_01.cc fiddle2d)
 SETUP(interaction nodal_spread_01.cc fiddle2d)
 
 SETUP(interaction interaction_base_01.cc fiddle2d)
+SETUP(interaction nodal_interpolate_02.cc fiddle2d)
 
 # mechanics:
 SETUP(mechanics me_values_01.cc fiddle2d)
