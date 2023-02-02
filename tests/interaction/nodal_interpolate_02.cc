@@ -57,9 +57,9 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   // setup deal.II stuff:
   parallel::shared::Triangulation<dim, spacedim> native_tria(mpi_comm);
   GridGenerator::hyper_ball(native_tria, Point<spacedim>(), 1.0);
+  const auto test_db = input_db->getDatabase("test");
   native_tria.refine_global(
-    input_db->getDatabase("test")->getIntegerWithDefault("n_global_refinements",
-                                                         4));
+    test_db->getIntegerWithDefault("n_global_refinements", 4));
 
   // setup SAMRAI stuff (its always the same):
   auto tuple           = setup_hierarchy<spacedim>(app_initializer);
@@ -83,9 +83,25 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                            position);
   position.update_ghost_values();
 
-  FE_Q<dim, spacedim>       F_fe(1);
+  std::unique_ptr<FiniteElement<dim, spacedim>> F_fe;
+  const unsigned int f_degree = test_db->getIntegerWithDefault("f_degree", 1);
+  const int   n_F_components = test_db->getDatabase("f")->getAllKeys().getSize();
+  if (test_db->getBoolWithDefault("discontinuous_fe", false) == true)
+    {
+      if (n_F_components > 1)
+        F_fe = std::make_unique<FESystem<dim, spacedim>>(FE_DGQ<dim, spacedim>(f_degree), n_F_components);
+      else
+        F_fe = std::make_unique<FE_DGQ<dim, spacedim>>(f_degree);
+    }
+  else
+    {
+      if (n_F_components > 1)
+        F_fe = std::make_unique<FESystem<dim, spacedim>>(FE_Q<dim, spacedim>(f_degree), n_F_components);
+      else
+        F_fe = std::make_unique<FE_Q<dim, spacedim>>(f_degree);
+    }
   DoFHandler<dim, spacedim> F_dof_handler(native_tria);
-  F_dof_handler.distribute_dofs(F_fe);
+  F_dof_handler.distribute_dofs(*F_fe);
   const MappingQ<dim> F_mapping(1);
 
   IndexSet locally_relevant_F_dofs;
@@ -130,7 +146,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     interaction.compute_projection_rhs_finish(std::move(transaction));
 
     FunctionParser<spacedim> fp(
-      extract_fp_string(input_db->getDatabase("test")->getDatabase("f")),
+      extract_fp_string(test_db->getDatabase("f")),
       "PI=" + std::to_string(numbers::PI),
       "X_0,X_1");
     Vector<float> error(native_tria.n_active_cells());

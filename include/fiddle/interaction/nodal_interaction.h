@@ -118,7 +118,38 @@ namespace fdl
     virtual VectorOperation::values
     get_rhs_scatter_type() const override;
 
-    NodalPatchMap<dim, spacedim> nodal_patch_map;
+    const NodalPatchMap<dim, spacedim> &
+    get_nodal_patch_map(const DoFHandler<dim, spacedim> &native_dof_handler) const;
+
+    /**
+     * For convenience, store an explicit pointer to the natively partitioned
+     * position DoFHandler (the base class also stores a pointer).
+     */
+    SmartPointer<const DoFHandler<dim, spacedim>> native_position_dof_handler;
+
+    /**
+     * Similarly, to construct NodalPatchMaps, we need the displacement field
+     * on the OverlapTriangulation, so store that vector here:
+     */
+    Vector<double> overlap_position;
+
+    /**
+     * Patches used for interaction.
+     */
+    std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches;
+
+    /**
+     * Bounding boxes for each patch.
+     */
+    std::vector<std::vector<BoundingBox<spacedim>>> bboxes;
+
+    /**
+     * Mappings between support points (nodes) and patches. Indexed by the
+     * number of the DoFHandler.
+     *
+     * @note These are filled at first use, so the container is mutable.
+     */
+    mutable std::vector<std::shared_ptr<NodalPatchMap<dim, spacedim>>> nodal_patch_maps;
   };
 } // namespace fdl
 #endif
