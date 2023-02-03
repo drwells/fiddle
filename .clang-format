@@ -76,8 +76,10 @@ IncludeCategories:
     Priority: 30
   - Regex:    "fiddle/mechanics/.*\\.h"
     Priority: 40
-  - Regex:    "fiddle/transfer/.*\\.h"
+  - Regex:    "fiddle/postprocess/.*\\.h"
     Priority: 50
+  - Regex:    "fiddle/transfer/.*\\.h"
+    Priority: 60
 # deal.II folders in sorted order:
   - Regex:    "deal.II/algorithms/.*\\.h"
     Priority: 110

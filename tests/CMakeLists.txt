@@ -148,6 +148,7 @@ SETUP(mechanics fiber_network_01.cc fiddle2d)
 
 # postprocess:
 SETUP(postprocess point_values_01.cc fiddle2d)
+SETUP(postprocess meter_mesh_01.cc fiddle2d)
 
 
 ADD_CUSTOM_COMMAND(TARGET tests
