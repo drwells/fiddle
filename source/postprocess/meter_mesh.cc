@@ -98,6 +98,7 @@ namespace fdl
     const LinearAlgebra::distributed::Vector<double> &position,
     const LinearAlgebra::distributed::Vector<double> &velocity)
     : mapping(&mapping)
+    , position_dof_handler(&position_dof_handler)
     , patch_hierarchy(patch_hierarchy)
     , point_values(std::make_unique<PointValues<spacedim, dim, spacedim>>(
         mapping,
@@ -247,27 +248,9 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
-  Tensor<1, spacedim>
-  MeterMesh<dim, spacedim>::mean_meter_velocity(const int          data_idx,
-                                                const std::string &kernel_name)
-  {
-    Assert(false, ExcFDLNotImplemented());
-    return {};
-  }
-
-  template <int dim, int spacedim>
-  Tensor<1, spacedim>
-  MeterMesh<dim, spacedim>::mean_flux(const int          data_idx,
-                                      const std::string &kernel_name)
-  {
-    Assert(false, ExcFDLNotImplemented());
-    return {};
-  }
-
-  template <int dim, int spacedim>
-  double
-  MeterMesh<dim, spacedim>::mean_value(const int          data_idx,
-                                       const std::string &kernel_name)
+  LinearAlgebra::distributed::Vector<double>
+  MeterMesh<dim, spacedim>::interpolate_scalar_field(const int          data_idx,
+                                                     const std::string &kernel_name) const
   {
     LinearAlgebra::distributed::Vector<double> interpolated_data(
       scalar_partitioner);
@@ -283,6 +266,46 @@ namespace fdl
       std::move(transaction));
     nodal_interaction->compute_projection_rhs_finish(std::move(transaction));
     interpolated_data.update_ghost_values();
+
+    return interpolated_data;
+  }
+
+  template <int dim, int spacedim>
+  LinearAlgebra::distributed::Vector<double>
+  MeterMesh<dim, spacedim>::interpolate_vector_field(const int          data_idx,
+                                                     const std::string &kernel_name) const
+  {
+    LinearAlgebra::distributed::Vector<double> interpolated_data(
+      vector_partitioner);
+    auto transaction =
+      nodal_interaction->compute_projection_rhs_start(kernel_name,
+                                                      data_idx,
+                                                      vector_dof_handler,
+                                                      identity_position,
+                                                      vector_dof_handler,
+                                                      *meter_mapping,
+                                                      interpolated_data);
+    transaction = nodal_interaction->compute_projection_rhs_intermediate(
+      std::move(transaction));
+    nodal_interaction->compute_projection_rhs_finish(std::move(transaction));
+    interpolated_data.update_ghost_values();
+
+    return interpolated_data;
+  }
+
+  template <int dim, int spacedim>
+  Tensor<1, spacedim>
+  MeterMesh<dim, spacedim>::mean_meter_velocity() const
+  {
+      return mean_velocity;
+  }
+
+  template <int dim, int spacedim>
+  double
+  MeterMesh<dim, spacedim>::mean_value(const int          data_idx,
+                                       const std::string &kernel_name)
+  {
+    const auto interpolated_data = interpolate_scalar_field(data_idx, kernel_name);
 
     return VectorTools::compute_mean_value(*meter_mapping,
                                            scalar_dof_handler,
