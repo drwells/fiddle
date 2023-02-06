@@ -32,15 +32,29 @@ namespace fdl
    *
    * - in 3D, the provided points are treated as a convex hull.
    * - in 2D, the provided points are treated as line segments - i.e., each
-   *   adjacent pair of points define an element.
+   *   adjacent pair of points define at least one element.
    *
    * This is because, in 2D, one may want to create a meter mesh corresponding
    * to a line rather than a closed loop.  To make a closed loop in 2D simply
    * make the first and last points equal.
    *
+   * In both cases, the Triangulation created by this class will have elements
+   * with side lengths approximately equal to the Cartesian grid cell length
+   * (i.e., MFAC = 1).
+   *
+   * The velocity of the meter is the mean velocity of the boundary of the
+   * meter - e.g., for channel flow, one can specify a mesh with points on the
+   * top and bottom of the channel and then the meter velocity will equal the
+   * wall velocity. This choice lets one compute fluxes through the meter
+   * correctly (as the reference frame has a nonzero velocity). To get
+   * absolute instead of relative fluxes simply set the input velocity values
+   * to zero.
+   *
    * @warning Due to the way IBAMR computes cell indices, points lying on the
    * upper boundaries of the computational domain may not have correct
-   * interpolated values.
+   * interpolated values. If you want to compute values on the upper boundary
+   * then you should adjust your points slightly using, e.g.,
+   * std::nexttoward().
    */
   template <int dim, int spacedim = dim>
   class MeterMesh
@@ -105,25 +119,41 @@ namespace fdl
     get_triangulation() const;
 
     /**
-     * Return the mean meter velocity, defined as the average value of the
-     * velocity field specified by @p data_idx on the boundary of the meter
-     * mesh.
+     * Return a reference to the Mapping used on the meter mesh.
      */
-    Tensor<1, spacedim>
-    mean_meter_velocity(const int data_idx, const std::string &kernel_name);
+    const Mapping<dim - 1, spacedim> &
+    get_mapping() const;
 
     /**
-     * Compute the mean flux of some vector-valued quantity through the meter
-     * mesh. If @p data_idx is the velocity field then typically one should
-     * subtract the mean meter velocity from this value to attain a physically
-     * relevant flux value.
-     *
-     * @param[in] data_idx Some data index corresponding to data on the
-     * Cartesian grid. This class will copy the data into a scratch index and
-     * update ghost data.
+     * Return a reference to the DoFHandler for scalar fields.
+     */
+    const DoFHandler<dim - 1, spacedim> &
+    get_scalar_dof_handler() const;
+
+    /**
+     * Return a reference to the DoFHandler for vector fields.
+     */
+    const DoFHandler<dim - 1, spacedim> &
+    get_vector_dof_handler() const;
+
+    /**
+     * Interpolate a scalar-valued quantity.
+     */
+    LinearAlgebra::distributed::Vector<double>
+    interpolate_scalar_field(const int data_idx, const std::string &kernel_name) const;
+
+    /**
+     * Interpolate a vector-valued quantity.
+     */
+    LinearAlgebra::distributed::Vector<double>
+    interpolate_vector_field(const int data_idx, const std::string &kernel_name) const;
+
+    /**
+     * Return the mean meter velocity computed from the inputs to the ctor or
+     * reinit() functions.
      */
     Tensor<1, spacedim>
-    mean_flux(const int data_idx, const std::string &kernel_name);
+    mean_meter_velocity() const;
 
     /**
      * Compute the mean value of some scalar-valued quantity.
@@ -143,6 +173,11 @@ namespace fdl
      * Original Mapping.
      */
     SmartPointer<const Mapping<dim, spacedim>> mapping;
+
+    /**
+     * Original DoFHandler.
+     */
+    SmartPointer<const DoFHandler<dim, spacedim>> position_dof_handler;
 
     /**
      * Mapping on the meter Triangulation.
@@ -177,6 +212,11 @@ namespace fdl
     LinearAlgebra::distributed::Vector<double> identity_position;
 
     /**
+     * Average meter velocity.
+     */
+    Tensor<1, spacedim> mean_velocity;
+
+    /**
      * Scalar FiniteElement used on meter_tria
      */
     std::unique_ptr<FiniteElement<dim - 1, spacedim>> scalar_fe;
@@ -207,10 +247,31 @@ namespace fdl
   };
 
   template <int dim, int spacedim>
+  inline const Mapping<dim - 1, spacedim> &
+  MeterMesh<dim, spacedim>::get_mapping() const
+  {
+    return *meter_mapping;
+  }
+
+  template <int dim, int spacedim>
   inline const Triangulation<dim - 1, spacedim> &
   MeterMesh<dim, spacedim>::get_triangulation() const
   {
     return meter_tria;
+  }
+
+  template <int dim, int spacedim>
+  inline const DoFHandler<dim - 1, spacedim> &
+  MeterMesh<dim, spacedim>::get_scalar_dof_handler() const
+  {
+    return scalar_dof_handler;
+  }
+
+  template <int dim, int spacedim>
+  inline const DoFHandler<dim - 1, spacedim> &
+  MeterMesh<dim, spacedim>::get_vector_dof_handler() const
+  {
+    return vector_dof_handler;
   }
 } // namespace fdl
 

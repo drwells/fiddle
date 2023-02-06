@@ -226,9 +226,8 @@ namespace fdl
                         const auto native_child = native_cell->child(child_n);
                         // These should be equal but are not after we refine
                         // the grid a few times
-                        Assert((child->barycenter() -
-                                native_child->barycenter())
-                                   .norm() < 1e-12,
+                        Assert((child->center() - native_child->center())
+                                 .norm() < 1e-12,
                                ExcFDLInternalError());
                         child->set_user_index(add_native_cell(native_child));
                         child->set_subdomain_id(0);

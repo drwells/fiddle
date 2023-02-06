@@ -630,6 +630,14 @@ namespace fdl
     const Vector<double>               &position,
     Vector<double>                     &interpolated_values)
   {
+    // Early exit if there is nothing to do (otherwise the modulus operations fail)
+    if (position.size() == 0 || interpolated_values.size() == 0)
+      {
+        Assert(position.size() == 0 && interpolated_values.size() == 0,
+               ExcMessage("If one vector is empty then both must be empty."));
+        return;
+      }
+
     // This is valid with any number of components in interpolated_values
     Assert(position.size() % spacedim == 0,
            ExcMessage("Should have spacedim values per node"));
@@ -1000,6 +1008,14 @@ namespace fdl
                                 const Vector<double>         &position,
                                 const Vector<double>         &spread_values)
   {
+    // Early exit if there is nothing to do (otherwise the modulus operations fail)
+    if (position.size() == 0 || spread_values.size() == 0)
+      {
+        Assert(position.size() == 0 && spread_values.size() == 0,
+               ExcMessage("If one vector is empty then both must be empty."));
+        return;
+      }
+
     // This is valid with any number of components in spread_values (well, it
     // does need to match the patch depth)
     Assert(position.size() % spacedim == 0,

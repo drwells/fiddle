@@ -40,16 +40,30 @@ namespace fdl
         // segment to meet the target_element_area requirement.
         Assert(hull.size() > 1, ExcFDLInternalError());
         std::vector<CellData<1>> cell_data;
+        std::vector<Point<2>>    vertices;
 
-        for (unsigned int vertex_n = 0; vertex_n < hull.size() - 1; ++vertex_n)
+        vertices.push_back(hull[0]);
+        unsigned int last_vertex_n = 0;
+        for (unsigned int hull_point_n = 0; hull_point_n < hull.size() - 1;
+             ++hull_point_n)
           {
-            cell_data.emplace_back();
-            cell_data.back().vertices[0] = vertex_n;
-            cell_data.back().vertices[1] = vertex_n + 1;
+            const Point<2> left        = hull[hull_point_n];
+            const Point<2> right       = hull[hull_point_n + 1];
+            const double   hull_length = (left - right).norm();
+            const auto     n_cells     = static_cast<unsigned int>(
+              std::ceil(hull_length / target_element_area));
+            for (unsigned int cell_n = 0; cell_n < n_cells; ++cell_n)
+              {
+                cell_data.emplace_back();
+                cell_data.back().vertices[0] = last_vertex_n;
+                vertices.push_back(left + (right - left) * double(cell_n + 1) /
+                                            double(n_cells));
+                ++last_vertex_n;
+                cell_data.back().vertices[1] = last_vertex_n;
+              }
           }
 
         std::vector<unsigned int> all_vertices;
-        std::vector<Point<2>>     vertices = hull;
         SubCellData               sub_cell_data;
         GridTools::delete_duplicated_vertices(vertices,
                                               cell_data,
@@ -84,6 +98,7 @@ namespace fdl
     const LinearAlgebra::distributed::Vector<double> &position,
     const LinearAlgebra::distributed::Vector<double> &velocity)
     : mapping(&mapping)
+    , position_dof_handler(&position_dof_handler)
     , patch_hierarchy(patch_hierarchy)
     , point_values(std::make_unique<PointValues<spacedim, dim, spacedim>>(
         mapping,
@@ -114,9 +129,7 @@ namespace fdl
     , vector_fe(
         std::make_unique<FESystem<dim - 1, spacedim>>(*scalar_fe, spacedim))
   {
-    reinit_tria(convex_hull);
-
-    // TODO do something with the velocity
+    reinit(convex_hull, velocity);
   }
 
   template <int dim, int spacedim>
@@ -144,7 +157,8 @@ namespace fdl
   {
     reinit_tria(convex_hull);
 
-    // TODO do something with the velocity
+    mean_velocity =
+      std::accumulate(velocity.begin(), velocity.end(), Tensor<1, spacedim>());
   }
 
   template <int dim, int spacedim>
@@ -183,6 +197,8 @@ namespace fdl
     vector_dof_handler.reinit(meter_tria);
     vector_dof_handler.distribute_dofs(*vector_fe);
 
+    // As the meter mesh is in absolute coordinates we can use a normal
+    // mapping here
     const auto local_bboxes =
       compute_cell_bboxes<dim - 1, spacedim, float>(vector_dof_handler,
                                                     *meter_mapping);
@@ -232,27 +248,9 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
-  Tensor<1, spacedim>
-  MeterMesh<dim, spacedim>::mean_meter_velocity(const int          data_idx,
-                                                const std::string &kernel_name)
-  {
-    Assert(false, ExcFDLNotImplemented());
-    return {};
-  }
-
-  template <int dim, int spacedim>
-  Tensor<1, spacedim>
-  MeterMesh<dim, spacedim>::mean_flux(const int          data_idx,
-                                      const std::string &kernel_name)
-  {
-    Assert(false, ExcFDLNotImplemented());
-    return {};
-  }
-
-  template <int dim, int spacedim>
-  double
-  MeterMesh<dim, spacedim>::mean_value(const int          data_idx,
-                                       const std::string &kernel_name)
+  LinearAlgebra::distributed::Vector<double>
+  MeterMesh<dim, spacedim>::interpolate_scalar_field(const int          data_idx,
+                                                     const std::string &kernel_name) const
   {
     LinearAlgebra::distributed::Vector<double> interpolated_data(
       scalar_partitioner);
@@ -268,6 +266,46 @@ namespace fdl
       std::move(transaction));
     nodal_interaction->compute_projection_rhs_finish(std::move(transaction));
     interpolated_data.update_ghost_values();
+
+    return interpolated_data;
+  }
+
+  template <int dim, int spacedim>
+  LinearAlgebra::distributed::Vector<double>
+  MeterMesh<dim, spacedim>::interpolate_vector_field(const int          data_idx,
+                                                     const std::string &kernel_name) const
+  {
+    LinearAlgebra::distributed::Vector<double> interpolated_data(
+      vector_partitioner);
+    auto transaction =
+      nodal_interaction->compute_projection_rhs_start(kernel_name,
+                                                      data_idx,
+                                                      vector_dof_handler,
+                                                      identity_position,
+                                                      vector_dof_handler,
+                                                      *meter_mapping,
+                                                      interpolated_data);
+    transaction = nodal_interaction->compute_projection_rhs_intermediate(
+      std::move(transaction));
+    nodal_interaction->compute_projection_rhs_finish(std::move(transaction));
+    interpolated_data.update_ghost_values();
+
+    return interpolated_data;
+  }
+
+  template <int dim, int spacedim>
+  Tensor<1, spacedim>
+  MeterMesh<dim, spacedim>::mean_meter_velocity() const
+  {
+      return mean_velocity;
+  }
+
+  template <int dim, int spacedim>
+  double
+  MeterMesh<dim, spacedim>::mean_value(const int          data_idx,
+                                       const std::string &kernel_name)
+  {
+    const auto interpolated_data = interpolate_scalar_field(data_idx, kernel_name);
 
     return VectorTools::compute_mean_value(*meter_mapping,
                                            scalar_dof_handler,

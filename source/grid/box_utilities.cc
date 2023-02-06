@@ -228,7 +228,23 @@ namespace fdl
 
 #ifdef DEBUG
     for (const auto &bbox : global_bboxes)
-      Assert(bbox.volume() > 0, ExcMessage("bboxes should not be empty"));
+      {
+        if (dim == spacedim)
+          {
+            Assert(bbox.volume() > 0, ExcMessage("bboxes should not be empty."));
+          }
+        else
+          {
+            // we may get axis-aligned planar elements with nonzero codimension
+            unsigned int zero_distance_axes = 0;
+            for (unsigned int d = 0; d < spacedim; ++d)
+              if (bbox.lower_bound(d) == bbox.upper_bound(d))
+                ++zero_distance_axes;
+            Assert(zero_distance_axes <= spacedim - dim,
+                   ExcMessage("for nonzero codimension meshes, the bbox may "
+                              "be empty in at most codim dimensions."));
+          }
+      }
 #endif
     return global_bboxes;
   }

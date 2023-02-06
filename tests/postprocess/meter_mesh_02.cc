@@ -1,0 +1,172 @@
+#include <fiddle/base/exceptions.h>
+
+#include <fiddle/postprocess/meter_mesh.h>
+
+#include <deal.II/base/function.h>
+#include <deal.II/base/function_parser.h>
+#include <deal.II/base/mpi.h>
+#include <deal.II/base/quadrature_lib.h>
+
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/dofs/dof_tools.h>
+
+#include <deal.II/fe/fe_dgq.h>
+#include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/mapping_fe_field.h>
+#include <deal.II/fe/mapping_q.h>
+
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/tria.h>
+
+#include <deal.II/lac/la_parallel_vector.h>
+#include <deal.II/lac/vector.h>
+
+#include <deal.II/numerics/data_out.h>
+#include <deal.II/numerics/vector_tools_integrate_difference.h>
+#include <deal.II/numerics/vector_tools_interpolate.h>
+
+#include <ibtk/AppInitializer.h>
+#include <ibtk/IBTKInit.h>
+#include <ibtk/SAMRAIDataCache.h>
+
+#include <fstream>
+
+#include "../tests.h"
+
+using namespace dealii;
+using namespace SAMRAI;
+
+// Test the meter mesh code for a basic interpolation problem
+
+template <int dim, int spacedim = dim>
+void
+test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
+{
+  auto input_db = app_initializer->getInputDatabase();
+  auto test_db  = input_db->getDatabase("test");
+
+  const auto mpi_comm = MPI_COMM_WORLD;
+  const auto rank     = Utilities::MPI::this_mpi_process(mpi_comm);
+
+  // setup SAMRAI stuff (its always the same):
+  auto tuple           = setup_hierarchy<spacedim>(app_initializer);
+  auto patch_hierarchy = std::get<0>(tuple);
+  auto f_idx           = std::get<5>(tuple);
+
+  // setup deal.II stuff
+  parallel::shared::Triangulation<dim, spacedim> tria(mpi_comm);
+  GridGenerator::hyper_ball(tria, Point<dim>(), 0.4);
+  tria.refine_global(2);
+  FunctionParser<spacedim> fp(extract_fp_string(test_db->getDatabase("f")),
+                              "PI=" + std::to_string(numbers::PI),
+                              "X_0,X_1,X_2");
+
+  FESystem<dim, spacedim>   fe(FE_Q<dim, spacedim>(1), spacedim);
+  DoFHandler<dim, spacedim> dof_handler(tria);
+  dof_handler.distribute_dofs(fe);
+  IndexSet locally_relevant_dofs;
+  DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
+  auto partitioner = std::make_shared<Utilities::MPI::Partitioner>(
+    dof_handler.locally_owned_dofs(), locally_relevant_dofs, mpi_comm);
+  MappingQ<dim, spacedim> mapping(1);
+
+  // extract part of the Triangulation to serve as the meter mesh
+  std::set<unsigned int> bounding_disk_vertex_indices;
+  for (const auto &face : tria.active_face_iterators())
+    if (face->at_boundary())
+      for (const unsigned int vertex_n : face->vertex_indices())
+        if (std::abs(face->vertex(vertex_n)[spacedim - 1]) < 1e-12)
+          bounding_disk_vertex_indices.insert(face->vertex_index(vertex_n));
+
+  std::vector<Point<spacedim>> bounding_disk_points;
+  for (const unsigned int vertex_n : bounding_disk_vertex_indices)
+    bounding_disk_points.push_back(tria.get_vertices()[vertex_n]);
+
+  // set up position and velocity vectors
+  LinearAlgebra::distributed::Vector<double> position(partitioner),
+    velocity(partitioner);
+  VectorTools::interpolate(dof_handler,
+                           Functions::IdentityFunction<spacedim>(),
+                           position);
+  VectorTools::interpolate(dof_handler, fp, velocity);
+  for (unsigned int i = 0; i < position.locally_owned_size(); ++i)
+    position.local_element(i) += 0.4;
+  position.update_ghost_values();
+  velocity.update_ghost_values();
+
+  fdl::MeterMesh<dim, spacedim> meter_mesh(mapping,
+                                           dof_handler,
+                                           bounding_disk_points,
+                                           patch_hierarchy,
+                                           position,
+                                           velocity);
+
+  std::ofstream output;
+  if (rank == 0)
+    {
+      output.open("output");
+    }
+
+  // write SAMRAI data:
+  {
+    app_initializer->getVisItDataWriter()->writePlotData(patch_hierarchy,
+                                                         0,
+                                                         0.0);
+  }
+
+  // plot native solution:
+  {
+    const Triangulation<dim - 1, spacedim> &meter_tria =
+      meter_mesh.get_triangulation();
+    const auto interpolated_F =
+      meter_mesh.interpolate_vector_field(f_idx, "BSPLINE_3");
+    DataOut<dim - 1, spacedim> data_out;
+    data_out.attach_dof_handler(meter_mesh.get_vector_dof_handler());
+    data_out.add_data_vector(interpolated_F, "F");
+
+    double global_error = 0.0;
+    {
+      Vector<double> error(meter_tria.n_active_cells());
+      interpolated_F.update_ghost_values();
+      VectorTools::integrate_difference(meter_mesh.get_mapping(),
+                                        meter_mesh.get_vector_dof_handler(),
+                                        interpolated_F,
+                                        fp,
+                                        error,
+                                        QGauss<dim - 1>(3),
+                                        VectorTools::L2_norm);
+      global_error = VectorTools::compute_global_error(meter_tria,
+                                                       error,
+                                                       VectorTools::L2_norm);
+    }
+
+    if (rank == 0)
+      output << "number of hull points = " << bounding_disk_points.size()
+             << std::endl
+             << "number of vertices = " << meter_tria.get_vertices().size()
+             << std::endl
+             << "number of active cells = " << meter_tria.n_active_cells()
+             << std::endl
+             << "global error in F = " << global_error << std::endl;
+
+    Vector<float> subdomain(meter_tria.n_active_cells());
+    for (unsigned int i = 0; i < subdomain.size(); ++i)
+      subdomain(i) = meter_tria.locally_owned_subdomain();
+    data_out.add_data_vector(subdomain, "subdomain");
+
+    data_out.build_patches();
+
+    data_out.write_vtu_with_pvtu_record("./", "meter-tria", 0, mpi_comm, 2, 8);
+  }
+}
+
+int
+main(int argc, char **argv)
+{
+  IBTK::IBTKInit ibtk_init(argc, argv, MPI_COMM_WORLD);
+  SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer =
+    new IBTK::AppInitializer(argc, argv, "multilevel_fe_01.log");
+
+  test<3>(app_initializer);
+}

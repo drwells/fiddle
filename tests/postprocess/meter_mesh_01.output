@@ -1,5 +1,5 @@
-interpolated mean value = 0.0837864
+interpolated mean value = 0.0845096
 nodal mean value = 0.0844227
 number of hull points = 65
-number of vertices = 64
-number of active cells = 64
+number of vertices = 768
+number of active cells = 768

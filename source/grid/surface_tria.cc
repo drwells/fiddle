@@ -53,25 +53,36 @@ namespace fdl
 
     triangulate(const_cast<char *>(flags.c_str()), &in, &out, nullptr);
 
-    std::vector<CellData<2>> cells;
+    std::vector<CellData<2>> cell_data;
     std::vector<Point<2>>    vertices;
-    SubCellData              subcell_data;
+    SubCellData              sub_cell_data;
 
     for (int i = 0; i < out.numberoftriangles; ++i)
       {
-        cells.emplace_back();
-        cells.back().vertices.resize(3);
-        cells.back().vertices[0] = out.trianglelist[3 * i];
-        cells.back().vertices[1] = out.trianglelist[3 * i + 1];
-        cells.back().vertices[2] = out.trianglelist[3 * i + 2];
+        cell_data.emplace_back();
+        cell_data.back().vertices.resize(3);
+        cell_data.back().vertices[0] = out.trianglelist[3 * i];
+        cell_data.back().vertices[1] = out.trianglelist[3 * i + 1];
+        cell_data.back().vertices[2] = out.trianglelist[3 * i + 2];
       }
 
     for (int i = 0; i < out.numberofpoints; ++i)
-      {
-        vertices.emplace_back(out.pointlist[2 * i], out.pointlist[2 * i + 1]);
-      }
+      vertices.emplace_back(out.pointlist[2 * i], out.pointlist[2 * i + 1]);
 
-    tria.create_triangulation(vertices, cells, subcell_data);
+    // The input list of vertices may contain duplicates - Triangle knows how
+    // to handle that (it doesn't use them), but make sure we delete them
+    // ourselves before continuing
+    std::vector<unsigned int> all_vertices;
+    GridTools::delete_unused_vertices(vertices,
+                                      cell_data,
+                                      sub_cell_data);
+    // This should not be needed (Triangle won't duplicate vertices) but lets
+    // do it anyway
+    GridTools::delete_duplicated_vertices(vertices,
+                                          cell_data,
+                                          sub_cell_data,
+                                          all_vertices);
+    tria.create_triangulation(vertices, cell_data, sub_cell_data);
 
     // Free everything triangle may have allocated
     trifree(out.pointlist);
