@@ -138,7 +138,7 @@ namespace fdl
     AssertIndexRange(cell->user_index(), native_cells.size());
     const auto          pair = native_cells[cell->user_index()];
     const cell_iterator native_cell(native_tria, pair.first, pair.second);
-    Assert((native_cell->barycenter() - cell->barycenter()).norm() < 1e-12,
+    Assert((native_cell->center() - cell->center()).norm() < 1e-12,
            ExcFDLInternalError());
     return native_cell;
   }
