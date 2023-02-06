@@ -40,16 +40,30 @@ namespace fdl
         // segment to meet the target_element_area requirement.
         Assert(hull.size() > 1, ExcFDLInternalError());
         std::vector<CellData<1>> cell_data;
+        std::vector<Point<2>>    vertices;
 
-        for (unsigned int vertex_n = 0; vertex_n < hull.size() - 1; ++vertex_n)
+        vertices.push_back(hull[0]);
+        unsigned int last_vertex_n = 0;
+        for (unsigned int hull_point_n = 0; hull_point_n < hull.size() - 1;
+             ++hull_point_n)
           {
-            cell_data.emplace_back();
-            cell_data.back().vertices[0] = vertex_n;
-            cell_data.back().vertices[1] = vertex_n + 1;
+            const Point<2> left        = hull[hull_point_n];
+            const Point<2> right       = hull[hull_point_n + 1];
+            const double   hull_length = (left - right).norm();
+            const auto     n_cells     = static_cast<unsigned int>(
+              std::ceil(hull_length / target_element_area));
+            for (unsigned int cell_n = 0; cell_n < n_cells; ++cell_n)
+              {
+                cell_data.emplace_back();
+                cell_data.back().vertices[0] = last_vertex_n;
+                vertices.push_back(left + (right - left) * double(cell_n + 1) /
+                                            double(n_cells));
+                ++last_vertex_n;
+                cell_data.back().vertices[1] = last_vertex_n;
+              }
           }
 
         std::vector<unsigned int> all_vertices;
-        std::vector<Point<2>>     vertices = hull;
         SubCellData               sub_cell_data;
         GridTools::delete_duplicated_vertices(vertices,
                                               cell_data,
