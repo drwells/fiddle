@@ -197,6 +197,8 @@ namespace fdl
     vector_dof_handler.reinit(meter_tria);
     vector_dof_handler.distribute_dofs(*vector_fe);
 
+    // As the meter mesh is in absolute coordinates we can use a normal
+    // mapping here
     const auto local_bboxes =
       compute_cell_bboxes<dim - 1, spacedim, float>(vector_dof_handler,
                                                     *meter_mapping);

@@ -32,15 +32,29 @@ namespace fdl
    *
    * - in 3D, the provided points are treated as a convex hull.
    * - in 2D, the provided points are treated as line segments - i.e., each
-   *   adjacent pair of points define an element.
+   *   adjacent pair of points define at least one element.
    *
    * This is because, in 2D, one may want to create a meter mesh corresponding
    * to a line rather than a closed loop.  To make a closed loop in 2D simply
    * make the first and last points equal.
    *
+   * In both cases, the Triangulation created by this class will have elements
+   * with side lengths approximately equal to the Cartesian grid cell length
+   * (i.e., MFAC = 1).
+   *
+   * The velocity of the meter is the mean velocity of the boundary of the
+   * meter - e.g., for channel flow, one can specify a mesh with points on the
+   * top and bottom of the channel and then the meter velocity will equal the
+   * wall velocity. This choice lets one compute fluxes through the meter
+   * correctly (as the reference frame has a nonzero velocity). To get
+   * absolute instead of relative fluxes simply set the input velocity values
+   * to zero.
+   *
    * @warning Due to the way IBAMR computes cell indices, points lying on the
    * upper boundaries of the computational domain may not have correct
-   * interpolated values.
+   * interpolated values. If you want to compute values on the upper boundary
+   * then you should adjust your points slightly using, e.g.,
+   * std::nexttoward().
    */
   template <int dim, int spacedim = dim>
   class MeterMesh
