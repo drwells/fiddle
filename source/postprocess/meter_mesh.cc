@@ -128,9 +128,7 @@ namespace fdl
     , vector_fe(
         std::make_unique<FESystem<dim - 1, spacedim>>(*scalar_fe, spacedim))
   {
-    reinit_tria(convex_hull);
-
-    // TODO do something with the velocity
+    reinit(convex_hull, velocity);
   }
 
   template <int dim, int spacedim>
@@ -158,7 +156,8 @@ namespace fdl
   {
     reinit_tria(convex_hull);
 
-    // TODO do something with the velocity
+    mean_velocity =
+      std::accumulate(velocity.begin(), velocity.end(), Tensor<1, spacedim>());
   }
 
   template <int dim, int spacedim>
