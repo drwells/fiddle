@@ -50,6 +50,8 @@ namespace fdl
       }
     else
       flags += "a" + std::to_string(additional_data.target_element_area);
+    if (additional_data.place_additional_boundary_vertices == false)
+      flags += "Y";
 
     triangulate(const_cast<char *>(flags.c_str()), &in, &out, nullptr);
 

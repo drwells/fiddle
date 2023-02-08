@@ -22,6 +22,7 @@ namespace fdl
       AdditionalData()
         : min_angle(30.0)
         , target_element_area(std::numeric_limits<double>::max())
+        , place_additional_boundary_vertices(true)
       {}
 
       /**
@@ -36,6 +37,12 @@ namespace fdl
        * distance between the first two nodes.
        */
       double target_element_area;
+
+      /**
+       * Whether or not additional vertices on the boundary (called Steiner
+       * points) should be placed. Defaults to true.
+       */
+      bool place_additional_boundary_vertices;
     };
   } // namespace Triangle
 
