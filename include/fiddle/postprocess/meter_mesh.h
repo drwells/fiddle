@@ -5,6 +5,8 @@
 
 #include <fiddle/interaction/nodal_interaction.h>
 
+#include <fiddle/postprocess/point_values.h>
+
 #include <deal.II/base/point.h>
 #include <deal.II/base/smartpointer.h>
 #include <deal.II/base/tensor.h>
@@ -14,8 +16,6 @@
 #include <deal.II/fe/mapping.h>
 
 #include <deal.II/lac/la_parallel_vector.h>
-
-#include <fiddle/postprocess/point_values.h>
 
 #include <memory>
 #include <vector>
@@ -140,20 +140,31 @@ namespace fdl
      * Interpolate a scalar-valued quantity.
      */
     LinearAlgebra::distributed::Vector<double>
-    interpolate_scalar_field(const int data_idx, const std::string &kernel_name) const;
+    interpolate_scalar_field(const int          data_idx,
+                             const std::string &kernel_name) const;
 
     /**
      * Interpolate a vector-valued quantity.
      */
     LinearAlgebra::distributed::Vector<double>
-    interpolate_vector_field(const int data_idx, const std::string &kernel_name) const;
+    interpolate_vector_field(const int          data_idx,
+                             const std::string &kernel_name) const;
 
     /**
-     * Return the mean meter velocity computed from the inputs to the ctor or
-     * reinit() functions.
+     * Return the mean velocity of the meter itself computed from the inputs
+     * to the ctor or reinit() functions.
+     *
+     *
+     * This value is computed in one of two ways:
+     * - If the object is initialized from pointwise data, then the mean
+     *   velocity is simply the average of the provided velocities.
+     *
+     * - If the object is initialized from FE field data, then in 2D this is
+     *   the average of the pointwise velocities. In 3D it is the mean value
+     *   of the velocity field computed on the boundary.
      */
     Tensor<1, spacedim>
-    mean_meter_velocity() const;
+    get_mean_velocity() const;
 
     /**
      * Compute the mean value of some scalar-valued quantity.
@@ -164,6 +175,17 @@ namespace fdl
      */
     double
     mean_value(const int data_idx, const std::string &kernel_name);
+
+    /**
+     * Return the centroid of the meter mesh.
+     *
+     * - If spacedim = 3 then the meter mesh is planar and this point is inside
+     *     the mesh.
+     * - If spacedim = 2 then the meter mesh may not be a straight line. If it
+     *     is not then the centroid may not be inside the mesh.
+     */
+    Point<spacedim>
+    get_centroid() const;
 
   protected:
     void
@@ -212,9 +234,14 @@ namespace fdl
     LinearAlgebra::distributed::Vector<double> identity_position;
 
     /**
-     * Average meter velocity.
+     * Mean meter velocity.
      */
     Tensor<1, spacedim> mean_velocity;
+
+    /**
+     * Meter centroid.
+     */
+    Point<spacedim> centroid;
 
     /**
      * Scalar FiniteElement used on meter_tria
@@ -245,6 +272,20 @@ namespace fdl
      */
     std::unique_ptr<NodalInteraction<dim - 1, spacedim>> nodal_interaction;
   };
+
+  template <int dim, int spacedim>
+  Point<spacedim>
+  MeterMesh<dim, spacedim>::get_centroid() const
+  {
+    return centroid;
+  }
+
+  template <int dim, int spacedim>
+  Tensor<1, spacedim>
+  MeterMesh<dim, spacedim>::get_mean_velocity() const
+  {
+    return mean_velocity;
+  }
 
   template <int dim, int spacedim>
   inline const Mapping<dim - 1, spacedim> &

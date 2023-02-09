@@ -50,6 +50,13 @@ namespace fdl
     std::vector<Tensor<1, n_components>>
     evaluate(const LinearAlgebra::distributed::Vector<double> &vector) const;
 
+    /**
+     * Return a reference to the evaluation points originally used to set up
+     * this object.
+     */
+    const std::vector<Point<spacedim>> &
+    get_evaluation_points() const;
+
   protected:
     /**
      * Pointer to the provided mapping.
@@ -73,6 +80,13 @@ namespace fdl
     mutable Utilities::MPI::RemotePointEvaluation<dim, spacedim>
       remote_point_evaluation;
   };
+
+  template <int n_components, int dim, int spacedim>
+  const std::vector<Point<spacedim>> &
+  PointValues<n_components, dim, spacedim>::get_evaluation_points() const
+  {
+    return evaluation_points;
+  }
 } // namespace fdl
 
 #endif
