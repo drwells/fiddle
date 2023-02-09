@@ -10,7 +10,8 @@
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_tools.h>
 
-#include <deal.II/fe/fe_dgq.h>
+#include <deal.II/fe/fe_nothing.h>
+#include <deal.II/fe/fe_values.h>
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/mapping_fe_field.h>
@@ -86,13 +87,16 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   // set up position and velocity vectors
   LinearAlgebra::distributed::Vector<double> position(partitioner),
     velocity(partitioner);
-  VectorTools::interpolate(dof_handler,
+  VectorTools::interpolate(mapping,
+                           dof_handler,
                            Functions::IdentityFunction<spacedim>(),
                            position);
-  VectorTools::interpolate(dof_handler, fp, velocity);
   for (unsigned int i = 0; i < position.locally_owned_size(); ++i)
     position.local_element(i) += 0.4;
   position.update_ghost_values();
+
+  MappingFEField<dim, spacedim, decltype(position)> position_mapping(dof_handler, position);
+  VectorTools::interpolate(position_mapping, dof_handler, fp, velocity);
   velocity.update_ghost_values();
 
   fdl::MeterMesh<dim, spacedim> meter_mesh(mapping,
@@ -141,6 +145,45 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                                        VectorTools::L2_norm);
     }
 
+    Tensor<1, spacedim> mean_velocity;
+    double area = 0.0;
+    if (dim == 3)
+      {
+        // Avoid funky linker errors in 2D by manually implementing the
+        // trapezoid rule
+        std::vector<Point<dim - 2>> points;
+        points.emplace_back(0.0);
+        points.emplace_back(1.0);
+        std::vector<double> weights;
+        weights.emplace_back(0.5);
+        weights.emplace_back(0.5);
+        const Triangulation<dim - 1, spacedim> &meter_tria = meter_mesh.get_triangulation();
+        Quadrature<dim - 2>           face_quadrature(points, weights);
+        FE_Nothing<dim - 1, spacedim> fe_nothing(meter_tria.get_reference_cells()[0]);
+        FEFaceValues<dim - 1, spacedim> face_values(meter_mesh.get_mapping(),
+                                                    fe_nothing,
+                                                    face_quadrature,
+                                                    update_JxW_values | update_quadrature_points);
+        for (const auto &cell : meter_tria.active_cell_iterators())
+          for (unsigned int face_no : cell->face_indices())
+            if (cell->face(face_no)->at_boundary())
+              {
+                face_values.reinit(cell, face_no);
+                for (unsigned int d = 0; d < spacedim; ++d)
+                  {
+                    mean_velocity[d] +=
+                      fp.value(face_values.get_quadrature_points()[0], d) *
+                      face_values.get_JxW_values()[0];
+                    mean_velocity[d] +=
+                      fp.value(face_values.get_quadrature_points()[1], d) *
+                      face_values.get_JxW_values()[1];
+                  }
+                area += face_values.get_JxW_values()[0];
+                area += face_values.get_JxW_values()[1];
+              }
+        mean_velocity /= area;
+      }
+
     if (rank == 0)
       output << "number of hull points = " << bounding_disk_points.size()
              << std::endl
@@ -148,7 +191,14 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
              << std::endl
              << "number of active cells = " << meter_tria.n_active_cells()
              << std::endl
-             << "global error in F = " << global_error << std::endl;
+             << "centroid = " << meter_mesh.get_centroid() << std::endl
+             << "global error in F = " << global_error << std::endl
+             << "computed mean velocity = " << mean_velocity << std::endl
+             << "   meter mean velocity = " << meter_mesh.get_mean_velocity()
+             << std::endl
+             << "global error in mean velocity = "
+             << (mean_velocity - meter_mesh.get_mean_velocity()).norm()
+             << std::endl;
 
     Vector<float> subdomain(meter_tria.n_active_cells());
     for (unsigned int i = 0; i < subdomain.size(); ++i)
