@@ -1,12 +1,32 @@
 #include <fiddle/grid/surface_tria.h>
 
+#include <deal.II/base/quadrature.h>
 #include <deal.II/base/tensor.h>
+
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/dofs/dof_tools.h>
+
+#include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/fe_simplex_p.h>
 
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/grid/tria.h>
 
+#include <deal.II/lac/affine_constraints.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/householder.h>
+#include <deal.II/lac/precondition.h>
+#include <deal.II/lac/solver_cg.h>
+#include <deal.II/lac/sparse_matrix.h>
+#include <deal.II/lac/sparsity_pattern.h>
+#include <deal.II/lac/vector.h>
+
+#include <deal.II/numerics/matrix_creator.h>
+
+#include <fstream>
+#include <memory>
+#include <vector>
 
 #include "triangle.h"
 
@@ -15,9 +35,9 @@ namespace fdl
   using namespace dealii;
 
   void
-  triangulate_convex(const std::vector<Point<2>>   &hull_vertices,
-                     Triangulation<2>              &tria,
-                     const Triangle::AdditionalData additional_data)
+  triangulate_segments(const std::vector<Point<2>>   &boundary_vertices,
+                       Triangulation<2>              &tria,
+                       const Triangle::AdditionalData additional_data)
   {
     static_assert(sizeof(Point<2>) == 2 * sizeof(double),
                   "format should be packed");
@@ -27,24 +47,120 @@ namespace fdl
     std::memset(&in, 0, sizeof(in));
     std::memset(&out, 0, sizeof(out));
 
-    in.numberofpoints          = hull_vertices.size();
+    in.numberofpoints          = boundary_vertices.size();
     in.numberofpointattributes = 0;
     in.pointlist               = const_cast<double *>(
-      reinterpret_cast<const double *>(hull_vertices.data()));
-    // follow from libMesh - number of segments = number of holes for convex
-    // hulls
-    in.numberofsegments = 0;
+      reinterpret_cast<const double *>(boundary_vertices.data()));
 
-    // (c)onvex hull, index from (z)ero, (Q)uiet output, element (q)uality (min
-    // angle, degrees)
-    std::string flags("czQq");
+    in.numberofsegments = boundary_vertices.size();
+    std::vector<int> segments(in.numberofsegments * 2,
+                              std::numeric_limits<int>::max());
+    in.segmentlist = segments.data();
+
+    // Determine segments based on the closest vertex.
+    {
+      std::vector<int> n_vertex_segments(boundary_vertices.size());
+      int              previous_vertex_no = std::numeric_limits<int>::max();
+      int              vertex_no          = 0;
+      for (int segment_n = 0; segment_n < in.numberofsegments; ++segment_n)
+        {
+          int    other_vertex_no = std::numeric_limits<int>::max();
+          double distance        = std::numeric_limits<double>::max();
+
+          // first try to find a point which is not part of any segment and,
+          // if we are on at least the second point, is 'ahead' of the current
+          // point (the angle between this segment and the last is less than
+          // 180 degrees)
+          for (int v = 0; v < in.numberofpoints; ++v)
+            // each vertex can only be part of at most two segments. Also make
+            // sure we didn't already pick this segment
+            if (v != vertex_no && n_vertex_segments[v] == 0 &&
+                segments[v * 2 + 1] != vertex_no)
+              {
+                bool in_cone = true;
+                if (previous_vertex_no != std::numeric_limits<int>::max())
+                  {
+                    const Tensor<1, 2> t0 =
+                      boundary_vertices[vertex_no] -
+                      boundary_vertices[previous_vertex_no];
+                    const Tensor<1, 2> t1 =
+                      boundary_vertices[v] - boundary_vertices[vertex_no];
+                    in_cone = t0 * t1 > 0;
+                  }
+                const double new_distance =
+                  boundary_vertices[vertex_no].distance_square(
+                    boundary_vertices[v]);
+                if (in_cone && new_distance < distance)
+                  {
+                    distance        = new_distance;
+                    other_vertex_no = v;
+                  }
+              }
+          // if that failed, try again and permit points outside the cone:
+          if (other_vertex_no == std::numeric_limits<int>::max())
+            for (int v = 0; v < in.numberofpoints; ++v)
+              // each vertex can only be part of at most two segments. Also make
+              // sure we didn't already pick this segment
+              if (v != vertex_no && n_vertex_segments[v] == 0 &&
+                  segments[v * 2 + 1] != vertex_no)
+                {
+                  const double new_distance =
+                    boundary_vertices[vertex_no].distance_square(
+                      boundary_vertices[v]);
+                  if (new_distance < distance)
+                    {
+                      distance        = new_distance;
+                      other_vertex_no = v;
+                    }
+                }
+
+          // if that failed, try again and permit points which are already
+          // part of one segment:
+          if (other_vertex_no == std::numeric_limits<int>::max())
+            for (int v = 0; v < in.numberofpoints; ++v)
+              // each vertex can only be part of at most two segments. Also
+              // make sure we didn't already pick this segment
+              if (v != vertex_no && n_vertex_segments[v] == 1 &&
+                  segments[v * 2 + 1] != vertex_no)
+                {
+                  const double new_distance =
+                    boundary_vertices[vertex_no].distance_square(
+                      boundary_vertices[v]);
+                  if (new_distance < distance)
+                    {
+                      distance        = new_distance;
+                      other_vertex_no = v;
+                    }
+                }
+
+          AssertThrow(other_vertex_no != std::numeric_limits<int>::max(),
+                      ExcMessage("unable to find other vertex for segment"));
+          segments[vertex_no * 2]     = vertex_no;
+          segments[vertex_no * 2 + 1] = other_vertex_no;
+          n_vertex_segments[vertex_no] += 1;
+          n_vertex_segments[other_vertex_no] += 1;
+
+          // go to the next loop iteration
+          previous_vertex_no = vertex_no;
+          vertex_no          = other_vertex_no;
+        }
+
+      for (int vertex_no = 0; vertex_no < in.numberofpoints; ++vertex_no)
+        AssertThrow(n_vertex_segments[vertex_no] == 2,
+                    ExcMessage(
+                      "Each vertex should be part of exactly two segments."));
+    }
+
+    // use a (p)SLG, index from (z)ero, (Q)uiet output, element (q)uality (min
+    // angle in degrees)
+    std::string flags("pzQq");
     Assert(additional_data.min_angle > 0.0,
            ExcMessage("The minimum angle must be larger than zero.")) flags +=
       std::to_string(additional_data.min_angle);
     if (additional_data.target_element_area ==
         std::numeric_limits<double>::max())
       {
-        const double dx = hull_vertices[0].distance(hull_vertices[1]);
+        const double dx = boundary_vertices[segments[0]].distance(boundary_vertices[segments[1]]);
         // target element (a)rea
         flags += "a" + std::to_string(std::sqrt(3.0) / 4.0 * dx * dx);
       }
@@ -71,19 +187,18 @@ namespace fdl
     for (int i = 0; i < out.numberofpoints; ++i)
       vertices.emplace_back(out.pointlist[2 * i], out.pointlist[2 * i + 1]);
 
-    // The input list of vertices may contain duplicates - Triangle knows how
-    // to handle that (it doesn't use them), but make sure we delete them
-    // ourselves before continuing
-    std::vector<unsigned int> all_vertices;
-    GridTools::delete_unused_vertices(vertices,
-                                      cell_data,
-                                      sub_cell_data);
-    // This should not be needed (Triangle won't duplicate vertices) but lets
-    // do it anyway
-    GridTools::delete_duplicated_vertices(vertices,
-                                          cell_data,
-                                          sub_cell_data,
-                                          all_vertices);
+    GridTools::invert_cells_with_negative_measure(vertices, cell_data);
+    if (additional_data.apply_fixup_routines)
+        {
+          std::vector<unsigned int> all_vertices;
+          GridTools::delete_unused_vertices(vertices, cell_data, sub_cell_data);
+          // This should not be needed (Triangle won't duplicate vertices) but
+          // lets do it anyway
+          GridTools::delete_duplicated_vertices(vertices,
+                                                cell_data,
+                                                sub_cell_data,
+                                                all_vertices);
+        }
     tria.create_triangulation(vertices, cell_data, sub_cell_data);
 
     // Free everything triangle may have allocated
@@ -136,12 +251,12 @@ namespace fdl
     // transformations are linear so shift things so that the first point is the
     // origin.
     Triangulation<2>      tria2;
-    std::vector<Point<2>> hull_points2;
+    std::vector<Point<2>> boundary_points2;
     for (const Point<3> &p : points)
-      hull_points2.emplace_back((p - points[0]) * v0, (p - points[0]) * v1);
+      boundary_points2.emplace_back((p - points[0]) * v0, (p - points[0]) * v1);
 
     // 3. set up the triangulation in the z = 0 plane
-    triangulate_convex(hull_points2, tria2, additional_data);
+    triangulate_segments(boundary_points2, tria2, additional_data);
     std::vector<Point<2>>    points2;
     std::vector<CellData<2>> cells2;
     SubCellData              subcell_data2;
@@ -157,4 +272,124 @@ namespace fdl
     tria.create_triangulation(points3, cells2, subcell_data2);
     return normal;
   }
+
+
+  template <int dim, int spacedim>
+  void
+  fit_boundary_vertices(const std::vector<Point<spacedim>> &new_vertices,
+                        Triangulation<dim, spacedim>       &tria)
+  {
+    Assert(tria.get_communicator() == MPI_COMM_SELF, ExcNotImplemented());
+    Assert(tria.get_reference_cells().size() == 1, ExcNotImplemented());
+    Assert(tria.n_levels() == 1, ExcNotImplemented());
+
+#ifdef DEBUG
+    for (const auto &face : tria.active_face_iterators())
+      if (face->at_boundary())
+        for (const auto v : face->vertex_indices())
+          AssertIndexRange(face->vertex_index(v), new_vertices.size());
+#endif
+
+    const auto         reference_cell = tria.get_reference_cells()[0];
+    const unsigned int degree         = 1;
+    std::unique_ptr<FiniteElement<dim, spacedim>> fe;
+    if (reference_cell.is_hyper_cube())
+      fe = std::make_unique<FE_Q<dim, spacedim>>(degree);
+    else if (reference_cell.is_simplex())
+      fe = std::make_unique<FE_SimplexP<dim, spacedim>>(degree);
+    else
+      Assert(false, ExcNotImplemented());
+
+    DoFHandler<dim, spacedim> dof_handler(tria);
+    dof_handler.distribute_dofs(*fe);
+    const Quadrature<dim> quadrature =
+      reference_cell.template get_gauss_type_quadrature<dim>(degree + 1);
+    const Mapping<dim, spacedim> &mapping =
+      reference_cell.template get_default_linear_mapping<dim, spacedim>();
+
+    DynamicSparsityPattern dsp(dof_handler.n_dofs(), dof_handler.n_dofs());
+    DoFTools::make_sparsity_pattern(dof_handler, dsp);
+    SparsityPattern sp;
+    sp.copy_from(dsp);
+
+    SparseMatrix<double> laplace_matrix(sp);
+    MatrixCreator::create_laplace_matrix(mapping,
+                                         dof_handler,
+                                         quadrature,
+                                         laplace_matrix);
+
+    // compute new vertex locations one component at a time
+    std::vector<Point<spacedim>> new_vertex_positions(
+      tria.get_vertices().size());
+    for (unsigned int d = 0; d < spacedim; ++d)
+      {
+        // Set up constraints:
+        AffineConstraints<double> constraints;
+        for (const auto &cell : dof_handler.active_cell_iterators())
+          if (cell->at_boundary())
+            {
+              for (unsigned int face_no : cell->face_indices())
+                if (cell->face(face_no)->at_boundary())
+                  for (const auto face_vertex_no :
+                       cell->face(face_no)->vertex_indices())
+                    {
+                      const auto vertex_no =
+                        reference_cell.face_to_cell_vertices(
+                          face_no,
+                          face_vertex_no,
+                          cell->combined_face_orientation(face_no));
+
+                      const auto vertex_dof =
+                        cell->vertex_dof_index(vertex_no, 0);
+                      constraints.add_line(vertex_dof);
+                      constraints.set_inhomogeneity(
+                        vertex_dof,
+                        new_vertices[cell->vertex_index(vertex_no)][d]);
+                    }
+            }
+        constraints.close();
+
+        SparseMatrix<double> constrained_laplace_matrix(sp);
+        Vector<double>       constrained_rhs(dof_handler.n_dofs());
+
+        constrained_laplace_matrix.copy_from(laplace_matrix);
+        constraints.condense(constrained_laplace_matrix, constrained_rhs);
+        SolverControl      solver_control(1000, 1e-12);
+        SolverCG<>         solver(solver_control);
+        PreconditionSSOR<> preconditioner;
+        preconditioner.initialize(constrained_laplace_matrix, 1.2);
+        Vector<double> solution(dof_handler.n_dofs());
+        solver.solve(constrained_laplace_matrix,
+                     solution,
+                     constrained_rhs,
+                     preconditioner);
+        constraints.distribute(solution);
+
+
+        for (const auto &cell : dof_handler.active_cell_iterators())
+          for (unsigned int vertex_no : cell->vertex_indices())
+            new_vertex_positions[cell->vertex_index(vertex_no)][d] =
+              solution[cell->vertex_dof_index(vertex_no, 0)];
+      }
+
+    for (auto &cell : tria.active_cell_iterators())
+      for (unsigned int vertex_no : cell->vertex_indices())
+        cell->vertex(vertex_no) =
+          new_vertex_positions[cell->vertex_index(vertex_no)];
+    tria.signals.mesh_movement();
+  }
+
+  // instantiate all of them: why not?
+
+  template void
+  fit_boundary_vertices(const std::vector<Point<2>> &, Triangulation<1, 2> &);
+
+  template void
+  fit_boundary_vertices(const std::vector<Point<2>> &, Triangulation<2, 2> &);
+
+  template void
+  fit_boundary_vertices(const std::vector<Point<3>> &, Triangulation<2, 3> &);
+
+  template void
+  fit_boundary_vertices(const std::vector<Point<3>> &, Triangulation<3, 3> &);
 } // namespace fdl
