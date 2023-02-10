@@ -177,12 +177,7 @@ namespace fdl
     mean_value(const int data_idx, const std::string &kernel_name);
 
     /**
-     * Return the centroid of the meter mesh.
-     *
-     * - If spacedim = 3 then the meter mesh is planar and this point is inside
-     *     the mesh.
-     * - If spacedim = 2 then the meter mesh may not be a straight line. If it
-     *     is not then the centroid may not be inside the mesh.
+     * Return the centroid of the meter mesh. This point may not be inside the mesh.
      */
     Point<spacedim>
     get_centroid() const;
@@ -190,6 +185,9 @@ namespace fdl
   protected:
     void
     reinit_tria(const std::vector<Point<spacedim>> &convex_hull);
+
+    void
+    reinit_mean_velocity(const std::vector<Tensor<1, spacedim>> &velocity_values);
 
     /**
      * Original Mapping.

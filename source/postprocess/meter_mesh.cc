@@ -33,26 +33,26 @@ namespace fdl
       // avoid "defined but not used" warnings by using NDIM
 #if NDIM == 2
       void
-      setup_meter_tria(const std::vector<Point<2>>    &hull,
+      setup_meter_tria(const std::vector<Point<2>>    &boundary_points,
                        Triangulation<1, 2>            &tria,
                        const Triangle::AdditionalData &additional_data)
       {
-        Assert(hull.size() > 1, ExcFDLInternalError());
+        Assert(boundary_points.size() > 1, ExcFDLInternalError());
         std::vector<CellData<1>> cell_data;
         std::vector<Point<2>>    vertices;
 
-        vertices.push_back(hull[0]);
+        vertices.push_back(boundary_points[0]);
         unsigned int last_vertex_n = 0;
-        for (unsigned int hull_point_n = 0; hull_point_n < hull.size() - 1;
-             ++hull_point_n)
+        for (unsigned int boundary_points_point_n = 0; boundary_points_point_n < boundary_points.size() - 1;
+             ++boundary_points_point_n)
           {
-            const Point<2> left        = hull[hull_point_n];
-            const Point<2> right       = hull[hull_point_n + 1];
-            const double   hull_length = (left - right).norm();
+            const Point<2> left        = boundary_points[boundary_points_point_n];
+            const Point<2> right       = boundary_points[boundary_points_point_n + 1];
+            const double   boundary_points_length = (left - right).norm();
             unsigned int   n_subcells  = 1;
             if (additional_data.place_additional_boundary_vertices)
               n_subcells = static_cast<unsigned int>(
-                std::ceil(hull_length / additional_data.target_element_area));
+                std::ceil(boundary_points_length / additional_data.target_element_area));
             for (unsigned int subcell_n = 0; subcell_n < n_subcells;
                  ++subcell_n)
               {
@@ -77,14 +77,22 @@ namespace fdl
       }
 #else
       void
-      setup_meter_tria(const std::vector<Point<3>>    &convex_hull,
+      setup_meter_tria(const std::vector<Point<3>>    &boundary_points,
                        Triangulation<2, 3>            &tria,
                        const Triangle::AdditionalData &additional_data)
       {
-        Assert(convex_hull.size() > 2, ExcFDLInternalError());
+        Assert(boundary_points.size() > 2, ExcFDLInternalError());
 
-        // TODO - use the normal vector returned by setup_meter_tria() somewhere
-        setup_planar_meter_mesh(convex_hull, tria, additional_data);
+        setup_planar_meter_mesh(boundary_points, tria, additional_data);
+
+        // the input may be a parallel Triangulation, so copy back-and-forth
+        {
+            Triangulation<2, 3> serial_tria;
+            serial_tria.copy_triangulation(tria);
+            fit_boundary_vertices(boundary_points, serial_tria);
+            tria.clear();
+            tria.copy_triangulation(serial_tria);
+        }
       }
 #endif
     } // namespace
@@ -94,7 +102,7 @@ namespace fdl
   MeterMesh<dim, spacedim>::MeterMesh(
     const Mapping<dim, spacedim>                     &mapping,
     const DoFHandler<dim, spacedim>                  &position_dof_handler,
-    const std::vector<Point<spacedim>>               &convex_hull,
+    const std::vector<Point<spacedim>>               &boundary_points,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
     const LinearAlgebra::distributed::Vector<double> &position,
     const LinearAlgebra::distributed::Vector<double> &velocity)
@@ -104,7 +112,7 @@ namespace fdl
     , point_values(std::make_unique<PointValues<spacedim, dim, spacedim>>(
         mapping,
         position_dof_handler,
-        convex_hull))
+        boundary_points))
     , meter_tria(tbox::SAMRAI_MPI::getCommunicator(),
                  Triangulation<dim - 1, spacedim>::MeshSmoothing::none,
                  true)
@@ -119,7 +127,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   MeterMesh<dim, spacedim>::MeterMesh(
-    const std::vector<Point<spacedim>>               &convex_hull,
+    const std::vector<Point<spacedim>>               &boundary_points,
     const std::vector<Tensor<1, spacedim>>           &velocity,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy)
     : patch_hierarchy(patch_hierarchy)
@@ -130,7 +138,7 @@ namespace fdl
     , vector_fe(
         std::make_unique<FESystem<dim - 1, spacedim>>(*scalar_fe, spacedim))
   {
-    reinit(convex_hull, velocity);
+    reinit(boundary_points, velocity);
   }
 
   template <int dim, int spacedim>
@@ -142,108 +150,29 @@ namespace fdl
     // Reset the meter mesh according to the new position values:
     const std::vector<Tensor<1, spacedim>> position_values =
       point_values->evaluate(position);
-    const std::vector<Point<spacedim>> positions(position_values.begin(),
+    const std::vector<Point<spacedim>> boundary_points(position_values.begin(),
                                                  position_values.end());
+    const std::vector<Tensor<1, spacedim>> velocity_values =
+      point_values->evaluate(velocity);
 
-    reinit_tria(positions);
-
-    for (unsigned int d = 0; d < spacedim; ++d)
-      centroid[d] = VectorTools::compute_mean_value(get_mapping(),
-                                                    get_vector_dof_handler(),
-                                                    meter_quadrature,
-                                                    identity_position,
-                                                    d);
-
-    // TODO do something with the velocity
-    // The mean velocity is tricky since we want to use @p velocity to compute
-    // it, but we may have placed additional boundary nodes to get a good mesh
-    // which may not be inside the finite element mesh. Hence - generate a
-    // *second* meter mesh here with no extra boundary nodes and compute the
-    // mean velocity on that one.
-    //
-    // To simplify control flow do this unconditionally here even if we did
-    // not place more boundary vertices in the previous step.
-    Triangle::AdditionalData additional_data;
-    additional_data.place_additional_boundary_vertices = false;
-    Triangulation<dim - 1, spacedim> tria;
-    internal::setup_meter_tria(positions, tria, additional_data);
-    PointValues<dim, spacedim> velocity_point_values(
-      *mapping, *position_dof_handler, point_values->get_evaluation_points());
-    const std::vector<Tensor<1, spacedim>> nodal_velocities =
-      velocity_point_values.evaluate(velocity);
-
-    if (dim == 2)
-      {
-        // Average the velocities (there should only be two anyway).
-        mean_velocity = std::accumulate(nodal_velocities.begin(),
-                                        nodal_velocities.end(),
-                                        Tensor<1, spacedim>()) *
-                        (1.0 / double(nodal_velocities.size()));
-      }
-    if (dim == 3)
-      {
-        // Avoid funky linker errors in 2D by manually implementing the
-        // trapezoid rule
-        std::vector<Point<dim - 2>> points;
-        points.emplace_back(0.0);
-        points.emplace_back(1.0);
-        std::vector<double> weights;
-        weights.emplace_back(0.5);
-        weights.emplace_back(0.5);
-        Quadrature<dim - 2>           face_quadrature(points, weights);
-        FE_Nothing<dim - 1, spacedim> fe_nothing(tria.get_reference_cells()[0]);
-        FEFaceValues<dim - 1, spacedim> face_values(get_mapping(),
-                                                    fe_nothing,
-                                                    face_quadrature,
-                                                    update_JxW_values);
-        mean_velocity = 0.0;
-        double area   = 0.0;
-        for (const auto &cell : tria.active_cell_iterators())
-          for (unsigned int face_no : cell->face_indices())
-            if (cell->face(face_no)->at_boundary())
-              {
-                face_values.reinit(cell, face_no);
-                const auto f = cell->face(face_no);
-                AssertIndexRange(f->vertex_index(0), nodal_velocities.size());
-                AssertIndexRange(f->vertex_index(1), nodal_velocities.size());
-                const auto v0   = nodal_velocities[f->vertex_index(0)];
-                const auto v1   = nodal_velocities[f->vertex_index(1)];
-                const auto JxW0 = face_values.get_JxW_values()[0];
-                const auto JxW1 = face_values.get_JxW_values()[1];
-
-                mean_velocity += v0 * JxW0;
-                mean_velocity += v1 * JxW1;
-                area += JxW0;
-                area += JxW1;
-              }
-        mean_velocity *= 1.0 / area;
-      }
+    reinit_tria(boundary_points);
+    reinit_mean_velocity(velocity_values);
   }
 
   template <int dim, int spacedim>
   void
   MeterMesh<dim, spacedim>::reinit(
-    const std::vector<Point<spacedim>> &    convex_hull,
-    const std::vector<Tensor<1, spacedim>> &velocity)
+    const std::vector<Point<spacedim>> &    boundary_points,
+    const std::vector<Tensor<1, spacedim>> &velocity_values)
   {
-    reinit_tria(convex_hull);
-
-    for (unsigned int d = 0; d < spacedim; ++d)
-      centroid[d] = VectorTools::compute_mean_value(get_mapping(),
-                                                    get_vector_dof_handler(),
-                                                    meter_quadrature,
-                                                    identity_position,
-                                                    d);
-
-    mean_velocity =
-      std::accumulate(velocity.begin(), velocity.end(), Tensor<1, spacedim>()) *
-      (1.0 / double(velocity.size()));
+    reinit_tria(boundary_points);
+    reinit_mean_velocity(velocity_values);
   }
 
   template <int dim, int spacedim>
   void
   MeterMesh<dim, spacedim>::reinit_tria(
-    const std::vector<Point<spacedim>> &convex_hull)
+    const std::vector<Point<spacedim>> &boundary_points)
   {
     double dx_0 = std::numeric_limits<double>::max();
     tbox::Pointer<hier::PatchLevel<spacedim>> level =
@@ -265,7 +194,7 @@ namespace fdl
     meter_tria.clear();
     Triangle::AdditionalData additional_data;
     additional_data.target_element_area = target_element_area;
-    internal::setup_meter_tria(convex_hull, meter_tria, additional_data);
+    internal::setup_meter_tria(boundary_points, meter_tria, additional_data);
 
     meter_mapping = meter_tria.get_reference_cells()[0]
                       .template get_default_mapping<dim - 1, spacedim>(
@@ -310,6 +239,13 @@ namespace fdl
                              identity_position);
     identity_position.update_ghost_values();
 
+    for (unsigned int d = 0; d < spacedim; ++d)
+      centroid[d] = VectorTools::compute_mean_value(get_mapping(),
+                                                    get_vector_dof_handler(),
+                                                    meter_quadrature,
+                                                    identity_position,
+                                                    d);
+
     // 1e-6 is an arbitrary nonzero number which ensures that points on the
     // boundaries between patches end up in both (for the purposes of
     // computing interpolations) but minimizes the amount of work resulting
@@ -326,6 +262,65 @@ namespace fdl
       vector_dof_handler,
       identity_position);
     nodal_interaction->add_dof_handler(scalar_dof_handler);
+  }
+
+  template <int dim, int spacedim>
+  void
+  MeterMesh<dim, spacedim>::reinit_mean_velocity(
+    const std::vector<Tensor<1, spacedim>> &velocity_values)
+  {
+    if (dim == 2)
+      {
+        // Average the velocities (there should only be two anyway).
+        mean_velocity = std::accumulate(velocity_values.begin(),
+                                        velocity_values.end(),
+                                        Tensor<1, spacedim>()) *
+                        (1.0 / double(velocity_values.size()));
+      }
+    if (dim == 3)
+      {
+        // Avoid funky linker errors in 2D by manually implementing the
+        // trapezoid rule
+        std::vector<Point<dim - 2>> points;
+        points.emplace_back(0.0);
+        points.emplace_back(1.0);
+        std::vector<double> weights;
+        weights.emplace_back(0.5);
+        weights.emplace_back(0.5);
+        Quadrature<dim - 2>           face_quadrature(points, weights);
+        FE_Nothing<dim - 1, spacedim> fe_nothing(meter_tria.get_reference_cells()[0]);
+        FEFaceValues<dim - 1, spacedim> face_values(get_mapping(),
+                                                    fe_nothing,
+                                                    face_quadrature,
+                                                    update_JxW_values);
+        mean_velocity = 0.0;
+        double area   = 0.0;
+        unsigned int n_boundary_faces = 0;
+        for (const auto &cell : meter_tria.active_cell_iterators())
+          for (unsigned int face_no : cell->face_indices())
+            if (cell->face(face_no)->at_boundary())
+              {
+                face_values.reinit(cell, face_no);
+                const auto f = cell->face(face_no);
+                AssertIndexRange(f->vertex_index(0), velocity_values.size());
+                AssertIndexRange(f->vertex_index(1), velocity_values.size());
+                const auto v0   = velocity_values[f->vertex_index(0)];
+                const auto v1   = velocity_values[f->vertex_index(1)];
+                const auto JxW0 = face_values.get_JxW_values()[0];
+                const auto JxW1 = face_values.get_JxW_values()[1];
+
+                mean_velocity += v0 * JxW0;
+                mean_velocity += v1 * JxW1;
+                area += JxW0;
+                area += JxW1;
+                ++n_boundary_faces;
+              }
+        mean_velocity *= 1.0 / area;
+        AssertThrow(n_boundary_faces == velocity_values.size(),
+                    ExcMessage("There should be exactly one boundary face for "
+                               "every boundary vertex, and one velocity value "
+                               "for each boundary vertex."));
+      }
   }
 
   template <int dim, int spacedim>
