@@ -3,7 +3,7 @@
 #include <fiddle/grid/box_utilities.h>
 #include <fiddle/grid/surface_tria.h>
 
-#include <fiddle/postprocess/meter_mesh.h>
+#include <fiddle/postprocess/surface_meter.h>
 
 #include <deal.II/base/mpi.h>
 
@@ -100,7 +100,7 @@ namespace fdl
   }   // namespace internal
 
   template <int dim, int spacedim>
-  MeterMesh<dim, spacedim>::MeterMesh(
+  SurfaceMeter<dim, spacedim>::SurfaceMeter(
     const Mapping<dim, spacedim>                     &mapping,
     const DoFHandler<dim, spacedim>                  &position_dof_handler,
     const std::vector<Point<spacedim>>               &boundary_points,
@@ -127,7 +127,7 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
-  MeterMesh<dim, spacedim>::MeterMesh(
+  SurfaceMeter<dim, spacedim>::SurfaceMeter(
     const std::vector<Point<spacedim>>               &boundary_points,
     const std::vector<Tensor<1, spacedim>>           &velocity,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy)
@@ -144,7 +144,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  MeterMesh<dim, spacedim>::reinit(
+  SurfaceMeter<dim, spacedim>::reinit(
     const LinearAlgebra::distributed::Vector<double> &position,
     const LinearAlgebra::distributed::Vector<double> &velocity)
   {
@@ -162,7 +162,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  MeterMesh<dim, spacedim>::reinit(
+  SurfaceMeter<dim, spacedim>::reinit(
     const std::vector<Point<spacedim>>     &boundary_points,
     const std::vector<Tensor<1, spacedim>> &velocity_values)
   {
@@ -172,7 +172,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  MeterMesh<dim, spacedim>::reinit_tria(
+  SurfaceMeter<dim, spacedim>::reinit_tria(
     const std::vector<Point<spacedim>> &boundary_points)
   {
     double dx_0 = std::numeric_limits<double>::max();
@@ -267,7 +267,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  MeterMesh<dim, spacedim>::reinit_mean_velocity(
+  SurfaceMeter<dim, spacedim>::reinit_mean_velocity(
     const std::vector<Tensor<1, spacedim>> &velocity_values)
   {
     if (dim == 2)
@@ -327,7 +327,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   LinearAlgebra::distributed::Vector<double>
-  MeterMesh<dim, spacedim>::interpolate_scalar_field(
+  SurfaceMeter<dim, spacedim>::interpolate_scalar_field(
     const int          data_idx,
     const std::string &kernel_name) const
   {
@@ -351,7 +351,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   LinearAlgebra::distributed::Vector<double>
-  MeterMesh<dim, spacedim>::interpolate_vector_field(
+  SurfaceMeter<dim, spacedim>::interpolate_vector_field(
     const int          data_idx,
     const std::string &kernel_name) const
   {
@@ -375,8 +375,9 @@ namespace fdl
 
   template <int dim, int spacedim>
   double
-  MeterMesh<dim, spacedim>::compute_mean_value(const int          data_idx,
-                                               const std::string &kernel_name)
+  SurfaceMeter<dim, spacedim>::compute_mean_value(
+    const int          data_idx,
+    const std::string &kernel_name)
   {
     const auto interpolated_data =
       interpolate_scalar_field(data_idx, kernel_name);
@@ -388,6 +389,6 @@ namespace fdl
                                            0);
   }
 
-  template class MeterMesh<NDIM, NDIM>;
+  template class SurfaceMeter<NDIM, NDIM>;
 
 } // namespace fdl

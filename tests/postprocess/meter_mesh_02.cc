@@ -1,6 +1,6 @@
 #include <fiddle/base/exceptions.h>
 
-#include <fiddle/postprocess/meter_mesh.h>
+#include <fiddle/postprocess/surface_meter.h>
 
 #include <deal.II/base/function.h>
 #include <deal.II/base/function_parser.h>
@@ -100,12 +100,12 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   VectorTools::interpolate(position_mapping, dof_handler, fp, velocity);
   velocity.update_ghost_values();
 
-  fdl::MeterMesh<dim, spacedim> meter_mesh(mapping,
-                                           dof_handler,
-                                           bounding_disk_points,
-                                           patch_hierarchy,
-                                           position,
-                                           velocity);
+  fdl::SurfaceMeter<dim, spacedim> meter_mesh(mapping,
+                                              dof_handler,
+                                              bounding_disk_points,
+                                              patch_hierarchy,
+                                              position,
+                                              velocity);
 
   std::ofstream output;
   if (rank == 0)
