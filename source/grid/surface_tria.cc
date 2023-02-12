@@ -160,7 +160,8 @@ namespace fdl
     if (additional_data.target_element_area ==
         std::numeric_limits<double>::max())
       {
-        const double dx = boundary_vertices[segments[0]].distance(boundary_vertices[segments[1]]);
+        const double dx = boundary_vertices[segments[0]].distance(
+          boundary_vertices[segments[1]]);
         // target element (a)rea
         flags += "a" + std::to_string(std::sqrt(3.0) / 4.0 * dx * dx);
       }
@@ -189,16 +190,16 @@ namespace fdl
 
     GridTools::invert_cells_with_negative_measure(vertices, cell_data);
     if (additional_data.apply_fixup_routines)
-        {
-          std::vector<unsigned int> all_vertices;
-          GridTools::delete_unused_vertices(vertices, cell_data, sub_cell_data);
-          // This should not be needed (Triangle won't duplicate vertices) but
-          // lets do it anyway
-          GridTools::delete_duplicated_vertices(vertices,
-                                                cell_data,
-                                                sub_cell_data,
-                                                all_vertices);
-        }
+      {
+        std::vector<unsigned int> all_vertices;
+        GridTools::delete_unused_vertices(vertices, cell_data, sub_cell_data);
+        // This should not be needed (Triangle won't duplicate vertices) but
+        // lets do it anyway
+        GridTools::delete_duplicated_vertices(vertices,
+                                              cell_data,
+                                              sub_cell_data,
+                                              all_vertices);
+      }
     tria.create_triangulation(vertices, cell_data, sub_cell_data);
 
     // Free everything triangle may have allocated
@@ -219,9 +220,9 @@ namespace fdl
   }
 
   Tensor<1, 3>
-  setup_planar_meter_mesh(const std::vector<Point<3>>   &points,
-                          Triangulation<2, 3>           &tria,
-                          const Triangle::AdditionalData additional_data)
+  create_planar_triangulation(const std::vector<Point<3>>   &points,
+                              Triangulation<2, 3>           &tria,
+                              const Triangle::AdditionalData additional_data)
   {
     // 1. Do a least-squares fit of the points to a plane: z = a x + b y + c
     FullMatrix<double> data(points.size(), 3);

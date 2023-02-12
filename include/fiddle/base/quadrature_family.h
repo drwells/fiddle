@@ -130,7 +130,7 @@ namespace fdl
      * benchmarking and testing purposes - it should not be necessary to call
      * it in user code.
      */
-    std::vector<double>
+    const std::vector<double> &
     get_max_point_distances() const;
 
   protected:
@@ -198,7 +198,7 @@ namespace fdl
      * benchmarking and testing purposes - it should not be necessary to call
      * it in user code.
      */
-    std::vector<double>
+    const std::vector<double> &
     get_max_point_distances() const;
 
   protected:
@@ -234,14 +234,14 @@ namespace fdl
 
   // Inline functions
   template <int dim>
-  std::vector<double>
+  const std::vector<double> &
   QGaussFamily<dim>::get_max_point_distances() const
   {
     return max_point_distances;
   }
 
   template <int dim>
-  std::vector<double>
+  const std::vector<double> &
   QWitherdenVincentSimplexFamily<dim>::get_max_point_distances() const
   {
     return max_point_distances;

@@ -43,16 +43,17 @@ namespace fdl
 
         vertices.push_back(boundary_points[0]);
         unsigned int last_vertex_n = 0;
-        for (unsigned int boundary_points_point_n = 0; boundary_points_point_n < boundary_points.size() - 1;
+        for (unsigned int boundary_points_point_n = 0;
+             boundary_points_point_n < boundary_points.size() - 1;
              ++boundary_points_point_n)
           {
-            const Point<2> left        = boundary_points[boundary_points_point_n];
-            const Point<2> right       = boundary_points[boundary_points_point_n + 1];
+            const Point<2> left  = boundary_points[boundary_points_point_n];
+            const Point<2> right = boundary_points[boundary_points_point_n + 1];
             const double   boundary_points_length = (left - right).norm();
-            unsigned int   n_subcells  = 1;
+            unsigned int   n_subcells             = 1;
             if (additional_data.place_additional_boundary_vertices)
-              n_subcells = static_cast<unsigned int>(
-                std::ceil(boundary_points_length / additional_data.target_element_area));
+              n_subcells = static_cast<unsigned int>(std::ceil(
+                boundary_points_length / additional_data.target_element_area));
             for (unsigned int subcell_n = 0; subcell_n < n_subcells;
                  ++subcell_n)
               {
@@ -83,15 +84,15 @@ namespace fdl
       {
         Assert(boundary_points.size() > 2, ExcFDLInternalError());
 
-        setup_planar_meter_mesh(boundary_points, tria, additional_data);
+        create_planar_triangulation(boundary_points, tria, additional_data);
 
         // the input may be a parallel Triangulation, so copy back-and-forth
         {
-            Triangulation<2, 3> serial_tria;
-            serial_tria.copy_triangulation(tria);
-            fit_boundary_vertices(boundary_points, serial_tria);
-            tria.clear();
-            tria.copy_triangulation(serial_tria);
+          Triangulation<2, 3> serial_tria;
+          serial_tria.copy_triangulation(tria);
+          fit_boundary_vertices(boundary_points, serial_tria);
+          tria.clear();
+          tria.copy_triangulation(serial_tria);
         }
       }
 #endif
@@ -151,7 +152,7 @@ namespace fdl
     const std::vector<Tensor<1, spacedim>> position_values =
       point_values->evaluate(position);
     const std::vector<Point<spacedim>> boundary_points(position_values.begin(),
-                                                 position_values.end());
+                                                       position_values.end());
     const std::vector<Tensor<1, spacedim>> velocity_values =
       point_values->evaluate(velocity);
 
@@ -162,7 +163,7 @@ namespace fdl
   template <int dim, int spacedim>
   void
   MeterMesh<dim, spacedim>::reinit(
-    const std::vector<Point<spacedim>> &    boundary_points,
+    const std::vector<Point<spacedim>>     &boundary_points,
     const std::vector<Tensor<1, spacedim>> &velocity_values)
   {
     reinit_tria(boundary_points);
@@ -288,13 +289,14 @@ namespace fdl
         weights.emplace_back(0.5);
         weights.emplace_back(0.5);
         Quadrature<dim - 2>           face_quadrature(points, weights);
-        FE_Nothing<dim - 1, spacedim> fe_nothing(meter_tria.get_reference_cells()[0]);
+        FE_Nothing<dim - 1, spacedim> fe_nothing(
+          meter_tria.get_reference_cells()[0]);
         FEFaceValues<dim - 1, spacedim> face_values(get_mapping(),
                                                     fe_nothing,
                                                     face_quadrature,
                                                     update_JxW_values);
-        mean_velocity = 0.0;
-        double area   = 0.0;
+        mean_velocity                 = 0.0;
+        double       area             = 0.0;
         unsigned int n_boundary_faces = 0;
         for (const auto &cell : meter_tria.active_cell_iterators())
           for (unsigned int face_no : cell->face_indices())
@@ -373,8 +375,8 @@ namespace fdl
 
   template <int dim, int spacedim>
   double
-  MeterMesh<dim, spacedim>::mean_value(const int          data_idx,
-                                       const std::string &kernel_name)
+  MeterMesh<dim, spacedim>::compute_mean_value(const int          data_idx,
+                                               const std::string &kernel_name)
   {
     const auto interpolated_data =
       interpolate_scalar_field(data_idx, kernel_name);

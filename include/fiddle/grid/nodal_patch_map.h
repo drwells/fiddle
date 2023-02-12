@@ -50,7 +50,7 @@ namespace fdl
      */
     NodalPatchMap(
       const std::vector<tbox::Pointer<hier::Patch<spacedim>>> &patches,
-      const std::vector<std::vector<BoundingBox<spacedim>>> &  patch_bboxes,
+      const std::vector<std::vector<BoundingBox<spacedim>>>   &patch_bboxes,
       const Vector<double> &nodal_coordinates);
 
     /**

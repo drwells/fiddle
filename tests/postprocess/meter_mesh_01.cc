@@ -76,7 +76,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
   // do the actual test:
   const double interpolated_mean_value =
-    meter_mesh.mean_value(f_idx, "BSPLINE_3");
+    meter_mesh.compute_mean_value(f_idx, "BSPLINE_3");
   double nodal_mean_value = 0.0;
   {
     FunctionParser<spacedim> fp(extract_fp_string(test_db->getDatabase("f")),

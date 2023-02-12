@@ -29,7 +29,7 @@ namespace fdl
     template <int dim, int spacedim>
     Vector<double>
     compute_nodes(const DoFHandler<dim, spacedim> &position_dof_handler,
-                  const Vector<double> &           position,
+                  const Vector<double>            &position,
                   const DoFHandler<dim, spacedim> &dof_handler)
     {
       MappingFEField<dim, spacedim, Vector<double>> position_mapping(
@@ -60,13 +60,13 @@ namespace fdl
 
   template <int dim, int spacedim>
   NodalInteraction<dim, spacedim>::NodalInteraction(
-    const tbox::Pointer<tbox::Database> &                 input_db,
+    const tbox::Pointer<tbox::Database>                  &input_db,
     const parallel::shared::Triangulation<dim, spacedim> &native_tria,
-    const std::vector<BoundingBox<spacedim, float>> &     active_cell_bboxes,
+    const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
     tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
-    const std::pair<int, int> &                           level_numbers,
-    const DoFHandler<dim, spacedim> &                     position_dof_handler,
-    const LinearAlgebra::distributed::Vector<double> &    position)
+    const std::pair<int, int>                            &level_numbers,
+    const DoFHandler<dim, spacedim>                      &position_dof_handler,
+    const LinearAlgebra::distributed::Vector<double>     &position)
   {
     reinit(input_db,
            native_tria,
@@ -186,10 +186,8 @@ namespace fdl
       Assert(this->native_dof_handlers.size() == 1 &&
                &*this->native_dof_handlers[0] == &position_dof_handler,
              ExcFDLInternalError());
-      nodal_patch_maps.push_back(
-        std::make_shared<NodalPatchMap<dim, spacedim>>(patches,
-                                                       bboxes,
-                                                       overlap_position));
+      nodal_patch_maps.push_back(std::make_shared<NodalPatchMap<dim, spacedim>>(
+        patches, bboxes, overlap_position));
 
       this->native_position_dof_handler = &position_dof_handler;
       this->overlap_position            = std::move(overlap_position);

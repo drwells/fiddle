@@ -59,13 +59,13 @@ public:
 
 template <int dim, int spacedim = dim>
 void
-test(const Mapping<dim, spacedim> &                    mapping,
-     const Quadrature<dim> &                           quadrature,
-     const DoFHandler<dim, spacedim> &                 dof_handler,
-     const fdl::ForceContribution<dim, spacedim> &     stress,
+test(const Mapping<dim, spacedim>                     &mapping,
+     const Quadrature<dim>                            &quadrature,
+     const DoFHandler<dim, spacedim>                  &dof_handler,
+     const fdl::ForceContribution<dim, spacedim>      &stress,
      const LinearAlgebra::distributed::Vector<double> &position,
      const LinearAlgebra::distributed::Vector<double> &velocity,
-     std::ostream &                                    output)
+     std::ostream                                     &output)
 {
   FEValues<dim> fe_values(mapping,
                           dof_handler.get_fe(),

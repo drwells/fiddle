@@ -27,6 +27,6 @@ namespace fdl
   std::vector<types::global_dof_index>
   compute_overlap_to_native_dof_translation(
     const fdl::OverlapTriangulation<dim, spacedim> &overlap_tria,
-    const DoFHandler<dim, spacedim> &               overlap_dof_handler,
-    const DoFHandler<dim, spacedim> &               native_dof_handler);
+    const DoFHandler<dim, spacedim>                &overlap_dof_handler,
+    const DoFHandler<dim, spacedim>                &native_dof_handler);
 } // namespace fdl

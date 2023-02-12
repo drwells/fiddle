@@ -86,9 +86,10 @@ namespace fdl
    * a plane.
    */
   Tensor<1, 3>
-  setup_planar_meter_mesh(const std::vector<Point<3>>   &points,
-                          Triangulation<2, 3>           &tria,
-                          const Triangle::AdditionalData additional_data = {});
+  create_planar_triangulation(
+    const std::vector<Point<3>>   &points,
+    Triangulation<2, 3>           &tria,
+    const Triangle::AdditionalData additional_data = {});
 
   /**
    * Fit the Triangulation to a new set of boundary vertices. Inner vertices

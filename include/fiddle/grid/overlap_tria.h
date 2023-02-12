@@ -44,14 +44,14 @@ namespace fdl
 
     OverlapTriangulation(
       const parallel::shared::Triangulation<dim, spacedim> &shared_tria,
-      const IntersectionPredicate<dim, spacedim> &          predicate);
+      const IntersectionPredicate<dim, spacedim>           &predicate);
 
     virtual types::subdomain_id
     locally_owned_subdomain() const;
 
     void
     reinit(const parallel::shared::Triangulation<dim, spacedim> &shared_tria,
-           const IntersectionPredicate<dim, spacedim> &          predicate);
+           const IntersectionPredicate<dim, spacedim>           &predicate);
 
     const parallel::shared::Triangulation<dim, spacedim> &
     get_native_triangulation() const;

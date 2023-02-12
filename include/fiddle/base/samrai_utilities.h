@@ -133,9 +133,9 @@ namespace fdl
    * in SAMRAI.
    */
   void
-  save_binary(const std::string &            key,
-              const char *                   begin,
-              const char *                   end,
+  save_binary(const std::string             &key,
+              const char                    *begin,
+              const char                    *end,
               tbox::Pointer<tbox::Database> &database);
 
   /**
@@ -146,7 +146,7 @@ namespace fdl
    * bug in SAMRAI.
    */
   std::string
-  load_binary(const std::string &                  key,
+  load_binary(const std::string                   &key,
               const tbox::Pointer<tbox::Database> &database);
 } // namespace fdl
 

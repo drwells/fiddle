@@ -119,7 +119,8 @@ namespace fdl
     get_rhs_scatter_type() const override;
 
     const NodalPatchMap<dim, spacedim> &
-    get_nodal_patch_map(const DoFHandler<dim, spacedim> &native_dof_handler) const;
+    get_nodal_patch_map(
+      const DoFHandler<dim, spacedim> &native_dof_handler) const;
 
     /**
      * For convenience, store an explicit pointer to the natively partitioned
@@ -149,7 +150,8 @@ namespace fdl
      *
      * @note These are filled at first use, so the container is mutable.
      */
-    mutable std::vector<std::shared_ptr<NodalPatchMap<dim, spacedim>>> nodal_patch_maps;
+    mutable std::vector<std::shared_ptr<NodalPatchMap<dim, spacedim>>>
+      nodal_patch_maps;
   };
 } // namespace fdl
 #endif

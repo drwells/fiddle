@@ -40,8 +40,8 @@ namespace fdl
      * Constructor.
      */
     Scatter(const std::vector<types::global_dof_index> &overlap,
-            const IndexSet &                            local,
-            const MPI_Comm &                            communicator);
+            const IndexSet                             &local,
+            const MPI_Comm                             &communicator);
 
     /**
      * Scatter a sequential vector indexed by the specified overlap dofs into
@@ -52,7 +52,7 @@ namespace fdl
      * values. Ghost values of @p output are not set.
      */
     void
-    overlap_to_global_start(const Vector<T> &                      input,
+    overlap_to_global_start(const Vector<T>                       &input,
                             const VectorOperation::values          operation,
                             const unsigned int                     channel,
                             LinearAlgebra::distributed::Vector<T> &output);
@@ -61,7 +61,7 @@ namespace fdl
      * Finish the overlap to global scatter. No ghost values are updated.
      */
     void
-    overlap_to_global_finish(const Vector<T> &                      input,
+    overlap_to_global_finish(const Vector<T>                       &input,
                              const VectorOperation::values          operation,
                              LinearAlgebra::distributed::Vector<T> &output);
 
@@ -75,7 +75,7 @@ namespace fdl
     void
     global_to_overlap_start(const LinearAlgebra::distributed::Vector<T> &input,
                             const unsigned int channel,
-                            Vector<T> &        output);
+                            Vector<T>         &output);
 
     /**
      * Finish the global to overlap scatter.

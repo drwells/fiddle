@@ -81,8 +81,8 @@ namespace fdl
   {
   public:
     BoxIntersectionPredicate(
-      const std::vector<BoundingBox<spacedim, float>> &     a_cell_bboxes,
-      const std::vector<BoundingBox<spacedim>> &            p_bboxes,
+      const std::vector<BoundingBox<spacedim, float>>      &a_cell_bboxes,
+      const std::vector<BoundingBox<spacedim>>             &p_bboxes,
       const parallel::shared::Triangulation<dim, spacedim> &tria)
       : tria(&tria)
       , active_cell_bboxes(a_cell_bboxes)

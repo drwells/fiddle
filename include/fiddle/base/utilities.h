@@ -22,7 +22,7 @@ namespace fdl
    */
   template <int spacedim>
   std::pair<Point<spacedim>, double>
-  find_largest_nonintersecting_sphere(
+  compute_largest_nonintersecting_sphere(
     const std::vector<Point<spacedim>> &points)
   {
     Assert(points.size() > 1,
@@ -44,7 +44,7 @@ namespace fdl
     // completely deadly yet.
     auto sphere_contains_nontangent_point =
       [&](const Point<spacedim> &center,
-          const unsigned int &   tangent_point_n,
+          const unsigned int    &tangent_point_n,
           const double           diameter) -> bool {
       const double magnitude =
         std::max(center.norm(), points[tangent_point_n].norm());
@@ -73,10 +73,10 @@ namespace fdl
     // to start with:
     {
       const unsigned int i      = points.size() / 2;
-      const auto &       point1 = points[i];
+      const auto        &point1 = points[i];
       for (unsigned int j = i + 1; j < points.size(); ++j)
         {
-          const auto &          point2             = points[j];
+          const auto           &point2             = points[j];
           const Point<spacedim> tentative_center   = (point1 + point2) / 2.0;
           const double          tentative_diameter = point1.distance(point2);
 
@@ -96,7 +96,7 @@ namespace fdl
         const auto &point1 = points[i];
         for (unsigned int j = i + 1; j < points.size(); ++j)
           {
-            const auto &          point2             = points[j];
+            const auto           &point2             = points[j];
             const Point<spacedim> tentative_center   = (point1 + point2) / 2.0;
             const double          tentative_diameter = point1.distance(point2);
 

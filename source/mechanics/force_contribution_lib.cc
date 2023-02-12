@@ -533,7 +533,7 @@ namespace fdl
 
   template <int dim, int spacedim, typename Number>
   ModifiedNeoHookeanStress<dim, spacedim, Number>::ModifiedNeoHookeanStress(
-    const Quadrature<dim> &                quad,
+    const Quadrature<dim>                 &quad,
     const double                           shear_modulus,
     const std::vector<types::material_id> &material_ids)
     : ForceContribution<dim, spacedim, Number>(quad)
@@ -569,7 +569,7 @@ namespace fdl
   void
   ModifiedNeoHookeanStress<dim, spacedim, Number>::compute_stress(
     const double /*time*/,
-    const MechanicsValues<dim, spacedim> &                             m_values,
+    const MechanicsValues<dim, spacedim>                              &m_values,
     const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
     ArrayView<Tensor<2, spacedim, Number>> &stresses) const
   {
@@ -597,7 +597,7 @@ namespace fdl
 
   template <int dim, int spacedim, typename Number>
   ModifiedMooneyRivlinStress<dim, spacedim, Number>::ModifiedMooneyRivlinStress(
-    const Quadrature<dim> &                quad,
+    const Quadrature<dim>                 &quad,
     const double                           material_constant_1,
     const double                           material_constant_2,
     const std::vector<types::material_id> &material_ids)
@@ -637,7 +637,7 @@ namespace fdl
   void
   ModifiedMooneyRivlinStress<dim, spacedim, Number>::compute_stress(
     const double /*time*/,
-    const MechanicsValues<dim, spacedim> &                             m_values,
+    const MechanicsValues<dim, spacedim>                              &m_values,
     const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
     ArrayView<Tensor<2, spacedim, Number>> &stresses) const
   {

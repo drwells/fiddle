@@ -174,10 +174,11 @@ namespace fdl
      * update ghost data.
      */
     double
-    mean_value(const int data_idx, const std::string &kernel_name);
+    compute_mean_value(const int data_idx, const std::string &kernel_name);
 
     /**
-     * Return the centroid of the meter mesh. This point may not be inside the mesh.
+     * Return the centroid of the meter mesh. This point may not be inside the
+     * mesh.
      */
     Point<spacedim>
     get_centroid() const;
@@ -187,7 +188,8 @@ namespace fdl
     reinit_tria(const std::vector<Point<spacedim>> &convex_hull);
 
     void
-    reinit_mean_velocity(const std::vector<Tensor<1, spacedim>> &velocity_values);
+    reinit_mean_velocity(
+      const std::vector<Tensor<1, spacedim>> &velocity_values);
 
     /**
      * Original Mapping.

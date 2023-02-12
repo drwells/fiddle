@@ -256,7 +256,7 @@ setup_hierarchy(
 inline void
 print_strings_on_0(const std::string &part_str,
                    MPI_Comm           comm,
-                   std::ostream &     out)
+                   std::ostream      &out)
 {
   using namespace dealii;
   const int                  n_procs = Utilities::MPI::n_mpi_processes(comm);
@@ -307,7 +307,7 @@ template <int spacedim>
 inline void
 print_partitioning_on_0(
   SAMRAI::tbox::Pointer<SAMRAI::hier::PatchHierarchy<spacedim>>
-    &           patch_hierarchy,
+               &patch_hierarchy,
   const int     coarsest_ln,
   const int     finest_ln,
   std::ostream &out)

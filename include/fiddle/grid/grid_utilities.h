@@ -52,7 +52,8 @@ namespace fdl
                   const int          nodeset_id);
 
   /**
-   * Compute the centroid of a surface defined by the boundary ids in @p boundary_ids.
+   * Compute the centroid of a surface defined by the boundary ids in @p
+   * boundary_ids.
    */
   template <int dim>
   Point<dim>

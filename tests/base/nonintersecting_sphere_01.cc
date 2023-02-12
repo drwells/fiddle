@@ -11,7 +11,7 @@ template <int spacedim>
 void
 compute_and_print(const std::vector<Point<spacedim>> &points, std::ostream &out)
 {
-  const auto pair = fdl::find_largest_nonintersecting_sphere(points);
+  const auto pair = fdl::compute_largest_nonintersecting_sphere(points);
   out << "diagonal point: " << pair.first
       << " diagonal diameter: " << pair.second << '\n';
 }
