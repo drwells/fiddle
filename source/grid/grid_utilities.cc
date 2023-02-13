@@ -1,5 +1,6 @@
 #include <fiddle/base/exceptions.h>
 
+#include <deal.II/base/mpi.h>
 #include <deal.II/base/qprojector.h>
 #include <deal.II/base/quadrature_lib.h>
 
@@ -8,6 +9,12 @@
 #include <deal.II/fe/fe_nothing.h>
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/fe/mapping.h>
+#include <deal.II/fe/mapping_fe.h>
+#include <deal.II/fe/mapping_fe_field.h>
+#include <deal.II/fe/mapping_q.h>
+
+#include <deal.II/lac/la_parallel_vector.h>
+#include <deal.II/lac/vector.h>
 
 #include <vector>
 
@@ -325,6 +332,91 @@ namespace fdl
 #endif
   }
 
+  template <int dim>
+  Point<dim>
+  compute_centroid(const Mapping<dim>                    &mapping,
+                   const Triangulation<dim>              &tria,
+                   const std::vector<types::boundary_id> &boundary_ids)
+  {
+    unsigned int degree = 1;
+    // TODO - we need a better API for doing this in deal.II
+    if (const auto *p = dynamic_cast<
+          const MappingFEField<dim,
+                               dim,
+                               LinearAlgebra::distributed::Vector<double>> *>(
+          &mapping))
+      degree = p->get_degree();
+    else if (const auto *p =
+               dynamic_cast<const MappingFEField<dim, dim, Vector<double>> *>(
+                 &mapping))
+      degree = p->get_degree();
+    else if (const auto *p = dynamic_cast<const MappingQ<dim> *>(&mapping))
+      degree = p->get_degree();
+    else if (const auto *p = dynamic_cast<const MappingFE<dim> *>(&mapping))
+      degree = p->get_degree();
+    std::vector<types::boundary_id> sorted_boundary_ids = boundary_ids;
+    std::sort(sorted_boundary_ids.begin(), sorted_boundary_ids.end());
+    sorted_boundary_ids.erase(std::unique(sorted_boundary_ids.begin(),
+                                          sorted_boundary_ids.end()),
+                              sorted_boundary_ids.end());
+
+    Assert(tria.get_reference_cells().size() == 1, ExcFDLNotImplemented());
+    const ReferenceCell reference_cell = tria.get_reference_cells()[0];
+    Assert(reference_cell.is_simplex() || reference_cell.is_hyper_cube(),
+           ExcFDLNotImplemented());
+    Assert(boundary_ids.size() > 0,
+           ExcMessage("There should be at least one boundary id."));
+    const ReferenceCell reference_face = reference_cell.face_reference_cell(0);
+
+    const FE_Nothing<dim>     fe_nothing(reference_cell);
+    const Quadrature<dim - 1> quadrature =
+      reference_face.template get_gauss_type_quadrature<dim - 1>(degree + 1);
+    FEFaceValues<dim> face_values(mapping,
+                                  fe_nothing,
+                                  quadrature,
+                                  update_JxW_values | update_quadrature_points);
+
+    Tensor<1, dim> local_centroid;
+    double local_volume = 0.0;
+#ifdef DEBUG
+    std::size_t local_n_faces = 0;
+#endif
+    for (const auto &cell : tria.active_cell_iterators())
+      if (cell->is_locally_owned())
+        for (const auto &face : cell->face_iterators())
+          if (face->at_boundary() &&
+              std::binary_search(sorted_boundary_ids.begin(),
+                                 sorted_boundary_ids.end(),
+                                 face->boundary_id()))
+            {
+              face_values.reinit(cell, face);
+              for (unsigned int qp_n = 0; qp_n < quadrature.size(); ++qp_n)
+                {
+                  local_centroid +=
+                    face_values.quadrature_point(qp_n) * face_values.JxW(qp_n);
+                  local_volume += face_values.JxW(qp_n);
+                }
+#ifdef DEBUG
+              ++local_n_faces;
+#endif
+            }
+
+#ifdef DEBUG
+    const auto n_faces =
+      Utilities::MPI::sum(local_n_faces, tria.get_communicator());
+    Assert(n_faces > 0,
+           ExcMessage("There should be at least one face with one of the "
+                      "boundary ids."));
+#endif
+    const double volume =
+      Utilities::MPI::sum(local_volume, tria.get_communicator());
+    Assert(volume > 0, ExcFDLInternalError());
+    auto centroid =
+      Point<dim>(Utilities::MPI::sum(local_centroid, tria.get_communicator()));
+    centroid /= volume;
+    return centroid;
+  }
+
   template std::vector<float>
   compute_longest_edge_lengths(const Triangulation<NDIM - 1, NDIM> &,
                                const Mapping<NDIM - 1, NDIM> &,
@@ -346,4 +438,14 @@ namespace fdl
 
   template std::pair<std::vector<unsigned int>, std::vector<Point<NDIM>>>
   extract_nodeset<NDIM>(const std::string &filename, const int nodeset_id);
+
+  template Point<2>
+  compute_centroid(const Mapping<2> &,
+                   const Triangulation<2> &,
+                   const std::vector<types::boundary_id> &);
+
+  template Point<3>
+  compute_centroid(const Mapping<3> &,
+                   const Triangulation<3> &,
+                   const std::vector<types::boundary_id> &);
 } // namespace fdl

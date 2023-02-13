@@ -50,6 +50,15 @@ namespace fdl
   std::pair<std::vector<unsigned int>, std::vector<Point<spacedim>>>
   extract_nodeset(const std::string &filename,
                   const int          nodeset_id);
+
+  /**
+   * Compute the centroid of a surface defined by the boundary ids in @p boundary_ids.
+   */
+  template <int dim>
+  Point<dim>
+  compute_centroid(const Mapping<dim>                    &mapping,
+                   const Triangulation<dim>              &tria,
+                   const std::vector<types::boundary_id> &boundary_ids);
 } // namespace fdl
 
 #endif
