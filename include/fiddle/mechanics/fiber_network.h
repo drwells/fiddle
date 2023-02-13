@@ -20,6 +20,17 @@ namespace fdl
   public:
     /**
      * Constructor.
+     *
+     * @param tria The Triangulation over which fiber data is defined.
+     * @param fibers The vectors of fibers. The number of entries in each
+     * vector in @p fibers must equal the number of locally owned cells of @p
+     * on the current processor, and values in these vectors are indexed by
+     * the global active cell index (minus the current processor's offset).
+     *
+     * @note It is probably easiest to load this data from a set of scalar
+     * cell data vectors by setting up an FESystem<dim>(FE_SimplexP<dim>,
+     * dim), using the mechanism for loading FE data, and then converting that
+     * data vector into a vector of tensors.
      */
     FiberNetwork(const Triangulation<dim, spacedim>                  &tria,
                  const std::vector<std::vector<Tensor<1, spacedim>>> &fibers);
