@@ -366,7 +366,7 @@ namespace fdl
      * Constructor.
      */
     ModifiedNeoHookeanStress(
-      const Quadrature<dim> &                quad,
+      const Quadrature<dim>                 &quad,
       const double                           shear_modulus,
       const std::vector<types::material_id> &material_ids);
 
@@ -419,7 +419,7 @@ namespace fdl
      * Constructor.
      */
     ModifiedMooneyRivlinStress(
-      const Quadrature<dim> &                quad,
+      const Quadrature<dim>                 &quad,
       const double                           material_constant_1,
       const double                           material_constant_2,
       const std::vector<types::material_id> &material_ids);

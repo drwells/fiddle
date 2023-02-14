@@ -85,18 +85,20 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
   std::unique_ptr<FiniteElement<dim, spacedim>> F_fe;
   const unsigned int f_degree = test_db->getIntegerWithDefault("f_degree", 1);
-  const int   n_F_components = test_db->getDatabase("f")->getAllKeys().getSize();
+  const int n_F_components = test_db->getDatabase("f")->getAllKeys().getSize();
   if (test_db->getBoolWithDefault("discontinuous_fe", false) == true)
     {
       if (n_F_components > 1)
-        F_fe = std::make_unique<FESystem<dim, spacedim>>(FE_DGQ<dim, spacedim>(f_degree), n_F_components);
+        F_fe = std::make_unique<FESystem<dim, spacedim>>(
+          FE_DGQ<dim, spacedim>(f_degree), n_F_components);
       else
         F_fe = std::make_unique<FE_DGQ<dim, spacedim>>(f_degree);
     }
   else
     {
       if (n_F_components > 1)
-        F_fe = std::make_unique<FESystem<dim, spacedim>>(FE_Q<dim, spacedim>(f_degree), n_F_components);
+        F_fe = std::make_unique<FESystem<dim, spacedim>>(
+          FE_Q<dim, spacedim>(f_degree), n_F_components);
       else
         F_fe = std::make_unique<FE_Q<dim, spacedim>>(f_degree);
     }
@@ -145,11 +147,10 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
       interaction.compute_projection_rhs_intermediate(std::move(transaction));
     interaction.compute_projection_rhs_finish(std::move(transaction));
 
-    FunctionParser<spacedim> fp(
-      extract_fp_string(test_db->getDatabase("f")),
-      "PI=" + std::to_string(numbers::PI),
-      "X_0,X_1");
-    Vector<float> error(native_tria.n_active_cells());
+    FunctionParser<spacedim> fp(extract_fp_string(test_db->getDatabase("f")),
+                                "PI=" + std::to_string(numbers::PI),
+                                "X_0,X_1");
+    Vector<float>            error(native_tria.n_active_cells());
     interpolated_F.update_ghost_values();
     VectorTools::integrate_difference(F_dof_handler,
                                       interpolated_F,

@@ -227,7 +227,7 @@ namespace fdl
                         // These should be equal but are not after we refine
                         // the grid a few times
                         Assert((child->center() - native_child->center())
-                                 .norm() < 1e-12,
+                                   .norm() < 1e-12,
                                ExcFDLInternalError());
                         child->set_user_index(add_native_cell(native_child));
                         child->set_subdomain_id(0);

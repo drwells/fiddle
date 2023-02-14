@@ -53,6 +53,9 @@ to a non-default location (e.g., inside your home directory).
 - (WIP) examples.
 
 # Style Guide
+
+## General Advice
+
 1. "The lost art of structured programming": code is built recursively out of
    other code. Expose this structure as much as possible. A thousand-line
    function is basically impossible to understand or debug (code complexity
@@ -82,3 +85,11 @@ to a non-default location (e.g., inside your home directory).
    those inheriting from `IBStrategy`) should mess with `RestartManager`.
    Singletons and other global state make programs much more difficult to
    understand and impede interoperability.
+
+## Naming Functions
+
+1. When a function returns a currently available (i.e., no MPI communication or
+   computation necessary) value: use `get_`.
+2. When a function computes a subset of an existing thing: use `extract_`.
+3. When a function combines a subset of an existing thing: use `combine_`.
+4. When a function computes values: use `compute_`.

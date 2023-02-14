@@ -1,6 +1,6 @@
 #include <fiddle/base/exceptions.h>
 
-#include <fiddle/postprocess/meter_mesh.h>
+#include <fiddle/postprocess/surface_meter.h>
 
 #include <deal.II/base/function.h>
 #include <deal.II/base/function_parser.h>
@@ -11,9 +11,9 @@
 #include <deal.II/dofs/dof_tools.h>
 
 #include <deal.II/fe/fe_nothing.h>
-#include <deal.II/fe/fe_values.h>
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/fe_values.h>
 #include <deal.II/fe/mapping_fe_field.h>
 #include <deal.II/fe/mapping_q.h>
 
@@ -95,16 +95,17 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     position.local_element(i) += 0.4;
   position.update_ghost_values();
 
-  MappingFEField<dim, spacedim, decltype(position)> position_mapping(dof_handler, position);
+  MappingFEField<dim, spacedim, decltype(position)> position_mapping(
+    dof_handler, position);
   VectorTools::interpolate(position_mapping, dof_handler, fp, velocity);
   velocity.update_ghost_values();
 
-  fdl::MeterMesh<dim, spacedim> meter_mesh(mapping,
-                                           dof_handler,
-                                           bounding_disk_points,
-                                           patch_hierarchy,
-                                           position,
-                                           velocity);
+  fdl::SurfaceMeter<dim, spacedim> meter_mesh(mapping,
+                                              dof_handler,
+                                              bounding_disk_points,
+                                              patch_hierarchy,
+                                              position,
+                                              velocity);
 
   std::ofstream output;
   if (rank == 0)
@@ -146,7 +147,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     }
 
     Tensor<1, spacedim> mean_velocity;
-    double area = 0.0;
+    double              area = 0.0;
     if (dim == 3)
       {
         // Avoid funky linker errors in 2D by manually implementing the
@@ -157,13 +158,16 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
         std::vector<double> weights;
         weights.emplace_back(0.5);
         weights.emplace_back(0.5);
-        const Triangulation<dim - 1, spacedim> &meter_tria = meter_mesh.get_triangulation();
+        const Triangulation<dim - 1, spacedim> &meter_tria =
+          meter_mesh.get_triangulation();
         Quadrature<dim - 2>           face_quadrature(points, weights);
-        FE_Nothing<dim - 1, spacedim> fe_nothing(meter_tria.get_reference_cells()[0]);
+        FE_Nothing<dim - 1, spacedim> fe_nothing(
+          meter_tria.get_reference_cells()[0]);
         FEFaceValues<dim - 1, spacedim> face_values(meter_mesh.get_mapping(),
                                                     fe_nothing,
                                                     face_quadrature,
-                                                    update_JxW_values | update_quadrature_points);
+                                                    update_JxW_values |
+                                                      update_quadrature_points);
         for (const auto &cell : meter_tria.active_cell_iterators())
           for (unsigned int face_no : cell->face_indices())
             if (cell->face(face_no)->at_boundary())

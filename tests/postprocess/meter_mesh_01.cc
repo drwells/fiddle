@@ -1,6 +1,6 @@
 #include <fiddle/base/exceptions.h>
 
-#include <fiddle/postprocess/meter_mesh.h>
+#include <fiddle/postprocess/surface_meter.h>
 
 #include <deal.II/base/function.h>
 #include <deal.II/base/function_parser.h>
@@ -70,13 +70,13 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   convex_hull.emplace_back(convex_hull.front());
   std::vector<Tensor<1, dim>> velocities(convex_hull.size());
 
-  fdl::MeterMesh<dim, spacedim> meter_mesh(convex_hull,
-                                           velocities,
-                                           patch_hierarchy);
+  fdl::SurfaceMeter<dim, spacedim> meter_mesh(convex_hull,
+                                              velocities,
+                                              patch_hierarchy);
 
   // do the actual test:
   const double interpolated_mean_value =
-    meter_mesh.mean_value(f_idx, "BSPLINE_3");
+    meter_mesh.compute_mean_value(f_idx, "BSPLINE_3");
   double nodal_mean_value = 0.0;
   {
     FunctionParser<spacedim> fp(extract_fp_string(test_db->getDatabase("f")),

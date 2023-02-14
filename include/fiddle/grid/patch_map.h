@@ -127,8 +127,8 @@ namespace fdl
       // only let a PatchMap construct these iterators directly
       iterator(const std::ptrdiff_t             index,
                const DoFHandler<dim, spacedim> &dof_handler,
-               const std::vector<IndexSet> &    patch_level_cells,
-               const std::vector<std::size_t> & patch_cummulative_n_cells)
+               const std::vector<IndexSet>     &patch_level_cells,
+               const std::vector<std::size_t>  &patch_cummulative_n_cells)
         : dh(&dof_handler)
         , level_cells(&patch_level_cells)
         , cummulative_n_cells(&patch_cummulative_n_cells)
@@ -137,7 +137,7 @@ namespace fdl
 
       const DoFHandler<dim, spacedim> *dh;
 
-      const std::vector<IndexSet> *   level_cells;
+      const std::vector<IndexSet>    *level_cells;
       const std::vector<std::size_t> *cummulative_n_cells;
 
       std::ptrdiff_t index;

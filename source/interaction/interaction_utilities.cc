@@ -630,7 +630,8 @@ namespace fdl
     const Vector<double>               &position,
     Vector<double>                     &interpolated_values)
   {
-    // Early exit if there is nothing to do (otherwise the modulus operations fail)
+    // Early exit if there is nothing to do (otherwise the modulus operations
+    // fail)
     if (position.size() == 0 || interpolated_values.size() == 0)
       {
         Assert(position.size() == 0 && interpolated_values.size() == 0,
@@ -1008,7 +1009,8 @@ namespace fdl
                                 const Vector<double>         &position,
                                 const Vector<double>         &spread_values)
   {
-    // Early exit if there is nothing to do (otherwise the modulus operations fail)
+    // Early exit if there is nothing to do (otherwise the modulus operations
+    // fail)
     if (position.size() == 0 || spread_values.size() == 0)
       {
         Assert(position.size() == 0 && spread_values.size() == 0,

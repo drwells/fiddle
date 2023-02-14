@@ -95,7 +95,7 @@ namespace fdl
     /**
      * Constructor. Assumes ownership of the provided parts.
      */
-    IFEDMethod(const std::string &                object_name,
+    IFEDMethod(const std::string                 &object_name,
                tbox::Pointer<tbox::Database>      input_db,
                std::vector<Part<dim, spacedim>> &&input_parts,
                const bool                         register_for_restart = true);
@@ -126,7 +126,7 @@ namespace fdl
       const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>>
         &u_synch_scheds,
       const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
-        &    u_ghost_fill_scheds,
+            &u_ghost_fill_scheds,
       int    integrator_step,
       double init_data_time,
       bool   initial_time) override;
@@ -144,14 +144,14 @@ namespace fdl
       const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>>
         &u_synch_scheds,
       const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
-        &    u_ghost_fill_scheds,
+            &u_ghost_fill_scheds,
       double data_time) override;
 
     virtual void
     spreadForce(int                               f_data_index,
                 IBTK::RobinPhysBdryPatchStrategy *f_phys_bdry_op,
                 const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
-                  &    f_prolongation_scheds,
+                      &f_prolongation_scheds,
                 double data_time) override;
 
     /**

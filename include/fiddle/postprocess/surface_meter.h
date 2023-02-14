@@ -30,7 +30,9 @@ namespace fdl
    *
    * This class constructs a codimension one mesh in a dimension-dependent way:
    *
-   * - in 3D, the provided points are treated as a convex hull.
+   * - in 3D, the provided points are treated as a closed loop surrounding some
+   *   surface. Nearest points will be connected by line segments to form the
+   *   boundary of a triangulation.
    * - in 2D, the provided points are treated as line segments - i.e., each
    *   adjacent pair of points define at least one element.
    *
@@ -57,7 +59,7 @@ namespace fdl
    * std::nexttoward().
    */
   template <int dim, int spacedim = dim>
-  class MeterMesh
+  class SurfaceMeter
   {
   public:
     /**
@@ -74,18 +76,19 @@ namespace fdl
      * typically come from a node set defined on the Triangulation associated
      * with @p dof_handler.
      */
-    MeterMesh(const Mapping<dim, spacedim>       &mapping,
-              const DoFHandler<dim, spacedim>    &position_dof_handler,
-              const std::vector<Point<spacedim>> &convex_hull,
-              tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
-              const LinearAlgebra::distributed::Vector<double> &position,
-              const LinearAlgebra::distributed::Vector<double> &velocity);
+    SurfaceMeter(
+      const Mapping<dim, spacedim>                     &mapping,
+      const DoFHandler<dim, spacedim>                  &position_dof_handler,
+      const std::vector<Point<spacedim>>               &convex_hull,
+      tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
+      const LinearAlgebra::distributed::Vector<double> &position,
+      const LinearAlgebra::distributed::Vector<double> &velocity);
 
     /**
      * Alternate constructor which uses purely nodal data instead of finite
      * element fields.
      */
-    MeterMesh(
+    SurfaceMeter(
       const std::vector<Point<spacedim>>               &convex_hull,
       const std::vector<Tensor<1, spacedim>>           &velocity,
       tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy);
@@ -174,10 +177,11 @@ namespace fdl
      * update ghost data.
      */
     double
-    mean_value(const int data_idx, const std::string &kernel_name);
+    compute_mean_value(const int data_idx, const std::string &kernel_name);
 
     /**
-     * Return the centroid of the meter mesh. This point may not be inside the mesh.
+     * Return the centroid of the meter mesh. This point may not be inside the
+     * mesh.
      */
     Point<spacedim>
     get_centroid() const;
@@ -187,7 +191,8 @@ namespace fdl
     reinit_tria(const std::vector<Point<spacedim>> &convex_hull);
 
     void
-    reinit_mean_velocity(const std::vector<Tensor<1, spacedim>> &velocity_values);
+    reinit_mean_velocity(
+      const std::vector<Tensor<1, spacedim>> &velocity_values);
 
     /**
      * Original Mapping.
@@ -273,42 +278,42 @@ namespace fdl
 
   template <int dim, int spacedim>
   Point<spacedim>
-  MeterMesh<dim, spacedim>::get_centroid() const
+  SurfaceMeter<dim, spacedim>::get_centroid() const
   {
     return centroid;
   }
 
   template <int dim, int spacedim>
   Tensor<1, spacedim>
-  MeterMesh<dim, spacedim>::get_mean_velocity() const
+  SurfaceMeter<dim, spacedim>::get_mean_velocity() const
   {
     return mean_velocity;
   }
 
   template <int dim, int spacedim>
   inline const Mapping<dim - 1, spacedim> &
-  MeterMesh<dim, spacedim>::get_mapping() const
+  SurfaceMeter<dim, spacedim>::get_mapping() const
   {
     return *meter_mapping;
   }
 
   template <int dim, int spacedim>
   inline const Triangulation<dim - 1, spacedim> &
-  MeterMesh<dim, spacedim>::get_triangulation() const
+  SurfaceMeter<dim, spacedim>::get_triangulation() const
   {
     return meter_tria;
   }
 
   template <int dim, int spacedim>
   inline const DoFHandler<dim - 1, spacedim> &
-  MeterMesh<dim, spacedim>::get_scalar_dof_handler() const
+  SurfaceMeter<dim, spacedim>::get_scalar_dof_handler() const
   {
     return scalar_dof_handler;
   }
 
   template <int dim, int spacedim>
   inline const DoFHandler<dim - 1, spacedim> &
-  MeterMesh<dim, spacedim>::get_vector_dof_handler() const
+  SurfaceMeter<dim, spacedim>::get_vector_dof_handler() const
   {
     return vector_dof_handler;
   }

@@ -48,10 +48,10 @@ namespace fdl
   class DLMForce : public SpringForce<dim, spacedim>
   {
   public:
-    DLMForce(const Quadrature<dim> &          quad,
+    DLMForce(const Quadrature<dim>           &quad,
              const double                     spring_constant,
              const DoFHandler<dim, spacedim> &dof_handler,
-             DLMMethodBase<dim, spacedim> &   dlm);
+             DLMMethodBase<dim, spacedim>    &dlm);
 
     /**
      * Set up the force at time @p time given the position and velocity of the

@@ -13,8 +13,8 @@ namespace fdl
   template <int dim, int spacedim>
   NodalPatchMap<dim, spacedim>::NodalPatchMap(
     const std::vector<tbox::Pointer<hier::Patch<spacedim>>> &patches,
-    const std::vector<std::vector<BoundingBox<spacedim>>> &patch_bboxes,
-    const Vector<double> &nodal_coordinates)
+    const std::vector<std::vector<BoundingBox<spacedim>>>   &patch_bboxes,
+    const Vector<double>                                    &nodal_coordinates)
   {
     reinit(patches, patch_bboxes, nodal_coordinates);
   }
@@ -25,8 +25,8 @@ namespace fdl
   void
   NodalPatchMap<dim, spacedim>::reinit(
     const std::vector<tbox::Pointer<hier::Patch<spacedim>>> &patches,
-    const std::vector<std::vector<BoundingBox<spacedim>>> &patch_bboxes,
-    const Vector<double> &nodal_coordinates)
+    const std::vector<std::vector<BoundingBox<spacedim>>>   &patch_bboxes,
+    const Vector<double>                                    &nodal_coordinates)
   {
     AssertDimension(patches.size(), patch_bboxes.size());
     if (patches.size() == 0)

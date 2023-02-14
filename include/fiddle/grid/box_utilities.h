@@ -13,8 +13,8 @@ FDL_ENABLE_EXTRA_DIAGNOSTICS
 
 #include <deal.II/fe/mapping.h>
 
-#include <Patch.h>
 #include <BasePatchLevel.h>
+#include <Patch.h>
 
 #include <vector>
 
@@ -61,7 +61,7 @@ namespace fdl
   template <int dim, int spacedim = dim, typename Number = double>
   std::vector<BoundingBox<spacedim, Number>>
   compute_cell_bboxes(const DoFHandler<dim, spacedim> &dof_handler,
-                      const Mapping<dim, spacedim> &   mapping);
+                      const Mapping<dim, spacedim>    &mapping);
 
   /**
    * Collect all bounding boxes on all processors.
@@ -77,7 +77,7 @@ namespace fdl
    */
   template <int spacedim>
   BoundingBox<spacedim>
-  box_to_bbox(const hier::Box<spacedim> &box,
+  box_to_bbox(const hier::Box<spacedim>                           &box,
               const tbox::Pointer<hier::BasePatchLevel<spacedim>> &patch_level);
 
   // --------------------------- inline functions --------------------------- //

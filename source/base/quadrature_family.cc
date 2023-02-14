@@ -125,10 +125,11 @@ namespace fdl
                                                   pairs[i].second);
                     Assert(new_quad.size() == n_points, ExcFDLInternalError());
                     const double point_distance =
-                      new_quad.size() < 2 ? 1.0 :
-                                            find_largest_nonintersecting_sphere(
-                                              new_quad.get_points())
-                                              .second;
+                      new_quad.size() < 2 ?
+                        1.0 :
+                        compute_largest_nonintersecting_sphere(
+                          new_quad.get_points())
+                          .second;
 
                     // If we have the same number of points, pick the rule with
                     // better spacing
@@ -384,7 +385,7 @@ namespace fdl
                         const auto points =
                           map_to_equilateral_simplex(new_quad.get_points());
                         point_distance =
-                          find_largest_nonintersecting_sphere(points).second;
+                          compute_largest_nonintersecting_sphere(points).second;
                       }
 
                     // If we have the same number of points, pick the rule with

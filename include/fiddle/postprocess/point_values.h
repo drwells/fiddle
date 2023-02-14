@@ -38,8 +38,8 @@ namespace fdl
      * Part::get_mapping() and @p evaluation_points should be points in the
      * reference configuration, i.e., points inside the Triangulation itself).
      */
-    PointValues(const Mapping<dim, spacedim> &      mapping,
-                const DoFHandler<dim, spacedim> &   dof_handler,
+    PointValues(const Mapping<dim, spacedim>       &mapping,
+                const DoFHandler<dim, spacedim>    &dof_handler,
                 const std::vector<Point<spacedim>> &evaluation_points);
 
     /**

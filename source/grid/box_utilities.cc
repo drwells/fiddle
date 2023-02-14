@@ -231,7 +231,8 @@ namespace fdl
       {
         if (dim == spacedim)
           {
-            Assert(bbox.volume() > 0, ExcMessage("bboxes should not be empty."));
+            Assert(bbox.volume() > 0,
+                   ExcMessage("bboxes should not be empty."));
           }
         else
           {

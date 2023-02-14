@@ -23,11 +23,11 @@ namespace fdl
    */
   template <int dim, int spacedim, typename VectorType>
   void
-  read_elemental_data(const std::string &                 filename,
+  read_elemental_data(const std::string                  &filename,
                       const Triangulation<dim, spacedim> &tria,
                       const int                           time_step_n,
-                      const std::string &                 var_name,
-                      VectorType &                        cell_vector);
+                      const std::string                  &var_name,
+                      VectorType                         &cell_vector);
 
   /**
    * @brief Read DoF data from an ExodusII file. At this time higher-order 3D
@@ -46,9 +46,9 @@ namespace fdl
    */
   template <int dim, int spacedim, typename VectorType>
   void
-  read_dof_data(const std::string &              filename,
+  read_dof_data(const std::string               &filename,
                 const DoFHandler<dim, spacedim> &dof_handler,
                 const int                        time_step_n,
-                const std::vector<std::string> & variable_names,
-                VectorType &                     dof_vector);
+                const std::vector<std::string>  &variable_names,
+                VectorType                      &dof_vector);
 } // namespace fdl
