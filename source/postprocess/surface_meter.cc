@@ -84,16 +84,15 @@ namespace fdl
       {
         Assert(boundary_points.size() > 2, ExcFDLInternalError());
 
-        create_planar_triangulation(boundary_points, tria, additional_data);
+        {
+        }
 
         // the input may be a parallel Triangulation, so copy back-and-forth
-        {
-          Triangulation<2, 3> serial_tria;
-          serial_tria.copy_triangulation(tria);
-          fit_boundary_vertices(boundary_points, serial_tria);
-          tria.clear();
-          tria.copy_triangulation(serial_tria);
-        }
+        Triangulation<2, 3> serial_tria;
+        create_planar_triangulation(boundary_points, serial_tria, additional_data);
+        fit_boundary_vertices(boundary_points, serial_tria);
+        tria.clear();
+        tria.copy_triangulation(serial_tria);
       }
 #endif
     } // namespace

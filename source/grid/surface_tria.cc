@@ -1,3 +1,5 @@
+#include <fiddle/base/exceptions.h>
+
 #include <fiddle/grid/surface_tria.h>
 
 #include <deal.II/base/quadrature.h>
@@ -39,8 +41,7 @@ namespace fdl
                        Triangulation<2>              &tria,
                        const Triangle::AdditionalData additional_data)
   {
-    static_assert(sizeof(Point<2>) == 2 * sizeof(double),
-                  "format should be packed");
+    AssertThrow(boundary_vertices.size() >= 3, ExcFDLNotImplemented());
 
     // C structures are not initialized by default - zero everything
     triangulateio in, out;
@@ -49,12 +50,19 @@ namespace fdl
 
     in.numberofpoints          = boundary_vertices.size();
     in.numberofpointattributes = 0;
-    in.pointlist               = const_cast<double *>(
-      reinterpret_cast<const double *>(boundary_vertices.data()));
 
-    in.numberofsegments = boundary_vertices.size();
-    std::vector<int> segments(in.numberofsegments * 2,
+    std::vector<double> pointlist;
+    pointlist.reserve(boundary_vertices.size() * 2);
+    for (const Point<2> &p : boundary_vertices)
+      {
+        pointlist.push_back(p[0]);
+        pointlist.push_back(p[1]);
+      }
+    in.pointlist = pointlist.data();
+
+    std::vector<int> segments(boundary_vertices.size() * 2,
                               std::numeric_limits<int>::max());
+    in.numberofsegments = boundary_vertices.size();
     in.segmentlist = segments.data();
 
     // Determine segments based on the closest vertex.
@@ -77,16 +85,17 @@ namespace fdl
             if (v != vertex_no && n_vertex_segments[v] == 0 &&
                 segments[v * 2 + 1] != vertex_no)
               {
-                bool in_cone = true;
-                if (previous_vertex_no != std::numeric_limits<int>::max())
-                  {
-                    const Tensor<1, 2> t0 =
-                      boundary_vertices[vertex_no] -
-                      boundary_vertices[previous_vertex_no];
-                    const Tensor<1, 2> t1 =
-                      boundary_vertices[v] - boundary_vertices[vertex_no];
-                    in_cone = t0 * t1 > 0;
-                  }
+                  Tensor<1, 2> t0;
+                if (previous_vertex_no == std::numeric_limits<int>::max())
+                  // If there is no previous point, arbitrarily assume we are
+                  // going from vertex 1 (whereever that may be)
+                  t0 = boundary_vertices[vertex_no] - boundary_vertices[1];
+                else
+                  t0 = boundary_vertices[vertex_no]
+                    - boundary_vertices[previous_vertex_no];
+                const Tensor<1, 2> t1 =
+                  boundary_vertices[v] - boundary_vertices[vertex_no];
+                const bool in_cone = t0 * t1 > 0;
                 const double new_distance =
                   boundary_vertices[vertex_no].distance_square(
                     boundary_vertices[v]);
@@ -151,9 +160,9 @@ namespace fdl
                       "Each vertex should be part of exactly two segments."));
     }
 
-    // use a (p)SLG, index from (z)ero, (Q)uiet output, element (q)uality (min
-    // angle in degrees)
-    std::string flags("pzQq");
+    // use a (p)SLG, index from (z)ero, (Q)uiet output, do a (C)onsistency
+    // check, element (q)uality (min angle in degrees)
+    std::string flags("pzQCq");
     Assert(additional_data.min_angle > 0.0,
            ExcMessage("The minimum angle must be larger than zero.")) flags +=
       std::to_string(additional_data.min_angle);
