@@ -75,6 +75,13 @@ namespace fdl
      * boundary of the meter mesh. These points typically outline a disk and
      * typically come from a node set defined on the Triangulation associated
      * with @p dof_handler.
+     *
+     * @warning This function uses PointValues to compute the positions of the
+     * nodes, which may, in parallel, give slightly different results (on the
+     * level of machine precision) based on the cell partitioning. In unusual
+     * cases this can cause Triangle to generate slightly different
+     * triangulations - i.e., the exact meter Triangulation may depend on the
+     * number of processors.
      */
     SurfaceMeter(
       const Mapping<dim, spacedim>                     &mapping,

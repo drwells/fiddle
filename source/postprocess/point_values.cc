@@ -38,6 +38,7 @@ namespace fdl
     : mapping(&mapping)
     , dof_handler(&dof_handler)
     , evaluation_points(evaluation_points)
+    , remote_point_evaluation(1e-12, true)
   {}
 
   template <int n_components, int dim, int spacedim>
