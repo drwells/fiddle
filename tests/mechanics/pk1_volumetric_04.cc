@@ -94,7 +94,7 @@ test(const Mapping<dim, spacedim>                     &mapping,
 }
 
 int
-main(int argc, char **argv)
+main()
 {
   constexpr int fe_degree     = 2;
   constexpr int n_refinements = 2;

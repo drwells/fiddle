@@ -141,10 +141,10 @@ SETUP(mechanics pk1_volumetric_04.cc fiddle2d)
 SETUP(mechanics force_volumetric_01.cc fiddle2d)
 SETUP(mechanics force_volumetric_02.cc fiddle2d)
 SETUP(mechanics force_boundary_01.cc fiddle2d)
+SETUP(mechanics force_boundary_02.cc fiddle2d)
 
 SETUP(mechanics spring_01.cc fiddle2d)
 
-SETUP(mechanics orthogonal_spring_dashpot_01.cc fiddle2d)
 SETUP(mechanics fiber_network_01.cc fiddle2d)
 
 # postprocess:

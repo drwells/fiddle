@@ -260,6 +260,71 @@ namespace fdl
   };
 
   /**
+   * Boundary force corresponding to a known normal force:
+   *
+   *     F(t, X) = -P(t) N(X)
+   *     P(t) = loaded_force min(t, load_time) / load_time
+   *
+   * in which N is a normal vector in the deformed configuration, loaded_force
+   * is the orthogonal (and only) component of the force at time load_time and
+   * t is the current time.
+   */
+  template <int dim, int spacedim = dim, typename Number = double>
+  class OrthogonalLinearLoadForce : public ForceContribution<dim, spacedim, double>
+  {
+  public:
+    /**
+     * Constructor.
+     */
+    OrthogonalLinearLoadForce(const Quadrature<dim - 1> &quad,
+                                    const double         load_time,
+                                    const double         loaded_force);
+
+    /**
+     * Constructor.
+     *
+     * @note if @p boundary_ids is empty then the force will not be applied on
+     * any boundary.
+     */
+    OrthogonalLinearLoadForce(
+      const Quadrature<dim - 1>             &quad,
+      const double                           load_time,
+      const double                           loaded_force,
+      const std::vector<types::boundary_id> &boundary_ids);
+
+    /**
+     * Get the update flags this force contribution requires for MechanicsValues
+     * objects.
+     */
+    virtual MechanicsUpdateFlags
+    get_mechanics_update_flags() const override;
+
+    /**
+     * Define this force as boundary force.
+     */
+    virtual bool
+    is_boundary_force() const override;
+
+    /**
+     * Compute the boundary force.
+     */
+    virtual void
+    compute_boundary_force(
+      const double                          time,
+      const MechanicsValues<dim, spacedim> &m_values,
+      const typename Triangulation<dim, spacedim>::active_face_iterator
+        & face,
+      ArrayView<Tensor<1, spacedim, Number>> &forces) const override;
+
+  protected:
+    double load_time;
+
+    double loaded_force;
+
+    std::vector<types::boundary_id> boundary_ids;
+  };
+
+  /**
    * Pericardium Model Boundary Force
    * F = n * ( k_spring * ( X_ref - x ) - k_damping * U ) * n
    */
@@ -365,6 +430,15 @@ namespace fdl
     /**
      * Constructor.
      */
+    ModifiedNeoHookeanStress(const Quadrature<dim> &quad,
+                             const double           shear_modulus);
+
+    /**
+     * Constructor.
+     *
+     * @note Like elsewhere, if material_ids is empty then this stress will
+     * not be used on any cell.
+     */
     ModifiedNeoHookeanStress(
       const Quadrature<dim>                 &quad,
       const double                           shear_modulus,
@@ -417,6 +491,17 @@ namespace fdl
   public:
     /**
      * Constructor.
+     */
+    ModifiedMooneyRivlinStress(
+      const Quadrature<dim>                 &quad,
+      const double                           material_constant_1,
+      const double                           material_constant_2);
+
+    /**
+     * Constructor.
+     *
+     * @note Like elsewhere, if material_ids is empty then this stress will
+     * not be used on any cell.
      */
     ModifiedMooneyRivlinStress(
       const Quadrature<dim>                 &quad,
