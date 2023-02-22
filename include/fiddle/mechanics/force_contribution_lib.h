@@ -365,6 +365,15 @@ namespace fdl
     /**
      * Constructor.
      */
+    ModifiedNeoHookeanStress(const Quadrature<dim> &quad,
+                             const double           shear_modulus);
+
+    /**
+     * Constructor.
+     *
+     * @note Like elsewhere, if material_ids is empty then this stress will
+     * not be used on any cell.
+     */
     ModifiedNeoHookeanStress(
       const Quadrature<dim>                 &quad,
       const double                           shear_modulus,
@@ -417,6 +426,17 @@ namespace fdl
   public:
     /**
      * Constructor.
+     */
+    ModifiedMooneyRivlinStress(
+      const Quadrature<dim>                 &quad,
+      const double                           material_constant_1,
+      const double                           material_constant_2);
+
+    /**
+     * Constructor.
+     *
+     * @note Like elsewhere, if material_ids is empty then this stress will
+     * not be used on any cell.
      */
     ModifiedMooneyRivlinStress(
       const Quadrature<dim>                 &quad,

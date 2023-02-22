@@ -38,7 +38,17 @@ namespace fdl
       return result;
     }
 
-    // set up either material or boundary ids
+    /**
+     * We presently handle 'apply the force on a subset of material or
+     * boundary ids' in the following way:
+     *
+     * 1. If the constructor does not take a vector of ids then we do not call
+     *    this function and the array of ids is empty. In that case we apply
+     *    the function on all cells / boundary faces.
+     * 2. If the constructor does take a vector of ids then we sort and
+     *    uniquify the input. If that vector is empty then we signify 'do not
+     *    apply this force' by adding a single invalid value to the array.
+     */
     template <typename id_type>
     std::vector<id_type>
     setup_ids(const std::vector<id_type> &ids, const id_type invalid_id)
@@ -531,6 +541,19 @@ namespace fdl
       }
   }
 
+  //
+  // ModifiedNeoHookeanStress
+  //
+
+  template <int dim, int spacedim, typename Number>
+  ModifiedNeoHookeanStress<dim, spacedim, Number>::ModifiedNeoHookeanStress(
+    const Quadrature<dim>                 &quad,
+    const double                           shear_modulus)
+    : ForceContribution<dim, spacedim, Number>(quad)
+    , shear_modulus(shear_modulus)
+  {
+  }
+
   template <int dim, int spacedim, typename Number>
   ModifiedNeoHookeanStress<dim, spacedim, Number>::ModifiedNeoHookeanStress(
     const Quadrature<dim>                 &quad,
@@ -538,13 +561,8 @@ namespace fdl
     const std::vector<types::material_id> &material_ids)
     : ForceContribution<dim, spacedim, Number>(quad)
     , shear_modulus(shear_modulus)
-    , material_ids(material_ids)
+    , material_ids(setup_ids(material_ids, numbers::invalid_material_id))
   {
-    // permit duplicates in the input array
-    std::sort(this->material_ids.begin(), this->material_ids.end());
-    this->material_ids.erase(std::unique(this->material_ids.begin(),
-                                         this->material_ids.end()),
-                             this->material_ids.end());
   }
 
   template <int dim, int spacedim, typename Number>
@@ -595,6 +613,21 @@ namespace fdl
       }
   }
 
+  //
+  // ModifiedMooneyRivlinStress
+  //
+
+  template <int dim, int spacedim, typename Number>
+  ModifiedMooneyRivlinStress<dim, spacedim, Number>::ModifiedMooneyRivlinStress(
+    const Quadrature<dim>                 &quad,
+    const double                           material_constant_1,
+    const double                           material_constant_2)
+    : ForceContribution<dim, spacedim, Number>(quad)
+    , material_constant_1(material_constant_1)
+    , material_constant_2(material_constant_2)
+  {
+  }
+
   template <int dim, int spacedim, typename Number>
   ModifiedMooneyRivlinStress<dim, spacedim, Number>::ModifiedMooneyRivlinStress(
     const Quadrature<dim>                 &quad,
@@ -604,13 +637,8 @@ namespace fdl
     : ForceContribution<dim, spacedim, Number>(quad)
     , material_constant_1(material_constant_1)
     , material_constant_2(material_constant_2)
-    , material_ids(material_ids)
+    , material_ids(setup_ids(material_ids, numbers::invalid_material_id))
   {
-    // permit duplicates in the input array
-    std::sort(this->material_ids.begin(), this->material_ids.end());
-    this->material_ids.erase(std::unique(this->material_ids.begin(),
-                                         this->material_ids.end()),
-                             this->material_ids.end());
   }
 
   template <int dim, int spacedim, typename Number>
