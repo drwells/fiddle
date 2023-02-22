@@ -398,8 +398,92 @@ namespace fdl
   }
 
   //
-  // OrthogonalKelvinVoigtForce
+  // OrthogonalLinearLoadForce
   //
+
+  template <int dim, int spacedim, typename Number>
+  OrthogonalLinearLoadForce<dim, spacedim, Number>::
+    OrthogonalLinearLoadForce(
+      const Quadrature<dim - 1>             &quad,
+      const double                           load_time,
+      const double                           loaded_force)
+    : ForceContribution<dim, spacedim, Number>(quad)
+    , load_time(load_time)
+    , loaded_force(loaded_force)
+  {}
+
+  template <int dim, int spacedim, typename Number>
+  OrthogonalLinearLoadForce<dim, spacedim, Number>::
+    OrthogonalLinearLoadForce(
+      const Quadrature<dim - 1>             &quad,
+      const double                           load_time,
+      const double                           loaded_force,
+      const std::vector<types::boundary_id> &boundary_ids)
+    : ForceContribution<dim, spacedim, Number>(quad)
+    , load_time(load_time)
+    , loaded_force(loaded_force)
+    , boundary_ids(setup_ids(boundary_ids, numbers::invalid_boundary_id))
+  {}
+
+  template <int dim, int spacedim, typename Number>
+  MechanicsUpdateFlags
+  OrthogonalLinearLoadForce<dim, spacedim, Number>::
+    get_mechanics_update_flags() const
+  {
+    return MechanicsUpdateFlags::update_deformed_normal_vectors;
+  }
+
+  template <int dim, int spacedim, typename Number>
+  bool
+  OrthogonalLinearLoadForce<dim, spacedim, Number>::is_boundary_force() const
+  {
+    return true;
+  }
+
+  template <int dim, int spacedim, typename Number>
+  void
+  OrthogonalLinearLoadForce<dim, spacedim, Number>::compute_boundary_force(
+    const double time,
+    const MechanicsValues<dim, spacedim>                              &m_values,
+    const typename Triangulation<dim, spacedim>::active_face_iterator &face,
+    ArrayView<Tensor<1, spacedim, Number>> &forces) const
+  {
+    if (this->boundary_ids.size() > 0 &&
+        !std::binary_search(this->boundary_ids.begin(),
+                            this->boundary_ids.end(),
+                            face->boundary_id()))
+      {
+        // the user specified a subset of boundary ids and we currently don't
+        // match - fill with zeros
+        for (auto &force : forces)
+          force = 0.0;
+      }
+    else
+      {
+        Assert(forces.size() = this->face_quadrature.size(), ExcInternalError());
+
+        // Try to avoid doing a division
+        double force = 0.0;
+        if (time >= load_time)
+          force = loaded_force;
+        else
+          {
+            Assert(load_time != 0.0,
+                   ExcMessage("The load time cannot be zero if we start at a "
+                              "negative time."));
+            force = loaded_force * std::min(time, load_time) / load_time;
+          }
+
+        for (unsigned int qp_n = 0; qp_n < forces.size(); ++qp_n)
+          forces[qp_n] = -1.0 * force
+            * m_values.get_deformed_normal_vectors()[qp_n];
+      }
+  }
+
+  //
+  // OrthogonalSpringDashpotForce
+  //
+
   template <int dim, int spacedim, typename Number>
   OrthogonalSpringDashpotForce<dim, spacedim, Number>::
     OrthogonalSpringDashpotForce(
@@ -707,6 +791,8 @@ namespace fdl
   template class BoundarySpringForce<NDIM, NDIM, double>;
   template class DampingForce<NDIM - 1, NDIM, double>;
   template class DampingForce<NDIM, NDIM, double>;
+  template class OrthogonalLinearLoadForce<NDIM - 1, NDIM, double>;
+  template class OrthogonalLinearLoadForce<NDIM, NDIM, double>;
   template class OrthogonalSpringDashpotForce<NDIM - 1, NDIM, double>;
   template class OrthogonalSpringDashpotForce<NDIM, NDIM, double>;
   template class ModifiedNeoHookeanStress<NDIM, NDIM, double>;
