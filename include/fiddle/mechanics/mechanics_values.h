@@ -77,33 +77,38 @@ namespace fdl
     update_right_cauchy_green = 0x0080,
 
     /**
+     * The symmetric Green strain tensor: E := 1/2 (C - I).
+     */
+    update_green = 0x0100,
+
+    /**
      * The first invariant: tr(C) in 3D. In 2D this is tr(C) + 1 to account for
      * the 'missing' row and column.
      */
-    update_first_invariant = 0x0100,
+    update_first_invariant = 0x0200,
 
     /**
      * The modified first invariant: J^(-2/3) I1.
      */
-    update_modified_first_invariant = 0x0200,
+    update_modified_first_invariant = 0x0400,
 
     /**
      * The second invariant: 1/2(tr(C)^2 - tr(C^2)) in 3D. Like the first
      * invariant, this is 1/2(tr(C)^2 - tr(C^2)) + tr(C) in 2D to account for
      * the missing component.
      */
-    update_second_invariant = 0x0400,
+    update_second_invariant = 0x0800,
 
     /**
      * The modified second invariant: J^(-4/3) I2.
      */
-    update_modified_second_invariant = 0x0800,
+    update_modified_second_invariant = 0x1000,
 
     /**
      * The third invariant: det(C). If dim == spacedim then this is also
      * det(FF)^2.
      */
-    update_third_invariant = 0x1000,
+    update_third_invariant = 0x2000,
   };
 
   // Manipulation routines for flags
@@ -194,6 +199,9 @@ namespace fdl
     const std::vector<SymmetricTensor<2, spacedim>> &
     get_right_cauchy_green() const;
 
+    const std::vector<SymmetricTensor<2, spacedim>> &
+    get_green() const;
+
     const std::vector<double> &
     get_first_invariant() const;
 
@@ -233,6 +241,8 @@ namespace fdl
     std::vector<Tensor<1, spacedim>> velocity_values;
 
     std::vector<SymmetricTensor<2, spacedim>> right_cauchy_green;
+
+    std::vector<SymmetricTensor<2, spacedim>> green;
 
     std::vector<double> first_invariant;
 
@@ -328,6 +338,15 @@ namespace fdl
     Assert(update_flags & update_right_cauchy_green,
            ExcMessage("Needs update_right_cauchy_green"));
     return right_cauchy_green;
+  }
+
+  template <int dim, int spacedim, typename VectorType>
+  inline const std::vector<SymmetricTensor<2, spacedim>> &
+  MechanicsValues<dim, spacedim, VectorType>::get_green() const
+  {
+    Assert(update_flags & update_green,
+           ExcMessage("Needs update_green"));
+    return green;
   }
 
   template <int dim, int spacedim, typename VectorType>

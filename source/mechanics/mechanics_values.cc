@@ -40,6 +40,8 @@ namespace fdl
             result |= update_FF_inv_T;
           if (result & update_right_cauchy_green)
             result |= update_FF;
+          if (result & update_green)
+            result |= update_right_cauchy_green;
           if (result & update_first_invariant)
             // needs tr(C)
             result |= update_right_cauchy_green;
@@ -149,6 +151,8 @@ namespace fdl
       n23_det_FF.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_right_cauchy_green)
       right_cauchy_green.resize(this->fe_values->n_quadrature_points);
+    if (update_flags & MechanicsUpdateFlags::update_green)
+      green.resize(this->fe_values->n_quadrature_points);
 
     // physical values:
     if (update_flags & MechanicsUpdateFlags::update_position_values)
@@ -238,6 +242,14 @@ namespace fdl
             Assert(update_flags & update_FF, ExcFDLInternalError());
             right_cauchy_green[q] = SymmetricTensor<2, spacedim>(
               symmetrize(transpose(FF[q]) * FF[q]));
+          }
+        if (update_flags & update_green)
+          {
+            Assert(update_flags & update_green, ExcFDLInternalError());
+            green[q] = right_cauchy_green[q];
+            for (unsigned int d = 0; d < spacedim; ++d)
+              green[q][d][d] -= 1.0;
+            green[q] *= 0.5;
           }
         if (update_flags & update_first_invariant)
           {
