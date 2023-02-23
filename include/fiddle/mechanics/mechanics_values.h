@@ -109,6 +109,16 @@ namespace fdl
      * det(FF)^2.
      */
     update_third_invariant = 0x2000,
+
+    /**
+     * The derivative of the first invariant with respect to FF.
+     */
+    update_first_invariant_dFF = 0x4000,
+
+    /**
+     * The derivative of the modified first invariant with respect to FF.
+     */
+    update_modified_first_invariant_dFF = 0x8000,
   };
 
   // Manipulation routines for flags
@@ -217,6 +227,12 @@ namespace fdl
     const std::vector<double> &
     get_third_invariant() const;
 
+    const std::vector<Tensor<2, spacedim>> &
+    get_first_invariant_dFF() const;
+
+    const std::vector<Tensor<2, spacedim>> &
+    get_modified_first_invariant_dFF() const;
+
   protected:
     SmartPointer<const FEValuesBase<dim, spacedim>> fe_values;
 
@@ -253,6 +269,10 @@ namespace fdl
     std::vector<double> modified_second_invariant;
 
     std::vector<double> third_invariant;
+
+    std::vector<Tensor<2, spacedim>> first_invariant_dFF;
+
+    std::vector<Tensor<2, spacedim>> modified_first_invariant_dFF;
 
     std::vector<types::global_dof_index> scratch_dof_indices;
 
@@ -344,8 +364,7 @@ namespace fdl
   inline const std::vector<SymmetricTensor<2, spacedim>> &
   MechanicsValues<dim, spacedim, VectorType>::get_green() const
   {
-    Assert(update_flags & update_green,
-           ExcMessage("Needs update_green"));
+    Assert(update_flags & update_green, ExcMessage("Needs update_green"));
     return green;
   }
 
@@ -360,7 +379,8 @@ namespace fdl
 
   template <int dim, int spacedim, typename VectorType>
   inline const std::vector<double> &
-  MechanicsValues<dim, spacedim, VectorType>::get_modified_first_invariant() const
+  MechanicsValues<dim, spacedim, VectorType>::get_modified_first_invariant()
+    const
   {
     Assert(update_flags & update_modified_first_invariant,
            ExcMessage("Needs update_modified_first_invariant"));
@@ -378,7 +398,8 @@ namespace fdl
 
   template <int dim, int spacedim, typename VectorType>
   inline const std::vector<double> &
-  MechanicsValues<dim, spacedim, VectorType>::get_modified_second_invariant() const
+  MechanicsValues<dim, spacedim, VectorType>::get_modified_second_invariant()
+    const
   {
     Assert(update_flags & update_modified_second_invariant,
            ExcMessage("Needs update_modified_second_invariant"));
@@ -392,6 +413,25 @@ namespace fdl
     Assert(update_flags & update_third_invariant,
            ExcMessage("Needs update_third_invariant"));
     return third_invariant;
+  }
+
+  template <int dim, int spacedim, typename VectorType>
+  inline const std::vector<Tensor<2, spacedim>> &
+  MechanicsValues<dim, spacedim, VectorType>::get_first_invariant_dFF() const
+  {
+    Assert(update_flags & update_first_invariant_dFF,
+           ExcMessage("Needs update_first_invariant_dFF"));
+    return first_invariant_dFF;
+  }
+
+  template <int dim, int spacedim, typename VectorType>
+  inline const std::vector<Tensor<2, spacedim>> &
+  MechanicsValues<dim, spacedim, VectorType>::get_modified_first_invariant_dFF()
+    const
+  {
+    Assert(update_flags & update_modified_first_invariant_dFF,
+           ExcMessage("Needs update_modified_first_invariant_dFF"));
+    return modified_first_invariant_dFF;
   }
 } // namespace fdl
 

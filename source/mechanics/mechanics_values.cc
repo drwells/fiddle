@@ -24,7 +24,7 @@ namespace fdl
     MechanicsUpdateFlags
     resolve_flag_dependencies(const MechanicsUpdateFlags me_flags)
     {
-      MechanicsUpdateFlags result = me_flags;
+      MechanicsUpdateFlags result     = me_flags;
       MechanicsUpdateFlags old_result = me_flags;
       // iterate until convergence
       do
@@ -56,8 +56,12 @@ namespace fdl
             // needs det(C)
             // TODO: make this work when dim != spacedim
             result |= update_det_FF;
-        }
-      while (old_result != result);
+          if (result & update_first_invariant_dFF)
+            result |= update_FF;
+          if (result & update_modified_first_invariant_dFF)
+            result |= update_n23_det_FF | update_FF | update_first_invariant |
+                      update_FF_inv_T;
+      } while (old_result != result);
 
       return result;
     }
@@ -173,6 +177,13 @@ namespace fdl
       modified_second_invariant.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_third_invariant)
       third_invariant.resize(this->fe_values->n_quadrature_points);
+
+    // derivatives of invariants:
+    if (update_flags & MechanicsUpdateFlags::update_first_invariant_dFF)
+      first_invariant_dFF.resize(this->fe_values->n_quadrature_points);
+    if (update_flags &
+        MechanicsUpdateFlags::update_modified_first_invariant_dFF)
+      modified_first_invariant_dFF.resize(this->fe_values->n_quadrature_points);
   }
 
   template <int dim, int spacedim, typename VectorType>
@@ -251,6 +262,8 @@ namespace fdl
               green[q][d][d] -= 1.0;
             green[q] *= 0.5;
           }
+
+        // invariants
         if (update_flags & update_first_invariant)
           {
             Assert(update_flags & update_right_cauchy_green,
@@ -279,8 +292,8 @@ namespace fdl
                 dealii::second_invariant(right_cauchy_green[q]);
           }
         if (update_flags & update_modified_second_invariant)
-          modified_second_invariant[q] = second_invariant[q]
-            * std::pow(n23_det_FF[q], 2);
+          modified_second_invariant[q] =
+            second_invariant[q] * std::pow(n23_det_FF[q], 2);
         if (update_flags & update_third_invariant)
           {
             if (dim == spacedim)
@@ -296,6 +309,15 @@ namespace fdl
                   dealii::third_invariant(right_cauchy_green[q]);
               }
           }
+
+        // derivatives of invariants
+        if (update_flags & update_first_invariant_dFF)
+          first_invariant_dFF[q] = 2.0 * FF[q];
+
+        if (update_flags & update_modified_first_invariant_dFF)
+          modified_first_invariant_dFF[q] =
+            2.0 * n23_det_FF[q] *
+            (FF[q] - (1.0 / 3.0) * first_invariant[q] * FF_inv_T[q]);
       }
 
     if (update_flags & update_position_values)
