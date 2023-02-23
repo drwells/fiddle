@@ -25,10 +25,11 @@ namespace fdl
     resolve_flag_dependencies(const MechanicsUpdateFlags me_flags)
     {
       MechanicsUpdateFlags result = me_flags;
-      // Resolve dependencies of dependencies by iteration. We only need three
-      // iterations - do 4 out of an abundance of caution
-      for (unsigned int i = 0; i < 4; ++i)
+      MechanicsUpdateFlags old_result = me_flags;
+      // iterate until convergence
+      do
         {
+          old_result = result;
           if (result & update_FF_inv_T)
             result |= update_FF;
           if (result & update_det_FF)
@@ -42,6 +43,10 @@ namespace fdl
           if (result & update_first_invariant)
             // needs tr(C)
             result |= update_right_cauchy_green;
+          if (result & update_modified_first_invariant)
+            result |= update_first_invariant | update_n23_det_FF;
+          if (result & update_modified_second_invariant)
+            result |= update_second_invariant | update_n23_det_FF;
           if (result & update_second_invariant)
             // needs tr(C) and tr(C^2)
             result |= update_first_invariant;
@@ -50,6 +55,7 @@ namespace fdl
             // TODO: make this work when dim != spacedim
             result |= update_det_FF;
         }
+      while (old_result != result);
 
       return result;
     }
@@ -132,6 +138,7 @@ namespace fdl
         scratch_dof_indices.resize(n_dofs_per_cell);
       }
 
+    // basic terms dependent on the deformation gradient:
     if (update_flags & MechanicsUpdateFlags::update_FF)
       FF.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_FF_inv_T)
@@ -140,18 +147,26 @@ namespace fdl
       det_FF.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_n23_det_FF)
       n23_det_FF.resize(this->fe_values->n_quadrature_points);
+    if (update_flags & MechanicsUpdateFlags::update_right_cauchy_green)
+      right_cauchy_green.resize(this->fe_values->n_quadrature_points);
+
+    // physical values:
     if (update_flags & MechanicsUpdateFlags::update_position_values)
       position_values.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_deformed_normal_vectors)
       deformed_normal_vectors.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_velocity_values)
       velocity_values.resize(this->fe_values->n_quadrature_points);
-    if (update_flags & MechanicsUpdateFlags::update_right_cauchy_green)
-      right_cauchy_green.resize(this->fe_values->n_quadrature_points);
+
+    // invariants:
     if (update_flags & MechanicsUpdateFlags::update_first_invariant)
       first_invariant.resize(this->fe_values->n_quadrature_points);
+    if (update_flags & MechanicsUpdateFlags::update_modified_first_invariant)
+      modified_first_invariant.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_second_invariant)
       second_invariant.resize(this->fe_values->n_quadrature_points);
+    if (update_flags & MechanicsUpdateFlags::update_modified_second_invariant)
+      modified_second_invariant.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_third_invariant)
       third_invariant.resize(this->fe_values->n_quadrature_points);
   }
@@ -236,6 +251,8 @@ namespace fdl
               first_invariant[q] =
                 dealii::first_invariant(right_cauchy_green[q]);
           }
+        if (update_flags & update_modified_first_invariant)
+          modified_first_invariant[q] = first_invariant[q] * n23_det_FF[q];
         if (update_flags & update_second_invariant)
           {
             Assert(update_flags & update_right_cauchy_green,
@@ -249,6 +266,9 @@ namespace fdl
               second_invariant[q] =
                 dealii::second_invariant(right_cauchy_green[q]);
           }
+        if (update_flags & update_modified_second_invariant)
+          modified_second_invariant[q] = second_invariant[q]
+            * std::pow(n23_det_FF[q], 2);
         if (update_flags & update_third_invariant)
           {
             if (dim == spacedim)

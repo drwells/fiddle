@@ -83,17 +83,27 @@ namespace fdl
     update_first_invariant = 0x0100,
 
     /**
+     * The modified first invariant: J^(-2/3) I1.
+     */
+    update_modified_first_invariant = 0x0200,
+
+    /**
      * The second invariant: 1/2(tr(C)^2 - tr(C^2)) in 3D. Like the first
      * invariant, this is 1/2(tr(C)^2 - tr(C^2)) + tr(C) in 2D to account for
      * the missing component.
      */
-    update_second_invariant = 0x0200,
+    update_second_invariant = 0x0400,
+
+    /**
+     * The modified second invariant: J^(-4/3) I2.
+     */
+    update_modified_second_invariant = 0x0800,
 
     /**
      * The third invariant: det(C). If dim == spacedim then this is also
      * det(FF)^2.
      */
-    update_third_invariant = 0x0400,
+    update_third_invariant = 0x1000,
   };
 
   // Manipulation routines for flags
@@ -188,7 +198,13 @@ namespace fdl
     get_first_invariant() const;
 
     const std::vector<double> &
+    get_modified_first_invariant() const;
+
+    const std::vector<double> &
     get_second_invariant() const;
+
+    const std::vector<double> &
+    get_modified_second_invariant() const;
 
     const std::vector<double> &
     get_third_invariant() const;
@@ -220,7 +236,11 @@ namespace fdl
 
     std::vector<double> first_invariant;
 
+    std::vector<double> modified_first_invariant;
+
     std::vector<double> second_invariant;
+
+    std::vector<double> modified_second_invariant;
 
     std::vector<double> third_invariant;
 
@@ -321,11 +341,29 @@ namespace fdl
 
   template <int dim, int spacedim, typename VectorType>
   inline const std::vector<double> &
+  MechanicsValues<dim, spacedim, VectorType>::get_modified_first_invariant() const
+  {
+    Assert(update_flags & update_modified_first_invariant,
+           ExcMessage("Needs update_modified_first_invariant"));
+    return modified_first_invariant;
+  }
+
+  template <int dim, int spacedim, typename VectorType>
+  inline const std::vector<double> &
   MechanicsValues<dim, spacedim, VectorType>::get_second_invariant() const
   {
     Assert(update_flags & update_second_invariant,
            ExcMessage("Needs update_second_invariant"));
     return second_invariant;
+  }
+
+  template <int dim, int spacedim, typename VectorType>
+  inline const std::vector<double> &
+  MechanicsValues<dim, spacedim, VectorType>::get_modified_second_invariant() const
+  {
+    Assert(update_flags & update_modified_second_invariant,
+           ExcMessage("Needs update_modified_second_invariant"));
+    return modified_second_invariant;
   }
 
   template <int dim, int spacedim, typename VectorType>
