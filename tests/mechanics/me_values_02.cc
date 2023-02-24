@@ -66,6 +66,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                                          flags);
 
     std::ofstream out("output");
+    out << "Basic quantities\n";
     for (const auto &cell : dof_handler.active_cell_iterators())
       {
         fe_values.reinit(cell);
@@ -95,6 +96,64 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
         out << "I_3:\n";
         for (const double &I_3 : mechanics_values.get_third_invariant())
           out << I_3 << '\n';
+      }
+
+    out << "\nmore advanced quantities:\n";
+    const std::vector<fdl::MechanicsUpdateFlags> me_flags{
+      fdl::update_green,
+      fdl::update_modified_first_invariant,
+      fdl::update_modified_second_invariant,
+      fdl::update_first_invariant_dFF,
+      fdl::update_modified_first_invariant_dFF};
+    for (const auto me_flag : me_flags)
+      {
+        FEValues<dim, spacedim> fe_values(
+          mapping, fe, quadrature, fdl::compute_flag_dependencies(me_flag));
+
+        fdl::MechanicsValues<dim, spacedim> mechanics_values(
+          fe_values, part.get_position(), part.get_velocity(), me_flag);
+
+        for (const auto &cell : dof_handler.active_cell_iterators())
+          {
+            fe_values.reinit(cell);
+            mechanics_values.reinit(cell);
+
+            switch (me_flag)
+              {
+                case fdl::update_modified_first_invariant:
+                  out << "I1_bar:\n";
+                  for (const double &I1_bar :
+                       mechanics_values.get_modified_first_invariant())
+                    out << I1_bar << '\n';
+                  break;
+                case fdl::update_modified_second_invariant:
+                  out << "I2_bar:\n";
+                  for (const double &I2_bar :
+                       mechanics_values.get_modified_second_invariant())
+                    out << I2_bar << '\n';
+                  break;
+                case fdl::update_green:
+                  out << "E:\n";
+                  for (const SymmetricTensor<spacedim, 2> &E :
+                       mechanics_values.get_green())
+                    out << E << '\n';
+                  break;
+                case fdl::update_first_invariant_dFF:
+                  out << "I1_dFF:\n";
+                  for (const Tensor<spacedim, 2> &t :
+                       mechanics_values.get_first_invariant_dFF())
+                    out << t << '\n';
+                  break;
+                case fdl::update_modified_first_invariant_dFF:
+                  out << "I1_bar_dFF:\n";
+                  for (const Tensor<spacedim, 2> &m :
+                       mechanics_values.get_modified_first_invariant_dFF())
+                    out << m << '\n';
+                  break;
+                default:
+                  AssertThrow(false, fdl::ExcFDLInternalError());
+              }
+          }
       }
   }
 }

@@ -24,11 +24,12 @@ namespace fdl
     MechanicsUpdateFlags
     resolve_flag_dependencies(const MechanicsUpdateFlags me_flags)
     {
-      MechanicsUpdateFlags result = me_flags;
-      // Resolve dependencies of dependencies by iteration. We only need three
-      // iterations - do 4 out of an abundance of caution
-      for (unsigned int i = 0; i < 4; ++i)
+      MechanicsUpdateFlags result     = me_flags;
+      MechanicsUpdateFlags old_result = me_flags;
+      // iterate until convergence
+      do
         {
+          old_result = result;
           if (result & update_FF_inv_T)
             result |= update_FF;
           if (result & update_det_FF)
@@ -39,9 +40,15 @@ namespace fdl
             result |= update_FF_inv_T;
           if (result & update_right_cauchy_green)
             result |= update_FF;
+          if (result & update_green)
+            result |= update_right_cauchy_green;
           if (result & update_first_invariant)
             // needs tr(C)
             result |= update_right_cauchy_green;
+          if (result & update_modified_first_invariant)
+            result |= update_first_invariant | update_n23_det_FF;
+          if (result & update_modified_second_invariant)
+            result |= update_second_invariant | update_n23_det_FF;
           if (result & update_second_invariant)
             // needs tr(C) and tr(C^2)
             result |= update_first_invariant;
@@ -49,7 +56,12 @@ namespace fdl
             // needs det(C)
             // TODO: make this work when dim != spacedim
             result |= update_det_FF;
-        }
+          if (result & update_first_invariant_dFF)
+            result |= update_FF;
+          if (result & update_modified_first_invariant_dFF)
+            result |= update_n23_det_FF | update_FF | update_first_invariant |
+                      update_FF_inv_T;
+      } while (old_result != result);
 
       return result;
     }
@@ -132,6 +144,7 @@ namespace fdl
         scratch_dof_indices.resize(n_dofs_per_cell);
       }
 
+    // basic terms dependent on the deformation gradient:
     if (update_flags & MechanicsUpdateFlags::update_FF)
       FF.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_FF_inv_T)
@@ -140,20 +153,37 @@ namespace fdl
       det_FF.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_n23_det_FF)
       n23_det_FF.resize(this->fe_values->n_quadrature_points);
+    if (update_flags & MechanicsUpdateFlags::update_right_cauchy_green)
+      right_cauchy_green.resize(this->fe_values->n_quadrature_points);
+    if (update_flags & MechanicsUpdateFlags::update_green)
+      green.resize(this->fe_values->n_quadrature_points);
+
+    // physical values:
     if (update_flags & MechanicsUpdateFlags::update_position_values)
       position_values.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_deformed_normal_vectors)
       deformed_normal_vectors.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_velocity_values)
       velocity_values.resize(this->fe_values->n_quadrature_points);
-    if (update_flags & MechanicsUpdateFlags::update_right_cauchy_green)
-      right_cauchy_green.resize(this->fe_values->n_quadrature_points);
+
+    // invariants:
     if (update_flags & MechanicsUpdateFlags::update_first_invariant)
       first_invariant.resize(this->fe_values->n_quadrature_points);
+    if (update_flags & MechanicsUpdateFlags::update_modified_first_invariant)
+      modified_first_invariant.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_second_invariant)
       second_invariant.resize(this->fe_values->n_quadrature_points);
+    if (update_flags & MechanicsUpdateFlags::update_modified_second_invariant)
+      modified_second_invariant.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_third_invariant)
       third_invariant.resize(this->fe_values->n_quadrature_points);
+
+    // derivatives of invariants:
+    if (update_flags & MechanicsUpdateFlags::update_first_invariant_dFF)
+      first_invariant_dFF.resize(this->fe_values->n_quadrature_points);
+    if (update_flags &
+        MechanicsUpdateFlags::update_modified_first_invariant_dFF)
+      modified_first_invariant_dFF.resize(this->fe_values->n_quadrature_points);
   }
 
   template <int dim, int spacedim, typename VectorType>
@@ -224,6 +254,16 @@ namespace fdl
             right_cauchy_green[q] = SymmetricTensor<2, spacedim>(
               symmetrize(transpose(FF[q]) * FF[q]));
           }
+        if (update_flags & update_green)
+          {
+            Assert(update_flags & update_green, ExcFDLInternalError());
+            green[q] = right_cauchy_green[q];
+            for (unsigned int d = 0; d < spacedim; ++d)
+              green[q][d][d] -= 1.0;
+            green[q] *= 0.5;
+          }
+
+        // invariants
         if (update_flags & update_first_invariant)
           {
             Assert(update_flags & update_right_cauchy_green,
@@ -236,6 +276,8 @@ namespace fdl
               first_invariant[q] =
                 dealii::first_invariant(right_cauchy_green[q]);
           }
+        if (update_flags & update_modified_first_invariant)
+          modified_first_invariant[q] = first_invariant[q] * n23_det_FF[q];
         if (update_flags & update_second_invariant)
           {
             Assert(update_flags & update_right_cauchy_green,
@@ -249,6 +291,9 @@ namespace fdl
               second_invariant[q] =
                 dealii::second_invariant(right_cauchy_green[q]);
           }
+        if (update_flags & update_modified_second_invariant)
+          modified_second_invariant[q] =
+            second_invariant[q] * std::pow(n23_det_FF[q], 2);
         if (update_flags & update_third_invariant)
           {
             if (dim == spacedim)
@@ -264,6 +309,15 @@ namespace fdl
                   dealii::third_invariant(right_cauchy_green[q]);
               }
           }
+
+        // derivatives of invariants
+        if (update_flags & update_first_invariant_dFF)
+          first_invariant_dFF[q] = 2.0 * FF[q];
+
+        if (update_flags & update_modified_first_invariant_dFF)
+          modified_first_invariant_dFF[q] =
+            2.0 * n23_det_FF[q] *
+            (FF[q] - (1.0 / 3.0) * first_invariant[q] * FF_inv_T[q]);
       }
 
     if (update_flags & update_position_values)
