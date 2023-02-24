@@ -45,7 +45,7 @@ namespace fdl
     const Function<spacedim> &initial_position,
     const Function<spacedim> &initial_velocity)
     : tria(&dh->get_triangulation())
-    , fe(&dh->get_fe())
+    , fe(dh->get_fe().clone())
     , dof_handler(dh)
     , force_contributions(std::move(force_contributions))
   {
@@ -58,14 +58,14 @@ namespace fdl
                 .clone();
     quadrature =
       reference_cells.front().template get_gauss_type_quadrature<dim>(
-        this->fe->tensor_degree() + 1);
+        fe->tensor_degree() + 1);
 
     Assert(fe->n_components() == spacedim,
            ExcMessage("The finite element should have spacedim components "
                       "since it will represent the position, velocity and "
                       "force of the part."));
     // Set up DoFs and finite element fields:
-    dof_handler->distribute_dofs(*this->fe);
+    dof_handler->distribute_dofs(*fe);
     constraints.close();
 
     // A MatrixFree object sets up the partitioning on its own - use that to

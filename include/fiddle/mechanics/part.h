@@ -236,7 +236,7 @@ namespace fdl
      * velocity interpolation, we need to use the same space for force and
      * velocity.
      */
-    SmartPointer<const FiniteElement<dim, spacedim>> fe;
+    std::unique_ptr<FiniteElement<dim, spacedim>> fe;
 
     /**
      * DoFHandler for the position, velocity, and force. May be shared by
