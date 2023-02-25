@@ -18,6 +18,7 @@
 #include <deal.II/fe/mapping_q.h>
 
 #include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_tools.h>
 #include <deal.II/grid/tria.h>
 
 #include <deal.II/lac/la_parallel_vector.h>
@@ -79,6 +80,9 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
       for (const unsigned int vertex_n : face->vertex_indices())
         if (std::abs(face->vertex(vertex_n)[spacedim - 1]) < 1e-12)
           bounding_disk_vertex_indices.insert(face->vertex_index(vertex_n));
+
+  // Avoid issues with roundoff in Triangle by perturbing vertices slightly
+  GridTools::distort_random(0.4, tria, false);
 
   std::vector<Point<spacedim>> bounding_disk_points;
   for (const unsigned int vertex_n : bounding_disk_vertex_indices)

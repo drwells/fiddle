@@ -3,10 +3,10 @@
 #include <fiddle/interaction/elemental_interaction.h>
 #include <fiddle/interaction/interaction_utilities.h>
 
-DEAL_II_DISABLE_EXTRA_DIAGNOSTICS
+FDL_DISABLE_EXTRA_DIAGNOSTICS
 #include <deal.II/base/mpi.h>
 #include <deal.II/base/utilities.h>
-DEAL_II_ENABLE_EXTRA_DIAGNOSTICS
+FDL_ENABLE_EXTRA_DIAGNOSTICS
 
 #include <deal.II/fe/mapping_fe_field.h>
 

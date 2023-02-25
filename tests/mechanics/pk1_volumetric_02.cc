@@ -22,7 +22,9 @@
 #include <deal.II/lac/solver_cg.h>
 
 #include <deal.II/matrix_free/matrix_free.h>
+FDL_DISABLE_EXTRA_DIAGNOSTICS
 #include <deal.II/matrix_free/operators.h>
+FDL_ENABLE_EXTRA_DIAGNOSTICS
 
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools_integrate_difference.h>
@@ -125,12 +127,17 @@ public:
     ArrayView<Tensor<2, spacedim, double>> &stresses) const override
   {
     Assert(spacedim == 2, fdl::ExcFDLNotImplemented());
-    const FEValuesBase<dim, spacedim> &fe_values = me_values.get_fe_values();
-    Assert(stresses.size() == fe_values.get_quadrature_points().size(),
-           fdl::ExcFDLInternalError());
-    Assert(this->get_cell_quadrature().size() ==
-             fe_values.get_quadrature_points().size(),
-           fdl::ExcFDLInternalError());
+
+#ifdef DEBUG
+    {
+      const FEValuesBase<dim, spacedim> &fe_values = me_values.get_fe_values();
+      Assert(stresses.size() == fe_values.get_quadrature_points().size(),
+             fdl::ExcFDLInternalError());
+      Assert(this->get_cell_quadrature().size() ==
+               fe_values.get_quadrature_points().size(),
+             fdl::ExcFDLInternalError());
+    }
+#endif
 
     const std::vector<Tensor<2, spacedim>> &FF = me_values.get_FF();
 #if 1

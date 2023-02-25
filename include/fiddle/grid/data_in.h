@@ -1,3 +1,6 @@
+#ifndef included_fiddle_grid_data_in_h
+#define included_fiddle_grid_data_in_h
+
 #include <fiddle/base/config.h>
 
 #include <deal.II/dofs/dof_handler.h>
@@ -52,3 +55,5 @@ namespace fdl
                 const std::vector<std::string>  &variable_names,
                 VectorType                      &dof_vector);
 } // namespace fdl
+
+#endif

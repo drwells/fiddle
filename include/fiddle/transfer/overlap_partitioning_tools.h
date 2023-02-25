@@ -1,3 +1,6 @@
+#ifndef fiddle_transfer_overlap_partitioning_tools_h
+#define fiddle_transfer_overlap_partitioning_tools_h
+
 #include <fiddle/base/config.h>
 
 #include <fiddle/grid/overlap_tria.h>
@@ -30,3 +33,5 @@ namespace fdl
     const DoFHandler<dim, spacedim>                &overlap_dof_handler,
     const DoFHandler<dim, spacedim>                &native_dof_handler);
 } // namespace fdl
+
+#endif

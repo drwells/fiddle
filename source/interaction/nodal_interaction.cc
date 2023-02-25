@@ -80,7 +80,7 @@ namespace fdl
   template <int dim, int spacedim>
   void
   NodalInteraction<dim, spacedim>::reinit(
-    const tbox::Pointer<tbox::Database> &input_db,
+    const tbox::Pointer<tbox::Database> &/*input_db*/,
     const parallel::shared::Triangulation<dim, spacedim> & /*native_tria*/,
     const std::vector<BoundingBox<spacedim, float>> & /*active_cell_bboxes*/,
     const std::vector<float> & /*active_cell_lengths*/,

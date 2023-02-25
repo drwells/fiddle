@@ -3,14 +3,17 @@
 
 #include <fiddle/base/config.h>
 
+FDL_DISABLE_EXTRA_DIAGNOSTICS
 #include <BasePatchLevel.h>
 #include <HierarchyDataOpsReal.h>
 #include <PatchData.h>
 #include <PatchHierarchy.h>
 #include <PatchLevel.h>
 #include <Variable.h>
+
 #include <tbox/Database.h>
 #include <tbox/MemoryDatabase.h>
+FDL_ENABLE_EXTRA_DIAGNOSTICS
 
 #include <utility>
 #include <vector>

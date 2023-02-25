@@ -20,7 +20,9 @@
 #include <deal.II/lac/precondition.h>
 
 #include <deal.II/matrix_free/matrix_free.h>
+FDL_DISABLE_EXTRA_DIAGNOSTICS
 #include <deal.II/matrix_free/operators.h>
+FDL_ENABLE_EXTRA_DIAGNOSTICS
 
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
