@@ -1,6 +1,8 @@
 #ifndef included_fiddle_mechanics_fiber_network_h
 #define included_fiddle_mechanics_fiber_network_h
 
+#include <fiddle/base/config.h>
+
 #include <deal.II/base/array_view.h>
 #include <deal.II/base/table.h>
 

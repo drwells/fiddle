@@ -1,5 +1,5 @@
-#ifndef included_fiddle_scatter_h
-#define included_fiddle_scatter_h
+#ifndef included_fiddle_transfer_scatter_h
+#define included_fiddle_transfer_scatter_h
 
 #include <fiddle/base/config.h>
 

@@ -1,6 +1,8 @@
 #ifndef included_fiddle_surface_tria_h
 #define included_fiddle_surface_tria_h
 
+#include <fiddle/base/config.h>
+
 #include <deal.II/base/point.h>
 
 #include <deal.II/grid/tria.h>
