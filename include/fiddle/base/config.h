@@ -9,6 +9,9 @@
     _Pragma("GCC diagnostic ignored \"-Wunknown-warning\"")        /*!*/ \
     _Pragma("GCC diagnostic ignored \"-Wextra\"")                  /*!*/ \
     _Pragma("GCC diagnostic ignored \"-Wclass-memaccess\"")              \
+    _Pragma("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")          \
+    _Pragma("GCC diagnostic ignored \"-Wunused-local-typedefs\"")        \
+    _Pragma("GCC diagnostic ignored \"-Wuse-after-free\"")               \
       _Pragma("GCC diagnostic warning \"-Wpragmas\"")
 
 #define FDL_ENABLE_EXTRA_DIAGNOSTICS _Pragma("GCC diagnostic pop")

@@ -5,16 +5,18 @@
 
 FDL_DISABLE_EXTRA_DIAGNOSTICS
 #include <deal.II/base/bounding_box.h>
-FDL_ENABLE_EXTRA_DIAGNOSTICS
 
 #include <deal.II/distributed/shared_tria.h>
+FDL_ENABLE_EXTRA_DIAGNOSTICS
 
 #include <deal.II/dofs/dof_handler.h>
 
 #include <deal.II/fe/mapping.h>
 
+FDL_DISABLE_EXTRA_DIAGNOSTICS
 #include <BasePatchLevel.h>
 #include <Patch.h>
+FDL_ENABLE_EXTRA_DIAGNOSTICS
 
 #include <vector>
 

@@ -18,7 +18,7 @@ using namespace dealii;
 
 template <int dim, int spacedim = dim>
 void
-test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
+test(tbox::Pointer<IBTK::AppInitializer> /*app_initializer*/)
 {
   const MPI_Comm      mpi_comm = MPI_COMM_WORLD;
   Triangulation<2, 2> tria;

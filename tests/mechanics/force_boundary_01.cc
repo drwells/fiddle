@@ -17,7 +17,9 @@
 #include <deal.II/lac/solver_cg.h>
 
 #include <deal.II/matrix_free/matrix_free.h>
+FDL_DISABLE_EXTRA_DIAGNOSTICS
 #include <deal.II/matrix_free/operators.h>
+FDL_ENABLE_EXTRA_DIAGNOSTICS
 
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools_boundary.h>

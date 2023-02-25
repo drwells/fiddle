@@ -360,6 +360,10 @@
 #include "triangle.h"
 #endif /* TRILIBRARY */
 
+#include <fiddle/base/config.h>
+// Don't bother with any warnings in this file:
+FDL_DISABLE_EXTRA_DIAGNOSTICS
+
 /* A few forward declarations.                                               */
 
 #ifndef TRILIBRARY
@@ -16012,3 +16016,4 @@ char **argv;
   return 0;
 #endif /* not TRILIBRARY */
 }
+FDL_ENABLE_EXTRA_DIAGNOSTICS
