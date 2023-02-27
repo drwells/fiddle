@@ -61,6 +61,16 @@ I_3:
 1
 
 more advanced quantities:
+log(det(FF)):
+-nan
+-nan
+-nan
+-nan
+-nan
+-nan
+-nan
+-nan
+-nan
 E:
 -0.375 -5.55112e-17 -5.55112e-17 1.5
 -0.375 0 0 1.5
