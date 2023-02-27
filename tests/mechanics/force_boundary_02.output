@@ -1,6 +1,18 @@
 test 1:
 displace (2, 2), spring constant = 10
 velocity (1, 1), damping constant = 5
+uses the reference configuration
+face = 6 forces =   -3.75 -3.75
+face = 4 forces =   1.25 -1.25
+face = 8 forces =   -5.82107 -5.82107
+face = 5 forces =   3.75 -3.75
+face = 7 forces =   -1.25 -1.25
+face = 10 forces =   3.32107 -3.32107
+face = 9 forces =   -3.32107 -3.32107
+face = 11 forces =   5.82107 -5.82107
+test 1:
+displace (2, 2), spring constant = 10
+velocity (1, 1), damping constant = 5
 uses a position function
 face = 6 forces =   -3.75 -3.75
 face = 4 forces =   1.25 -1.25
