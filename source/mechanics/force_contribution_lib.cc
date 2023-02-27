@@ -782,6 +782,73 @@ namespace fdl
       }
   }
 
+  //
+  // LogarithmicVolumetricEnergyStress
+  //
+
+  template <int dim, int spacedim, typename Number>
+  LogarithmicVolumetricEnergyStress<dim, spacedim, Number>::
+  LogarithmicVolumetricEnergyStress(const Quadrature<dim> &quad,
+                                    const double           bulk_modulus)
+    : ForceContribution<dim, spacedim, Number>(quad)
+    , bulk_modulus(bulk_modulus)
+  {
+  }
+
+  template <int dim, int spacedim, typename Number>
+  LogarithmicVolumetricEnergyStress<dim, spacedim, Number>::
+  LogarithmicVolumetricEnergyStress(
+    const Quadrature<dim>                 &quad,
+    const double                           bulk_modulus,
+    const std::vector<types::material_id> &material_ids)
+    : ForceContribution<dim, spacedim, Number>(quad)
+    , bulk_modulus(bulk_modulus)
+    , material_ids(setup_ids(material_ids, numbers::invalid_material_id))
+  {
+  }
+
+  template <int dim, int spacedim, typename Number>
+  MechanicsUpdateFlags
+  LogarithmicVolumetricEnergyStress<dim, spacedim, Number>::
+    get_mechanics_update_flags() const
+  {
+    return MechanicsUpdateFlags::update_log_det_FF |
+      MechanicsUpdateFlags::update_FF_inv_T;
+  }
+
+  template <int dim, int spacedim, typename Number>
+  bool
+  LogarithmicVolumetricEnergyStress<dim, spacedim, Number>::is_stress() const
+  {
+    return true;
+  }
+
+  template <int dim, int spacedim, typename Number>
+  void
+  LogarithmicVolumetricEnergyStress<dim, spacedim, Number>::compute_stress(
+    const double /*time*/,
+    const MechanicsValues<dim, spacedim>                              &m_values,
+    const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
+    ArrayView<Tensor<2, spacedim, Number>> &stresses) const
+  {
+    if (this->material_ids.size() > 0 &&
+        !std::binary_search(this->material_ids.begin(),
+                            this->material_ids.end(),
+                            cell->material_id()))
+      {
+        // the user specified a subset of material ids and we currently don't
+        // match - fill with zeros
+        for (auto &stress : stresses)
+          stress = 0.0;
+      }
+    else
+      {
+        for (unsigned int qp_n = 0; qp_n < stresses.size(); ++qp_n)
+          stresses[qp_n] = bulk_modulus * m_values.get_log_det_FF()[qp_n]
+            * m_values.get_FF_inv_T()[qp_n];
+      }
+  }
+
 
   template class SpringForceBase<NDIM - 1, NDIM, double>;
   template class SpringForceBase<NDIM, NDIM, double>;
@@ -797,4 +864,5 @@ namespace fdl
   template class OrthogonalSpringDashpotForce<NDIM, NDIM, double>;
   template class ModifiedNeoHookeanStress<NDIM, NDIM, double>;
   template class ModifiedMooneyRivlinStress<NDIM, NDIM, double>;
+  template class LogarithmicVolumetricEnergyStress<NDIM, NDIM, double>;
 } // namespace fdl

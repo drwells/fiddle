@@ -100,6 +100,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
     out << "\nmore advanced quantities:\n";
     const std::vector<fdl::MechanicsUpdateFlags> me_flags{
+      fdl::update_log_det_FF,
       fdl::update_green,
       fdl::update_modified_first_invariant,
       fdl::update_modified_second_invariant,
@@ -120,6 +121,18 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
             switch (me_flag)
               {
+                case fdl::update_log_det_FF:
+                  out << "log(det(FF)):\n";
+                  for (const double &l :
+                       mechanics_values.get_log_det_FF())
+                    out << l << '\n';
+                  break;
+                case fdl::update_green:
+                  out << "E:\n";
+                  for (const SymmetricTensor<spacedim, 2> &E :
+                       mechanics_values.get_green())
+                    out << E << '\n';
+                  break;
                 case fdl::update_modified_first_invariant:
                   out << "I1_bar:\n";
                   for (const double &I1_bar :
@@ -131,12 +144,6 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                   for (const double &I2_bar :
                        mechanics_values.get_modified_second_invariant())
                     out << I2_bar << '\n';
-                  break;
-                case fdl::update_green:
-                  out << "E:\n";
-                  for (const SymmetricTensor<spacedim, 2> &E :
-                       mechanics_values.get_green())
-                    out << E << '\n';
                   break;
                 case fdl::update_first_invariant_dFF:
                   out << "I1_dFF:\n";

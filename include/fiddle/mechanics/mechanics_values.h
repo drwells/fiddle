@@ -56,69 +56,75 @@ namespace fdl
     update_n23_det_FF = 0x0008,
 
     /**
+     * Update log(det(FF)). Only valid when dim == spacedim. Here log() is the
+     * natural logarithm.
+     */
+    update_log_det_FF = 0x0010,
+
+    /**
      * Update the normal vectors in the deformed configuration. Only available
      * for surface elements.
      */
-    update_deformed_normal_vectors = 0x0010,
+    update_deformed_normal_vectors = 0x0020,
 
     /**
      * Update the positions at the quadrature points.
      */
-    update_position_values = 0x0020,
+    update_position_values = 0x0040,
 
     /**
      * Update the velocities at the quadrature points.
      */
-    update_velocity_values = 0x0040,
+    update_velocity_values = 0x0080,
 
     /**
      * The right Cauchy-Green deformation tensor: C := F^T F.
      */
-    update_right_cauchy_green = 0x0080,
+    update_right_cauchy_green = 0x0100,
 
     /**
      * The symmetric Green strain tensor: E := 1/2 (C - I).
      */
-    update_green = 0x0100,
+    update_green = 0x0200,
 
     /**
      * The first invariant: tr(C) in 3D. In 2D this is tr(C) + 1 to account for
      * the 'missing' row and column.
      */
-    update_first_invariant = 0x0200,
+    update_first_invariant = 0x0400,
 
     /**
      * The modified first invariant: J^(-2/3) I1.
      */
-    update_modified_first_invariant = 0x0400,
+    update_modified_first_invariant = 0x0800,
 
     /**
      * The second invariant: 1/2(tr(C)^2 - tr(C^2)) in 3D. Like the first
      * invariant, this is 1/2(tr(C)^2 - tr(C^2)) + tr(C) in 2D to account for
      * the missing component.
      */
-    update_second_invariant = 0x0800,
+    update_second_invariant = 0x1000,
 
     /**
      * The modified second invariant: J^(-4/3) I2.
      */
-    update_modified_second_invariant = 0x1000,
+    update_modified_second_invariant = 0x2000,
 
     /**
      * The third invariant: det(C). If dim == spacedim then this is also
      * det(FF)^2.
      */
-    update_third_invariant = 0x2000,
+    update_third_invariant = 0x4000,
 
     /**
      * The derivative of the first invariant with respect to FF.
      */
-    update_first_invariant_dFF = 0x4000,
+    update_first_invariant_dFF = 0x8000,
 
     /**
      * The derivative of the modified first invariant with respect to FF.
      */
-    update_modified_first_invariant_dFF = 0x8000,
+    update_modified_first_invariant_dFF = 0x0001'0000,
   };
 
   // Manipulation routines for flags
@@ -197,6 +203,9 @@ namespace fdl
     const std::vector<double> &
     get_n23_det_FF() const;
 
+    const std::vector<double> &
+    get_log_det_FF() const;
+
     const std::vector<Tensor<1, spacedim>> &
     get_deformed_normal_vectors() const;
 
@@ -249,6 +258,8 @@ namespace fdl
     std::vector<double> det_FF;
 
     std::vector<double> n23_det_FF;
+
+    std::vector<double> log_det_FF;
 
     std::vector<Tensor<1, spacedim>> deformed_normal_vectors;
 
@@ -321,6 +332,15 @@ namespace fdl
     Assert(update_flags & update_n23_det_FF,
            ExcMessage("Needs update_n23_det_FF"));
     return n23_det_FF;
+  }
+
+  template <int dim, int spacedim, typename VectorType>
+  inline const std::vector<double> &
+  MechanicsValues<dim, spacedim, VectorType>::get_log_det_FF() const
+  {
+    Assert(update_flags & update_log_det_FF,
+           ExcMessage("Needs update_log_det_FF"));
+    return log_det_FF;
   }
 
   template <int dim, int spacedim, typename VectorType>

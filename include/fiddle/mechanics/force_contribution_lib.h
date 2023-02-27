@@ -536,6 +536,66 @@ namespace fdl
 
     std::vector<types::material_id> material_ids;
   };
+
+  /**
+   * Logarithmic volumetric stabilization.
+   *
+   * Many models benefit from an additional force which penalizes
+   * nonisovolumetric deformations (i.e., when det(FF) != 1). Here these are
+   * implemented with the natural logarithm as
+   *
+   *     PP = 2 bulk_modulus log(det(FF)) FF^-T
+   *
+   * in which the bulk_modulus is typically thought of as a numerical
+   * stabilization parameter and not a material constant.
+   */
+  template <int dim, int spacedim = dim, typename Number = double>
+  class LogarithmicVolumetricEnergyStress
+    : public ForceContribution<dim, spacedim, Number>
+  {
+  public:
+    /**
+     * Constructor.
+     */
+    LogarithmicVolumetricEnergyStress(const Quadrature<dim> &quad,
+                                      const double           bulk_modulus);
+
+    /**
+     * Constructor.
+     *
+     * @note Like elsewhere, if material_ids is empty then this stress will
+     * not be used on any cell.
+     */
+    LogarithmicVolumetricEnergyStress(
+      const Quadrature<dim>                 &quad,
+      const double                           bulk_modulus,
+      const std::vector<types::material_id> &material_ids);
+
+    /**
+     * Get the update flags this force contribution requires for MechanicsValues
+     * objects.
+     */
+    virtual MechanicsUpdateFlags
+    get_mechanics_update_flags() const override;
+
+    /**
+     * Define this force as a PK1 stress.
+     */
+    virtual bool
+    is_stress() const override;
+
+    virtual void
+    compute_stress(
+      const double                          time,
+      const MechanicsValues<dim, spacedim> &me_values,
+      const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
+      ArrayView<Tensor<2, spacedim, Number>> &stresses) const override;
+
+  protected:
+    double bulk_modulus;
+
+    std::vector<types::material_id> material_ids;
+  };
 } // namespace fdl
 
 #endif

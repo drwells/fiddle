@@ -36,6 +36,8 @@ namespace fdl
             result |= update_FF;
           if (result & update_n23_det_FF)
             result |= update_det_FF;
+          if (result & update_log_det_FF)
+            result |= update_det_FF;
           if (result & update_deformed_normal_vectors)
             result |= update_FF_inv_T;
           if (result & update_right_cauchy_green)
@@ -153,6 +155,8 @@ namespace fdl
       det_FF.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_n23_det_FF)
       n23_det_FF.resize(this->fe_values->n_quadrature_points);
+    if (update_flags & MechanicsUpdateFlags::update_log_det_FF)
+      log_det_FF.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_right_cauchy_green)
       right_cauchy_green.resize(this->fe_values->n_quadrature_points);
     if (update_flags & MechanicsUpdateFlags::update_green)
@@ -240,6 +244,10 @@ namespace fdl
             // division, cbrt, and then multiply
             const auto temp = std::cbrt(1.0 / det_FF[q]);
             n23_det_FF[q]   = temp * temp;
+          }
+        if (update_flags & update_log_det_FF)
+          {
+            log_det_FF[q] = std::log(det_FF[q]);
           }
         if (update_flags & update_deformed_normal_vectors)
           {
