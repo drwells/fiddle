@@ -112,18 +112,20 @@ main(int argc, char **argv)
   if (input_db->getBoolWithDefault("multiple_materials", false))
     {
       std::vector<types::material_id> materials;
-      if (!input_db->getBoolWithDefault("use_no_materials", false))
+      if (input_db->getBoolWithDefault("use_no_materials", false))
+        materials = {numbers::invalid_material_id};
+      else
         materials = {42, 99, 99, 99, 42};
       if (input_db->getBoolWithDefault("use_function", false))
         spring_force = std::make_unique<fdl::SpringForce<2>>(quadrature,
                                                              spring_constant,
                                                              dof_handler,
                                                              mapping,
-                                                             materials,
-                                                             IP2<2>());
+                                                             IP2<2>(),
+                                                             materials);
       else
         spring_force = std::make_unique<fdl::SpringForce<2>>(
-          quadrature, spring_constant, dof_handler, materials, current);
+          quadrature, spring_constant, dof_handler, current, materials);
     }
   else
     {

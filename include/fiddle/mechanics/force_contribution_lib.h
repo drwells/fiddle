@@ -97,47 +97,30 @@ namespace fdl
      * Constructor. This class stores a pointer to the DoFHandler so that it can
      * access DoFs on cells and copies the provided references position vector.
      * Applies the force on every cell.
-     */
-    SpringForce(
-      const Quadrature<dim>                            &quad,
-      const double                                      spring_constant,
-      const DoFHandler<dim, spacedim>                  &dof_handler,
-      const LinearAlgebra::distributed::Vector<double> &reference_position);
-
-    /**
-     * Same, but for an initial position set up by a Function instead of a
-     * specified vector.
-     */
-    SpringForce(const Quadrature<dim>           &quad,
-                const double                     spring_constant,
-                const DoFHandler<dim, spacedim> &dof_handler,
-                const Mapping<dim, spacedim>    &mapping,
-                const Function<spacedim>        &reference_function);
-
-    /**
-     * Constructor. Same idea, but only applies the force on cells with the
-     * provided material ids.
      *
-     * @note if @p material_ids is empty then the force will not be applied on
-     * any cell.
+     * @note if @p material_ids is empty then the force will be applied on
+     * every cell.
      */
     SpringForce(
       const Quadrature<dim>                            &quad,
       const double                                      spring_constant,
       const DoFHandler<dim, spacedim>                  &dof_handler,
-      const std::vector<types::material_id>            &material_ids,
-      const LinearAlgebra::distributed::Vector<double> &reference_position);
+      const LinearAlgebra::distributed::Vector<double> &reference_position,
+      const std::vector<types::material_id>            &material_ids = {});
 
     /**
      * Same, but for an initial position set up by a Function instead of a
      * specified vector.
+     *
+     * @note if @p material_ids is empty then the force will be applied on
+     * every cell.
      */
     SpringForce(const Quadrature<dim>                 &quad,
                 const double                           spring_constant,
                 const DoFHandler<dim, spacedim>       &dof_handler,
                 const Mapping<dim, spacedim>          &mapping,
-                const std::vector<types::material_id> &material_ids,
-                const Function<spacedim>              &reference_position);
+                const Function<spacedim>              &reference_function,
+                const std::vector<types::material_id> &material_ids = {});
 
     virtual bool
     is_volume_force() const override;
@@ -165,47 +148,31 @@ namespace fdl
      * Constructor. This class stores a pointer to the DoFHandler so that it can
      * access DoFs on cells and copies the provided references position vector.
      * Applies the force on every cell.
-     */
-    BoundarySpringForce(
-      const Quadrature<dim - 1>                        &quad,
-      const double                                      spring_constant,
-      const DoFHandler<dim, spacedim>                  &dof_handler,
-      const LinearAlgebra::distributed::Vector<double> &reference_position);
-
-    /**
-     * Same, but for an initial position set up by a Function instead of a
-     * specified vector.
-     */
-    BoundarySpringForce(const Quadrature<dim - 1>       &quad,
-                        const double                     spring_constant,
-                        const DoFHandler<dim, spacedim> &dof_handler,
-                        const Mapping<dim, spacedim>    &mapping,
-                        const Function<spacedim>        &reference_function);
-
-    /**
-     * Constructor. Same idea, but only applies the force on faces with the
-     * provided boundary ids.
      *
-     * @note if @p boundary_ids is empty then the force will not be applied on
-     * any boundary.
+     * @note if @p boundary_ids is empty then the force will be applied on
+     * every boundary face.
      */
     BoundarySpringForce(
       const Quadrature<dim - 1>                        &quad,
       const double                                      spring_constant,
       const DoFHandler<dim, spacedim>                  &dof_handler,
-      const std::vector<types::boundary_id>            &boundary_ids,
-      const LinearAlgebra::distributed::Vector<double> &reference_position);
+      const LinearAlgebra::distributed::Vector<double> &reference_position,
+      const std::vector<types::boundary_id>            &boundary_ids = {});
 
     /**
      * Same, but for an initial position set up by a Function instead of a
      * specified vector.
+     *
+     * @note if @p boundary_ids is empty then the force will be applied on
+     * every boundary face.
      */
-    BoundarySpringForce(const Quadrature<dim - 1>             &quad,
-                        const double                           spring_constant,
-                        const DoFHandler<dim, spacedim>       &dof_handler,
-                        const Mapping<dim, spacedim>          &mapping,
-                        const std::vector<types::boundary_id> &boundary_ids,
-                        const Function<spacedim> &reference_position);
+    BoundarySpringForce(
+      const Quadrature<dim - 1>             &quad,
+      const double                           spring_constant,
+      const DoFHandler<dim, spacedim>       &dof_handler,
+      const Mapping<dim, spacedim>          &mapping,
+      const Function<spacedim>              &reference_function,
+      const std::vector<types::boundary_id> &boundary_ids = {});
 
     virtual bool
     is_boundary_force() const override;
@@ -275,22 +242,15 @@ namespace fdl
   public:
     /**
      * Constructor.
-     */
-    OrthogonalLinearLoadForce(const Quadrature<dim - 1> &quad,
-                                    const double         load_time,
-                                    const double         loaded_force);
-
-    /**
-     * Constructor.
      *
-     * @note if @p boundary_ids is empty then the force will not be applied on
-     * any boundary.
+     * @note if @p boundary_ids is empty then the force will be applied on
+     * every boundary face.
      */
     OrthogonalLinearLoadForce(
       const Quadrature<dim - 1>             &quad,
       const double                           load_time,
       const double                           loaded_force,
-      const std::vector<types::boundary_id> &boundary_ids);
+      const std::vector<types::boundary_id> &boundary_ids = {});
 
     /**
      * Get the update flags this force contribution requires for MechanicsValues
@@ -334,42 +294,19 @@ namespace fdl
   {
   public:
     /**
-     * Constructor. This class stores a pointer to the DoFHandler so that it can
-     * access DoFs on cells and copies the provided references position vector.
-     * Applies the force on every cell.
-     */
-    OrthogonalSpringDashpotForce(
-      const Quadrature<dim - 1>                        &quad,
-      const double                                      spring_constant,
-      const double                                      damping_constant,
-      const DoFHandler<dim, spacedim>                  &dof_handler,
-      const LinearAlgebra::distributed::Vector<double> &reference_position);
-
-    /**
-     * Same, but for an initial position set up by a Function instead of a
-     * specified vector.
-     */
-    OrthogonalSpringDashpotForce(const Quadrature<dim - 1> &quad,
-                                 const double               spring_constant,
-                                 const double               damping_constant,
-                                 const DoFHandler<dim, spacedim> &dof_handler,
-                                 const Mapping<dim, spacedim>    &mapping,
-                                 const Function<spacedim> &reference_function);
-
-    /**
      * Constructor. Same idea, but only applies the force on faces with the
      * provided boundary ids.
      *
-     * @note if @p boundary_ids is empty then the force will not be applied on
-     * any boundary.
+     * @note if @p boundary_ids is empty then the force will be applied on
+     * every boundary face.
      */
     OrthogonalSpringDashpotForce(
       const Quadrature<dim - 1>                        &quad,
       const double                                      spring_constant,
       const double                                      damping_constant,
       const DoFHandler<dim, spacedim>                  &dof_handler,
-      const std::vector<types::boundary_id>            &boundary_ids,
-      const LinearAlgebra::distributed::Vector<double> &reference_position);
+      const LinearAlgebra::distributed::Vector<double> &reference_position,
+      const std::vector<types::boundary_id>            &boundary_ids = {});
 
     /**
      * Same, but for an initial position set up by a Function instead of a
@@ -381,8 +318,8 @@ namespace fdl
       const double                           damping_constant,
       const DoFHandler<dim, spacedim>       &dof_handler,
       const Mapping<dim, spacedim>          &mapping,
-      const std::vector<types::boundary_id> &boundary_ids,
-      const Function<spacedim>              &reference_position);
+      const Function<spacedim>              &reference_position,
+      const std::vector<types::boundary_id> &boundary_ids = {});
 
     /**
      * Get the update flags this force contribution requires for MechanicsValues
@@ -429,20 +366,14 @@ namespace fdl
   public:
     /**
      * Constructor.
-     */
-    ModifiedNeoHookeanStress(const Quadrature<dim> &quad,
-                             const double           shear_modulus);
-
-    /**
-     * Constructor.
      *
-     * @note Like elsewhere, if material_ids is empty then this stress will
-     * not be used on any cell.
+     * @note if @p material_ids is empty then the force will be applied on
+     * every cell.
      */
     ModifiedNeoHookeanStress(
       const Quadrature<dim>                 &quad,
       const double                           shear_modulus,
-      const std::vector<types::material_id> &material_ids);
+      const std::vector<types::material_id> &material_ids = {});
 
     /**
      * Get the update flags this force contribution requires for MechanicsValues
@@ -491,23 +422,15 @@ namespace fdl
   public:
     /**
      * Constructor.
-     */
-    ModifiedMooneyRivlinStress(
-      const Quadrature<dim>                 &quad,
-      const double                           material_constant_1,
-      const double                           material_constant_2);
-
-    /**
-     * Constructor.
      *
-     * @note Like elsewhere, if material_ids is empty then this stress will
-     * not be used on any cell.
+     * @note if @p material_ids is empty then the force will be applied on
+     * every cell.
      */
     ModifiedMooneyRivlinStress(
       const Quadrature<dim>                 &quad,
       const double                           material_constant_1,
       const double                           material_constant_2,
-      const std::vector<types::material_id> &material_ids);
+      const std::vector<types::material_id> &material_ids = {});
 
     /**
      * Get the update flags this force contribution requires for MechanicsValues
@@ -563,13 +486,13 @@ namespace fdl
     /**
      * Constructor.
      *
-     * @note Like elsewhere, if material_ids is empty then this stress will
-     * not be used on any cell.
+     * @note if @p material_ids is empty then the force will be applied on
+     * every cell.
      */
     LogarithmicVolumetricEnergyStress(
       const Quadrature<dim>                 &quad,
       const double                           bulk_modulus,
-      const std::vector<types::material_id> &material_ids);
+      const std::vector<types::material_id> &material_ids = {});
 
     /**
      * Get the update flags this force contribution requires for MechanicsValues
