@@ -167,6 +167,13 @@ namespace fdl
   /**
    * Class that computes mechanics values and other things we need for
    * evaluating stress functions.
+   *
+   * This class computes values in the deformed configuration while the
+   * provided FEValuesBase object computes values in the reference
+   * configuration or evaluates finite element fields. Hence, if you need
+   * values computed in the reference configuration (e.g., locations of
+   * quadrature points on an element in the reference cell), then use the
+   * FEValuesBase object.
    */
   template <int dim,
             int spacedim        = dim,

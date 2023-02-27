@@ -100,12 +100,6 @@ main(int argc, char **argv)
   // We have to do some manual setup of stuff normally done inside the library
   MappingCartesian<2>     mapping;
   QMidpoint<2>            quadrature;
-  FEValues<2>             fe_values(mapping, fe, quadrature, update_values);
-  fdl::MechanicsValues<2> m_values(fe_values,
-                                   current,
-                                   current,
-                                   fdl::MechanicsUpdateFlags::update_nothing);
-
   const double spring_constant = 10.0;
 
   std::unique_ptr<fdl::SpringForce<2>> spring_force;
@@ -124,8 +118,9 @@ main(int argc, char **argv)
                                                              IP2<2>(),
                                                              materials);
       else
+        // use the reference configuration in one of the tests
         spring_force = std::make_unique<fdl::SpringForce<2>>(
-          quadrature, spring_constant, dof_handler, current, materials);
+          quadrature, spring_constant, materials);
     }
   else
     {
@@ -140,6 +135,15 @@ main(int argc, char **argv)
     }
   spring_force->set_reference_position(reference);
 
+  FEValues<2>             fe_values(mapping,
+                                    fe,
+                                    quadrature,
+                                    spring_force->get_update_flags());
+  fdl::MechanicsValues<2> m_values(fe_values,
+                                   current,
+                                   current,
+                                   spring_force->get_mechanics_update_flags());
+
   spring_force->setup_force(0.0, current, current);
   std::vector<Tensor<1, 2>> forces(quadrature.size());
   std::ofstream             output("output");
@@ -149,6 +153,7 @@ main(int argc, char **argv)
     {
       // more manual stuff that normally would not be necessary
       fe_values.reinit(cell);
+      m_values.reinit(cell);
       output << "cell center = " << cell->center() << '\n';
       auto view = make_array_view(forces);
       spring_force->compute_volume_force(0.0, m_values, cell, view);
@@ -164,6 +169,7 @@ main(int argc, char **argv)
     {
       // more manual stuff that normally would not be necessary
       fe_values.reinit(cell);
+      m_values.reinit(cell);
       output << "cell center = " << cell->center() << '\n';
       auto view = make_array_view(forces);
       spring_force->compute_volume_force(0.0, m_values, cell, view);

@@ -31,6 +31,16 @@ namespace fdl
   {
   public:
     /**
+     * Constructor. Evaluates the spring forces with the initial configuration
+     * (i.e., the geometric information stored by the underlying
+     * Triangulation).
+     */
+    template <int q_dim>
+    SpringForceBase(
+      const Quadrature<q_dim> &quad,
+      const double             spring_constant);
+
+    /**
      * Constructor. This class stores a pointer to the DoFHandler so that it can
      * access DoFs on cells and copies the provided references position vector.
      * Applies the force on every cell.
@@ -94,6 +104,17 @@ namespace fdl
   {
   public:
     /**
+     * Constructor. Uses the reference configuration to evaluate the spring forces.
+     *
+     * @note if @p material_ids is empty then the force will be applied on
+     * every cell.
+     */
+    SpringForce(
+      const Quadrature<dim>                 &quad,
+      const double                           spring_constant,
+      const std::vector<types::material_id> &material_ids = {});
+
+    /**
      * Constructor. This class stores a pointer to the DoFHandler so that it can
      * access DoFs on cells and copies the provided references position vector.
      * Applies the force on every cell.
@@ -144,6 +165,18 @@ namespace fdl
   class BoundarySpringForce : public SpringForceBase<dim, spacedim, Number>
   {
   public:
+    /**
+     * Constructor. Uses the reference configuration to evaluate the spring
+     * forces.
+     *
+     * @note if @p boundary_ids is empty then the force will be applied on
+     * every boundary face.
+     */
+    BoundarySpringForce(
+      const Quadrature<dim - 1>             &quad,
+      const double                           spring_constant,
+      const std::vector<types::material_id> &material_ids = {});
+
     /**
      * Constructor. This class stores a pointer to the DoFHandler so that it can
      * access DoFs on cells and copies the provided references position vector.
@@ -294,8 +327,20 @@ namespace fdl
   {
   public:
     /**
-     * Constructor. Same idea, but only applies the force on faces with the
-     * provided boundary ids.
+     * Constructor. Uses the reference configuration to evaluate the spring
+     * forces.
+     *
+     * @note if @p boundary_ids is empty then the force will be applied on
+     * every boundary face.
+     */
+    OrthogonalSpringDashpotForce(
+      const Quadrature<dim - 1>                        &quad,
+      const double                                      spring_constant,
+      const double                                      damping_constant,
+      const std::vector<types::boundary_id>            &boundary_ids = {});
+
+    /**
+     * Constructor.
      *
      * @note if @p boundary_ids is empty then the force will be applied on
      * every boundary face.

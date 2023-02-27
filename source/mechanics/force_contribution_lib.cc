@@ -62,6 +62,15 @@ namespace fdl
   template <int dim, int spacedim, typename Number>
   template <int q_dim>
   SpringForceBase<dim, spacedim, Number>::SpringForceBase(
+    const Quadrature<q_dim> &quad,
+    const double             spring_constant)
+    : ForceContribution<dim, spacedim, double>(quad)
+    , spring_constant(spring_constant)
+  {}
+
+  template <int dim, int spacedim, typename Number>
+  template <int q_dim>
+  SpringForceBase<dim, spacedim, Number>::SpringForceBase(
     const Quadrature<q_dim>                          &quad,
     const double                                      spring_constant,
     const DoFHandler<dim, spacedim>                  &dof_handler,
@@ -79,6 +88,9 @@ namespace fdl
   SpringForceBase<dim, spacedim, Number>::set_reference_position(
     const LinearAlgebra::distributed::Vector<double> &reference_position)
   {
+    Assert(dof_handler != nullptr,
+           ExcMessage("This function is meaningless when there is no "
+                      "DoFHandler attached to the force object."));
     this->reference_position = reference_position;
     this->reference_position.update_ghost_values();
   }
@@ -87,14 +99,23 @@ namespace fdl
   MechanicsUpdateFlags
   SpringForceBase<dim, spacedim, Number>::get_mechanics_update_flags() const
   {
-    return MechanicsUpdateFlags::update_nothing;
+    // If there is no DoFHandler then we don't compute the positions ourselves
+    if (dof_handler == nullptr)
+      return MechanicsUpdateFlags::update_position_values;
+    else
+      return MechanicsUpdateFlags::update_nothing;
   }
 
   template <int dim, int spacedim, typename Number>
   UpdateFlags
   SpringForceBase<dim, spacedim, Number>::get_update_flags() const
   {
-    return UpdateFlags::update_values;
+    // If there is no DoFHandler then we are using the plain old quadrature
+    // points located in the reference configuration
+    if (dof_handler == nullptr)
+      return UpdateFlags::update_quadrature_points | UpdateFlags::update_values;
+    else
+      return UpdateFlags::update_values;
   }
 
   template <int dim, int spacedim, typename Number>
@@ -117,6 +138,15 @@ namespace fdl
   //
   // SpringForce
   //
+
+  template <int dim, int spacedim, typename Number>
+  SpringForce<dim, spacedim, Number>::SpringForce(
+    const Quadrature<dim>                 &quad,
+    const double                           spring_constant,
+    const std::vector<types::material_id> &material_ids)
+    : SpringForceBase<dim, spacedim, Number>(quad, spring_constant)
+    , material_ids(setup_ids(material_ids))
+  {}
 
   template <int dim, int spacedim, typename Number>
   SpringForce<dim, spacedim, Number>::SpringForce(
@@ -168,31 +198,44 @@ namespace fdl
       }
     else
       {
-        const FEValuesBase<dim, spacedim> &fe_values = m_values.get_fe_values();
+        if (this->dof_handler == nullptr)
+          {
+            const FEValuesBase<dim, spacedim> &fe_values =
+              m_values.get_fe_values();
+            for (unsigned int qp_n = 0; qp_n < forces.size(); ++qp_n)
+              forces[qp_n] = this->spring_constant *
+                             (fe_values.get_quadrature_points()[qp_n] -
+                              m_values.get_position_values()[qp_n]);
+          }
+        else
+          {
+            const FEValuesBase<dim, spacedim> &fe_values =
+              m_values.get_fe_values();
 
-        const auto dof_cell =
-          typename DoFHandler<dim, spacedim>::active_cell_iterator(
-            &this->dof_handler->get_triangulation(),
-            cell->level(),
-            cell->index(),
-            &*this->dof_handler);
+            const auto dof_cell =
+              typename DoFHandler<dim, spacedim>::active_cell_iterator(
+                &this->dof_handler->get_triangulation(),
+                cell->level(),
+                cell->index(),
+                &*this->dof_handler);
 
-        this->scratch_cell_dofs.resize(fe_values.dofs_per_cell);
-        dof_cell->get_dof_indices(this->scratch_cell_dofs);
-        this->scratch_dof_values.resize(fe_values.dofs_per_cell);
-        this->scratch_qp_values.resize(fe_values.n_quadrature_points);
+            this->scratch_cell_dofs.resize(fe_values.dofs_per_cell);
+            dof_cell->get_dof_indices(this->scratch_cell_dofs);
+            this->scratch_dof_values.resize(fe_values.dofs_per_cell);
+            this->scratch_qp_values.resize(fe_values.n_quadrature_points);
 
-        auto &extractor = fe_values[FEValuesExtractors::Vector(0)];
-        for (unsigned int i = 0; i < this->scratch_cell_dofs.size(); ++i)
-          this->scratch_dof_values[i] =
-            this->spring_constant *
-            (this->reference_position[this->scratch_cell_dofs[i]] -
-             (*this->current_position)[this->scratch_cell_dofs[i]]);
-        extractor.get_function_values_from_local_dof_values(
-          this->scratch_dof_values, this->scratch_qp_values);
-        std::copy(this->scratch_qp_values.begin(),
-                  this->scratch_qp_values.end(),
-                  forces.begin());
+            auto &extractor = fe_values[FEValuesExtractors::Vector(0)];
+            for (unsigned int i = 0; i < this->scratch_cell_dofs.size(); ++i)
+              this->scratch_dof_values[i] =
+                this->spring_constant *
+                (this->reference_position[this->scratch_cell_dofs[i]] -
+                 (*this->current_position)[this->scratch_cell_dofs[i]]);
+            extractor.get_function_values_from_local_dof_values(
+              this->scratch_dof_values, this->scratch_qp_values);
+            std::copy(this->scratch_qp_values.begin(),
+                      this->scratch_qp_values.end(),
+                      forces.begin());
+          }
       }
   }
 
@@ -206,6 +249,15 @@ namespace fdl
   //
   // BoundarySpringForce
   //
+
+  template <int dim, int spacedim, typename Number>
+  BoundarySpringForce<dim, spacedim, Number>::BoundarySpringForce(
+    const Quadrature<dim - 1>             &quad,
+    const double                           spring_constant,
+    const std::vector<types::boundary_id> &boundary_ids)
+    : SpringForceBase<dim, spacedim, Number>(quad, spring_constant)
+    , boundary_ids(setup_ids(boundary_ids))
+  {}
 
   template <int dim, int spacedim, typename Number>
   BoundarySpringForce<dim, spacedim, Number>::BoundarySpringForce(
@@ -264,31 +316,44 @@ namespace fdl
       }
     else
       {
-        const FEValuesBase<dim, spacedim> &fe_values = m_values.get_fe_values();
-        const auto                         cell      = fe_values.get_cell();
-        const auto                         dof_cell =
-          typename DoFHandler<dim, spacedim>::active_cell_iterator(
-            &this->dof_handler->get_triangulation(),
-            cell->level(),
-            cell->index(),
-            &*this->dof_handler);
+        if (this->dof_handler == nullptr)
+          {
+            const FEValuesBase<dim, spacedim> &fe_values =
+              m_values.get_fe_values();
+            for (unsigned int qp_n = 0; qp_n < forces.size(); ++qp_n)
+              forces[qp_n] = this->spring_constant *
+                             (fe_values.get_quadrature_points()[qp_n] -
+                              m_values.get_position_values()[qp_n]);
+          }
+        else
+          {
+            const FEValuesBase<dim, spacedim> &fe_values =
+              m_values.get_fe_values();
+            const auto cell = fe_values.get_cell();
+            const auto dof_cell =
+              typename DoFHandler<dim, spacedim>::active_cell_iterator(
+                &this->dof_handler->get_triangulation(),
+                cell->level(),
+                cell->index(),
+                &*this->dof_handler);
 
-        this->scratch_cell_dofs.resize(fe_values.dofs_per_cell);
-        dof_cell->get_dof_indices(this->scratch_cell_dofs);
-        this->scratch_dof_values.resize(fe_values.dofs_per_cell);
-        this->scratch_qp_values.resize(fe_values.n_quadrature_points);
+            this->scratch_cell_dofs.resize(fe_values.dofs_per_cell);
+            dof_cell->get_dof_indices(this->scratch_cell_dofs);
+            this->scratch_dof_values.resize(fe_values.dofs_per_cell);
+            this->scratch_qp_values.resize(fe_values.n_quadrature_points);
 
-        auto &extractor = fe_values[FEValuesExtractors::Vector(0)];
-        for (unsigned int i = 0; i < this->scratch_cell_dofs.size(); ++i)
-          this->scratch_dof_values[i] =
-            this->spring_constant *
-            (this->reference_position[this->scratch_cell_dofs[i]] -
-             (*this->current_position)[this->scratch_cell_dofs[i]]);
-        extractor.get_function_values_from_local_dof_values(
-          this->scratch_dof_values, this->scratch_qp_values);
-        std::copy(this->scratch_qp_values.begin(),
-                  this->scratch_qp_values.end(),
-                  forces.begin());
+            auto &extractor = fe_values[FEValuesExtractors::Vector(0)];
+            for (unsigned int i = 0; i < this->scratch_cell_dofs.size(); ++i)
+              this->scratch_dof_values[i] =
+                this->spring_constant *
+                (this->reference_position[this->scratch_cell_dofs[i]] -
+                 (*this->current_position)[this->scratch_cell_dofs[i]]);
+            extractor.get_function_values_from_local_dof_values(
+              this->scratch_dof_values, this->scratch_qp_values);
+            std::copy(this->scratch_qp_values.begin(),
+                      this->scratch_qp_values.end(),
+                      forces.begin());
+          }
       }
   }
 
@@ -339,12 +404,11 @@ namespace fdl
   //
 
   template <int dim, int spacedim, typename Number>
-  OrthogonalLinearLoadForce<dim, spacedim, Number>::
-    OrthogonalLinearLoadForce(
-      const Quadrature<dim - 1>             &quad,
-      const double                           load_time,
-      const double                           loaded_force,
-      const std::vector<types::boundary_id> &boundary_ids)
+  OrthogonalLinearLoadForce<dim, spacedim, Number>::OrthogonalLinearLoadForce(
+    const Quadrature<dim - 1>             &quad,
+    const double                           load_time,
+    const double                           loaded_force,
+    const std::vector<types::boundary_id> &boundary_ids)
     : ForceContribution<dim, spacedim, Number>(quad)
     , load_time(load_time)
     , loaded_force(loaded_force)
@@ -353,8 +417,8 @@ namespace fdl
 
   template <int dim, int spacedim, typename Number>
   MechanicsUpdateFlags
-  OrthogonalLinearLoadForce<dim, spacedim, Number>::
-    get_mechanics_update_flags() const
+  OrthogonalLinearLoadForce<dim, spacedim, Number>::get_mechanics_update_flags()
+    const
   {
     return MechanicsUpdateFlags::update_deformed_normal_vectors;
   }
@@ -369,7 +433,7 @@ namespace fdl
   template <int dim, int spacedim, typename Number>
   void
   OrthogonalLinearLoadForce<dim, spacedim, Number>::compute_boundary_force(
-    const double time,
+    const double                                                       time,
     const MechanicsValues<dim, spacedim>                              &m_values,
     const typename Triangulation<dim, spacedim>::active_face_iterator &face,
     ArrayView<Tensor<1, spacedim, Number>> &forces) const
@@ -386,7 +450,8 @@ namespace fdl
       }
     else
       {
-        Assert(forces.size() = this->face_quadrature.size(), ExcInternalError());
+        Assert(forces.size() == this->get_face_quadrature().size(),
+               ExcInternalError());
 
         // Try to avoid doing a division
         double force = 0.0;
@@ -401,14 +466,26 @@ namespace fdl
           }
 
         for (unsigned int qp_n = 0; qp_n < forces.size(); ++qp_n)
-          forces[qp_n] = -1.0 * force
-            * m_values.get_deformed_normal_vectors()[qp_n];
+          forces[qp_n] =
+            -1.0 * force * m_values.get_deformed_normal_vectors()[qp_n];
       }
   }
 
   //
   // OrthogonalSpringDashpotForce
   //
+
+  template <int dim, int spacedim, typename Number>
+  OrthogonalSpringDashpotForce<dim, spacedim, Number>::
+    OrthogonalSpringDashpotForce(
+      const Quadrature<dim - 1>             &quad,
+      const double                           spring_constant,
+      const double                           damping_constant,
+      const std::vector<types::boundary_id> &boundary_ids)
+    : SpringForceBase<dim, spacedim, Number>(quad, spring_constant)
+    , damping_constant(damping_constant)
+    , boundary_ids(setup_ids(boundary_ids))
+  {}
 
   template <int dim, int spacedim, typename Number>
   OrthogonalSpringDashpotForce<dim, spacedim, Number>::
@@ -451,7 +528,8 @@ namespace fdl
   OrthogonalSpringDashpotForce<dim, spacedim, Number>::
     get_mechanics_update_flags() const
   {
-    return MechanicsUpdateFlags::update_velocity_values |
+    return SpringForceBase<dim, spacedim>::get_mechanics_update_flags() |
+           MechanicsUpdateFlags::update_velocity_values |
            MechanicsUpdateFlags::update_deformed_normal_vectors;
   }
 
@@ -482,41 +560,58 @@ namespace fdl
       }
     else
       {
-        const FEValuesBase<dim, spacedim> &fe_values = m_values.get_fe_values();
-        const auto                         cell      = fe_values.get_cell();
-        const auto                         dof_cell =
-          typename DoFHandler<dim, spacedim>::active_cell_iterator(
-            &this->dof_handler->get_triangulation(),
-            cell->level(),
-            cell->index(),
-            &*this->dof_handler);
+        if (this->dof_handler == nullptr)
+          {
+            const FEValuesBase<dim, spacedim> &fe_values =
+              m_values.get_fe_values();
+            for (unsigned int qp_n = 0; qp_n < forces.size(); ++qp_n)
+              forces[qp_n] = m_values.get_deformed_normal_vectors()[qp_n] *
+                             (this->spring_constant *
+                                (fe_values.get_quadrature_points()[qp_n] -
+                                 m_values.get_position_values()[qp_n]) -
+                              this->damping_constant *
+                                m_values.get_velocity_values()[qp_n]) *
+                             m_values.get_deformed_normal_vectors()[qp_n];
+          }
+        else
+          {
+            const FEValuesBase<dim, spacedim> &fe_values =
+              m_values.get_fe_values();
+            const auto cell = fe_values.get_cell();
+            const auto dof_cell =
+              typename DoFHandler<dim, spacedim>::active_cell_iterator(
+                &this->dof_handler->get_triangulation(),
+                cell->level(),
+                cell->index(),
+                &*this->dof_handler);
 
-        this->scratch_cell_dofs.resize(fe_values.dofs_per_cell);
-        dof_cell->get_dof_indices(this->scratch_cell_dofs);
-        this->scratch_dof_values.resize(fe_values.dofs_per_cell);
-        this->scratch_qp_values.resize(fe_values.n_quadrature_points);
+            this->scratch_cell_dofs.resize(fe_values.dofs_per_cell);
+            dof_cell->get_dof_indices(this->scratch_cell_dofs);
+            this->scratch_dof_values.resize(fe_values.dofs_per_cell);
+            this->scratch_qp_values.resize(fe_values.n_quadrature_points);
 
-        auto &extractor = fe_values[FEValuesExtractors::Vector(0)];
+            auto &extractor = fe_values[FEValuesExtractors::Vector(0)];
 
-        for (unsigned int i = 0; i < this->scratch_cell_dofs.size(); ++i)
-          this->scratch_dof_values[i] =
-            this->spring_constant *
-            (this->reference_position[this->scratch_cell_dofs[i]] -
-             (*this->current_position)[this->scratch_cell_dofs[i]]);
+            for (unsigned int i = 0; i < this->scratch_cell_dofs.size(); ++i)
+              this->scratch_dof_values[i] =
+                this->spring_constant *
+                (this->reference_position[this->scratch_cell_dofs[i]] -
+                 (*this->current_position)[this->scratch_cell_dofs[i]]);
 
-        extractor.get_function_values_from_local_dof_values(
-          this->scratch_dof_values, this->scratch_qp_values);
+            extractor.get_function_values_from_local_dof_values(
+              this->scratch_dof_values, this->scratch_qp_values);
 
-        for (unsigned int i = 0; i < this->scratch_qp_values.size(); ++i)
-          this->scratch_qp_values[i] =
-            m_values.get_deformed_normal_vectors()[i] *
-            (this->scratch_qp_values[i] -
-             this->damping_constant * m_values.get_velocity_values()[i]) *
-            m_values.get_deformed_normal_vectors()[i];
+            for (unsigned int i = 0; i < this->scratch_qp_values.size(); ++i)
+              this->scratch_qp_values[i] =
+                m_values.get_deformed_normal_vectors()[i] *
+                (this->scratch_qp_values[i] -
+                 this->damping_constant * m_values.get_velocity_values()[i]) *
+                m_values.get_deformed_normal_vectors()[i];
 
-        std::copy(this->scratch_qp_values.begin(),
-                  this->scratch_qp_values.end(),
-                  forces.begin());
+            std::copy(this->scratch_qp_values.begin(),
+                      this->scratch_qp_values.end(),
+                      forces.begin());
+          }
       }
   }
 
@@ -532,8 +627,7 @@ namespace fdl
     : ForceContribution<dim, spacedim, Number>(quad)
     , shear_modulus(shear_modulus)
     , material_ids(setup_ids(material_ids))
-  {
-  }
+  {}
 
   template <int dim, int spacedim, typename Number>
   MechanicsUpdateFlags
@@ -597,8 +691,7 @@ namespace fdl
     , material_constant_1(material_constant_1)
     , material_constant_2(material_constant_2)
     , material_ids(setup_ids(material_ids))
-  {
-  }
+  {}
 
   template <int dim, int spacedim, typename Number>
   MechanicsUpdateFlags
@@ -663,24 +756,22 @@ namespace fdl
 
   template <int dim, int spacedim, typename Number>
   LogarithmicVolumetricEnergyStress<dim, spacedim, Number>::
-  LogarithmicVolumetricEnergyStress(const Quadrature<dim> &quad,
-                                    const double           bulk_modulus)
+    LogarithmicVolumetricEnergyStress(const Quadrature<dim> &quad,
+                                      const double           bulk_modulus)
     : ForceContribution<dim, spacedim, Number>(quad)
     , bulk_modulus(bulk_modulus)
-  {
-  }
+  {}
 
   template <int dim, int spacedim, typename Number>
   LogarithmicVolumetricEnergyStress<dim, spacedim, Number>::
-  LogarithmicVolumetricEnergyStress(
-    const Quadrature<dim>                 &quad,
-    const double                           bulk_modulus,
-    const std::vector<types::material_id> &material_ids)
+    LogarithmicVolumetricEnergyStress(
+      const Quadrature<dim>                 &quad,
+      const double                           bulk_modulus,
+      const std::vector<types::material_id> &material_ids)
     : ForceContribution<dim, spacedim, Number>(quad)
     , bulk_modulus(bulk_modulus)
     , material_ids(setup_ids(material_ids))
-  {
-  }
+  {}
 
   template <int dim, int spacedim, typename Number>
   MechanicsUpdateFlags
@@ -688,7 +779,7 @@ namespace fdl
     get_mechanics_update_flags() const
   {
     return MechanicsUpdateFlags::update_log_det_FF |
-      MechanicsUpdateFlags::update_FF_inv_T;
+           MechanicsUpdateFlags::update_FF_inv_T;
   }
 
   template <int dim, int spacedim, typename Number>
@@ -719,8 +810,8 @@ namespace fdl
     else
       {
         for (unsigned int qp_n = 0; qp_n < stresses.size(); ++qp_n)
-          stresses[qp_n] = bulk_modulus * m_values.get_log_det_FF()[qp_n]
-            * m_values.get_FF_inv_T()[qp_n];
+          stresses[qp_n] = bulk_modulus * m_values.get_log_det_FF()[qp_n] *
+                           m_values.get_FF_inv_T()[qp_n];
       }
   }
 

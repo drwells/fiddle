@@ -49,7 +49,8 @@ print_force(fdl::ForceContribution<dim, spacedim, Number> &   boundary_force,
     mapping,
     dof_handler.get_fe(),
     boundary_force.get_face_quadrature(),
-    fdl::compute_flag_dependencies(face_me_flags));
+    fdl::compute_flag_dependencies(face_me_flags)
+    | boundary_force.get_update_flags());
   fdl::MechanicsValues<dim, spacedim> m_values(fe_face_values,
                                                position,
                                                velocity,
@@ -84,8 +85,6 @@ public:
   virtual double
   value(const Point<dim> &p, const unsigned int component = 0) const override
   {
-    AssertIndexRange(component, n_components());
-
     const Tensor<2, dim> matrix =
       Physics::Transformations::Rotations::rotation_matrix_2d(numbers::PI /
                                                               4.0);
@@ -133,6 +132,17 @@ main(int argc, char **argv)
   const double damping_constant = 5.0;
 
   std::ofstream output("output");
+
+  {
+    fdl::OrthogonalSpringDashpotForce<2> boundary_force(face_quadrature,
+                                                        spring_constant,
+                                                        damping_constant);
+    output << "test 1:\ndisplace (2, 2), spring constant = " << spring_constant
+           << "\n"
+           << "velocity (1, 1), damping constant = " << damping_constant << '\n'
+           << "uses the reference configuration\n";
+    print_force(boundary_force, dof_handler, 0.0, position, velocity, output);
+  }
 
   {
     fdl::OrthogonalSpringDashpotForce<2> boundary_force(face_quadrature,
