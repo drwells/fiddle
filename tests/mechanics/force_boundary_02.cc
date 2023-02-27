@@ -172,8 +172,8 @@ main(int argc, char **argv)
                                                         spring_constant,
                                                         damping_constant,
                                                         dof_handler,
-                                                        {0u, 3u},
-                                                        position);
+                                                        position,
+                                                        {0u, 3u});
     boundary_force.set_reference_position(reference);
     output << "test 3:\ndisplace (2, 2), spring constant = " << spring_constant
            << "\n"
@@ -190,8 +190,8 @@ main(int argc, char **argv)
                                                         spring_constant,
                                                         damping_constant,
                                                         dof_handler,
-                                                        {},
-                                                        position);
+                                                        position,
+                                                        {numbers::invalid_boundary_id});
     boundary_force.set_reference_position(reference);
     output << "test 4:\ndisplace (2, 2), spring constant = " << spring_constant
            << "\n"

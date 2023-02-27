@@ -39,27 +39,14 @@ namespace fdl
     }
 
     /**
-     * We presently handle 'apply the force on a subset of material or
-     * boundary ids' in the following way:
-     *
-     * 1. If the constructor does not take a vector of ids then we do not call
-     *    this function and the array of ids is empty. In that case we apply
-     *    the function on all cells / boundary faces.
-     * 2. If the constructor does take a vector of ids then we sort and
-     *    uniquify the input. If that vector is empty then we signify 'do not
-     *    apply this force' by adding a single invalid value to the array.
+     * Utility function for sorting and uniquifying input ids. If the array is
+     * empty then the force will be applied on all cells.
      */
     template <typename id_type>
     std::vector<id_type>
-    setup_ids(const std::vector<id_type> &ids, const id_type invalid_id)
+    setup_ids(const std::vector<id_type> &ids)
     {
       std::vector<id_type> result = ids;
-      // If the user doesn't want any material/boundary ids, let them do it.
-      // This utility function is only for the explicit material/boundary id
-      // case.
-      if (result.size() == 0)
-        result.push_back(invalid_id);
-
       // permit duplicates in the input array
       std::sort(result.begin(), result.end());
       result.erase(std::unique(result.begin(), result.end()), result.end());
@@ -136,25 +123,13 @@ namespace fdl
     const Quadrature<dim>                            &quad,
     const double                                      spring_constant,
     const DoFHandler<dim, spacedim>                  &dof_handler,
-    const LinearAlgebra::distributed::Vector<double> &reference_position)
+    const LinearAlgebra::distributed::Vector<double> &reference_position,
+    const std::vector<types::material_id>            &material_ids)
     : SpringForceBase<dim, spacedim, Number>(quad,
                                              spring_constant,
                                              dof_handler,
                                              reference_position)
-  {}
-
-  template <int dim, int spacedim, typename Number>
-  SpringForce<dim, spacedim, Number>::SpringForce(
-    const Quadrature<dim>                            &quad,
-    const double                                      spring_constant,
-    const DoFHandler<dim, spacedim>                  &dof_handler,
-    const std::vector<types::material_id>            &material_ids,
-    const LinearAlgebra::distributed::Vector<double> &reference_position)
-    : SpringForceBase<dim, spacedim, Number>(quad,
-                                             spring_constant,
-                                             dof_handler,
-                                             reference_position)
-    , material_ids(setup_ids(material_ids, numbers::invalid_material_id))
+    , material_ids(setup_ids(material_ids))
   {}
 
   template <int dim, int spacedim, typename Number>
@@ -163,28 +138,14 @@ namespace fdl
     const double                           spring_constant,
     const DoFHandler<dim, spacedim>       &dof_handler,
     const Mapping<dim, spacedim>          &mapping,
-    const std::vector<types::material_id> &material_ids,
-    const Function<spacedim>              &reference_position)
+    const Function<spacedim>              &reference_position,
+    const std::vector<types::material_id> &material_ids)
     : SpringForceBase<dim, spacedim, Number>(
         quad,
         spring_constant,
         dof_handler,
         do_interpolation(dof_handler, mapping, reference_position))
-    , material_ids(setup_ids(material_ids, numbers::invalid_material_id))
-  {}
-
-  template <int dim, int spacedim, typename Number>
-  SpringForce<dim, spacedim, Number>::SpringForce(
-    const Quadrature<dim>           &quad,
-    const double                     spring_constant,
-    const DoFHandler<dim, spacedim> &dof_handler,
-    const Mapping<dim, spacedim>    &mapping,
-    const Function<spacedim>        &reference_position)
-    : SpringForceBase<dim, spacedim, Number>(
-        quad,
-        spring_constant,
-        dof_handler,
-        do_interpolation(dof_handler, mapping, reference_position))
+    , material_ids(setup_ids(material_ids))
   {}
 
   template <int dim, int spacedim, typename Number>
@@ -245,30 +206,19 @@ namespace fdl
   //
   // BoundarySpringForce
   //
-  template <int dim, int spacedim, typename Number>
-  BoundarySpringForce<dim, spacedim, Number>::BoundarySpringForce(
-    const Quadrature<dim - 1>                        &quad,
-    const double                                      spring_constant,
-    const DoFHandler<dim, spacedim>                  &dof_handler,
-    const LinearAlgebra::distributed::Vector<double> &reference_position)
-    : SpringForceBase<dim, spacedim, Number>(quad,
-                                             spring_constant,
-                                             dof_handler,
-                                             reference_position)
-  {}
 
   template <int dim, int spacedim, typename Number>
   BoundarySpringForce<dim, spacedim, Number>::BoundarySpringForce(
     const Quadrature<dim - 1>                        &quad,
     const double                                      spring_constant,
     const DoFHandler<dim, spacedim>                  &dof_handler,
-    const std::vector<types::boundary_id>            &boundary_ids,
-    const LinearAlgebra::distributed::Vector<double> &reference_position)
+    const LinearAlgebra::distributed::Vector<double> &reference_position,
+    const std::vector<types::boundary_id>            &boundary_ids)
     : SpringForceBase<dim, spacedim, Number>(quad,
                                              spring_constant,
                                              dof_handler,
                                              reference_position)
-    , boundary_ids(setup_ids(boundary_ids, numbers::invalid_boundary_id))
+    , boundary_ids(setup_ids(boundary_ids))
   {}
 
   template <int dim, int spacedim, typename Number>
@@ -277,28 +227,14 @@ namespace fdl
     const double                           spring_constant,
     const DoFHandler<dim, spacedim>       &dof_handler,
     const Mapping<dim, spacedim>          &mapping,
-    const std::vector<types::boundary_id> &boundary_ids,
-    const Function<spacedim>              &reference_position)
+    const Function<spacedim>              &reference_position,
+    const std::vector<types::boundary_id> &boundary_ids)
     : SpringForceBase<dim, spacedim, Number>(
         quad,
         spring_constant,
         dof_handler,
         do_interpolation(dof_handler, mapping, reference_position))
-    , boundary_ids(setup_ids(boundary_ids, numbers::invalid_boundary_id))
-  {}
-
-  template <int dim, int spacedim, typename Number>
-  BoundarySpringForce<dim, spacedim, Number>::BoundarySpringForce(
-    const Quadrature<dim - 1>       &quad,
-    const double                     spring_constant,
-    const DoFHandler<dim, spacedim> &dof_handler,
-    const Mapping<dim, spacedim>    &mapping,
-    const Function<spacedim>        &reference_position)
-    : SpringForceBase<dim, spacedim, Number>(
-        quad,
-        spring_constant,
-        dof_handler,
-        do_interpolation(dof_handler, mapping, reference_position))
+    , boundary_ids(setup_ids(boundary_ids))
   {}
 
   template <int dim, int spacedim, typename Number>
@@ -359,6 +295,7 @@ namespace fdl
   //
   // DampingForce
   //
+
   template <int dim, int spacedim, typename Number>
   DampingForce<dim, spacedim, Number>::DampingForce(
     const Quadrature<dim> &quad,
@@ -406,23 +343,12 @@ namespace fdl
     OrthogonalLinearLoadForce(
       const Quadrature<dim - 1>             &quad,
       const double                           load_time,
-      const double                           loaded_force)
-    : ForceContribution<dim, spacedim, Number>(quad)
-    , load_time(load_time)
-    , loaded_force(loaded_force)
-  {}
-
-  template <int dim, int spacedim, typename Number>
-  OrthogonalLinearLoadForce<dim, spacedim, Number>::
-    OrthogonalLinearLoadForce(
-      const Quadrature<dim - 1>             &quad,
-      const double                           load_time,
       const double                           loaded_force,
       const std::vector<types::boundary_id> &boundary_ids)
     : ForceContribution<dim, spacedim, Number>(quad)
     , load_time(load_time)
     , loaded_force(loaded_force)
-    , boundary_ids(setup_ids(boundary_ids, numbers::invalid_boundary_id))
+    , boundary_ids(setup_ids(boundary_ids))
   {}
 
   template <int dim, int spacedim, typename Number>
@@ -491,29 +417,14 @@ namespace fdl
       const double                                      spring_constant,
       const double                                      damping_constant,
       const DoFHandler<dim, spacedim>                  &dof_handler,
-      const LinearAlgebra::distributed::Vector<double> &reference_position)
+      const LinearAlgebra::distributed::Vector<double> &reference_position,
+      const std::vector<types::boundary_id>            &boundary_ids)
     : SpringForceBase<dim, spacedim, Number>(quad,
                                              spring_constant,
                                              dof_handler,
                                              reference_position)
     , damping_constant(damping_constant)
-  {}
-
-  template <int dim, int spacedim, typename Number>
-  OrthogonalSpringDashpotForce<dim, spacedim, Number>::
-    OrthogonalSpringDashpotForce(
-      const Quadrature<dim - 1>                        &quad,
-      const double                                      spring_constant,
-      const double                                      damping_constant,
-      const DoFHandler<dim, spacedim>                  &dof_handler,
-      const std::vector<types::boundary_id>            &boundary_ids,
-      const LinearAlgebra::distributed::Vector<double> &reference_position)
-    : SpringForceBase<dim, spacedim, Number>(quad,
-                                             spring_constant,
-                                             dof_handler,
-                                             reference_position)
-    , damping_constant(damping_constant)
-    , boundary_ids(setup_ids(boundary_ids, numbers::invalid_boundary_id))
+    , boundary_ids(setup_ids(boundary_ids))
   {}
 
   template <int dim, int spacedim, typename Number>
@@ -524,31 +435,15 @@ namespace fdl
       const double                           damping_constant,
       const DoFHandler<dim, spacedim>       &dof_handler,
       const Mapping<dim, spacedim>          &mapping,
-      const std::vector<types::boundary_id> &boundary_ids,
-      const Function<spacedim>              &reference_position)
+      const Function<spacedim>              &reference_position,
+      const std::vector<types::boundary_id> &boundary_ids)
     : SpringForceBase<dim, spacedim, Number>(
         quad,
         spring_constant,
         dof_handler,
         do_interpolation(dof_handler, mapping, reference_position))
     , damping_constant(damping_constant)
-    , boundary_ids(setup_ids(boundary_ids, numbers::invalid_boundary_id))
-  {}
-
-  template <int dim, int spacedim, typename Number>
-  OrthogonalSpringDashpotForce<dim, spacedim, Number>::
-    OrthogonalSpringDashpotForce(const Quadrature<dim - 1> &quad,
-                                 const double               spring_constant,
-                                 const double               damping_constant,
-                                 const DoFHandler<dim, spacedim> &dof_handler,
-                                 const Mapping<dim, spacedim>    &mapping,
-                                 const Function<spacedim> &reference_position)
-    : SpringForceBase<dim, spacedim, Number>(
-        quad,
-        spring_constant,
-        dof_handler,
-        do_interpolation(dof_handler, mapping, reference_position))
-    , damping_constant(damping_constant)
+    , boundary_ids(setup_ids(boundary_ids))
   {}
 
   template <int dim, int spacedim, typename Number>
@@ -632,20 +527,11 @@ namespace fdl
   template <int dim, int spacedim, typename Number>
   ModifiedNeoHookeanStress<dim, spacedim, Number>::ModifiedNeoHookeanStress(
     const Quadrature<dim>                 &quad,
-    const double                           shear_modulus)
-    : ForceContribution<dim, spacedim, Number>(quad)
-    , shear_modulus(shear_modulus)
-  {
-  }
-
-  template <int dim, int spacedim, typename Number>
-  ModifiedNeoHookeanStress<dim, spacedim, Number>::ModifiedNeoHookeanStress(
-    const Quadrature<dim>                 &quad,
     const double                           shear_modulus,
     const std::vector<types::material_id> &material_ids)
     : ForceContribution<dim, spacedim, Number>(quad)
     , shear_modulus(shear_modulus)
-    , material_ids(setup_ids(material_ids, numbers::invalid_material_id))
+    , material_ids(setup_ids(material_ids))
   {
   }
 
@@ -705,23 +591,12 @@ namespace fdl
   ModifiedMooneyRivlinStress<dim, spacedim, Number>::ModifiedMooneyRivlinStress(
     const Quadrature<dim>                 &quad,
     const double                           material_constant_1,
-    const double                           material_constant_2)
-    : ForceContribution<dim, spacedim, Number>(quad)
-    , material_constant_1(material_constant_1)
-    , material_constant_2(material_constant_2)
-  {
-  }
-
-  template <int dim, int spacedim, typename Number>
-  ModifiedMooneyRivlinStress<dim, spacedim, Number>::ModifiedMooneyRivlinStress(
-    const Quadrature<dim>                 &quad,
-    const double                           material_constant_1,
     const double                           material_constant_2,
     const std::vector<types::material_id> &material_ids)
     : ForceContribution<dim, spacedim, Number>(quad)
     , material_constant_1(material_constant_1)
     , material_constant_2(material_constant_2)
-    , material_ids(setup_ids(material_ids, numbers::invalid_material_id))
+    , material_ids(setup_ids(material_ids))
   {
   }
 
@@ -803,7 +678,7 @@ namespace fdl
     const std::vector<types::material_id> &material_ids)
     : ForceContribution<dim, spacedim, Number>(quad)
     , bulk_modulus(bulk_modulus)
-    , material_ids(setup_ids(material_ids, numbers::invalid_material_id))
+    , material_ids(setup_ids(material_ids))
   {
   }
 
