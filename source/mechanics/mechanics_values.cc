@@ -91,8 +91,7 @@ namespace fdl
     return flags;
   }
 
-
-  // Constructor and reinitialization
+  // Constructors and reinitialization
 
   template <int dim, int spacedim, typename VectorType>
   MechanicsValues<dim, spacedim, VectorType>::MechanicsValues(
@@ -103,11 +102,8 @@ namespace fdl
     : fe_values(&fe_values)
     , position(&position)
     , velocity(&velocity)
-    , update_flags(flags)
+    , update_flags(resolve_flag_dependencies(flags))
   {
-    // Resolve flag dependencies:
-    update_flags = resolve_flag_dependencies(update_flags);
-
     // Check that FEValues has all the flags we need:
     const auto required_flags =
       static_cast<unsigned int>(compute_flag_dependencies(update_flags));
@@ -156,48 +152,71 @@ namespace fdl
         scratch_dof_indices.resize(n_dofs_per_cell);
       }
 
+    resize(this->fe_values->n_quadrature_points);
+  }
+
+  template <int dim, int spacedim, typename VectorType>
+  MechanicsValues<dim, spacedim, VectorType>::MechanicsValues(
+    const MechanicsUpdateFlags flags)
+    : update_flags(resolve_flag_dependencies(flags))
+  {
+    AssertThrow(!(update_flags & update_velocity_values),
+                ExcMessage("This ctor cannot be used to compute velocities."));
+    AssertThrow(!(update_flags & update_position_values),
+                ExcMessage("This ctor cannot be used to compute positions."));
+    AssertThrow(!(update_flags & update_deformed_normal_vectors),
+                ExcMessage(
+                  "This ctor cannot be used to compute deformed normal "
+                  "vectors."));
+  }
+
+
+  template <int dim, int spacedim, typename VectorType>
+  void
+  MechanicsValues<dim, spacedim, VectorType>::resize(const std::size_t size)
+  {
     // basic terms dependent on the deformation gradient:
     if (update_flags & MechanicsUpdateFlags::update_FF)
-      FF.resize(this->fe_values->n_quadrature_points);
+      FF.resize(size);
     if (update_flags & MechanicsUpdateFlags::update_FF_inv_T)
-      FF_inv_T.resize(this->fe_values->n_quadrature_points);
+      FF_inv_T.resize(size);
     if (update_flags & MechanicsUpdateFlags::update_det_FF)
-      det_FF.resize(this->fe_values->n_quadrature_points);
+      det_FF.resize(size);
     if (update_flags & MechanicsUpdateFlags::update_n23_det_FF)
-      n23_det_FF.resize(this->fe_values->n_quadrature_points);
+      n23_det_FF.resize(size);
     if (update_flags & MechanicsUpdateFlags::update_log_det_FF)
-      log_det_FF.resize(this->fe_values->n_quadrature_points);
+      log_det_FF.resize(size);
     if (update_flags & MechanicsUpdateFlags::update_right_cauchy_green)
-      right_cauchy_green.resize(this->fe_values->n_quadrature_points);
+      right_cauchy_green.resize(size);
     if (update_flags & MechanicsUpdateFlags::update_green)
-      green.resize(this->fe_values->n_quadrature_points);
+      green.resize(size);
 
     // physical values:
     if (update_flags & MechanicsUpdateFlags::update_position_values)
-      position_values.resize(this->fe_values->n_quadrature_points);
+      position_values.resize(size);
     if (update_flags & MechanicsUpdateFlags::update_deformed_normal_vectors)
-      deformed_normal_vectors.resize(this->fe_values->n_quadrature_points);
+      deformed_normal_vectors.resize(size);
     if (update_flags & MechanicsUpdateFlags::update_velocity_values)
-      velocity_values.resize(this->fe_values->n_quadrature_points);
+      velocity_values.resize(size);
 
     // invariants:
     if (update_flags & MechanicsUpdateFlags::update_first_invariant)
-      first_invariant.resize(this->fe_values->n_quadrature_points);
+      first_invariant.resize(size);
     if (update_flags & MechanicsUpdateFlags::update_modified_first_invariant)
-      modified_first_invariant.resize(this->fe_values->n_quadrature_points);
+      modified_first_invariant.resize(size);
     if (update_flags & MechanicsUpdateFlags::update_second_invariant)
-      second_invariant.resize(this->fe_values->n_quadrature_points);
+      second_invariant.resize(size);
     if (update_flags & MechanicsUpdateFlags::update_modified_second_invariant)
-      modified_second_invariant.resize(this->fe_values->n_quadrature_points);
+      modified_second_invariant.resize(size);
     if (update_flags & MechanicsUpdateFlags::update_third_invariant)
-      third_invariant.resize(this->fe_values->n_quadrature_points);
+      third_invariant.resize(size);
 
     // derivatives of invariants:
     if (update_flags & MechanicsUpdateFlags::update_first_invariant_dFF)
-      first_invariant_dFF.resize(this->fe_values->n_quadrature_points);
+      first_invariant_dFF.resize(size);
     if (update_flags &
         MechanicsUpdateFlags::update_modified_first_invariant_dFF)
-      modified_first_invariant_dFF.resize(this->fe_values->n_quadrature_points);
+      modified_first_invariant_dFF.resize(size);
   }
 
   template <int dim, int spacedim, typename VectorType>
@@ -214,6 +233,10 @@ namespace fdl
           typename DoFHandler<dim, spacedim>::active_face_iterator>::value,
       "The only supported iterator types are active cell and face DoFHandler "
       "iterators.");
+    Assert(fe_values,
+           ExcMessage(
+             "This function can only be called when the present object is set "
+             "up to use an FEValues object."));
     Assert(cell->level() == fe_values->get_cell()->level() &&
              cell->index() == fe_values->get_cell()->index(),
            ExcMessage("The provided cell must be the same as the one used in "
@@ -241,9 +264,48 @@ namespace fdl
       (*fe_values)[vec].get_function_gradients_from_local_dof_values(
         scratch_position_values, FF);
 
-    for (unsigned int q = 0; q < fe_values->n_quadrature_points; ++q)
+    reinit_from_FF();
+
+    if (update_flags & update_position_values)
+      (*fe_values)[vec].get_function_values_from_local_dof_values(
+        scratch_position_values, position_values);
+
+    if (update_flags & update_velocity_values)
+      (*fe_values)[vec].get_function_values_from_local_dof_values(
+        scratch_velocity_values, velocity_values);
+  }
+
+  template <int dim, int spacedim, typename VectorType>
+  void
+  MechanicsValues<dim, spacedim, VectorType>::reinit(
+    const std::vector<Tensor<2, spacedim>> &provided_FF)
+  {
+    Assert(!(update_flags & update_velocity_values),
+           ExcMessage("This reinit() function cannot be used to compute "
+                      "velocities."));
+    Assert(!(update_flags & update_position_values),
+           ExcMessage("This reinit() function cannot be used to compute "
+                      "positions."));
+    Assert(!(update_flags & update_deformed_normal_vectors),
+           ExcMessage("This reinit() function cannot be used to compute "
+                      "deformed normal vectors."));
+
+    // Probably not needed, but who knows where this preprocessor is getting its
+    // data from
+    if (provided_FF.size() != FF.size())
+      resize(provided_FF.size());
+
+    FF = provided_FF;
+
+    reinit_from_FF();
+  }
+
+  template <int dim, int spacedim, typename VectorType>
+  void
+  MechanicsValues<dim, spacedim, VectorType>::reinit_from_FF()
+  {
+    for (unsigned int q = 0; q < FF.size(); ++q)
       {
-        SymmetricTensor<2, spacedim> temp;
         if (update_flags & update_FF_inv_T)
           FF_inv_T[q] = transpose(invert(FF[q]));
         if (update_flags & update_det_FF)
@@ -261,6 +323,7 @@ namespace fdl
           }
         if (update_flags & update_deformed_normal_vectors)
           {
+            Assert(fe_values, ExcFDLInternalError());
             deformed_normal_vectors[q] =
               FF_inv_T[q] * fe_values->normal_vector(q);
             deformed_normal_vectors[q] /= deformed_normal_vectors[q].norm();
@@ -337,14 +400,6 @@ namespace fdl
             2.0 * n23_det_FF[q] *
             (FF[q] - (1.0 / 3.0) * first_invariant[q] * FF_inv_T[q]);
       }
-
-    if (update_flags & update_position_values)
-      (*fe_values)[vec].get_function_values_from_local_dof_values(
-        scratch_position_values, position_values);
-
-    if (update_flags & update_velocity_values)
-      (*fe_values)[vec].get_function_values_from_local_dof_values(
-        scratch_velocity_values, velocity_values);
   }
 
 

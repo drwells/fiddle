@@ -191,9 +191,30 @@ namespace fdl
                     const VectorType                  &velocity,
                     const MechanicsUpdateFlags         flags);
 
+    /**
+     * Alternate constructor which relies on the reinit() function which takes
+     * precomputed values of FF. This is useful when working with postprocessors
+     * but does not support computing positions, velocities, or normal vectors.
+     */
+    MechanicsValues(const MechanicsUpdateFlags flags);
+
+    /**
+     * Reinitialization function which updates values on a new cell.
+     */
     template <typename Iterator>
     void
     reinit(const Iterator &cell);
+
+    /**
+     * Reinitialization function which updates values from a specified set of
+     * deformation gradients. This is intended for use with deal.II's
+     * postprocessors which compute values at somewhat arbitrary points.
+     *
+     * @note This reinit() function cannot be used when the present object is
+     * set up to compute displacements, velocities, or deformed normal vectors.
+     */
+    void
+    reinit(const std::vector<Tensor<2, spacedim>> &provided_FF);
 
     const FEValuesBase<dim, spacedim> &
     get_fe_values() const;
@@ -250,6 +271,18 @@ namespace fdl
     get_modified_first_invariant_dFF() const;
 
   protected:
+    /**
+     * Resize all arrays.
+     */
+    void
+    resize(std::size_t size);
+
+    /**
+     * Reinitialize all values dependent on FF (the deformation gradient).
+     */
+    void
+    reinit_from_FF();
+
     SmartPointer<const FEValuesBase<dim, spacedim>> fe_values;
 
     SmartPointer<const VectorType> position;
