@@ -175,7 +175,7 @@ namespace fdl
     BoundarySpringForce(
       const Quadrature<dim - 1>             &quad,
       const double                           spring_constant,
-      const std::vector<types::material_id> &material_ids = {});
+      const std::vector<types::boundary_id> &boundary_ids = {});
 
     /**
      * Constructor. This class stores a pointer to the DoFHandler so that it can
