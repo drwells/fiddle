@@ -108,21 +108,31 @@ namespace fdl
     // Resolve flag dependencies:
     update_flags = resolve_flag_dependencies(update_flags);
 
-    // Check some things:
-    if (update_flags & update_FF)
+    // Check that FEValues has all the flags we need:
+    const auto required_flags =
+      static_cast<unsigned int>(compute_flag_dependencies(update_flags));
+    const auto provided_flags =
+      static_cast<unsigned int>(fe_values.get_update_flags());
+    for (unsigned int b = 0; b < 8 * sizeof(UpdateFlags); ++b)
       {
-        Assert(this->fe_values->get_update_flags() &
-                 UpdateFlags::update_gradients,
-               ExcMessage("This class needs gradients"));
-      }
-    if ((update_flags & update_position_values) ||
-        (update_flags & update_velocity_values))
-      {
-        Assert(this->fe_values->get_update_flags() & UpdateFlags::update_values,
-               ExcMessage("This class needs values"));
+        const bool required_set = ((required_flags >> b) & 1U) != 0u;
+        const bool provided_set = ((provided_flags >> b) & 1U) != 0u;
+
+        if (required_set && !provided_set)
+          {
+            std::ostringstream required_str;
+            required_str << compute_flag_dependencies(update_flags);
+            std::ostringstream provided_str;
+            required_str << fe_values.get_update_flags();
+            AssertThrow(
+              false,
+              ExcMessage("The provided update flags '" + provided_str.str() +
+                         "' do not contain all of the required update flags '" +
+                         required_str.str() + "'."));
+          }
       }
 
-    if ((update_flags & update_deformed_normal_vectors))
+    if (update_flags & update_deformed_normal_vectors)
       {
         AssertThrow(
           (dynamic_cast<const FEFaceValues<dim, spacedim> *>(&fe_values) !=
