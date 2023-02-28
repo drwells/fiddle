@@ -78,8 +78,12 @@ test(const Mapping<dim, spacedim>                     &mapping,
                                       position,
                                       velocity,
                                       stress.get_mechanics_update_flags());
+  // also test the alternative reinitialization mechanism for MechanicsValues
+  fdl::MechanicsValues<dim> me_values_2(stress.get_mechanics_update_flags());
+
 
   std::vector<Tensor<2, dim>> stresses(quadrature.size());
+  std::vector<Tensor<2, dim>> stresses_2(quadrature.size());
   for (const auto &cell : dof_handler.active_cell_iterators())
     {
       fe_values.reinit(cell);
@@ -92,6 +96,12 @@ test(const Mapping<dim, spacedim>                     &mapping,
              << std::endl;
       for (const auto &stress : stresses)
         output << "  " << stress << std::endl;
+
+      // and the other one
+      me_values_2.reinit(me_values.get_FF());
+      auto view_2 = make_array_view(stresses_2.begin(), stresses_2.end());
+      stress.compute_stress(0.0, me_values_2, cell, view_2);
+      AssertThrow(stresses == stresses_2, ExcMessage("Should be equal"));
     }
 }
 
