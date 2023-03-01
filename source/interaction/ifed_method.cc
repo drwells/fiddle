@@ -25,6 +25,7 @@
 #include <ibamr/ibamr_utilities.h>
 
 #include <ibtk/IBTK_MPI.h>
+#include <ibtk/ibtk_utilities.h>
 
 #include <CellVariable.h>
 #include <HierarchyDataOpsManager.h>
@@ -47,6 +48,7 @@ namespace
   static tbox::Timer *t_compute_lagrangian_force_pk1;
   static tbox::Timer *t_compute_lagrangian_force_solve;
   static tbox::Timer *t_spread_force;
+  static tbox::Timer *t_max_point_displacement;
   static tbox::Timer *t_compute_lagrangian_fluid_source;
   static tbox::Timer *t_spread_fluid_source;
   static tbox::Timer *t_add_workload_estimate;
@@ -90,6 +92,9 @@ namespace fdl
     // IBAMR does not support using threads so unconditionally disable them
     // here.
     MultithreadInfo::set_thread_limit(1);
+
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
+      positions_at_last_regrid.push_back(get_part(part_n).get_position());
 
     const std::string interaction =
       input_db->getStringWithDefault("interaction", "ELEMENTAL");
@@ -190,6 +195,8 @@ namespace fdl
     t_compute_lagrangian_force_solve =
       set_timer("fdl::IFEDMethod::computeLagrangianForce()[solve]");
     t_spread_force = set_timer("fdl::IFEDMethod::spreadForce()");
+    t_max_point_displacement =
+      set_timer("fdl::IFEDMethod::getMaxPointDisplacement()");
     t_compute_lagrangian_fluid_source =
       set_timer("fdl::IFEDMethod::computeLagrangianFluidSource()");
     t_spread_fluid_source = set_timer("fdl::IFEDMethod::spreadFluidSource()");
@@ -508,6 +515,35 @@ namespace fdl
     IBAMR_TIMER_STOP(t_spread_force);
   }
 
+
+  template <int dim, int spacedim>
+  double
+  IFEDMethod<dim, spacedim>::getMaxPointDisplacement() const
+  {
+    IBAMR_TIMER_START(t_max_point_displacement);
+    Assert(positions_at_last_regrid.size() == n_parts, ExcFDLInternalError());
+    double max_displacement = 0;
+    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
+      {
+        const auto        &ref_position = positions_at_last_regrid[part_n];
+        const auto        &position     = get_part(part_n).get_position();
+        const unsigned int local_size   = position.locally_owned_size();
+        for (unsigned int i = 0; i < local_size; ++i)
+          max_displacement = std::max(max_displacement,
+                                      std::abs(ref_position.local_element(i) -
+                                               position.local_element(i)));
+      }
+    max_displacement =
+      Utilities::MPI::max(max_displacement, IBTK::IBTK_MPI::getCommunicator());
+
+
+    return max_displacement /
+           IBTK::get_min_patch_dx(
+             dynamic_cast<const hier::PatchLevel<spacedim> &>(
+               *primary_hierarchy->getPatchLevel(
+                 primary_hierarchy->getFinestLevelNumber())));
+    IBAMR_TIMER_STOP(t_max_point_displacement);
+  }
 
 
   template <int dim, int spacedim>
@@ -914,6 +950,10 @@ namespace fdl
     // same as beginDataRedistribution
     if (primary_hierarchy)
       {
+        positions_at_last_regrid.clear();
+        for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
+          positions_at_last_regrid.push_back(get_part(part_n).get_position());
+
         secondary_hierarchy.reinit(primary_hierarchy->getFinestLevelNumber(),
                                    primary_hierarchy->getFinestLevelNumber(),
                                    primary_hierarchy,
