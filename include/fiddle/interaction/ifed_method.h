@@ -154,6 +154,9 @@ namespace fdl
                       &f_prolongation_scheds,
                 double data_time) override;
 
+    virtual double
+    getMaxPointDisplacement() const override;
+
     /**
      * Tag cells in @p hierarchy that intersect with the structure.
      */
@@ -286,6 +289,9 @@ namespace fdl
       force_guesses;
     std::vector<InitialGuess<LinearAlgebra::distributed::Vector<double>>>
       velocity_guesses;
+
+    std::deque<LinearAlgebra::distributed::Vector<double>>
+      positions_at_last_regrid;
     /**
      * @}
      */
