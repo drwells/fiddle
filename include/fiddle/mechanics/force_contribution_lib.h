@@ -5,6 +5,7 @@
 
 #include <fiddle/base/exceptions.h>
 
+#include <fiddle/mechanics/fiber_network.h>
 #include <fiddle/mechanics/force_contribution.h>
 
 #include <deal.II/base/function.h>
@@ -624,6 +625,133 @@ namespace fdl
 
     std::vector<types::material_id> material_ids;
   };
+
+  //
+  // Inline helper functions for fiber reinforced material models 
+  //
+
+  /*
+   * I4_i for one quadrature point 
+   */
+  template<int spacedim, typename Number = double>
+  inline double I4_i(const SymmetricTensor<2, spacedim, Number> CC,
+                     const Tensor<1, spacedim, Number>          fiber_i)
+  {
+    return (CC * fiber_i) * fiber_i;
+  }
+  
+  /*
+   * dI4_i_dFF for one quadrature point
+   */
+  template<int spacedim, typename Number = double>
+  inline Tensor<2, spacedim, Number> dI4_i_dFF(
+    const Tensor<2, spacedim, Number> FF,
+    const Tensor<1, spacedim, Number> fiber_i)
+  {
+    return 2.0 * outer_product(FF * fiber_i, fiber_i);
+  }
+
+  /*
+   * I8_ij for one quadrature point
+   */
+  template<int spacedim, typename Number = double>
+  inline double I8_ij(const SymmetricTensor<2, spacedim, Number> CC,
+                      const Tensor<1, spacedim, Number>          fiber_i,
+                      const Tensor<1, spacedim, Number>          fiber_j)
+  {
+    return (CC * fiber_j) * fiber_i;
+  }
+
+  /*
+   * dI8_ij_dFF for one quadrature point
+   */
+  template<int spacedim, typename Number = double>
+  inline Tensor<2, spacedim, Number> dI8_ij_dFF(
+    const Tensor<2, spacedim, Number> FF,
+    const Tensor<1, spacedim, Number> fiber_i,
+    const Tensor<1, spacedim, Number> fiber_j)
+  {
+    return outer_product(FF * fiber_j, fiber_i) + outer_product(FF * fiber_i, fiber_j);
+  }
+
+  /**
+   * Modified Holzapfel-Ogden material model.
+   *
+   * By 'modified', we mean that the first invariant is the modified one -
+   * i.e., we use $I1_bar = J^{-2/3} I1$. The fibers are turned off in 
+   * compression, so I4_i = 1 if I4_i < 1, unless fiber dispersion is used,
+   * or kappa_i /= 0. The stress contribution I8_ij is not changed.
+   */
+  template <int dim, int spacedim = dim, typename Number = double>
+  class HolzapfelOgdenStress
+    : public ForceContribution<dim, spacedim, Number>
+  {
+  public:
+    /**
+     * Constructor.
+     *
+     * @note if @p material_ids is empty then the force will be applied on
+     * every cell.
+     */
+    HolzapfelOgdenStress(
+      const Quadrature<dim>                 &quad,
+      const double                           a,
+      const double                           b,
+      const double                           a_f,
+      const double                           b_f,
+      const double                           kappa_f,
+      const unsigned int                     index_f,
+      const double                           a_s,
+      const double                           b_s,
+      const double                           kappa_s,
+      const unsigned int                     index_s,
+      const double                           a_fs,
+      const double                           b_fs,
+      std::shared_ptr< FiberNetwork<dim, spacedim> >
+                                             fiber_network,
+      const std::vector<types::material_id> &material_ids = {});
+
+    /**
+     * Get the update flags this force contribution requires for MechanicsValues
+     * objects.
+     */
+    virtual MechanicsUpdateFlags
+    get_mechanics_update_flags() const override;
+
+    /**
+     * Define this force as a PK1 stress.
+     */
+    virtual bool
+    is_stress() const override;
+
+    virtual void
+    compute_stress(
+      const double                          time,
+      const MechanicsValues<dim, spacedim> &me_values,
+      const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
+      ArrayView<Tensor<2, spacedim, Number>> &stresses) const override;
+
+  protected:
+    double        a;       // I1_bar parameter
+    double        b;       // I1_bar parameter
+    double        a_f;     // I4_f parameter
+    double        b_f;     // I4_f parameter
+    double        kappa_f; // I4_f fiber dispersion
+    unsigned int  index_f; // f index in the fiber network
+    double        a_s;     // I4_s parameter
+    double        b_s;     // I4_s parameter
+    double        kappa_s; // I4_s fiber dispersion
+    unsigned int  index_s; // s index in the fiber network
+    double        a_fs;    // I8_fs parameter
+    double        b_fs;    // I8_fs parameter
+    std::shared_ptr< FiberNetwork<dim, spacedim> > 
+                  fiber_network; // fiber field 
+
+    std::vector<types::material_id> material_ids;
+
+  };
+
+
 } // namespace fdl
 
 #endif

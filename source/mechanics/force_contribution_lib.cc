@@ -1,5 +1,6 @@
 #include <fiddle/base/exceptions.h>
 
+#include <fiddle/mechanics/fiber_network.h>
 #include <fiddle/mechanics/force_contribution_lib.h>
 
 #include <deal.II/dofs/dof_tools.h>
@@ -883,6 +884,122 @@ namespace fdl
       }
   }
 
+  //
+  // ModifiedHolzapfelOgdenStress
+  //
+
+  template <int dim, int spacedim, typename Number>
+  HolzapfelOgdenStress<dim, spacedim, Number>::HolzapfelOgdenStress(
+    const Quadrature<dim>                 &quad,
+    const double                           a,
+    const double                           b,
+    const double                           a_f,
+    const double                           b_f,
+    const double                           kappa_f,
+    const unsigned int                     index_f,
+    const double                           a_s,
+    const double                           b_s,
+    const double                           kappa_s,
+    const unsigned int                     index_s,
+    const double                           a_fs,
+    const double                           b_fs,
+    std::shared_ptr< FiberNetwork< dim, spacedim> >
+                                           fiber_network, 
+    const std::vector<types::material_id> &material_ids)
+    : ForceContribution<dim, spacedim, Number>(quad)
+    , a(a)
+    , b(b)
+    , a_f(a_f)
+    , b_f(b_f)
+    , kappa_f(kappa_f)
+    , index_f(index_f)
+    , a_s(a_s)
+    , b_s(b_s)
+    , kappa_s(kappa_s)
+    , index_s(index_s)
+    , a_fs(a_fs)
+    , b_fs(b_fs)
+    , fiber_network(fiber_network)
+    , material_ids(setup_ids(material_ids))
+  {}
+
+  template <int dim, int spacedim, typename Number>
+  MechanicsUpdateFlags
+  HolzapfelOgdenStress<dim, spacedim, Number>::get_mechanics_update_flags()
+    const
+  {
+    return MechanicsUpdateFlags::update_FF |
+           MechanicsUpdateFlags::update_modified_first_invariant | 
+           MechanicsUpdateFlags::update_modified_first_invariant_dFF |
+           MechanicsUpdateFlags::update_right_cauchy_green;
+  }
+
+  template <int dim, int spacedim, typename Number>
+  bool
+  HolzapfelOgdenStress<dim, spacedim, Number>::is_stress() const
+  {
+    return true;
+  }
+
+  template <int dim, int spacedim, typename Number>
+  void
+  HolzapfelOgdenStress<dim, spacedim, Number>::compute_stress(
+    const double /*time*/,
+    const MechanicsValues<dim, spacedim>                              &m_values,
+    const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
+    ArrayView<Tensor<2, spacedim, Number>> &stresses) const
+  {
+    if (this->material_ids.size() > 0 &&
+        !std::binary_search(this->material_ids.begin(),
+                            this->material_ids.end(),
+                            cell->material_id()))
+      {
+        // the user specified a subset of material ids and we currently don't
+        // match - fill with zeros
+        for (auto &stress : stresses)
+          stress = 0.0;
+      }
+    else
+      {
+        const ArrayView<const Tensor<1, spacedim>>
+          cell_fibers = fiber_network->get_fibers(cell);  // cell specific fiber fields
+        for (unsigned int qp_n = 0; qp_n < stresses.size(); ++qp_n)
+          {
+            // stress contribution, isotropic term
+            stresses[qp_n] =
+              0.5 * a * std::exp(b * (m_values.get_modified_first_invariant()[qp_n] - 3.0)) * 
+              m_values.get_modified_first_invariant_dFF()[qp_n];
+            // stress contribution, transversly isotropic term, fiber f
+            const double I4_f = I4_i(m_values.get_right_cauchy_green()[qp_n], cell_fibers[index_f]);
+            if(kappa_f != 0.0 || I4_f > 1.0)
+              {
+                stresses[qp_n] += 
+                  a_f * std::exp(b_f * 
+                  std::pow(kappa_f * m_values.get_modified_first_invariant()[qp_n] + (1.0 - 3.0 * kappa_f) * I4_f - 1.0, 2.0)) * 
+                  (kappa_f * m_values.get_modified_first_invariant()[qp_n] + (1.0 - 3.0 * kappa_f) * I4_f - 1.0) *
+                  (kappa_f * m_values.get_modified_first_invariant_dFF()[qp_n] + (1.0 - 3.0 * kappa_f) * 
+                   dI4_i_dFF(m_values.get_FF()[qp_n], cell_fibers[index_f])); 
+              }
+            // stress contribution, transversly isotropic term, fiber s
+            const double I4_s = I4_i(m_values.get_right_cauchy_green()[qp_n], cell_fibers[index_s]);
+            if(kappa_s != 0.0 || I4_s > 1.0)
+              {
+                stresses[qp_n] += 
+                  a_s * std::exp(b_s * 
+                  std::pow(kappa_s * m_values.get_modified_first_invariant()[qp_n] + (1.0 - 3.0 * kappa_s) * I4_s - 1.0, 2.0)) * 
+                  (kappa_s * m_values.get_modified_first_invariant()[qp_n] + (1.0 - 3.0 * kappa_s) * I4_s - 1.0) *
+                  (kappa_s * m_values.get_modified_first_invariant_dFF()[qp_n] + (1.0 - 3.0 * kappa_s) * 
+                   dI4_i_dFF(m_values.get_FF()[qp_n], cell_fibers[index_s])); 
+              }
+            // stress contribution, orthotropic term, fibers f and s
+            stresses[qp_n] += a_fs * I8_ij(m_values.get_right_cauchy_green()[qp_n], cell_fibers[index_f], cell_fibers[index_s]) * 
+              std::exp(b_fs * I8_ij(m_values.get_right_cauchy_green()[qp_n], cell_fibers[index_f], cell_fibers[index_s]) * 
+              I8_ij(m_values.get_right_cauchy_green()[qp_n], cell_fibers[index_f], cell_fibers[index_s])) * 
+              dI8_ij_dFF(m_values.get_FF()[qp_n], cell_fibers[index_f], cell_fibers[index_s]); 
+          }
+      }
+  }
+
 
   template class SpringForceBase<NDIM - 1, NDIM, double>;
   template class SpringForceBase<NDIM, NDIM, double>;
@@ -900,4 +1017,5 @@ namespace fdl
   template class ModifiedMooneyRivlinStress<NDIM, NDIM, double>;
   template class JLogJVolumetricEnergyStress<NDIM, NDIM, double>;
   template class LogarithmicVolumetricEnergyStress<NDIM, NDIM, double>;
+  template class HolzapfelOgdenStress<NDIM, NDIM, double>;
 } // namespace fdl
