@@ -182,4 +182,16 @@ main()
     output << "LogarithmicVolumetricEnergyStress" << std::endl;
     test(mapping, quadrature, dof_handler, s1, position, velocity, output);
   }
+
+  {
+    std::vector<types::material_id> materials;
+    materials.push_back(1u);
+    materials.push_back(42u);
+    fdl::JLogJVolumetricEnergyStress<dim, spacedim> s1(quadrature,
+                                                       10.0,
+                                                       materials);
+
+    output << "JLogJVolumetricEnergyStress" << std::endl;
+    test(mapping, quadrature, dof_handler, s1, position, velocity, output);
+  }
 }
