@@ -521,7 +521,7 @@ namespace fdl
   IFEDMethod<dim, spacedim>::getMaxPointDisplacement() const
   {
     IBAMR_TIMER_START(t_max_point_displacement);
-    Assert(positions_at_last_regrid.size() == n_parts, ExcFDLInternalError());
+    Assert(positions_at_last_regrid.size() == n_parts(), ExcFDLInternalError());
     double max_displacement = 0;
     for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {

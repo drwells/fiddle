@@ -33,7 +33,7 @@ namespace fdl
                        MatrixFree<dim - 1, double> &)
     {
       // We shouldn't get here
-      Assert(false, ExcFDLInternalError());
+      AssertThrow(false, ExcFDLInternalError());
     }
   } // namespace internal
 
@@ -52,7 +52,7 @@ namespace fdl
     // TODO - make the quadrature and mapping parameters so we can implement
     // nodal interaction
     const auto &reference_cells = this->tria->get_reference_cells();
-    Assert(reference_cells.size() == 1, ExcFDLNotImplemented());
+    AssertThrow(reference_cells.size() == 1, ExcFDLNotImplemented());
     mapping = reference_cells.front()
                 .template get_default_linear_mapping<dim, spacedim>()
                 .clone();
@@ -60,10 +60,10 @@ namespace fdl
       reference_cells.front().template get_gauss_type_quadrature<dim>(
         fe->tensor_degree() + 1);
 
-    Assert(fe->n_components() == spacedim,
-           ExcMessage("The finite element should have spacedim components "
-                      "since it will represent the position, velocity and "
-                      "force of the part."));
+    AssertThrow(fe->n_components() == spacedim,
+                ExcMessage("The finite element should have spacedim components "
+                           "since it will represent the position, velocity and "
+                           "force of the part."));
     // Set up DoFs and finite element fields:
     dof_handler->distribute_dofs(*fe);
     constraints.close();
@@ -118,7 +118,7 @@ namespace fdl
                   mass_operator.reset(new MassOperator<dim, 5, 5 + 1, dim>());
                   break;
                 default:
-                  Assert(false, ExcFDLNotImplemented());
+                  AssertThrow(false, ExcFDLNotImplemented());
               }
           }
         else
@@ -136,7 +136,7 @@ namespace fdl
                   mass_operator.reset(new MassOperator<dim, -1, 0, dim>());
                   break;
                 default:
-                  Assert(false, ExcFDLNotImplemented());
+                  AssertThrow(false, ExcFDLNotImplemented());
               }
           }
         mass_operator->initialize(matrix_free);
