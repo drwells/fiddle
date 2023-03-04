@@ -5,6 +5,7 @@
 
 #include <fiddle/base/exceptions.h>
 
+#include <fiddle/mechanics/active_strain.h>
 #include <fiddle/mechanics/force_contribution.h>
 #include <fiddle/mechanics/mechanics_values.h>
 
@@ -40,6 +41,36 @@ namespace fdl
    * Class encapsulating a single structure - essentially a wrapper that stores
    * the current position and velocity and can also compute the interior force
    * density.
+   *
+   * This class supports computing forces both with the standard first
+   * Piola-Kirchoff stress tensor and also with a decomposition based on active
+   * strain. In the first case, the forces on the structure are computed by
+   * solving for a load vector with entries
+   *
+   *     \int \sum \PP_k(FF) : \nabla phi_i dx + \int \sum L_k \cdot phi_i dx
+   *     + \int_\Gamma \sum B_k \cdot N \phi_i dx
+   *
+   * where we integrate over the reference configuration or boundary of the
+   * reference configuration. Here, PP_k, L_k, and B_k are a first
+   * Piola-Kirchoff stress, a body force, and a boundary body force and FF is
+   * the deformation gradient.
+   *
+   * To enable simulation of anisotropic materials this class also supports an
+   * active strain formulation which rewrites the first integral as
+   *
+   *     \int \sum det(FF_A) \PP_k(FF_E) FF_A^-T : \nabla phi_i dx
+   *
+   * in which FF = FF_E FF_A is a decomposition of the deformation gradient and
+   * FF_A is typically a model of time-dependent change in the reference
+   * configuration. If no active strain models are specified then FF_A is
+   * assumed to be the identity tensor. Typically det(FF_A) = 1 but this is not
+   * enforced by fiddle.
+   *
+   * As the Piola-Kirchoff stresses, body forces, and boundary forces can be
+   * written as a sum, the vector of ForceContributions may contain more than
+   * one of each term with a nonzero contribution on each cell. On the other
+   * hand, since active strain is multiplicative, at most one ActiveStrain may
+   * be specified per material_id.
    *
    * The primary intent of this class it to encapsulate the state of the finite
    * element discretization in a single place. This class is responsible for
@@ -79,6 +110,35 @@ namespace fdl
            Functions::IdentityFunction<spacedim>(),
          const Function<spacedim> &initial_velocity =
            Functions::ZeroFunction<spacedim>(spacedim));
+
+    /**
+     * Constructor including an active strain term.
+     */
+    Part(
+      const Triangulation<dim, spacedim> &tria,
+      const FiniteElement<dim, spacedim> &fe,
+      std::vector<std::unique_ptr<ForceContribution<dim, spacedim>>>
+        force_contributions,
+      std::vector<std::unique_ptr<ActiveStrain<dim, spacedim>>> active_strains,
+      const Function<spacedim> &initial_position =
+        Functions::IdentityFunction<spacedim>(),
+      const Function<spacedim> &initial_velocity =
+        Functions::ZeroFunction<spacedim>(spacedim));
+
+    /**
+     * Constructor with an externally managed DoFHandler and active strain
+     * terms.
+     */
+    Part(
+      std::shared_ptr<DoFHandler<dim, spacedim>> dof_handler,
+      std::vector<std::unique_ptr<ForceContribution<dim, spacedim>>>
+        force_contributions,
+      std::vector<std::unique_ptr<ActiveStrain<dim, spacedim>>> active_strains,
+      const Function<spacedim> &initial_position =
+        Functions::IdentityFunction<spacedim>(),
+      const Function<spacedim> &initial_velocity =
+        Functions::ZeroFunction<spacedim>(spacedim));
+
 
     /**
      * Save the current state of the object to an archive.
@@ -125,6 +185,12 @@ namespace fdl
      */
     std::vector<ForceContribution<dim, spacedim> *>
     get_force_contributions() const;
+
+    /**
+     * Get pointers to the active strains.
+     */
+    std::vector<ActiveStrain<dim, spacedim> *>
+    get_active_strains() const;
 
     /**
      * Add another force contribution.
@@ -280,6 +346,9 @@ namespace fdl
     // All the functions that compute part of the force.
     std::vector<std::unique_ptr<ForceContribution<dim, spacedim>>>
       force_contributions;
+
+    // Active strains.
+    std::vector<std::unique_ptr<ActiveStrain<dim, spacedim>>> active_strains;
   };
 
   // ----------------------------- inline functions ----------------------------
