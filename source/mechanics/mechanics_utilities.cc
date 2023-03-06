@@ -23,6 +23,7 @@ namespace fdl
     const DoFHandler<dim, spacedim>                       &dof_handler,
     const Mapping<dim, spacedim>                          &mapping,
     const std::vector<ForceContribution<dim, spacedim> *> &stress_contributions,
+    const std::vector<ActiveStrain<dim, spacedim> *>      &active_strains,
     const double                                           time,
     const LinearAlgebra::distributed::Vector<double>      &current_position,
     const LinearAlgebra::distributed::Vector<double>      &current_velocity,
@@ -39,6 +40,7 @@ namespace fdl
     compute_load_vector(dof_handler,
                         mapping,
                         stress_contributions,
+                        active_strains,
                         time,
                         current_position,
                         current_velocity,
@@ -71,6 +73,7 @@ namespace fdl
     compute_load_vector(dof_handler,
                         mapping,
                         volume_force_contributions,
+                        {},
                         time,
                         current_position,
                         current_velocity,
@@ -208,6 +211,7 @@ namespace fdl
     const DoFHandler<dim, spacedim>                       &dof_handler,
     const Mapping<dim, spacedim>                          &mapping,
     const std::vector<ForceContribution<dim, spacedim> *> &force_contributions,
+    const std::vector<ActiveStrain<dim, spacedim> *>      &active_strains,
     const double                                           time,
     const LinearAlgebra::distributed::Vector<double>      &current_position,
     const LinearAlgebra::distributed::Vector<double>      &current_velocity,
@@ -251,6 +255,23 @@ namespace fdl
                             volume_force_contributions.begin(),
                             volume_force_contributions.end());
 
+    // convert the active strains into a map for easier lookup
+    std::map<types::material_id, ActiveStrain<dim, spacedim> *> as_map;
+    for (auto *as : active_strains)
+      {
+        Assert(as, ExcMessage("active strains should not be nullptr"));
+        for (const types::material_id m_id : as->get_material_ids())
+          {
+            auto &ptr = as_map[m_id];
+            Assert(ptr == nullptr,
+                   ExcMessage("At most one active strain may be set for each "
+                              "material id"));
+            ptr = as;
+          }
+      }
+
+    types::material_id           current_id = numbers::invalid_material_id;
+    ActiveStrain<dim, spacedim> *current_as = nullptr;
     while (remaining_forces.size() > 0)
       {
         auto                   exemplar_force = remaining_forces.front();
@@ -405,6 +426,7 @@ namespace fdl
     const DoFHandler<NDIM - 1, NDIM> &,
     const Mapping<NDIM - 1, NDIM> &,
     const std::vector<ForceContribution<NDIM - 1, NDIM> *> &,
+    const std::vector<ActiveStrain<NDIM - 1, NDIM> *> &,
     const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
@@ -415,6 +437,7 @@ namespace fdl
     const DoFHandler<NDIM, NDIM> &,
     const Mapping<NDIM, NDIM> &,
     const std::vector<ForceContribution<NDIM, NDIM> *> &,
+    const std::vector<ActiveStrain<NDIM, NDIM> *> &,
     const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
@@ -465,6 +488,7 @@ namespace fdl
     const DoFHandler<NDIM - 1, NDIM> &,
     const Mapping<NDIM - 1, NDIM> &,
     const std::vector<ForceContribution<NDIM - 1, NDIM> *> &,
+    const std::vector<ActiveStrain<NDIM - 1, NDIM> *> &,
     const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
@@ -475,6 +499,7 @@ namespace fdl
     const DoFHandler<NDIM, NDIM> &,
     const Mapping<NDIM, NDIM> &,
     const std::vector<ForceContribution<NDIM, NDIM> *> &,
+    const std::vector<ActiveStrain<NDIM, NDIM> *> &,
     const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,

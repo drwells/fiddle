@@ -735,6 +735,7 @@ namespace fdl
         compute_load_vector(part.get_dof_handler(),
                             part.get_mapping(),
                             part.get_force_contributions(),
+                            part.get_active_strains(),
                             data_time,
                             position,
                             velocity,

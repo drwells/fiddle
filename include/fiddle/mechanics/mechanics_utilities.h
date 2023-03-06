@@ -3,6 +3,7 @@
 
 #include <fiddle/base/config.h>
 
+#include <fiddle/mechanics/active_strain.h>
 #include <fiddle/mechanics/force_contribution.h>
 
 #include <deal.II/dofs/dof_handler.h>
@@ -27,6 +28,7 @@ namespace fdl
     const DoFHandler<dim, spacedim>                       &dof_handler,
     const Mapping<dim, spacedim>                          &mapping,
     const std::vector<ForceContribution<dim, spacedim> *> &stress_contributions,
+    const std::vector<ActiveStrain<dim, spacedim> *>      &active_strains,
     const double                                           time,
     const LinearAlgebra::distributed::Vector<double>      &current_position,
     const LinearAlgebra::distributed::Vector<double>      &current_velocity,
@@ -71,6 +73,7 @@ namespace fdl
     const DoFHandler<dim, spacedim>                       &dof_handler,
     const Mapping<dim, spacedim>                          &mapping,
     const std::vector<ForceContribution<dim, spacedim> *> &force_contributions,
+    const std::vector<ActiveStrain<dim, spacedim> *>      &active_strains,
     const double                                           time,
     const LinearAlgebra::distributed::Vector<double>      &current_position,
     const LinearAlgebra::distributed::Vector<double>      &current_velocity,

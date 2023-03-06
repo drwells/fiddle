@@ -263,6 +263,7 @@ test(const bool use_simplex)
         fdl::compute_volumetric_pk1_load_vector(dof_handler,
                                                 mapping,
                                                 stress_ptrs,
+                                                {},
                                                 0.0,
                                                 current_position,
                                                 current_velocity,
