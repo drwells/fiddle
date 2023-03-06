@@ -330,6 +330,8 @@ namespace fdl
           n_quadrature_points);
         std::vector<Tensor<2, spacedim, double>> accumulated_stresses(
           n_quadrature_points);
+        std::vector<Tensor<2, spacedim, double>> pull_accumulated_stresses_back(
+          n_quadrature_points);
         std::vector<Tensor<1, spacedim, double>> one_force(n_quadrature_points);
         std::vector<Tensor<1, spacedim, double>> accumulated_forces(
           n_quadrature_points);
@@ -340,9 +342,20 @@ namespace fdl
               {
                 cell->get_dof_indices(cell_dofs);
                 fe_values.reinit(cell);
-                me_values.reinit(cell);
+                if (active_strains.size() > 0 && cell->material_id() != current_id)
+                  {
+                    current_id = cell->material_id();
+                    current_as = as_map[current_id];
+                  }
+                if (current_as)
+                  me_values.reinit(cell, *current_as);
+                else
+                  me_values.reinit(cell);
                 std::fill(accumulated_stresses.begin(),
                           accumulated_stresses.end(),
+                          Tensor<2, spacedim, double>());
+                std::fill(pull_accumulated_stresses_back.begin(),
+                          pull_accumulated_stresses_back.end(),
                           Tensor<2, spacedim, double>());
                 std::fill(accumulated_forces.begin(),
                           accumulated_forces.end(),
@@ -383,10 +396,20 @@ namespace fdl
                       }
                   }
 
+                if (touched_stress && current_as)
+                  {
+                    auto view =
+                      make_array_view(pull_accumulated_stresses_back);
+                    current_as->pull_stress_back(
+                      cell, make_array_view(accumulated_stresses), view);
+                  }
+                else
+                  pull_accumulated_stresses_back.swap(accumulated_stresses);
+
                 // Assemble the RHS vector
                 //
-                // TODO - we could make this a lot faster by exploiting the fact
-                // that we have primitive FEs most of the time
+                // TODO - we could make this a lot faster by exploiting the
+                // fact that we have primitive FEs most of the time
                 for (unsigned int qp_n = 0; qp_n < n_quadrature_points; ++qp_n)
                   {
                     if (touched_stress)
@@ -394,7 +417,7 @@ namespace fdl
                         // -PP : grad phi dx
                         cell_rhs[i] +=
                           -1. *
-                          scalar_product(accumulated_stresses[qp_n],
+                          scalar_product(pull_accumulated_stresses_back[qp_n],
                                          extractor.gradient(i, qp_n)) *
                           fe_values.JxW(qp_n);
                     if (touched_force)
