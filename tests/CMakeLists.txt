@@ -131,6 +131,7 @@ SETUP(interaction nodal_interpolate_02.cc fiddle2d)
 # mechanics:
 SETUP(mechanics me_values_01.cc fiddle2d)
 SETUP(mechanics me_values_02.cc fiddle2d)
+SETUP(mechanics me_values_03.cc fiddle2d)
 SETUP(mechanics serialize_part_01.cc fiddle2d)
 
 SETUP(mechanics compute_load_vector_01.cc fiddle2d)

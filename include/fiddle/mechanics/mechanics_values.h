@@ -3,6 +3,8 @@
 
 #include <fiddle/base/config.h>
 
+#include <fiddle/mechanics/active_strain.h>
+
 #include <deal.II/base/subscriptor.h>
 #include <deal.II/base/symmetric_tensor.h>
 #include <deal.II/base/tensor.h>
@@ -207,10 +209,21 @@ namespace fdl
 
     /**
      * Reinitialization function which updates values on a new cell.
+     *
+     * Here Iterator may be either an active_cell_iterator or an
+     * active_face_iterator.
      */
     template <typename Iterator>
     void
     reinit(const Iterator &cell);
+
+    /**
+     * Reinitialization function which updates values on a new cell and
+     * computes FF and its dependencies with an active strain formulation.
+     */
+    void
+    reinit(const typename DoFHandler<dim, spacedim>::active_cell_iterator &cell,
+           const ActiveStrain<dim, spacedim> &active_strain);
 
     /**
      * Reinitialization function which updates values from a specified set of
@@ -331,6 +344,8 @@ namespace fdl
     std::vector<Tensor<2, spacedim>> first_invariant_dFF;
 
     std::vector<Tensor<2, spacedim>> modified_first_invariant_dFF;
+
+    std::vector<Tensor<2, spacedim>> scratch_FF;
 
     std::vector<types::global_dof_index> scratch_dof_indices;
 

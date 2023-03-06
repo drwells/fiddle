@@ -170,7 +170,10 @@ namespace fdl
   {
     // basic terms dependent on the deformation gradient:
     if (update_flags & MechanicsUpdateFlags::update_FF)
-      FF.resize(size);
+      {
+        FF.resize(size);
+        scratch_FF.resize(size);
+      }
     if (update_flags & MechanicsUpdateFlags::update_FF_inv_T)
       FF_inv_T.resize(size);
     if (update_flags & MechanicsUpdateFlags::update_det_FF)
@@ -267,6 +270,61 @@ namespace fdl
       (*fe_values)[vec].get_function_values_from_local_dof_values(
         scratch_velocity_values, velocity_values);
   }
+
+  template <int dim, int spacedim, typename VectorType>
+  void
+  MechanicsValues<dim, spacedim, VectorType>::reinit(
+     const typename DoFHandler<dim, spacedim>::active_cell_iterator &cell,
+     const ActiveStrain<dim, spacedim> &active_strain)
+  {
+    Assert(fe_values,
+           ExcMessage(
+             "This function can only be called when the present object is set "
+             "up to use an FEValues object."));
+    Assert(cell->level() == fe_values->get_cell()->level() &&
+             cell->index() == fe_values->get_cell()->index(),
+           ExcMessage("The provided cell must be the same as the one used in "
+                      "the corresponding FEValues object."));
+
+    const FEValuesExtractors::Vector vec(0);
+
+    const bool update_scratch_positions =
+      update_flags & update_FF || update_flags & update_position_values;
+    const bool update_scratch_velocities =
+      update_flags & update_velocity_values;
+
+    if (update_scratch_positions || update_scratch_velocities)
+      cell->get_dof_indices(scratch_dof_indices);
+
+    if (update_scratch_positions)
+      for (unsigned int i = 0; i < scratch_dof_indices.size(); ++i)
+        scratch_position_values[i] = (*position)[scratch_dof_indices[i]];
+
+    if (update_scratch_velocities)
+      for (unsigned int i = 0; i < scratch_dof_indices.size(); ++i)
+        scratch_velocity_values[i] = (*velocity)[scratch_dof_indices[i]];
+
+    if (update_flags & update_FF)
+      {
+        (*fe_values)[vec].get_function_gradients_from_local_dof_values(
+          scratch_position_values, scratch_FF);
+
+        auto view = make_array_view(FF);
+        active_strain.push_deformation_gradient_forward(
+          cell, make_array_view(scratch_FF), view);
+      }
+
+    reinit_from_FF();
+
+    if (update_flags & update_position_values)
+      (*fe_values)[vec].get_function_values_from_local_dof_values(
+        scratch_position_values, position_values);
+
+    if (update_flags & update_velocity_values)
+      (*fe_values)[vec].get_function_values_from_local_dof_values(
+        scratch_velocity_values, velocity_values);
+  }
+
 
   template <int dim, int spacedim, typename VectorType>
   void
