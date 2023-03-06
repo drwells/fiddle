@@ -15,59 +15,52 @@ namespace fdl
 {
   using namespace dealii;
 
-  namespace
+  MechanicsUpdateFlags
+  resolve_flag_dependencies(const MechanicsUpdateFlags me_flags)
   {
-    /**
-     * Resolve the interdependencies within a single MechanicsUpdateFlags
-     * object.
-     */
-    MechanicsUpdateFlags
-    resolve_flag_dependencies(const MechanicsUpdateFlags me_flags)
-    {
-      MechanicsUpdateFlags result     = me_flags;
-      MechanicsUpdateFlags old_result = me_flags;
-      // iterate until convergence
-      do
-        {
-          old_result = result;
-          if (result & update_FF_inv_T)
-            result |= update_FF;
-          if (result & update_det_FF)
-            result |= update_FF;
-          if (result & update_n23_det_FF)
-            result |= update_det_FF;
-          if (result & update_log_det_FF)
-            result |= update_det_FF;
-          if (result & update_deformed_normal_vectors)
-            result |= update_FF_inv_T;
-          if (result & update_right_cauchy_green)
-            result |= update_FF;
-          if (result & update_green)
-            result |= update_right_cauchy_green;
-          if (result & update_first_invariant)
-            // needs tr(C)
-            result |= update_right_cauchy_green;
-          if (result & update_modified_first_invariant)
-            result |= update_first_invariant | update_n23_det_FF;
-          if (result & update_modified_second_invariant)
-            result |= update_second_invariant | update_n23_det_FF;
-          if (result & update_second_invariant)
-            // needs tr(C) and tr(C^2)
-            result |= update_first_invariant;
-          if (result & update_third_invariant)
-            // needs det(C)
-            // TODO: make this work when dim != spacedim
-            result |= update_det_FF;
-          if (result & update_first_invariant_dFF)
-            result |= update_FF;
-          if (result & update_modified_first_invariant_dFF)
-            result |= update_n23_det_FF | update_FF | update_first_invariant |
-                      update_FF_inv_T;
-      } while (old_result != result);
+    MechanicsUpdateFlags result     = me_flags;
+    MechanicsUpdateFlags old_result = me_flags;
+    // iterate until convergence
+    do
+      {
+        old_result = result;
+        if (result & update_FF_inv_T)
+          result |= update_FF;
+        if (result & update_det_FF)
+          result |= update_FF;
+        if (result & update_n23_det_FF)
+          result |= update_det_FF;
+        if (result & update_log_det_FF)
+          result |= update_det_FF;
+        if (result & update_deformed_normal_vectors)
+          result |= update_FF_inv_T;
+        if (result & update_right_cauchy_green)
+          result |= update_FF;
+        if (result & update_green)
+          result |= update_right_cauchy_green;
+        if (result & update_first_invariant)
+          // needs tr(C)
+          result |= update_right_cauchy_green;
+        if (result & update_modified_first_invariant)
+          result |= update_first_invariant | update_n23_det_FF;
+        if (result & update_modified_second_invariant)
+          result |= update_second_invariant | update_n23_det_FF;
+        if (result & update_second_invariant)
+          // needs tr(C) and tr(C^2)
+          result |= update_first_invariant;
+        if (result & update_third_invariant)
+          // needs det(C)
+          // TODO: make this work when dim != spacedim
+          result |= update_det_FF;
+        if (result & update_first_invariant_dFF)
+          result |= update_FF;
+        if (result & update_modified_first_invariant_dFF)
+          result |= update_n23_det_FF | update_FF | update_first_invariant |
+                    update_FF_inv_T;
+    } while (old_result != result);
 
-      return result;
-    }
-  } // namespace
+    return result;
+  }
 
   UpdateFlags
   compute_flag_dependencies(const MechanicsUpdateFlags me_flags)

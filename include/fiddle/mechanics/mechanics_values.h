@@ -158,6 +158,13 @@ namespace fdl
   }
 
   /**
+   * Resolve the interdependencies within a single MechanicsUpdateFlags
+   * object.
+   */
+  MechanicsUpdateFlags
+  resolve_flag_dependencies(const MechanicsUpdateFlags me_flags);
+
+  /**
    * Compute the dependencies of a set of mechanics update flags necessary to
    * pass to an FEValues object.
    */
