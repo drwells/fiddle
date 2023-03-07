@@ -37,9 +37,8 @@ namespace fdl
      * Triangulation).
      */
     template <int q_dim>
-    SpringForceBase(
-      const Quadrature<q_dim> &quad,
-      const double             spring_constant);
+    SpringForceBase(const Quadrature<q_dim> &quad,
+                    const double             spring_constant);
 
     /**
      * Constructor. This class stores a pointer to the DoFHandler so that it can
@@ -105,15 +104,15 @@ namespace fdl
   {
   public:
     /**
-     * Constructor. Uses the reference configuration to evaluate the spring forces.
+     * Constructor. Uses the reference configuration to evaluate the spring
+     * forces.
      *
      * @note if @p material_ids is empty then the force will be applied on
      * every cell.
      */
-    SpringForce(
-      const Quadrature<dim>                 &quad,
-      const double                           spring_constant,
-      const std::vector<types::material_id> &material_ids = {});
+    SpringForce(const Quadrature<dim>                 &quad,
+                const double                           spring_constant,
+                const std::vector<types::material_id> &material_ids = {});
 
     /**
      * Constructor. This class stores a pointer to the DoFHandler so that it can
@@ -271,7 +270,8 @@ namespace fdl
    * t is the current time.
    */
   template <int dim, int spacedim = dim, typename Number = double>
-  class OrthogonalLinearLoadForce : public ForceContribution<dim, spacedim, double>
+  class OrthogonalLinearLoadForce
+    : public ForceContribution<dim, spacedim, double>
   {
   public:
     /**
@@ -306,8 +306,7 @@ namespace fdl
     compute_boundary_force(
       const double                          time,
       const MechanicsValues<dim, spacedim> &m_values,
-      const typename Triangulation<dim, spacedim>::active_face_iterator
-        & face,
+      const typename Triangulation<dim, spacedim>::active_face_iterator &face,
       ArrayView<Tensor<1, spacedim, Number>> &forces) const override;
 
   protected:
@@ -335,10 +334,10 @@ namespace fdl
      * every boundary face.
      */
     OrthogonalSpringDashpotForce(
-      const Quadrature<dim - 1>                        &quad,
-      const double                                      spring_constant,
-      const double                                      damping_constant,
-      const std::vector<types::boundary_id>            &boundary_ids = {});
+      const Quadrature<dim - 1>             &quad,
+      const double                           spring_constant,
+      const double                           damping_constant,
+      const std::vector<types::boundary_id> &boundary_ids = {});
 
     /**
      * Constructor.
@@ -627,26 +626,27 @@ namespace fdl
   };
 
   //
-  // Inline helper functions for fiber reinforced material models 
+  // Inline helper functions for fiber reinforced material models
   //
 
   /*
-   * I4_i for one quadrature point 
+   * I4_i for one quadrature point
    */
-  template<int spacedim, typename Number = double>
-  inline double I4_i(const SymmetricTensor<2, spacedim, Number> CC,
-                     const Tensor<1, spacedim, Number>          fiber_i)
+  template <int spacedim, typename Number = double>
+  inline double
+  I4_i(const SymmetricTensor<2, spacedim, Number> CC,
+       const Tensor<1, spacedim, Number>          fiber_i)
   {
     return (CC * fiber_i) * fiber_i;
   }
-  
+
   /*
    * dI4_i_dFF for one quadrature point
    */
-  template<int spacedim, typename Number = double>
-  inline Tensor<2, spacedim, Number> dI4_i_dFF(
-    const Tensor<2, spacedim, Number> FF,
-    const Tensor<1, spacedim, Number> fiber_i)
+  template <int spacedim, typename Number = double>
+  inline Tensor<2, spacedim, Number>
+  dI4_i_dFF(const Tensor<2, spacedim, Number> FF,
+            const Tensor<1, spacedim, Number> fiber_i)
   {
     return 2.0 * outer_product(FF * fiber_i, fiber_i);
   }
@@ -654,10 +654,11 @@ namespace fdl
   /*
    * I8_ij for one quadrature point
    */
-  template<int spacedim, typename Number = double>
-  inline double I8_ij(const SymmetricTensor<2, spacedim, Number> CC,
-                      const Tensor<1, spacedim, Number>          fiber_i,
-                      const Tensor<1, spacedim, Number>          fiber_j)
+  template <int spacedim, typename Number = double>
+  inline double
+  I8_ij(const SymmetricTensor<2, spacedim, Number> CC,
+        const Tensor<1, spacedim, Number>          fiber_i,
+        const Tensor<1, spacedim, Number>          fiber_j)
   {
     return (CC * fiber_j) * fiber_i;
   }
@@ -665,26 +666,26 @@ namespace fdl
   /*
    * dI8_ij_dFF for one quadrature point
    */
-  template<int spacedim, typename Number = double>
-  inline Tensor<2, spacedim, Number> dI8_ij_dFF(
-    const Tensor<2, spacedim, Number> FF,
-    const Tensor<1, spacedim, Number> fiber_i,
-    const Tensor<1, spacedim, Number> fiber_j)
+  template <int spacedim, typename Number = double>
+  inline Tensor<2, spacedim, Number>
+  dI8_ij_dFF(const Tensor<2, spacedim, Number> FF,
+             const Tensor<1, spacedim, Number> fiber_i,
+             const Tensor<1, spacedim, Number> fiber_j)
   {
-    return outer_product(FF * fiber_j, fiber_i) + outer_product(FF * fiber_i, fiber_j);
+    return outer_product(FF * fiber_j, fiber_i) +
+           outer_product(FF * fiber_i, fiber_j);
   }
 
   /**
    * Modified Holzapfel-Ogden material model.
    *
    * By 'modified', we mean that the first invariant is the modified one -
-   * i.e., we use $I1_bar = J^{-2/3} I1$. The fibers are turned off in 
+   * i.e., we use $I1_bar = J^{-2/3} I1$. The fibers are turned off in
    * compression, so I4_i = 1 if I4_i < 1, unless fiber dispersion is used,
    * or kappa_i /= 0. The stress contribution I8_ij is not changed.
    */
   template <int dim, int spacedim = dim, typename Number = double>
-  class HolzapfelOgdenStress
-    : public ForceContribution<dim, spacedim, Number>
+  class HolzapfelOgdenStress : public ForceContribution<dim, spacedim, Number>
   {
   public:
     /**
@@ -694,22 +695,21 @@ namespace fdl
      * every cell.
      */
     HolzapfelOgdenStress(
-      const Quadrature<dim>                 &quad,
-      const double                           a,
-      const double                           b,
-      const double                           a_f,
-      const double                           b_f,
-      const double                           kappa_f,
-      const unsigned int                     index_f,
-      const double                           a_s,
-      const double                           b_s,
-      const double                           kappa_s,
-      const unsigned int                     index_s,
-      const double                           a_fs,
-      const double                           b_fs,
-      std::shared_ptr< FiberNetwork<dim, spacedim> >
-                                             fiber_network,
-      const std::vector<types::material_id> &material_ids = {});
+      const Quadrature<dim>                             &quad,
+      const double                                       a,
+      const double                                       b,
+      const double                                       a_f,
+      const double                                       b_f,
+      const double                                       kappa_f,
+      const unsigned int                                 index_f,
+      const double                                       a_s,
+      const double                                       b_s,
+      const double                                       kappa_s,
+      const unsigned int                                 index_s,
+      const double                                       a_fs,
+      const double                                       b_fs,
+      std::shared_ptr<const FiberNetwork<dim, spacedim>> fiber_network,
+      const std::vector<types::material_id>             &material_ids = {});
 
     /**
      * Get the update flags this force contribution requires for MechanicsValues
@@ -732,23 +732,21 @@ namespace fdl
       ArrayView<Tensor<2, spacedim, Number>> &stresses) const override;
 
   protected:
-    double        a;       // I1_bar parameter
-    double        b;       // I1_bar parameter
-    double        a_f;     // I4_f parameter
-    double        b_f;     // I4_f parameter
-    double        kappa_f; // I4_f fiber dispersion
-    unsigned int  index_f; // f index in the fiber network
-    double        a_s;     // I4_s parameter
-    double        b_s;     // I4_s parameter
-    double        kappa_s; // I4_s fiber dispersion
-    unsigned int  index_s; // s index in the fiber network
-    double        a_fs;    // I8_fs parameter
-    double        b_fs;    // I8_fs parameter
-    std::shared_ptr< FiberNetwork<dim, spacedim> > 
-                  fiber_network; // fiber field 
+    double       a;       // I1_bar parameter
+    double       b;       // I1_bar parameter
+    double       a_f;     // I4_f parameter
+    double       b_f;     // I4_f parameter
+    double       kappa_f; // I4_f fiber dispersion
+    unsigned int index_f; // f index in the fiber network
+    double       a_s;     // I4_s parameter
+    double       b_s;     // I4_s parameter
+    double       kappa_s; // I4_s fiber dispersion
+    unsigned int index_s; // s index in the fiber network
+    double       a_fs;    // I8_fs parameter
+    double       b_fs;    // I8_fs parameter
+    std::shared_ptr<const FiberNetwork<dim, spacedim>> fiber_network;
 
     std::vector<types::material_id> material_ids;
-
   };
 
 

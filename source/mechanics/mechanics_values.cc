@@ -274,8 +274,8 @@ namespace fdl
   template <int dim, int spacedim, typename VectorType>
   void
   MechanicsValues<dim, spacedim, VectorType>::reinit(
-     const typename DoFHandler<dim, spacedim>::active_cell_iterator &cell,
-     const ActiveStrain<dim, spacedim> &active_strain)
+    const typename DoFHandler<dim, spacedim>::active_cell_iterator &cell,
+    const ActiveStrain<dim, spacedim> &active_strain)
   {
     Assert(fe_values,
            ExcMessage(
