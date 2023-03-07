@@ -728,11 +728,14 @@ namespace fdl
         velocity.update_ghost_values();
         for (auto &force : part.get_force_contributions())
           force->setup_force(data_time, position, velocity);
+        for (auto &active_strain : part.get_active_strains())
+          active_strain->setup_strain(data_time);
 
         IBAMR_TIMER_START(t_compute_lagrangian_force_pk1);
         compute_load_vector(part.get_dof_handler(),
                             part.get_mapping(),
                             part.get_force_contributions(),
+                            part.get_active_strains(),
                             data_time,
                             position,
                             velocity,
@@ -749,6 +752,7 @@ namespace fdl
     // And do the actual solve:
     for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
       {
+        const Part<dim, spacedim> &part = parts[part_n];
         if (interactions[part_n]->projection_is_interpolation())
           {
             // TODO - we should probably call this the force density
@@ -759,8 +763,7 @@ namespace fdl
         else
           {
             IBAMR_TIMER_START(t_compute_lagrangian_force_solve);
-            const Part<dim, spacedim> &part = parts[part_n];
-            SolverControl              control(
+            SolverControl control(
               input_db->getIntegerWithDefault("solver_iterations", 100),
               input_db->getDoubleWithDefault("solver_relative_tolerance",
                                              1e-6) *
@@ -785,8 +788,10 @@ namespace fdl
                                    std::move(forces[part_n]));
             IBAMR_TIMER_STOP(t_compute_lagrangian_force_solve);
           }
-        for (auto &force : parts[part_n].get_force_contributions())
+        for (auto &force : part.get_force_contributions())
           force->finish_force(data_time);
+        for (auto &active_strain : part.get_active_strains())
+          active_strain->finish_strain(data_time);
       }
     IBAMR_TIMER_STOP(t_compute_lagrangian_force);
   }

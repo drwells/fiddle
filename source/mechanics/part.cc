@@ -44,13 +44,63 @@ namespace fdl
                               force_contributions,
     const Function<spacedim> &initial_position,
     const Function<spacedim> &initial_velocity)
+    : Part(dh,
+           std::move(force_contributions),
+           {},
+           initial_position,
+           initial_velocity)
+  {}
+
+  template <int dim, int spacedim>
+  Part<dim, spacedim>::Part(
+    std::shared_ptr<DoFHandler<dim, spacedim>> dh,
+    std::vector<std::unique_ptr<ForceContribution<dim, spacedim>>>
+      force_contributions,
+    std::vector<std::unique_ptr<ActiveStrain<dim, spacedim>>> active_strains,
+    const Function<spacedim>                                 &initial_position,
+    const Function<spacedim>                                 &initial_velocity)
     : tria(&dh->get_triangulation())
     , fe(dh->get_fe().clone())
     , dof_handler(dh)
     , force_contributions(std::move(force_contributions))
+    , active_strains(std::move(active_strains))
   {
-    // TODO - make the quadrature and mapping parameters so we can implement
-    // nodal interaction
+      for (const auto &f : this->force_contributions)
+        AssertThrow(f != nullptr,
+                    ExcMessage("The force contributions must not be nullptr"));
+
+    if (this->active_strains.size() > 0)
+      {
+        // Verify that we don't have duplicate active strains:
+        std::map<types::material_id, unsigned int> counts;
+        for (const auto &as : this->active_strains)
+          {
+            Assert(as != nullptr,
+                   ExcMessage("The active strains must not be nullptr"));
+            for (const types::material_id mid : as->get_material_ids())
+            counts[mid] += 1;
+          }
+
+        for (const auto &pair : counts)
+          AssertThrow(
+            pair.second == 1,
+            ExcMessage(
+              "More than one active strain is defined for material id " +
+              std::to_string(pair.first) +
+              ": this is not supported. See the documentation of Part for "
+              "more information."));
+
+        // Don't permit body forces to depend on FF:
+        for (const auto &f : this->force_contributions)
+          if (!f->is_stress())
+            AssertThrow(
+              !(resolve_flag_dependencies(f->get_mechanics_update_flags())
+                & update_FF),
+              ExcMessage("Using quantities dependent on the deformation "
+                         "gradient in a body force is not supported with "
+                         "active strains."));
+      }
+
     const auto &reference_cells = this->tria->get_reference_cells();
     AssertThrow(reference_cells.size() == 1, ExcFDLNotImplemented());
     mapping = reference_cells.front()
@@ -179,6 +229,23 @@ namespace fdl
     const Function<spacedim> &initial_velocity)
     : Part(setup_dof_handler(tria, fe),
            std::move(force_contributions),
+           {},
+           initial_position,
+           initial_velocity)
+  {}
+
+  template <int dim, int spacedim>
+  Part<dim, spacedim>::Part(
+    const Triangulation<dim, spacedim> &tria,
+    const FiniteElement<dim, spacedim> &fe,
+    std::vector<std::unique_ptr<ForceContribution<dim, spacedim>>>
+      force_contributions,
+    std::vector<std::unique_ptr<ActiveStrain<dim, spacedim>>> active_strains,
+    const Function<spacedim>                                 &initial_position,
+    const Function<spacedim>                                 &initial_velocity)
+    : Part(setup_dof_handler(tria, fe),
+           std::move(force_contributions),
+           std::move(active_strains),
            initial_position,
            initial_velocity)
   {}
@@ -227,6 +294,18 @@ namespace fdl
       forces.push_back(force_contribution.get());
 
     return forces;
+  }
+
+  template <int dim, int spacedim>
+  std::vector<ActiveStrain<dim, spacedim> *>
+  Part<dim, spacedim>::get_active_strains() const
+  {
+    std::vector<ActiveStrain<dim, spacedim> *> strains;
+
+    for (auto &as : active_strains)
+      strains.push_back(as.get());
+
+    return strains;
   }
 
   template <int dim, int spacedim>

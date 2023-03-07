@@ -15,59 +15,52 @@ namespace fdl
 {
   using namespace dealii;
 
-  namespace
+  MechanicsUpdateFlags
+  resolve_flag_dependencies(const MechanicsUpdateFlags me_flags)
   {
-    /**
-     * Resolve the interdependencies within a single MechanicsUpdateFlags
-     * object.
-     */
-    MechanicsUpdateFlags
-    resolve_flag_dependencies(const MechanicsUpdateFlags me_flags)
-    {
-      MechanicsUpdateFlags result     = me_flags;
-      MechanicsUpdateFlags old_result = me_flags;
-      // iterate until convergence
-      do
-        {
-          old_result = result;
-          if (result & update_FF_inv_T)
-            result |= update_FF;
-          if (result & update_det_FF)
-            result |= update_FF;
-          if (result & update_n23_det_FF)
-            result |= update_det_FF;
-          if (result & update_log_det_FF)
-            result |= update_det_FF;
-          if (result & update_deformed_normal_vectors)
-            result |= update_FF_inv_T;
-          if (result & update_right_cauchy_green)
-            result |= update_FF;
-          if (result & update_green)
-            result |= update_right_cauchy_green;
-          if (result & update_first_invariant)
-            // needs tr(C)
-            result |= update_right_cauchy_green;
-          if (result & update_modified_first_invariant)
-            result |= update_first_invariant | update_n23_det_FF;
-          if (result & update_modified_second_invariant)
-            result |= update_second_invariant | update_n23_det_FF;
-          if (result & update_second_invariant)
-            // needs tr(C) and tr(C^2)
-            result |= update_first_invariant;
-          if (result & update_third_invariant)
-            // needs det(C)
-            // TODO: make this work when dim != spacedim
-            result |= update_det_FF;
-          if (result & update_first_invariant_dFF)
-            result |= update_FF;
-          if (result & update_modified_first_invariant_dFF)
-            result |= update_n23_det_FF | update_FF | update_first_invariant |
-                      update_FF_inv_T;
-      } while (old_result != result);
+    MechanicsUpdateFlags result     = me_flags;
+    MechanicsUpdateFlags old_result = me_flags;
+    // iterate until convergence
+    do
+      {
+        old_result = result;
+        if (result & update_FF_inv_T)
+          result |= update_FF;
+        if (result & update_det_FF)
+          result |= update_FF;
+        if (result & update_n23_det_FF)
+          result |= update_det_FF;
+        if (result & update_log_det_FF)
+          result |= update_det_FF;
+        if (result & update_deformed_normal_vectors)
+          result |= update_FF_inv_T;
+        if (result & update_right_cauchy_green)
+          result |= update_FF;
+        if (result & update_green)
+          result |= update_right_cauchy_green;
+        if (result & update_first_invariant)
+          // needs tr(C)
+          result |= update_right_cauchy_green;
+        if (result & update_modified_first_invariant)
+          result |= update_first_invariant | update_n23_det_FF;
+        if (result & update_modified_second_invariant)
+          result |= update_second_invariant | update_n23_det_FF;
+        if (result & update_second_invariant)
+          // needs tr(C) and tr(C^2)
+          result |= update_first_invariant;
+        if (result & update_third_invariant)
+          // needs det(C)
+          // TODO: make this work when dim != spacedim
+          result |= update_det_FF;
+        if (result & update_first_invariant_dFF)
+          result |= update_FF;
+        if (result & update_modified_first_invariant_dFF)
+          result |= update_n23_det_FF | update_FF | update_first_invariant |
+                    update_FF_inv_T;
+    } while (old_result != result);
 
-      return result;
-    }
-  } // namespace
+    return result;
+  }
 
   UpdateFlags
   compute_flag_dependencies(const MechanicsUpdateFlags me_flags)
@@ -177,7 +170,10 @@ namespace fdl
   {
     // basic terms dependent on the deformation gradient:
     if (update_flags & MechanicsUpdateFlags::update_FF)
-      FF.resize(size);
+      {
+        FF.resize(size);
+        scratch_FF.resize(size);
+      }
     if (update_flags & MechanicsUpdateFlags::update_FF_inv_T)
       FF_inv_T.resize(size);
     if (update_flags & MechanicsUpdateFlags::update_det_FF)
@@ -274,6 +270,61 @@ namespace fdl
       (*fe_values)[vec].get_function_values_from_local_dof_values(
         scratch_velocity_values, velocity_values);
   }
+
+  template <int dim, int spacedim, typename VectorType>
+  void
+  MechanicsValues<dim, spacedim, VectorType>::reinit(
+     const typename DoFHandler<dim, spacedim>::active_cell_iterator &cell,
+     const ActiveStrain<dim, spacedim> &active_strain)
+  {
+    Assert(fe_values,
+           ExcMessage(
+             "This function can only be called when the present object is set "
+             "up to use an FEValues object."));
+    Assert(cell->level() == fe_values->get_cell()->level() &&
+             cell->index() == fe_values->get_cell()->index(),
+           ExcMessage("The provided cell must be the same as the one used in "
+                      "the corresponding FEValues object."));
+
+    const FEValuesExtractors::Vector vec(0);
+
+    const bool update_scratch_positions =
+      update_flags & update_FF || update_flags & update_position_values;
+    const bool update_scratch_velocities =
+      update_flags & update_velocity_values;
+
+    if (update_scratch_positions || update_scratch_velocities)
+      cell->get_dof_indices(scratch_dof_indices);
+
+    if (update_scratch_positions)
+      for (unsigned int i = 0; i < scratch_dof_indices.size(); ++i)
+        scratch_position_values[i] = (*position)[scratch_dof_indices[i]];
+
+    if (update_scratch_velocities)
+      for (unsigned int i = 0; i < scratch_dof_indices.size(); ++i)
+        scratch_velocity_values[i] = (*velocity)[scratch_dof_indices[i]];
+
+    if (update_flags & update_FF)
+      {
+        (*fe_values)[vec].get_function_gradients_from_local_dof_values(
+          scratch_position_values, scratch_FF);
+
+        auto view = make_array_view(FF);
+        active_strain.push_deformation_gradient_forward(
+          cell, make_array_view(scratch_FF), view);
+      }
+
+    reinit_from_FF();
+
+    if (update_flags & update_position_values)
+      (*fe_values)[vec].get_function_values_from_local_dof_values(
+        scratch_position_values, position_values);
+
+    if (update_flags & update_velocity_values)
+      (*fe_values)[vec].get_function_values_from_local_dof_values(
+        scratch_velocity_values, velocity_values);
+  }
+
 
   template <int dim, int spacedim, typename VectorType>
   void

@@ -1,0 +1,23 @@
+Using hypercubes
+Number of cells = 16
+global error = 0.877725
+error ratio  = 1.13931
+Number of cells = 64
+global error = 0.223536
+error ratio  = 3.92654
+Number of cells = 256
+global error = 0.0564767
+error ratio  = 3.95803
+Using simplices
+Number of cells = 128
+global error = 2.88924
+error ratio  = 0.346112
+Number of cells = 512
+global error = 1.29355
+error ratio  = 2.23356
+Number of cells = 2048
+global error = 0.515417
+error ratio  = 2.50973
+Number of cells = 8192
+global error = 0.192672
+error ratio  = 2.6751

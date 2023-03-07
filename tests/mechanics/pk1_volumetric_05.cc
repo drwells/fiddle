@@ -36,10 +36,7 @@ FDL_ENABLE_EXTRA_DIAGNOSTICS
 
 #include "../tests.h"
 
-// Test compute_volumetric_pk1_load_vector where the force itself is given by a
-// finite element field. In particular - we can only get at best first-order
-// accuracy in this test since the gradient is discontinuous, so doing the L2
-// projection of a discontinuous function is stuck at low accuracy.
+// like pk1_volumetric_02 but also uses very basic active strains
 
 using namespace dealii;
 using namespace SAMRAI;
@@ -122,39 +119,63 @@ public:
   compute_stress(
     const double /*time*/,
     const fdl::MechanicsValues<dim, spacedim> &me_values,
-    const typename Triangulation<dim, spacedim>::active_cell_iterator
-      & /*cell*/,
+    const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
     ArrayView<Tensor<2, spacedim, double>> &stresses) const override
   {
     Assert(spacedim == 2, fdl::ExcFDLNotImplemented());
-
-#ifdef DEBUG
-    {
-      const FEValuesBase<dim, spacedim> &fe_values = me_values.get_fe_values();
-      Assert(stresses.size() == fe_values.get_quadrature_points().size(),
-             fdl::ExcFDLInternalError());
-      Assert(this->get_cell_quadrature().size() ==
-               fe_values.get_quadrature_points().size(),
-             fdl::ExcFDLInternalError());
-    }
-#endif
+    const FEValuesBase<dim, spacedim> &fe_values = me_values.get_fe_values();
+    (void)fe_values;
+    Assert(stresses.size() == fe_values.get_quadrature_points().size(),
+           fdl::ExcFDLInternalError());
+    Assert(this->get_cell_quadrature().size() ==
+             fe_values.get_quadrature_points().size(),
+           fdl::ExcFDLInternalError());
 
     const std::vector<Tensor<2, spacedim>> &FF = me_values.get_FF();
-#if 1
-    for (unsigned int qp_n = 0; qp_n < FF.size(); ++qp_n)
-      stresses[qp_n] = FF[qp_n];
-#else
     for (unsigned int qp_n = 0; qp_n < FF.size(); ++qp_n)
       {
-        const auto &qp = me_values.get_fe_values().quadrature_point(qp_n);
-        stresses[qp_n] = 0.0;
-        stresses[qp_n][0][0] =
-          -2.0 * numbers::PI * std::sin(2 * numbers::PI * qp[0]);
-        stresses[qp_n][1][1] =
-          -2.0 * numbers::PI * std::sin(2 * numbers::PI * qp[1]);
+        stresses[qp_n] = FF[qp_n];
+        if (cell->material_id() != 10u)
+          stresses[qp_n] *= std::max(1u, cell->material_id() + 1);
       }
-#endif
   }
+};
+
+template <int dim, int spacedim = dim, typename Number = double>
+class ConstantStrain : public fdl::ActiveStrain<dim, spacedim, Number>
+{
+public:
+  ConstantStrain(const types::material_id material_id)
+    : fdl::ActiveStrain<dim, spacedim, Number>({material_id})
+  {}
+
+  virtual void
+  push_deformation_gradient_forward(
+    const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
+    const ArrayView<Tensor<2, spacedim, Number>> &FF,
+    ArrayView<Tensor<2, spacedim, Number>> &push_forward_FF) const override
+    {
+      AssertThrow(cell->material_id() == this->get_material_ids()[0],
+                  fdl::ExcFDLInternalError());
+      AssertThrow(FF.size() == push_forward_FF.size(),
+                  fdl::ExcFDLInternalError());
+      for (unsigned int i = 0; i < FF.size(); ++i)
+        push_forward_FF[i] = FF[i] * std::max(1u, cell->material_id() + 1);
+    }
+
+  virtual void
+  pull_stress_back(
+    const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
+    const ArrayView<Tensor<2, spacedim, Number>> &push_forward_stress,
+    ArrayView<Tensor<2, spacedim, Number>> &stress) const override
+    {
+      AssertThrow(cell->material_id() == this->get_material_ids()[0],
+                  fdl::ExcFDLInternalError());
+      AssertThrow(push_forward_stress.size() == stress.size(),
+                  fdl::ExcFDLInternalError());
+      for (unsigned int i = 0; i < stress.size(); ++i)
+        stress[i] = push_forward_stress[i] / std::pow(double(std::max(1u, cell->material_id() + 1)), 2);
+    }
 };
 
 template <int dim, int spacedim = dim>
@@ -175,24 +196,41 @@ test(const bool use_simplex)
   constexpr int      fe_degree = 2;
   double             old_error = 1.0;
   const unsigned int max_refinements =
-    use_simplex ? 8 - fe_degree : 9 - fe_degree;
+    use_simplex ? 6 - fe_degree : 5 - fe_degree;
   for (unsigned int n_refinements = 0; n_refinements < max_refinements;
        ++n_refinements)
     {
       parallel::shared::Triangulation<dim, spacedim> tria(comm);
+
       if (use_simplex)
         {
           parallel::shared::Triangulation<dim, spacedim> hypercube_tria(comm);
           GridGenerator::hyper_cube(hypercube_tria);
-          GridGenerator::convert_hypercube_to_simplex_mesh(hypercube_tria,
+          hypercube_tria.refine_global(2);
+          parallel::shared::Triangulation<dim, spacedim> hypercube_tria2(comm);
+          GridGenerator::flatten_triangulation(hypercube_tria, hypercube_tria2);
+          GridGenerator::convert_hypercube_to_simplex_mesh(hypercube_tria2,
                                                            tria);
         }
       else
         {
-          GridGenerator::hyper_cube(tria);
+          parallel::shared::Triangulation<dim, spacedim> hypercube_tria(comm);
+          GridGenerator::hyper_cube(hypercube_tria);
+          hypercube_tria.refine_global(2);
+          GridGenerator::flatten_triangulation(hypercube_tria, tria);
         }
+
+      for (auto &cell : tria.active_cell_iterators())
+        {
+          if (cell->center()[dim - 1] > 0.5)
+            cell->set_material_id(1);
+          else if (cell->center()[0] < 0.5)
+            cell->set_material_id(2);
+          else
+            cell->set_material_id(10);
+        }
+
       tria.refine_global(n_refinements);
-      GridTools::distort_random(0.25, tria);
       if (Utilities::MPI::this_mpi_process(comm) == 0)
         output << "Number of cells = " << tria.n_active_cells() << std::endl;
 
@@ -248,8 +286,14 @@ test(const bool use_simplex)
           new QGauss<dim>(fe.tensor_degree() + 2));
         const Quadrature<dim> &quadrature2 = use_simplex ? *quad_p2 : *quad_q2;
         StressContribution<dim, spacedim> s1(quadrature2);
+        ConstantStrain<dim, spacedim>     as1(types::material_id(1));
+        ConstantStrain<dim, spacedim>     as2(types::material_id(2));
+        ConstantStrain<dim, spacedim>     as4(types::material_id(4));
 
         std::vector<fdl::ForceContribution<dim, spacedim> *> stress_ptrs{&s1};
+        std::vector<fdl::ActiveStrain<dim, spacedim> *>      as_ptrs{&as1,
+                                                                &as2,
+                                                                &as4};
         // This test does read the position
         LinearAlgebra::distributed::Vector<double> current_position(
           partitioner),
@@ -260,19 +304,14 @@ test(const bool use_simplex)
                                  current_position);
         current_position.update_ghost_values();
 
-#if 1
         fdl::compute_volumetric_pk1_load_vector(dof_handler,
                                                 mapping,
                                                 stress_ptrs,
-                                                {},
+                                                as_ptrs,
                                                 0.0,
                                                 current_position,
                                                 current_velocity,
                                                 force_rhs);
-#else
-        VectorTools::create_right_hand_side(
-          mapping, dof_handler, quadrature2, PK1Div<spacedim>(), force_rhs);
-#endif
         force_rhs.compress(VectorOperation::add);
         // Do the L2 projection:
         SolverControl                 control(1000, 1e-8 * force_rhs.l1_norm());

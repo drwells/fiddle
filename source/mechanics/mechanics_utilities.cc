@@ -23,6 +23,7 @@ namespace fdl
     const DoFHandler<dim, spacedim>                       &dof_handler,
     const Mapping<dim, spacedim>                          &mapping,
     const std::vector<ForceContribution<dim, spacedim> *> &stress_contributions,
+    const std::vector<ActiveStrain<dim, spacedim> *>      &active_strains,
     const double                                           time,
     const LinearAlgebra::distributed::Vector<double>      &current_position,
     const LinearAlgebra::distributed::Vector<double>      &current_velocity,
@@ -39,6 +40,7 @@ namespace fdl
     compute_load_vector(dof_handler,
                         mapping,
                         stress_contributions,
+                        active_strains,
                         time,
                         current_position,
                         current_velocity,
@@ -71,6 +73,7 @@ namespace fdl
     compute_load_vector(dof_handler,
                         mapping,
                         volume_force_contributions,
+                        {},
                         time,
                         current_position,
                         current_velocity,
@@ -208,6 +211,7 @@ namespace fdl
     const DoFHandler<dim, spacedim>                       &dof_handler,
     const Mapping<dim, spacedim>                          &mapping,
     const std::vector<ForceContribution<dim, spacedim> *> &force_contributions,
+    const std::vector<ActiveStrain<dim, spacedim> *>      &active_strains,
     const double                                           time,
     const LinearAlgebra::distributed::Vector<double>      &current_position,
     const LinearAlgebra::distributed::Vector<double>      &current_velocity,
@@ -251,6 +255,23 @@ namespace fdl
                             volume_force_contributions.begin(),
                             volume_force_contributions.end());
 
+    // convert the active strains into a map for easier lookup
+    std::map<types::material_id, ActiveStrain<dim, spacedim> *> as_map;
+    for (auto *as : active_strains)
+      {
+        Assert(as, ExcMessage("active strains should not be nullptr"));
+        for (const types::material_id m_id : as->get_material_ids())
+          {
+            auto &ptr = as_map[m_id];
+            Assert(ptr == nullptr,
+                   ExcMessage("At most one active strain may be set for each "
+                              "material id"));
+            ptr = as;
+          }
+      }
+
+    types::material_id           current_id = numbers::invalid_material_id;
+    ActiveStrain<dim, spacedim> *current_as = nullptr;
     while (remaining_forces.size() > 0)
       {
         auto                   exemplar_force = remaining_forces.front();
@@ -309,6 +330,8 @@ namespace fdl
           n_quadrature_points);
         std::vector<Tensor<2, spacedim, double>> accumulated_stresses(
           n_quadrature_points);
+        std::vector<Tensor<2, spacedim, double>> pull_accumulated_stresses_back(
+          n_quadrature_points);
         std::vector<Tensor<1, spacedim, double>> one_force(n_quadrature_points);
         std::vector<Tensor<1, spacedim, double>> accumulated_forces(
           n_quadrature_points);
@@ -319,9 +342,20 @@ namespace fdl
               {
                 cell->get_dof_indices(cell_dofs);
                 fe_values.reinit(cell);
-                me_values.reinit(cell);
+                if (active_strains.size() > 0 && cell->material_id() != current_id)
+                  {
+                    current_id = cell->material_id();
+                    current_as = as_map[current_id];
+                  }
+                if (current_as)
+                  me_values.reinit(cell, *current_as);
+                else
+                  me_values.reinit(cell);
                 std::fill(accumulated_stresses.begin(),
                           accumulated_stresses.end(),
+                          Tensor<2, spacedim, double>());
+                std::fill(pull_accumulated_stresses_back.begin(),
+                          pull_accumulated_stresses_back.end(),
                           Tensor<2, spacedim, double>());
                 std::fill(accumulated_forces.begin(),
                           accumulated_forces.end(),
@@ -362,10 +396,20 @@ namespace fdl
                       }
                   }
 
+                if (touched_stress && current_as)
+                  {
+                    auto view =
+                      make_array_view(pull_accumulated_stresses_back);
+                    current_as->pull_stress_back(
+                      cell, make_array_view(accumulated_stresses), view);
+                  }
+                else
+                  pull_accumulated_stresses_back.swap(accumulated_stresses);
+
                 // Assemble the RHS vector
                 //
-                // TODO - we could make this a lot faster by exploiting the fact
-                // that we have primitive FEs most of the time
+                // TODO - we could make this a lot faster by exploiting the
+                // fact that we have primitive FEs most of the time
                 for (unsigned int qp_n = 0; qp_n < n_quadrature_points; ++qp_n)
                   {
                     if (touched_stress)
@@ -373,7 +417,7 @@ namespace fdl
                         // -PP : grad phi dx
                         cell_rhs[i] +=
                           -1. *
-                          scalar_product(accumulated_stresses[qp_n],
+                          scalar_product(pull_accumulated_stresses_back[qp_n],
                                          extractor.gradient(i, qp_n)) *
                           fe_values.JxW(qp_n);
                     if (touched_force)
@@ -405,6 +449,7 @@ namespace fdl
     const DoFHandler<NDIM - 1, NDIM> &,
     const Mapping<NDIM - 1, NDIM> &,
     const std::vector<ForceContribution<NDIM - 1, NDIM> *> &,
+    const std::vector<ActiveStrain<NDIM - 1, NDIM> *> &,
     const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
@@ -415,6 +460,7 @@ namespace fdl
     const DoFHandler<NDIM, NDIM> &,
     const Mapping<NDIM, NDIM> &,
     const std::vector<ForceContribution<NDIM, NDIM> *> &,
+    const std::vector<ActiveStrain<NDIM, NDIM> *> &,
     const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
@@ -465,6 +511,7 @@ namespace fdl
     const DoFHandler<NDIM - 1, NDIM> &,
     const Mapping<NDIM - 1, NDIM> &,
     const std::vector<ForceContribution<NDIM - 1, NDIM> *> &,
+    const std::vector<ActiveStrain<NDIM - 1, NDIM> *> &,
     const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,
@@ -475,6 +522,7 @@ namespace fdl
     const DoFHandler<NDIM, NDIM> &,
     const Mapping<NDIM, NDIM> &,
     const std::vector<ForceContribution<NDIM, NDIM> *> &,
+    const std::vector<ActiveStrain<NDIM, NDIM> *> &,
     const double,
     const LinearAlgebra::distributed::Vector<double> &,
     const LinearAlgebra::distributed::Vector<double> &,

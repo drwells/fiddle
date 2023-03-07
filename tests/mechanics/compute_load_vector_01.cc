@@ -289,6 +289,7 @@ test()
     fdl::compute_load_vector(dof_handler,
                              mapping,
                              force_ptrs,
+                             {},
                              0.0,
                              current_position,
                              current_velocity,
