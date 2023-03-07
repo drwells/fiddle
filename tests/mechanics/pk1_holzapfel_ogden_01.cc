@@ -147,8 +147,8 @@ main()
   fibers.push_back(fibers1);
   fibers.push_back(fibers2);
 
-  std::shared_ptr<fdl::FiberNetwork<dim, spacedim>> fiber_network = 
-   std::make_shared<fdl::FiberNetwork<dim, spacedim>>(tria, fibers);
+  std::shared_ptr<fdl::FiberNetwork<dim, spacedim>> fiber_network =
+    std::make_shared<fdl::FiberNetwork<dim, spacedim>>(tria, fibers);
 
   // setup FESystem stuff:
   FESystem<dim, spacedim>       fe(FE_Q<dim, spacedim>(fe_degree), spacedim);
@@ -188,7 +188,7 @@ main()
                                                 1,   // index_s
                                                 1.0, // a_fs
                                                 1.0, // b_fs
-                                                fiber_network, 
+                                                fiber_network,
                                                 materials);
 
     output << "HolzapfelOgdenStress00" << std::endl;
@@ -210,7 +210,7 @@ main()
                                                 1,   // index_s
                                                 1.0, // a_fs
                                                 1.0, // b_fs
-                                                fiber_network, 
+                                                fiber_network,
                                                 materials);
 
     output << "HolzapfelOgdenStress01" << std::endl;
@@ -232,7 +232,7 @@ main()
                                                 1,   // index_s
                                                 1.0, // a_fs
                                                 1.0, // b_fs
-                                                fiber_network, 
+                                                fiber_network,
                                                 materials);
 
     output << "HolzapfelOgdenStress02" << std::endl;
@@ -254,7 +254,7 @@ main()
                                                 1,   // index_s
                                                 1.0, // a_fs
                                                 1.0, // b_fs
-                                                fiber_network, 
+                                                fiber_network,
                                                 materials);
 
     output << "HolzapfelOgdenStress03" << std::endl;
