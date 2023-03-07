@@ -890,21 +890,21 @@ namespace fdl
 
   template <int dim, int spacedim, typename Number>
   HolzapfelOgdenStress<dim, spacedim, Number>::HolzapfelOgdenStress(
-    const Quadrature<dim>                       &quad,
-    const double                                 a,
-    const double                                 b,
-    const double                                 a_f,
-    const double                                 b_f,
-    const double                                 kappa_f,
-    const unsigned int                           index_f,
-    const double                                 a_s,
-    const double                                 b_s,
-    const double                                 kappa_s,
-    const unsigned int                           index_s,
-    const double                                 a_fs,
-    const double                                 b_fs,
-    std::shared_ptr<FiberNetwork<dim, spacedim>> fiber_network,
-    const std::vector<types::material_id>       &material_ids)
+    const Quadrature<dim>                             &quad,
+    const double                                       a,
+    const double                                       b,
+    const double                                       a_f,
+    const double                                       b_f,
+    const double                                       kappa_f,
+    const unsigned int                                 index_f,
+    const double                                       a_s,
+    const double                                       b_s,
+    const double                                       kappa_s,
+    const unsigned int                                 index_s,
+    const double                                       a_fs,
+    const double                                       b_fs,
+    std::shared_ptr<const FiberNetwork<dim, spacedim>> fiber_network,
+    const std::vector<types::material_id>             &material_ids)
     : ForceContribution<dim, spacedim, Number>(quad)
     , a(a)
     , b(b)
