@@ -15,6 +15,30 @@ namespace fdl
 {
   using namespace dealii;
 
+  namespace
+  {
+    double
+    faster_cbrt(const double x)
+    {
+      // initial guess: interpolate at 4 Chebyshev points in [0.8, 1.2]
+      auto interp = [](const double y) {
+        return (y * (0.06296279452386955 * y - 0.30167922580642426) +
+                0.7477972098217265) *
+                 y +
+               0.49092764423865276;
+      };
+      auto   func  = [](const double y) { return y * y * y - 1; };
+      auto   deriv = [](const double y) { return 3 * y * y; };
+      double guess = interp(x);
+      // max error in the initial guess is bounded by 1e-5 so we need two
+      // iterations to get to 1e-20 error
+      for (unsigned int i = 0; i < 2; ++i)
+        guess = guess - func(guess) / deriv(guess);
+
+      return guess;
+    }
+  } // namespace
+
   MechanicsUpdateFlags
   resolve_flag_dependencies(const MechanicsUpdateFlags me_flags)
   {
@@ -365,7 +389,12 @@ namespace fdl
           {
             // It is slightly more accurate (according to herbie) to do
             // division, cbrt, and then multiply
-            const auto temp = std::cbrt(1.0 / det_FF[q]);
+            //
+            // Most of our values are in a nice range and we can use a much
+            // faster custom implementation of cbrt in that case
+            const bool use_faster_cbrt = (det_FF[q] > 0.8 && det_FF[q] < 1.2);
+            const auto temp = use_faster_cbrt ? faster_cbrt(1.0 / det_FF[q]) :
+                                                std::cbrt(1.0 / det_FF[q]);
             n23_det_FF[q]   = temp * temp;
           }
         if (update_flags & update_log_det_FF)
