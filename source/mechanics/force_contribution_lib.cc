@@ -962,68 +962,51 @@ namespace fdl
       {
         const ArrayView<const Tensor<1, spacedim>> cell_fibers =
           fiber_network->get_fibers(cell); // cell specific fiber fields
+        const auto fiber_f = cell_fibers[index_f];
+        const auto fiber_s = cell_fibers[index_s];
         for (unsigned int qp_n = 0; qp_n < stresses.size(); ++qp_n)
           {
+            // convenience definitions
+            const auto I1_bar = m_values.get_modified_first_invariant()[qp_n];
+            const auto FF     = m_values.get_FF()[qp_n];
+            const auto CC     = m_values.get_right_cauchy_green()[qp_n];
+            const auto I1_bar_dFF =
+              m_values.get_modified_first_invariant_dFF()[qp_n];
+
             // stress contribution, isotropic term
             stresses[qp_n] =
-              0.5 * a *
-              std::exp(b *
-                       (m_values.get_modified_first_invariant()[qp_n] - 3.0)) *
-              m_values.get_modified_first_invariant_dFF()[qp_n];
+              0.5 * a * std::exp(b * (I1_bar - 3.0)) * I1_bar_dFF;
             // stress contribution, transversly isotropic term, fiber f
-            const double I4_f = I4_i(m_values.get_right_cauchy_green()[qp_n],
-                                     cell_fibers[index_f]);
+            const double I4_f = I4_i(CC, fiber_f);
             if (kappa_f != 0.0 || I4_f > 1.0)
               {
                 stresses[qp_n] +=
                   a_f *
-                  std::exp(
-                    b_f *
-                    std::pow(kappa_f *
-                                 m_values.get_modified_first_invariant()[qp_n] +
-                               (1.0 - 3.0 * kappa_f) * I4_f - 1.0,
-                             2.0)) *
-                  (kappa_f * m_values.get_modified_first_invariant()[qp_n] +
-                   (1.0 - 3.0 * kappa_f) * I4_f - 1.0) *
-                  (kappa_f * m_values.get_modified_first_invariant_dFF()[qp_n] +
-                   (1.0 - 3.0 * kappa_f) *
-                     dI4_i_dFF(m_values.get_FF()[qp_n], cell_fibers[index_f]));
+                  std::exp(b_f * std::pow(kappa_f * I1_bar +
+                                            (1.0 - 3.0 * kappa_f) * I4_f - 1.0,
+                                          2)) *
+                  (kappa_f * I1_bar + (1.0 - 3.0 * kappa_f) * I4_f - 1.0) *
+                  (kappa_f * I1_bar_dFF +
+                   (1.0 - 3.0 * kappa_f) * dI4_i_dFF(FF, fiber_f));
               }
             // stress contribution, transversly isotropic term, fiber s
-            const double I4_s = I4_i(m_values.get_right_cauchy_green()[qp_n],
-                                     cell_fibers[index_s]);
+            const double I4_s = I4_i(CC, fiber_s);
             if (kappa_s != 0.0 || I4_s > 1.0)
               {
                 stresses[qp_n] +=
                   a_s *
-                  std::exp(
-                    b_s *
-                    std::pow(kappa_s *
-                                 m_values.get_modified_first_invariant()[qp_n] +
-                               (1.0 - 3.0 * kappa_s) * I4_s - 1.0,
-                             2.0)) *
-                  (kappa_s * m_values.get_modified_first_invariant()[qp_n] +
-                   (1.0 - 3.0 * kappa_s) * I4_s - 1.0) *
-                  (kappa_s * m_values.get_modified_first_invariant_dFF()[qp_n] +
-                   (1.0 - 3.0 * kappa_s) *
-                     dI4_i_dFF(m_values.get_FF()[qp_n], cell_fibers[index_s]));
+                  std::exp(b_s * std::pow(kappa_s * I1_bar +
+                                            (1.0 - 3.0 * kappa_s) * I4_s - 1.0,
+                                          2)) *
+                  (kappa_s * I1_bar + (1.0 - 3.0 * kappa_s) * I4_s - 1.0) *
+                  (kappa_s * I1_bar_dFF +
+                   (1.0 - 3.0 * kappa_s) * dI4_i_dFF(FF, fiber_s));
               }
             // stress contribution, orthotropic term, fibers f and s
-            stresses[qp_n] +=
-              a_fs *
-              I8_ij(m_values.get_right_cauchy_green()[qp_n],
-                    cell_fibers[index_f],
-                    cell_fibers[index_s]) *
-              std::exp(b_fs *
-                       I8_ij(m_values.get_right_cauchy_green()[qp_n],
-                             cell_fibers[index_f],
-                             cell_fibers[index_s]) *
-                       I8_ij(m_values.get_right_cauchy_green()[qp_n],
-                             cell_fibers[index_f],
-                             cell_fibers[index_s])) *
-              dI8_ij_dFF(m_values.get_FF()[qp_n],
-                         cell_fibers[index_f],
-                         cell_fibers[index_s]);
+            stresses[qp_n] += a_fs * I8_ij(CC, fiber_f, fiber_s) *
+                              std::exp(b_fs * I8_ij(CC, fiber_f, fiber_s) *
+                                       I8_ij(CC, fiber_f, fiber_s)) *
+                              dI8_ij_dFF(FF, fiber_f, fiber_s);
           }
       }
   }
