@@ -82,7 +82,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
           bounding_disk_vertex_indices.insert(face->vertex_index(vertex_n));
 
   // Avoid issues with roundoff in Triangle by perturbing vertices slightly
-  GridTools::distort_random(0.4, tria, false);
+  GridTools::distort_random(0.1, tria, false);
 
   std::vector<Point<spacedim>> bounding_disk_points;
   for (const unsigned int vertex_n : bounding_disk_vertex_indices)

@@ -1,8 +1,8 @@
 number of hull points = 16
-number of vertices = 94
-number of active cells = 170
-centroid = 0.404308 0.401403 0.395646
-global error in F = 0.123546
-computed mean velocity = -0.346229 0.0603258 0.0533293
-   meter mean velocity = -0.346229 0.0603258 0.0533293
-global error in mean velocity = 4.17982e-15
+number of vertices = 97
+number of active cells = 176
+centroid = 0.400979 0.400365 0.399012
+global error in F = 0.122002
+computed mean velocity = -0.36567 0.0630565 0.0595543
+   meter mean velocity = -0.36567 0.0630565 0.0595543
+global error in mean velocity = 6.54199e-15
