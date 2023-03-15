@@ -67,12 +67,15 @@ namespace fdl
               }
           }
 
-        std::vector<unsigned int> all_vertices;
-        SubCellData               sub_cell_data;
-        GridTools::delete_duplicated_vertices(vertices,
-                                              cell_data,
-                                              sub_cell_data,
-                                              all_vertices);
+        SubCellData sub_cell_data;
+        if (vertices.size() > 2)
+          {
+            std::vector<unsigned int> all_vertices;
+            GridTools::delete_duplicated_vertices(vertices,
+                                          cell_data,
+                                          sub_cell_data,
+                                          all_vertices);
+          }
         GridTools::consistently_order_cells(cell_data);
         tria.create_triangulation(vertices, cell_data, sub_cell_data);
       }
@@ -83,9 +86,6 @@ namespace fdl
                        const Triangle::AdditionalData &additional_data)
       {
         Assert(boundary_points.size() > 2, ExcFDLInternalError());
-
-        {
-        }
 
         // the input may be a parallel Triangulation, so copy back-and-forth
         Triangulation<2, 3> serial_tria;
@@ -155,7 +155,7 @@ namespace fdl
     const std::vector<Tensor<1, spacedim>> velocity_values =
       point_values->evaluate(velocity);
 
-    reinit_tria(boundary_points);
+    reinit_tria(boundary_points, false);
     reinit_mean_velocity(velocity_values);
   }
 
@@ -165,14 +165,15 @@ namespace fdl
     const std::vector<Point<spacedim>>     &boundary_points,
     const std::vector<Tensor<1, spacedim>> &velocity_values)
   {
-    reinit_tria(boundary_points);
+    reinit_tria(boundary_points, true);
     reinit_mean_velocity(velocity_values);
   }
 
   template <int dim, int spacedim>
   void
   SurfaceMeter<dim, spacedim>::reinit_tria(
-    const std::vector<Point<spacedim>> &boundary_points)
+    const std::vector<Point<spacedim>> &boundary_points,
+    const bool place_additional_boundary_vertices)
   {
     double dx_0 = std::numeric_limits<double>::max();
     tbox::Pointer<hier::PatchLevel<spacedim>> level =
@@ -194,6 +195,8 @@ namespace fdl
     meter_tria.clear();
     Triangle::AdditionalData additional_data;
     additional_data.target_element_area = target_element_area;
+    additional_data.place_additional_boundary_vertices
+      = place_additional_boundary_vertices;
     internal::setup_meter_tria(boundary_points, meter_tria, additional_data);
 
     meter_mapping = meter_tria.get_reference_cells()[0]

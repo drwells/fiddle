@@ -194,8 +194,21 @@ namespace fdl
     get_centroid() const;
 
   protected:
+    /**
+     * Reinitialize the stored Triangulation.
+     *
+     * If the points are located on a codimension zero mesh then
+     * place_additional_boundary_vertices should be false. If they come from a
+     * list of points then it should typically be true. In the first case we
+     * want to avoid adding more boundary points since we will move vertices
+     * to match the exact coordinates of vertices on the codimension zero
+     * mesh. In the second, if we are in 2D then we typically want to compute
+     * flow through a surface: the best way to do this is to specify two
+     * points and then add more.
+     */
     void
-    reinit_tria(const std::vector<Point<spacedim>> &convex_hull);
+    reinit_tria(const std::vector<Point<spacedim>> &convex_hull,
+                const bool place_additional_boundary_vertices);
 
     void
     reinit_mean_velocity(
