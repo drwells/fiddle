@@ -101,6 +101,12 @@ namespace fdl
       tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy);
 
     /**
+     * Whether or not the SurfaceMeter was set up with a codimension zero mesh.
+     */
+    bool
+    uses_codim_zero_mesh() const;
+
+    /**
      * Reinitialize the meter mesh to have its coordinates specified by @p
      * position and velocity by @p velocity.
      *

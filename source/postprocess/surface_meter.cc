@@ -142,11 +142,22 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
+  bool
+  SurfaceMeter<dim, spacedim>::uses_codim_zero_mesh() const
+  {
+      return position_dof_handler != nullptr;
+  }
+
+  template <int dim, int spacedim>
   void
   SurfaceMeter<dim, spacedim>::reinit(
     const LinearAlgebra::distributed::Vector<double> &position,
     const LinearAlgebra::distributed::Vector<double> &velocity)
   {
+    Assert(uses_codim_zero_mesh(),
+           ExcMessage("This function cannot be called when the SurfaceMeter is "
+                      "set up without an underlying codimension zero "
+                      "Triangulation."));
     // Reset the meter mesh according to the new position values:
     const std::vector<Tensor<1, spacedim>> position_values =
       point_values->evaluate(position);
@@ -165,6 +176,10 @@ namespace fdl
     const std::vector<Point<spacedim>>     &boundary_points,
     const std::vector<Tensor<1, spacedim>> &velocity_values)
   {
+    Assert(!uses_codim_zero_mesh(),
+           ExcMessage("This function may only be called when the SurfaceMeter "
+                      "is set up without an underlying codimension zero "
+                      "Triangulation."));
     reinit_tria(boundary_points, true);
     reinit_mean_velocity(velocity_values);
   }

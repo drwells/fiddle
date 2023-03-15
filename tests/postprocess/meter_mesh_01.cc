@@ -73,6 +73,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   fdl::SurfaceMeter<dim, spacedim> meter_mesh(convex_hull,
                                               velocities,
                                               patch_hierarchy);
+  AssertThrow(!meter_mesh.uses_codim_zero_mesh(), fdl::ExcFDLInternalError());
 
   // do the actual test:
   const double interpolated_mean_value =
