@@ -89,6 +89,16 @@ namespace fdl
   {
   public:
     /**
+     * Make the dimension available in function templates.
+     */
+    static constexpr unsigned int dimension = dim;
+
+    /**
+     * Make the space dimension available in function templates.
+     */
+    static constexpr unsigned int space_dimension = spacedim;
+
+    /**
      * Constructor.
      */
     Part(const Triangulation<dim, spacedim> &tria,

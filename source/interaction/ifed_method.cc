@@ -93,8 +93,12 @@ namespace fdl
     // here.
     MultithreadInfo::set_thread_limit(1);
 
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      positions_at_last_regrid.push_back(get_part(part_n).get_position());
+    auto init_regrid_positions = [](auto &vectors, const auto &collection)
+      {
+        for (const auto &part : collection)
+          vectors.push_back(part.get_position());
+      };
+    init_regrid_positions(positions_at_last_regrid, parts);
 
     const std::string interaction =
       input_db->getStringWithDefault("interaction", "ELEMENTAL");
@@ -120,22 +124,32 @@ namespace fdl
         else
           AssertThrow(false, ExcFDLNotImplemented());
 
-        for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
+        auto init_elemental = [&](auto &inters, auto &guess_1, auto &guess_2, const auto &collection)
           {
-            const unsigned int n_points_1D =
-              parts[part_n].get_dof_handler().get_fe().tensor_degree() + 1;
-            interactions.emplace_back(new ElementalInteraction<dim, spacedim>(
-              n_points_1D, density, density_kind));
-            force_guesses.emplace_back(
-              input_db->getIntegerWithDefault("n_guess_vectors", 10));
-            velocity_guesses.emplace_back(
-              input_db->getIntegerWithDefault("n_guess_vectors", 10));
-          }
+            constexpr int structdim = std::remove_reference_t<decltype(collection[0])>::dimension;
+            for (unsigned int i = 0; i < collection.size(); ++i)
+              {
+                const unsigned int n_points_1D =
+                  collection[i].get_dof_handler().get_fe().tensor_degree() + 1;
+                inters.emplace_back(std::make_unique<ElementalInteraction<structdim, spacedim>>(
+                  n_points_1D, density, density_kind));
+                guess_1.emplace_back(
+                  input_db->getIntegerWithDefault("n_guess_vectors", 3));
+                guess_2.emplace_back(
+                  input_db->getIntegerWithDefault("n_guess_vectors", 3));
+              }
+          };
+        init_elemental(interactions, force_guesses, velocity_guesses, parts);
       }
     else if (interaction == "NODAL")
       {
-        for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-          interactions.emplace_back(new NodalInteraction<dim, spacedim>());
+        auto init_nodal = [&](auto &inters, const auto &collection)
+        {
+          constexpr int structdim = std::remove_reference_t<decltype(collection[0])>::dimension;
+          for (unsigned int i = 0; i < collection.size(); ++i)
+            inters.emplace_back(std::make_unique<NodalInteraction<structdim, spacedim>>());
+        };
+        init_nodal(interactions, parts);
       }
     else
       {
@@ -225,17 +239,21 @@ namespace fdl
             if (restart_db->isDatabase(object_name))
               {
                 auto db = restart_db->getDatabase(object_name);
-                for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
+                auto do_load = [&](auto &collection, const std::string &prefix)
                   {
-                    const std::string key = "part_" + std::to_string(part_n);
-                    AssertThrow(db->keyExists(key),
-                                ExcMessage("Couldn't find key " + key +
-                                           " in the restart database"));
-                    const std::string  serialization = load_binary(key, db);
-                    std::istringstream in_str(serialization);
-                    boost::archive::binary_iarchive iarchive(in_str);
-                    parts[part_n].load(iarchive, 0);
-                  }
+                    for (unsigned int i = 0; i < collection.size(); ++i)
+                      {
+                        const std::string key = prefix + std::to_string(i);
+                        AssertThrow(db->keyExists(key),
+                                    ExcMessage("Couldn't find key " + key +
+                                               " in the restart database"));
+                        const std::string  serialization = load_binary(key, db);
+                        std::istringstream in_str(serialization);
+                        boost::archive::binary_iarchive iarchive(in_str);
+                        collection[i].load(iarchive, 0);
+                      }
+                  };
+                do_load(parts, "part_");
               }
             else
               {
@@ -521,21 +539,25 @@ namespace fdl
   IFEDMethod<dim, spacedim>::getMaxPointDisplacement() const
   {
     IBAMR_TIMER_START(t_max_point_displacement);
-    Assert(positions_at_last_regrid.size() == n_parts(), ExcFDLInternalError());
     double max_displacement = 0;
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
+    auto max_op = [&max_displacement](const auto &collection,
+                                      const auto &regrid_positions)
       {
-        const auto        &ref_position = positions_at_last_regrid[part_n];
-        const auto        &position     = get_part(part_n).get_position();
-        const unsigned int local_size   = position.locally_owned_size();
-        for (unsigned int i = 0; i < local_size; ++i)
-          max_displacement = std::max(max_displacement,
-                                      std::abs(ref_position.local_element(i) -
-                                               position.local_element(i)));
-      }
+        for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+            AssertDimension(collection.size(), regrid_positions.size());
+            const auto &ref_position = regrid_positions[i];
+            const auto &position     = collection[i].get_position();
+            const auto  local_size   = position.locally_owned_size();
+            for (unsigned int j = 0; j < local_size; ++j)
+              max_displacement = std::max(max_displacement,
+                std::abs(ref_position.local_element(j) -
+                         position.local_element(j)));
+        }
+      };
+    max_op(parts, positions_at_last_regrid);
     max_displacement =
       Utilities::MPI::max(max_displacement, IBTK::IBTK_MPI::getCommunicator());
-
 
     return max_displacement /
            IBTK::get_min_patch_dx(
@@ -561,26 +583,31 @@ namespace fdl
     // computed for each level that needs tagging - conceivably this could
     // happen in beginDataRedistribution() and the array can be cleared in
     // endDataRedistribution()
-    for (const Part<dim, spacedim> &part : parts)
+    auto do_tag = [&](const auto &collection)
       {
-        const DoFHandler<dim, spacedim> &dof_handler = part.get_dof_handler();
-        MappingFEField<dim,
-                       spacedim,
-                       LinearAlgebra::distributed::Vector<double>>
-                   mapping(dof_handler, part.get_position());
-        const auto local_bboxes =
-          compute_cell_bboxes<dim, spacedim, float>(dof_handler, mapping);
-        // Like most other things this only works with p::S::T now
-        const auto &tria =
-          dynamic_cast<const parallel::shared::Triangulation<dim, spacedim> &>(
-            part.get_triangulation());
-        const auto global_bboxes =
-          collect_all_active_cell_bboxes(tria, local_bboxes);
-        tbox::Pointer<hier::PatchLevel<spacedim>> patch_level =
-          hierarchy->getPatchLevel(level_number);
-        Assert(patch_level, ExcNotImplemented());
-        tag_cells(global_bboxes, tag_index, patch_level);
-      }
+        for (const auto &part : collection)
+          {
+            constexpr int structdim = std::remove_reference_t<decltype(collection[0])>::dimension;
+            MappingFEField<structdim,
+                           spacedim,
+                           LinearAlgebra::distributed::Vector<double>>
+              mapping(part.get_dof_handler(), part.get_position());
+            const auto local_bboxes =
+              compute_cell_bboxes<structdim, spacedim, float>(part.get_dof_handler(), mapping);
+            // Like most other things this only works with p::S::T now
+            const auto &tria =
+              dynamic_cast<const parallel::shared::Triangulation<structdim, spacedim> &>(
+                part.get_triangulation());
+            const auto global_bboxes =
+              collect_all_active_cell_bboxes(tria, local_bboxes);
+            tbox::Pointer<hier::PatchLevel<spacedim>> patch_level =
+              hierarchy->getPatchLevel(level_number);
+            Assert(patch_level, ExcNotImplemented());
+            tag_cells(global_bboxes, tag_index, patch_level);
+          }
+      };
+
+    do_tag(parts);
     IBAMR_TIMER_STOP(t_apply_gradient_detector);
   }
 
@@ -904,7 +931,7 @@ namespace fdl
                  0,
                  max_ln);
 
-        // start:
+        // Start:
         std::vector<std::unique_ptr<TransactionBase>> transactions;
         for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
           {
@@ -955,9 +982,13 @@ namespace fdl
     // same as beginDataRedistribution
     if (primary_hierarchy)
       {
-        positions_at_last_regrid.clear();
-        for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-          positions_at_last_regrid.push_back(get_part(part_n).get_position());
+        auto do_reset = [](auto &positions_regrid, const auto &collection)
+          {
+            positions_regrid.clear();
+            for (unsigned int i = 0; i < collection.size(); ++i)
+              positions_regrid.push_back(collection[i].get_position());
+          };
+        do_reset(positions_at_last_regrid, parts);
 
         secondary_hierarchy.reinit(primary_hierarchy->getFinestLevelNumber(),
                                    primary_hierarchy->getFinestLevelNumber(),
@@ -1038,19 +1069,23 @@ namespace fdl
   void
   IFEDMethod<dim, spacedim>::putToDatabase(tbox::Pointer<tbox::Database> db)
   {
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
+    auto do_put = [&](auto &collection, const std::string &prefix)
       {
-        std::ostringstream              out_str;
-        boost::archive::binary_oarchive oarchive(out_str);
-        parts[part_n].save(oarchive, 0);
-        // TODO - with C++20 we can use view() instead of str() and skip this
-        // copy
-        const std::string out = out_str.str();
-        save_binary("part_" + std::to_string(part_n),
-                    out.c_str(),
-                    out.c_str() + out.size(),
-                    db);
-      }
+        for (unsigned int i = 0; i < collection.size(); ++i)
+          {
+            std::ostringstream              out_str;
+            boost::archive::binary_oarchive oarchive(out_str);
+            collection[i].save(oarchive, 0);
+            // TODO - with C++20 we can use view() instead of str() and skip
+            // this copy
+            const std::string out = out_str.str();
+            save_binary(prefix + std::to_string(i),
+                        out.c_str(),
+                        out.c_str() + out.size(),
+                        db);
+          }
+      };
+    do_put(parts, "part_");
   }
 
 
@@ -1077,15 +1112,6 @@ namespace fdl
       var_db->registerVariableAndContext(lagrangian_workload_var,
                                          context,
                                          ghosts);
-  }
-
-
-
-  template <int dim, int spacedim>
-  const hier::IntVector<spacedim> &
-  IFEDMethod<dim, spacedim>::getMinimumGhostCellWidth() const
-  {
-    return ghosts;
   }
 
   template class IFEDMethod<NDIM - 1, NDIM>;
