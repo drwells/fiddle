@@ -110,6 +110,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                               patch_hierarchy,
                                               position,
                                               velocity);
+  AssertThrow(meter_mesh.uses_codim_zero_mesh(), fdl::ExcFDLInternalError());
 
   std::ofstream output;
   if (rank == 0)
