@@ -331,7 +331,15 @@ namespace fdl
      */
   };
 
-  // Inline functions
+  // ----------------------------- inline functions ----------------------------
+
+  template <int dim, int spacedim>
+  inline const hier::IntVector<spacedim> &
+  IFEDMethod<dim, spacedim>::getMinimumGhostCellWidth() const
+  {
+    return ghosts;
+  }
+
   template <int dim, int spacedim>
   inline std::size_t
   IFEDMethod<dim, spacedim>::n_parts() const

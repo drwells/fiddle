@@ -127,9 +127,9 @@ namespace fdl
             interactions.emplace_back(new ElementalInteraction<dim, spacedim>(
               n_points_1D, density, density_kind));
             force_guesses.emplace_back(
-              input_db->getIntegerWithDefault("n_guess_vectors", 10));
+              input_db->getIntegerWithDefault("n_guess_vectors", 3));
             velocity_guesses.emplace_back(
-              input_db->getIntegerWithDefault("n_guess_vectors", 10));
+              input_db->getIntegerWithDefault("n_guess_vectors", 3));
           }
       }
     else if (interaction == "NODAL")
@@ -904,7 +904,7 @@ namespace fdl
                  0,
                  max_ln);
 
-        // start:
+        // Start:
         std::vector<std::unique_ptr<TransactionBase>> transactions;
         for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
           {
@@ -1077,15 +1077,6 @@ namespace fdl
       var_db->registerVariableAndContext(lagrangian_workload_var,
                                          context,
                                          ghosts);
-  }
-
-
-
-  template <int dim, int spacedim>
-  const hier::IntVector<spacedim> &
-  IFEDMethod<dim, spacedim>::getMinimumGhostCellWidth() const
-  {
-    return ghosts;
   }
 
   template class IFEDMethod<NDIM - 1, NDIM>;
