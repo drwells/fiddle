@@ -759,90 +759,107 @@ namespace fdl
   IFEDMethod<dim, spacedim>::computeLagrangianForce(double data_time)
   {
     IBAMR_TIMER_START(t_compute_lagrangian_force);
-    std::deque<LinearAlgebra::distributed::Vector<double>> forces;
-    std::deque<LinearAlgebra::distributed::Vector<double>> right_hand_sides;
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        const Part<dim, spacedim> &part = parts[part_n];
-        forces.emplace_back(part.get_partitioner());
-        right_hand_sides.emplace_back(part.get_partitioner());
 
-        // The velocity isn't available at data_time so use current_time -
-        // IBFEMethod does this too.
-        const auto &position = part_vectors.get_position(part_n, data_time);
-        const auto &velocity = part_vectors.get_velocity(part_n, current_time);
-        // Unlike velocity interpolation and force spreading we actually need
-        // the ghost values in the native partitioning, so make sure they are
-        // available
-        position.update_ghost_values();
-        velocity.update_ghost_values();
-        for (auto &force : part.get_force_contributions())
-          force->setup_force(data_time, position, velocity);
-        for (auto &active_strain : part.get_active_strains())
-          active_strain->setup_strain(data_time);
+    auto do_load =
+      [&](auto &collection, auto &vectors, auto &forces, auto &right_hand_sides)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          const auto &part = collection[i];
+          forces.emplace_back(part.get_partitioner());
+          right_hand_sides.emplace_back(part.get_partitioner());
 
-        IBAMR_TIMER_START(t_compute_lagrangian_force_pk1);
-        compute_load_vector(part.get_dof_handler(),
-                            part.get_mapping(),
-                            part.get_force_contributions(),
-                            part.get_active_strains(),
-                            data_time,
-                            position,
-                            velocity,
-                            right_hand_sides[part_n]);
-        IBAMR_TIMER_STOP(t_compute_lagrangian_force_pk1);
-      }
+          // The velocity isn't available at data_time so use current_time -
+          // IBFEMethod does this too.
+          const auto &position = vectors.get_position(i, data_time);
+          const auto &velocity = vectors.get_velocity(i, current_time);
+          // Unlike velocity interpolation and force spreading we actually need
+          // the ghost values in the native partitioning, so make sure they are
+          // available
+          position.update_ghost_values();
+          velocity.update_ghost_values();
+          for (auto &force : part.get_force_contributions())
+            force->setup_force(data_time, position, velocity);
+          for (auto &active_strain : part.get_active_strains())
+            active_strain->setup_strain(data_time);
+
+          IBAMR_TIMER_START(t_compute_lagrangian_force_pk1);
+          compute_load_vector(part.get_dof_handler(),
+                              part.get_mapping(),
+                              part.get_force_contributions(),
+                              part.get_active_strains(),
+                              data_time,
+                              position,
+                              velocity,
+                              right_hand_sides[i]);
+          IBAMR_TIMER_STOP(t_compute_lagrangian_force_pk1);
+        }
+    };
+    std::deque<LinearAlgebra::distributed::Vector<double>> part_forces,
+      part_right_hand_sides;
+    do_load(parts, part_vectors, part_forces, part_right_hand_sides);
 
     // Allow compression to overlap:
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      right_hand_sides[part_n].compress_start(part_n, VectorOperation::add);
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      right_hand_sides[part_n].compress_finish(VectorOperation::add);
+    auto do_compress = [](auto &vectors)
+    {
+      for (unsigned int i = 0; i < vectors.size(); ++i)
+        vectors[i].compress_start(i, VectorOperation::add);
+      for (unsigned int i = 0; i < vectors.size(); ++i)
+        vectors[i].compress_finish(VectorOperation::add);
+    };
+    do_compress(part_right_hand_sides);
 
     // And do the actual solve:
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        const Part<dim, spacedim> &part = parts[part_n];
-        if (interactions[part_n]->projection_is_interpolation())
-          {
-            // TODO - we should probably call this the force density
-            part_vectors.set_force(part_n,
-                                   data_time,
-                                   std::move(right_hand_sides[part_n]));
-          }
-        else
-          {
-            IBAMR_TIMER_START(t_compute_lagrangian_force_solve);
-            SolverControl control(
-              input_db->getIntegerWithDefault("solver_iterations", 100),
-              input_db->getDoubleWithDefault("solver_relative_tolerance",
-                                             1e-6) *
-                right_hand_sides[part_n].l2_norm());
-            SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
-            force_guesses[part_n].guess(forces[part_n],
-                                        right_hand_sides[part_n]);
-            cg.solve(part.get_mass_operator(),
-                     forces[part_n],
-                     right_hand_sides[part_n],
-                     part.get_mass_preconditioner());
-            force_guesses[part_n].submit(forces[part_n],
-                                         right_hand_sides[part_n]);
-            if (input_db->getBoolWithDefault("log_solver_iterations", false))
-              {
-                tbox::plog << "IFEDMethod::computeLagrangianForce(): "
-                           << "SolverCG<> converged in " << control.last_step()
-                           << " steps." << std::endl;
-              }
-            part_vectors.set_force(part_n,
-                                   data_time,
-                                   std::move(forces[part_n]));
-            IBAMR_TIMER_STOP(t_compute_lagrangian_force_solve);
-          }
-        for (auto &force : part.get_force_contributions())
-          force->finish_force(data_time);
-        for (auto &active_strain : part.get_active_strains())
-          active_strain->finish_strain(data_time);
-      }
+    auto do_solve = [&](const auto &collection,
+                        const auto &interactions,
+                        auto       &force_guesses,
+                        auto       &vectors,
+                        auto       &forces,
+                        auto       &right_hand_sides)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          const auto &part = parts[i];
+          if (interactions[i]->projection_is_interpolation())
+            {
+              vectors.set_force(i, data_time, std::move(right_hand_sides[i]));
+            }
+          else
+            {
+              IBAMR_TIMER_START(t_compute_lagrangian_force_solve);
+              SolverControl control(
+                input_db->getIntegerWithDefault("solver_iterations", 100),
+                input_db->getDoubleWithDefault("solver_relative_tolerance",
+                                               1e-6) *
+                  right_hand_sides[i].l2_norm());
+              SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
+              force_guesses[i].guess(forces[i], right_hand_sides[i]);
+              cg.solve(part.get_mass_operator(),
+                       forces[i],
+                       right_hand_sides[i],
+                       part.get_mass_preconditioner());
+              force_guesses[i].submit(forces[i], right_hand_sides[i]);
+              if (input_db->getBoolWithDefault("log_solver_iterations", false))
+                {
+                  tbox::plog << "IFEDMethod::computeLagrangianForce(): "
+                             << "SolverCG<> converged in "
+                             << control.last_step() << " steps." << std::endl;
+                }
+              vectors.set_force(i, data_time, std::move(forces[i]));
+              IBAMR_TIMER_STOP(t_compute_lagrangian_force_solve);
+            }
+          for (auto &force : part.get_force_contributions())
+            force->finish_force(data_time);
+          for (auto &active_strain : part.get_active_strains())
+            active_strain->finish_strain(data_time);
+        }
+    };
+    do_solve(parts,
+             interactions,
+             force_guesses,
+             part_vectors,
+             part_forces,
+             part_right_hand_sides);
     IBAMR_TIMER_STOP(t_compute_lagrangian_force);
   }
 
@@ -854,67 +871,72 @@ namespace fdl
   void
   IFEDMethod<dim, spacedim>::reinit_interactions()
   {
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        const Part<dim, spacedim> &part = parts[part_n];
-
-        const auto &tria =
-          dynamic_cast<const parallel::shared::Triangulation<dim, spacedim> &>(
+    auto do_reinit = [&](const auto &collection, auto &interactions)
+    {
+      for (unsigned int i = 0; i < n_parts(); ++i)
+        {
+          constexpr int structdim =
+            std::remove_reference_t<decltype(collection[0])>::dimension;
+          const auto &part = parts[i];
+          const auto &tria = dynamic_cast<
+            const parallel::shared::Triangulation<structdim, spacedim> &>(
             part.get_triangulation());
-        const DoFHandler<dim, spacedim> &dof_handler = part.get_dof_handler();
-        MappingFEField<dim,
-                       spacedim,
-                       LinearAlgebra::distributed::Vector<double>>
-          mapping(dof_handler, part.get_position());
-        IBAMR_TIMER_START(t_reinit_interactions_bboxes);
-        const auto local_bboxes =
-          compute_cell_bboxes<dim, spacedim, float>(dof_handler, mapping);
-        const auto global_bboxes =
-          collect_all_active_cell_bboxes(tria, local_bboxes);
-        IBAMR_TIMER_STOP(t_reinit_interactions_bboxes);
+          const auto &dof_handler = part.get_dof_handler();
+          MappingFEField<structdim,
+                         spacedim,
+                         LinearAlgebra::distributed::Vector<double>>
+            mapping(dof_handler, part.get_position());
+          IBAMR_TIMER_START(t_reinit_interactions_bboxes);
+          const auto local_bboxes =
+            compute_cell_bboxes<structdim, spacedim, float>(dof_handler,
+                                                            mapping);
+          const auto global_bboxes =
+            collect_all_active_cell_bboxes(tria, local_bboxes);
+          IBAMR_TIMER_STOP(t_reinit_interactions_bboxes);
 
-        IBAMR_TIMER_START(t_reinit_interactions_edges);
-        const auto local_edge_lengths = compute_longest_edge_lengths(
-          tria, mapping, QGauss<1>(dof_handler.get_fe().tensor_degree()));
-        const auto global_edge_lengths =
-          collect_longest_edge_lengths(tria, local_edge_lengths);
-        IBAMR_TIMER_STOP(t_reinit_interactions_edges);
+          IBAMR_TIMER_START(t_reinit_interactions_edges);
+          const auto local_edge_lengths = compute_longest_edge_lengths(
+            tria, mapping, QGauss<1>(dof_handler.get_fe().tensor_degree()));
+          const auto global_edge_lengths =
+            collect_longest_edge_lengths(tria, local_edge_lengths);
+          IBAMR_TIMER_STOP(t_reinit_interactions_edges);
 
-        IBAMR_TIMER_START(t_reinit_interactions_objects);
-        // We already check that this has a valid value earlier on
-        const std::string interaction =
-          input_db->getStringWithDefault("interaction", "ELEMENTAL");
-        const int ln = primary_hierarchy->getFinestLevelNumber();
+          IBAMR_TIMER_START(t_reinit_interactions_objects);
+          // We already check that this has a valid value earlier on
+          const std::string interaction =
+            input_db->getStringWithDefault("interaction", "ELEMENTAL");
+          const int ln = primary_hierarchy->getFinestLevelNumber();
 
-        tbox::Pointer<tbox::Database> interaction_db =
-          new tbox::InputDatabase("interaction");
-        // default database values are OK
+          tbox::Pointer<tbox::Database> interaction_db =
+            new tbox::InputDatabase("interaction");
+          // default database values are OK
 
-        if (interaction == "ELEMENTAL")
-          interactions[part_n]->reinit(
-            interaction_db,
-            tria,
-            global_bboxes,
-            global_edge_lengths,
-            secondary_hierarchy.getSecondaryHierarchy(),
-            std::make_pair(ln, ln));
-        else
-          {
-            dynamic_cast<NodalInteraction<dim, spacedim> &>(
-              *interactions[part_n])
-              .reinit(interaction_db,
-                      tria,
-                      global_bboxes,
-                      secondary_hierarchy.getSecondaryHierarchy(),
-                      std::make_pair(ln, ln),
-                      part.get_dof_handler(),
-                      part.get_position());
-          }
-        // TODO - we should probably add a reinit() function that sets up the
-        // DoFHandler we always need
-        interactions[part_n]->add_dof_handler(part.get_dof_handler());
-        IBAMR_TIMER_STOP(t_reinit_interactions_objects);
-      }
+          if (interaction == "ELEMENTAL")
+            interactions[i]->reinit(interaction_db,
+                                    tria,
+                                    global_bboxes,
+                                    global_edge_lengths,
+                                    secondary_hierarchy.getSecondaryHierarchy(),
+                                    std::make_pair(ln, ln));
+          else
+            {
+              dynamic_cast<NodalInteraction<structdim, spacedim> &>(
+                *interactions[i])
+                .reinit(interaction_db,
+                        tria,
+                        global_bboxes,
+                        secondary_hierarchy.getSecondaryHierarchy(),
+                        std::make_pair(ln, ln),
+                        part.get_dof_handler(),
+                        part.get_position());
+            }
+          // TODO - we should probably add a reinit() function that sets up the
+          // DoFHandler we always need
+          interactions[i]->add_dof_handler(part.get_dof_handler());
+        }
+    };
+    do_reinit(parts, interactions);
+    IBAMR_TIMER_STOP(t_reinit_interactions_objects);
   }
 
 
