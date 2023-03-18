@@ -346,6 +346,8 @@ namespace fdl
       for (unsigned int i = 0; i < collection.size(); ++i)
         {
           const auto &part = collection[i];
+          AssertThrow(vectors.dimension == part.dimension,
+                      ExcFDLInternalError());
           rhs_vectors.emplace_back(part.get_partitioner());
           transactions.emplace_back(
             interactions[i]->compute_projection_rhs_start(
@@ -474,6 +476,8 @@ namespace fdl
       for (unsigned int i = 0; i < collection.size(); ++i)
         {
           const auto &part = collection[i];
+          AssertThrow(vectors.dimension == part.dimension,
+                      ExcFDLInternalError());
           transactions.emplace_back(interactions[i]->compute_spread_start(
             ib_kernels[i],
             f_scratch_data_index,
@@ -715,6 +719,8 @@ namespace fdl
       for (unsigned int i = 0; i < collection.size(); ++i)
         {
           auto &part = collection[i];
+          AssertThrow(vectors.dimension == part.dimension,
+                      ExcFDLInternalError());
           // Set the position at the end time:
           LinearAlgebra::distributed::Vector<double> new_position(
             part.get_partitioner());
@@ -755,6 +761,8 @@ namespace fdl
       for (unsigned int i = 0; i < collection.size(); ++i)
         {
           auto &part = collection[i];
+          AssertThrow(vectors.dimension == part.dimension,
+                      ExcFDLInternalError());
           // Set the position at the end time:
           LinearAlgebra::distributed::Vector<double> new_position(
             part.get_partitioner());
@@ -801,6 +809,8 @@ namespace fdl
       for (unsigned int i = 0; i < collection.size(); ++i)
         {
           const auto &part = collection[i];
+          AssertThrow(vectors.dimension == part.dimension,
+                      ExcFDLInternalError());
           forces.emplace_back(part.get_partitioner());
           right_hand_sides.emplace_back(part.get_partitioner());
 
@@ -855,6 +865,8 @@ namespace fdl
       for (unsigned int i = 0; i < collection.size(); ++i)
         {
           const auto &part = parts[i];
+          AssertThrow(vectors.dimension == part.dimension,
+                      ExcFDLInternalError());
           if (interactions[i]->projection_is_interpolation())
             {
               vectors.set_force(i, data_time, std::move(right_hand_sides[i]));
