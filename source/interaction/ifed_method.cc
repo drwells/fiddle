@@ -335,37 +335,53 @@ namespace fdl
       data_time,
       d_ib_solver->getVelocityPhysBdryOp());
 
-    std::vector<std::unique_ptr<TransactionBase>> transactions;
-    // we emplace_back so use a deque to keep pointers valid
-    std::deque<LinearAlgebra::distributed::Vector<double>> rhs_vecs;
-
     // start:
     IBAMR_TIMER_START(t_interpolate_velocity_rhs);
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        const Part<dim, spacedim> &part = parts[part_n];
-        rhs_vecs.emplace_back(part.get_partitioner());
-        transactions.emplace_back(
-          interactions[part_n]->compute_projection_rhs_start(
-            ib_kernels[part_n],
-            u_data_index,
-            part.get_dof_handler(),
-            part_vectors.get_position(part_n, data_time),
-            part.get_dof_handler(),
-            part.get_mapping(),
-            rhs_vecs[part_n]));
-      }
+    auto setup_transaction = [&](const auto &collection,
+                                 const auto &interactions,
+                                 const auto &vectors,
+                                 auto       &transactions,
+                                 auto       &rhs_vectors)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          const auto &part = collection[i];
+          rhs_vectors.emplace_back(part.get_partitioner());
+          transactions.emplace_back(
+            interactions[i]->compute_projection_rhs_start(
+              ib_kernels[i],
+              u_data_index,
+              part.get_dof_handler(),
+              vectors.get_position(i, data_time),
+              part.get_dof_handler(),
+              part.get_mapping(),
+              rhs_vectors[i]));
+        }
+    };
+    // we emplace_back so use a deque to keep pointers valid
+    std::vector<std::unique_ptr<TransactionBase>>          transactions;
+    std::deque<LinearAlgebra::distributed::Vector<double>> rhs_vecs;
+    setup_transaction(
+      parts, interactions, part_vectors, transactions, rhs_vecs);
 
     // Compute:
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      transactions[part_n] =
-        interactions[part_n]->compute_projection_rhs_intermediate(
-          std::move(transactions[part_n]));
+    auto compute_transaction = [](const auto &interactions, auto &transactions)
+    {
+      for (unsigned int i = 0; i < interactions.size(); ++i)
+        transactions[i] = interactions[i]->compute_projection_rhs_intermediate(
+          std::move(transactions[i]));
+    };
+    compute_transaction(interactions, transactions);
 
     // Collect:
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      interactions[part_n]->compute_projection_rhs_finish(
-        std::move(transactions[part_n]));
+    auto collect_transaction = [](const auto &interactions, auto &transactions)
+    {
+      for (unsigned int i = 0; i < interactions.size(); ++i)
+        interactions[i]->compute_projection_rhs_finish(
+          std::move(transactions[i]));
+    };
+    collect_transaction(interactions, transactions);
+
     // We cannot start the linear solve without first finishing this, so use a
     // barrier to keep the timers accurate
     const int ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
@@ -374,51 +390,56 @@ namespace fdl
 
     // Project:
     IBAMR_TIMER_START(t_interpolate_velocity_solve);
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        if (interactions[part_n]->projection_is_interpolation())
-          {
-            // If projection is actually interpolation we have a lot less to do
-            part_vectors.set_velocity(part_n,
-                                      data_time,
-                                      std::move(rhs_vecs[part_n]));
-          }
-        else
-          {
-            SolverControl control(
-              input_db->getIntegerWithDefault("solver_iterations", 100),
-              input_db->getDoubleWithDefault("solver_relative_tolerance",
-                                             1e-6) *
-                rhs_vecs[part_n].l2_norm());
-            SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
-            LinearAlgebra::distributed::Vector<double>           velocity(
-              parts[part_n].get_partitioner());
+    auto do_solve = [&](const auto &collection,
+                        auto       &vectors,
+                        auto       &guesses,
+                        auto       &rhs_vectors)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          if (interactions[i]->projection_is_interpolation())
+            {
+              // If projection is actually interpolation we have a lot less to
+              // do
+              vectors.set_velocity(i, data_time, std::move(rhs_vectors[i]));
+            }
+          else
+            {
+              const auto   &part = collection[i];
+              SolverControl control(
+                input_db->getIntegerWithDefault("solver_iterations", 100),
+                input_db->getDoubleWithDefault("solver_relative_tolerance",
+                                               1e-6) *
+                  rhs_vectors[i].l2_norm());
+              SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
+              LinearAlgebra::distributed::Vector<double>           velocity(
+                part.get_partitioner());
 
-            // If we mess up the matrix-free implementation will fix our
-            // partitioner: make sure we catch that case here
-            Assert(velocity.get_partitioner() ==
-                     parts[part_n].get_partitioner(),
-                   ExcFDLInternalError());
-            velocity_guesses[part_n].guess(velocity, rhs_vecs[part_n]);
-            cg.solve(parts[part_n].get_mass_operator(),
-                     velocity,
-                     rhs_vecs[part_n],
-                     parts[part_n].get_mass_preconditioner());
-            velocity_guesses[part_n].submit(velocity, rhs_vecs[part_n]);
-            // Same
-            Assert(velocity.get_partitioner() ==
-                     parts[part_n].get_partitioner(),
-                   ExcFDLInternalError());
-            part_vectors.set_velocity(part_n, data_time, std::move(velocity));
+              // If we mess up the matrix-free implementation will fix our
+              // partitioner: make sure we catch that case here
+              Assert(velocity.get_partitioner() == part.get_partitioner(),
+                     ExcFDLInternalError());
+              guesses[i].guess(velocity, rhs_vectors[i]);
+              cg.solve(part.get_mass_operator(),
+                       velocity,
+                       rhs_vectors[i],
+                       part.get_mass_preconditioner());
+              guesses[i].submit(velocity, rhs_vectors[i]);
+              // Same
+              Assert(velocity.get_partitioner() == part.get_partitioner(),
+                     ExcFDLInternalError());
+              vectors.set_velocity(i, data_time, std::move(velocity));
 
-            if (input_db->getBoolWithDefault("log_solver_iterations", false))
-              {
-                tbox::plog << "IFEDMethod::interpolateVelocity(): "
-                           << "SolverCG<> converged in " << control.last_step()
-                           << " steps." << std::endl;
-              }
-          }
-      }
+              if (input_db->getBoolWithDefault("log_solver_iterations", false))
+                {
+                  tbox::plog << "IFEDMethod::interpolateVelocity(): "
+                             << "SolverCG<> converged in "
+                             << control.last_step() << " steps." << std::endl;
+                }
+            }
+        }
+    };
+    do_solve(parts, part_vectors, velocity_guesses, rhs_vecs);
     IBAMR_TIMER_STOP(t_interpolate_velocity_solve);
     IBAMR_TIMER_STOP(t_interpolate_velocity);
   }
@@ -445,29 +466,43 @@ namespace fdl
     fill_all(hierarchy, f_scratch_data_index, level_number, level_number, 0.0);
 
     // start:
+    auto setup_transaction = [&](const auto &collection,
+                                 const auto &interactions,
+                                 const auto &vectors,
+                                 auto       &transactions)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          const auto &part = collection[i];
+          transactions.emplace_back(interactions[i]->compute_spread_start(
+            ib_kernels[i],
+            f_scratch_data_index,
+            vectors.get_position(i, data_time),
+            part.get_dof_handler(),
+            part.get_mapping(),
+            part.get_dof_handler(),
+            vectors.get_force(i, data_time)));
+        }
+    };
     std::vector<std::unique_ptr<TransactionBase>> transactions;
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        const Part<dim, spacedim> &part = parts[part_n];
-        transactions.emplace_back(interactions[part_n]->compute_spread_start(
-          ib_kernels[part_n],
-          f_scratch_data_index,
-          part_vectors.get_position(part_n, data_time),
-          part.get_dof_handler(),
-          part.get_mapping(),
-          part.get_dof_handler(),
-          part_vectors.get_force(part_n, data_time)));
-      }
+    setup_transaction(parts, interactions, part_vectors, transactions);
 
     // Compute:
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      transactions[part_n] = interactions[part_n]->compute_spread_intermediate(
-        std::move(transactions[part_n]));
+    auto compute_transaction = [](const auto &interactions, auto &transactions)
+    {
+      for (unsigned int i = 0; i < interactions.size(); ++i)
+        transactions[i] = interactions[i]->compute_spread_intermediate(
+          std::move(transactions[i]));
+    };
+    compute_transaction(interactions, transactions);
 
     // Collect:
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      interactions[part_n]->compute_spread_finish(
-        std::move(transactions[part_n]));
+    auto collect_transaction = [](const auto &interactions, auto &transactions)
+    {
+      for (unsigned int i = 0; i < interactions.size(); ++i)
+        interactions[i]->compute_spread_finish(std::move(transactions[i]));
+    };
+    collect_transaction(interactions, transactions);
 
     // Deal with force values spread outside the physical domain. Since these
     // are spread into ghost regions that don't correspond to actual degrees
@@ -977,26 +1012,39 @@ namespace fdl
                  max_ln);
 
         // Start:
+        auto setup_transaction = [&](const auto &collection,
+                                     const auto &interactions,
+                                     auto       &transactions)
+        {
+          for (unsigned int i = 0; i < collection.size(); ++i)
+            {
+              const auto &part = collection[i];
+              transactions.emplace_back(interactions[i]->add_workload_start(
+                lagrangian_workload_current_index,
+                part.get_position(),
+                part.get_dof_handler()));
+            }
+        };
         std::vector<std::unique_ptr<TransactionBase>> transactions;
-        for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-          {
-            const Part<dim, spacedim> &part = parts[part_n];
-            transactions.emplace_back(interactions[part_n]->add_workload_start(
-              lagrangian_workload_current_index,
-              part.get_position(),
-              part.get_dof_handler()));
-          }
+        setup_transaction(parts, interactions, transactions);
 
         // Compute:
-        for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-          transactions[part_n] =
-            interactions[part_n]->add_workload_intermediate(
-              std::move(transactions[part_n]));
+        auto compute_transaction = [](auto &interactions, auto &transactions)
+        {
+          for (unsigned int i = 0; i < transactions.size(); ++i)
+            transactions[i] = interactions[i]->add_workload_intermediate(
+              std::move(transactions[i]));
+        };
+        compute_transaction(interactions, transactions);
 
         // Finish:
-        for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-          interactions[part_n]->add_workload_finish(
-            std::move(transactions[part_n]));
+        auto finish_transaction =
+          [](const auto &interactions, auto &transactions)
+        {
+          for (unsigned int i = 0; i < transactions.size(); ++i)
+            interactions[i]->add_workload_finish(std::move(transactions[i]));
+        };
+        finish_transaction(interactions, transactions);
 
         // Move to primary hierarchy (we will read it back in
         // endDataRedistribution)
