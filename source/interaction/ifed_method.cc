@@ -94,10 +94,10 @@ namespace fdl
     MultithreadInfo::set_thread_limit(1);
 
     auto init_regrid_positions = [](auto &vectors, const auto &collection)
-      {
-        for (const auto &part : collection)
-          vectors.push_back(part.get_position());
-      };
+    {
+      for (const auto &part : collection)
+        vectors.push_back(part.get_position());
+    };
     init_regrid_positions(positions_at_last_regrid, parts);
 
     const std::string interaction =
@@ -124,30 +124,37 @@ namespace fdl
         else
           AssertThrow(false, ExcFDLNotImplemented());
 
-        auto init_elemental = [&](auto &inters, auto &guess_1, auto &guess_2, const auto &collection)
-          {
-            constexpr int structdim = std::remove_reference_t<decltype(collection[0])>::dimension;
-            for (unsigned int i = 0; i < collection.size(); ++i)
-              {
-                const unsigned int n_points_1D =
-                  collection[i].get_dof_handler().get_fe().tensor_degree() + 1;
-                inters.emplace_back(std::make_unique<ElementalInteraction<structdim, spacedim>>(
+        auto init_elemental = [&](auto       &inters,
+                                  auto       &guess_1,
+                                  auto       &guess_2,
+                                  const auto &collection)
+        {
+          constexpr int structdim =
+            std::remove_reference_t<decltype(collection[0])>::dimension;
+          for (unsigned int i = 0; i < collection.size(); ++i)
+            {
+              const unsigned int n_points_1D =
+                collection[i].get_dof_handler().get_fe().tensor_degree() + 1;
+              inters.emplace_back(
+                std::make_unique<ElementalInteraction<structdim, spacedim>>(
                   n_points_1D, density, density_kind));
-                guess_1.emplace_back(
-                  input_db->getIntegerWithDefault("n_guess_vectors", 3));
-                guess_2.emplace_back(
-                  input_db->getIntegerWithDefault("n_guess_vectors", 3));
-              }
-          };
+              guess_1.emplace_back(
+                input_db->getIntegerWithDefault("n_guess_vectors", 3));
+              guess_2.emplace_back(
+                input_db->getIntegerWithDefault("n_guess_vectors", 3));
+            }
+        };
         init_elemental(interactions, force_guesses, velocity_guesses, parts);
       }
     else if (interaction == "NODAL")
       {
         auto init_nodal = [&](auto &inters, const auto &collection)
         {
-          constexpr int structdim = std::remove_reference_t<decltype(collection[0])>::dimension;
+          constexpr int structdim =
+            std::remove_reference_t<decltype(collection[0])>::dimension;
           for (unsigned int i = 0; i < collection.size(); ++i)
-            inters.emplace_back(std::make_unique<NodalInteraction<structdim, spacedim>>());
+            inters.emplace_back(
+              std::make_unique<NodalInteraction<structdim, spacedim>>());
         };
         init_nodal(interactions, parts);
       }
@@ -188,9 +195,8 @@ namespace fdl
           ghosts[d] = std::max(ghosts[d], ghost_width);
       }
 
-    auto set_timer = [&](const char *name) {
-      return tbox::TimerManager::getManager()->getTimer(name);
-    };
+    auto set_timer = [&](const char *name)
+    { return tbox::TimerManager::getManager()->getTimer(name); };
 
     t_preprocess_integrate_data =
       set_timer("fdl::IFEDMethod::preprocessIntegrateData()");
@@ -238,21 +244,21 @@ namespace fdl
             auto restart_db = restart_manager->getRootDatabase();
             if (restart_db->isDatabase(object_name))
               {
-                auto db = restart_db->getDatabase(object_name);
+                auto db      = restart_db->getDatabase(object_name);
                 auto do_load = [&](auto &collection, const std::string &prefix)
-                  {
-                    for (unsigned int i = 0; i < collection.size(); ++i)
-                      {
-                        const std::string key = prefix + std::to_string(i);
-                        AssertThrow(db->keyExists(key),
-                                    ExcMessage("Couldn't find key " + key +
-                                               " in the restart database"));
-                        const std::string  serialization = load_binary(key, db);
-                        std::istringstream in_str(serialization);
-                        boost::archive::binary_iarchive iarchive(in_str);
-                        collection[i].load(iarchive, 0);
-                      }
-                  };
+                {
+                  for (unsigned int i = 0; i < collection.size(); ++i)
+                    {
+                      const std::string key = prefix + std::to_string(i);
+                      AssertThrow(db->keyExists(key),
+                                  ExcMessage("Couldn't find key " + key +
+                                             " in the restart database"));
+                      const std::string  serialization = load_binary(key, db);
+                      std::istringstream in_str(serialization);
+                      boost::archive::binary_iarchive iarchive(in_str);
+                      collection[i].load(iarchive, 0);
+                    }
+                };
                 do_load(parts, "part_");
               }
             else
@@ -540,21 +546,21 @@ namespace fdl
   {
     IBAMR_TIMER_START(t_max_point_displacement);
     double max_displacement = 0;
-    auto max_op = [&max_displacement](const auto &collection,
-                                      const auto &regrid_positions)
-      {
-        for (unsigned int i = 0; i < collection.size(); ++i)
+
+    auto max_op = [&](const auto &collection, const auto &regrid_positions)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
         {
-            AssertDimension(collection.size(), regrid_positions.size());
-            const auto &ref_position = regrid_positions[i];
-            const auto &position     = collection[i].get_position();
-            const auto  local_size   = position.locally_owned_size();
-            for (unsigned int j = 0; j < local_size; ++j)
-              max_displacement = std::max(max_displacement,
-                std::abs(ref_position.local_element(j) -
-                         position.local_element(j)));
+          AssertDimension(collection.size(), regrid_positions.size());
+          const auto &ref_position = regrid_positions[i];
+          const auto &position     = collection[i].get_position();
+          const auto  local_size   = position.locally_owned_size();
+          for (unsigned int j = 0; j < local_size; ++j)
+            max_displacement = std::max(max_displacement,
+                                        std::abs(ref_position.local_element(j) -
+                                                 position.local_element(j)));
         }
-      };
+    };
     max_op(parts, positions_at_last_regrid);
     max_displacement =
       Utilities::MPI::max(max_displacement, IBTK::IBTK_MPI::getCommunicator());
@@ -584,28 +590,30 @@ namespace fdl
     // happen in beginDataRedistribution() and the array can be cleared in
     // endDataRedistribution()
     auto do_tag = [&](const auto &collection)
-      {
-        for (const auto &part : collection)
-          {
-            constexpr int structdim = std::remove_reference_t<decltype(collection[0])>::dimension;
-            MappingFEField<structdim,
-                           spacedim,
-                           LinearAlgebra::distributed::Vector<double>>
-              mapping(part.get_dof_handler(), part.get_position());
-            const auto local_bboxes =
-              compute_cell_bboxes<structdim, spacedim, float>(part.get_dof_handler(), mapping);
-            // Like most other things this only works with p::S::T now
-            const auto &tria =
-              dynamic_cast<const parallel::shared::Triangulation<structdim, spacedim> &>(
-                part.get_triangulation());
-            const auto global_bboxes =
-              collect_all_active_cell_bboxes(tria, local_bboxes);
-            tbox::Pointer<hier::PatchLevel<spacedim>> patch_level =
-              hierarchy->getPatchLevel(level_number);
-            Assert(patch_level, ExcNotImplemented());
-            tag_cells(global_bboxes, tag_index, patch_level);
-          }
-      };
+    {
+      for (const auto &part : collection)
+        {
+          constexpr int structdim =
+            std::remove_reference_t<decltype(collection[0])>::dimension;
+          MappingFEField<structdim,
+                         spacedim,
+                         LinearAlgebra::distributed::Vector<double>>
+                     mapping(part.get_dof_handler(), part.get_position());
+          const auto local_bboxes =
+            compute_cell_bboxes<structdim, spacedim, float>(
+              part.get_dof_handler(), mapping);
+          // Like most other things this only works with p::S::T now
+          const auto &tria = dynamic_cast<
+            const parallel::shared::Triangulation<structdim, spacedim> &>(
+            part.get_triangulation());
+          const auto global_bboxes =
+            collect_all_active_cell_bboxes(tria, local_bboxes);
+          tbox::Pointer<hier::PatchLevel<spacedim>> patch_level =
+            hierarchy->getPatchLevel(level_number);
+          Assert(patch_level, ExcNotImplemented());
+          tag_cells(global_bboxes, tag_index, patch_level);
+        }
+    };
 
     do_tag(parts);
     IBAMR_TIMER_STOP(t_apply_gradient_detector);
@@ -902,13 +910,13 @@ namespace fdl
     tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
   {
     IBAMR_TIMER_START(t_begin_data_redistribution);
-    // This function is called before initializePatchHierarchy is - in that case
-    // we don't have a hierarchy, so we don't have any data, and there is naught
-    // to do
+    // This function is called before initializePatchHierarchy is - in that
+    // case we don't have a hierarchy, so we don't have any data, and there is
+    // naught to do
     if (primary_hierarchy)
       {
-        // Weird things happen when we coarsen and refine if some levels are not
-        // present, so fill them all in with zeros to start
+        // Weird things happen when we coarsen and refine if some levels are
+        // not present, so fill them all in with zeros to start
         const int max_ln = primary_hierarchy->getFinestLevelNumber();
         for (int ln = 0; ln <= max_ln; ++ln)
           {
@@ -983,11 +991,11 @@ namespace fdl
     if (primary_hierarchy)
       {
         auto do_reset = [](auto &positions_regrid, const auto &collection)
-          {
-            positions_regrid.clear();
-            for (unsigned int i = 0; i < collection.size(); ++i)
-              positions_regrid.push_back(collection[i].get_position());
-          };
+        {
+          positions_regrid.clear();
+          for (unsigned int i = 0; i < collection.size(); ++i)
+            positions_regrid.push_back(collection[i].get_position());
+        };
         do_reset(positions_at_last_regrid, parts);
 
         secondary_hierarchy.reinit(primary_hierarchy->getFinestLevelNumber(),
@@ -1037,10 +1045,10 @@ namespace fdl
 
         // IBTK::HierarchyIntegrator (which controls these data indices) will
         // exchange pointers between the new and current states during
-        // timestepping. In particular: it will swap new and current, deallocate
-        // new, reallocate new, and repeat. This causes (since we only touch
-        // this variable in regrids) this data to get cleared, so save a copy
-        // for plotting purposes.
+        // timestepping. In particular: it will swap new and current,
+        // deallocate new, reallocate new, and repeat. This causes (since we
+        // only touch this variable in regrids) this data to get cleared, so
+        // save a copy for plotting purposes.
 
         // TODO - implement a utility function for copying
         auto primary_ops = extract_hierarchy_data_ops(lagrangian_workload_var,
@@ -1070,21 +1078,21 @@ namespace fdl
   IFEDMethod<dim, spacedim>::putToDatabase(tbox::Pointer<tbox::Database> db)
   {
     auto do_put = [&](auto &collection, const std::string &prefix)
-      {
-        for (unsigned int i = 0; i < collection.size(); ++i)
-          {
-            std::ostringstream              out_str;
-            boost::archive::binary_oarchive oarchive(out_str);
-            collection[i].save(oarchive, 0);
-            // TODO - with C++20 we can use view() instead of str() and skip
-            // this copy
-            const std::string out = out_str.str();
-            save_binary(prefix + std::to_string(i),
-                        out.c_str(),
-                        out.c_str() + out.size(),
-                        db);
-          }
-      };
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          std::ostringstream              out_str;
+          boost::archive::binary_oarchive oarchive(out_str);
+          collection[i].save(oarchive, 0);
+          // TODO - with C++20 we can use view() instead of str() and skip
+          // this copy
+          const std::string out = out_str.str();
+          save_binary(prefix + std::to_string(i),
+                      out.c_str(),
+                      out.c_str() + out.size(),
+                      db);
+        }
+    };
     do_put(parts, "part_");
   }
 
