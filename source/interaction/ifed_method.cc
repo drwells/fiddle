@@ -650,15 +650,20 @@ namespace fdl
     this->half_time    = std::numeric_limits<double>::quiet_NaN();
 
     // update positions and velocities:
+    auto do_set = [](auto &collection, auto &positions, auto &velocities)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          auto &part = collection[i];
+          part.set_position(std::move(positions[i]));
+          part.get_position().update_ghost_values();
+          part.set_velocity(std::move(velocities[i]));
+          part.get_velocity().update_ghost_values();
+        }
+    };
     auto new_positions  = part_vectors.get_all_new_positions();
     auto new_velocities = part_vectors.get_all_new_velocities();
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        parts[part_n].set_position(std::move(new_positions[part_n]));
-        parts[part_n].get_position().update_ghost_values();
-        parts[part_n].set_velocity(std::move(new_velocities[part_n]));
-        parts[part_n].get_velocity().update_ghost_values();
-      }
+    do_set(parts, new_positions, new_velocities);
 
     part_vectors.end_time_step();
     IBAMR_TIMER_STOP(t_postprocess_integrate_data);
@@ -669,25 +674,30 @@ namespace fdl
   IFEDMethod<dim, spacedim>::forwardEulerStep(double current_time,
                                               double new_time)
   {
-    const double dt = new_time - current_time;
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        // Set the position at the end time:
-        LinearAlgebra::distributed::Vector<double> new_position(
-          parts[part_n].get_partitioner());
-        new_position = parts[part_n].get_position();
-        new_position.add(dt, parts[part_n].get_velocity());
-        part_vectors.set_position(part_n, new_time, std::move(new_position));
+    const double dt      = new_time - current_time;
+    auto         do_step = [&](auto &collection, auto &vectors)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          auto &part = collection[i];
+          // Set the position at the end time:
+          LinearAlgebra::distributed::Vector<double> new_position(
+            part.get_partitioner());
+          new_position = part.get_position();
+          new_position.add(dt, part.get_velocity());
+          vectors.set_position(i, new_time, std::move(new_position));
 
-        // Set the position at the half time:
-        LinearAlgebra::distributed::Vector<double> half_position(
-          parts[part_n].get_partitioner());
-        half_position.add(0.5,
-                          part_vectors.get_position(part_n, current_time),
-                          0.5,
-                          part_vectors.get_position(part_n, new_time));
-        part_vectors.set_position(part_n, half_time, std::move(half_position));
-      }
+          // Set the position at the half time:
+          LinearAlgebra::distributed::Vector<double> half_position(
+            part.get_partitioner());
+          half_position.add(0.5,
+                            vectors.get_position(i, current_time),
+                            0.5,
+                            vectors.get_position(i, new_time));
+          vectors.set_position(i, half_time, std::move(half_position));
+        }
+    };
+    do_step(parts, part_vectors);
   }
 
   template <int dim, int spacedim>
@@ -704,25 +714,30 @@ namespace fdl
   void
   IFEDMethod<dim, spacedim>::midpointStep(double current_time, double new_time)
   {
-    const double dt = new_time - current_time;
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        // Set the position at the end time:
-        LinearAlgebra::distributed::Vector<double> new_position(
-          parts[part_n].get_partitioner());
-        new_position = parts[part_n].get_position();
-        new_position.add(dt, part_vectors.get_velocity(part_n, half_time));
-        part_vectors.set_position(part_n, new_time, std::move(new_position));
+    const double dt      = new_time - current_time;
+    auto         do_step = [&](auto &collection, auto &vectors)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          auto &part = collection[i];
+          // Set the position at the end time:
+          LinearAlgebra::distributed::Vector<double> new_position(
+            part.get_partitioner());
+          new_position = part.get_position();
+          new_position.add(dt, vectors.get_velocity(i, half_time));
+          vectors.set_position(i, new_time, std::move(new_position));
 
-        // Set the position at the half time:
-        LinearAlgebra::distributed::Vector<double> half_position(
-          parts[part_n].get_partitioner());
-        half_position.add(0.5,
-                          part_vectors.get_position(part_n, current_time),
-                          0.5,
-                          part_vectors.get_position(part_n, new_time));
-        part_vectors.set_position(part_n, half_time, std::move(half_position));
-      }
+          // Set the position at the half time:
+          LinearAlgebra::distributed::Vector<double> half_position(
+            part.get_partitioner());
+          half_position.add(0.5,
+                            vectors.get_position(i, current_time),
+                            0.5,
+                            vectors.get_position(i, new_time));
+          vectors.set_position(i, half_time, std::move(half_position));
+        }
+    };
+    do_step(parts, part_vectors);
   }
 
   template <int dim, int spacedim>
