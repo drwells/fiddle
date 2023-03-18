@@ -94,10 +94,10 @@ namespace fdl
     MultithreadInfo::set_thread_limit(1);
 
     auto init_regrid_positions = [](auto &vectors, const auto &collection)
-      {
-        for (const auto &part : collection)
-          vectors.push_back(part.get_position());
-      };
+    {
+      for (const auto &part : collection)
+        vectors.push_back(part.get_position());
+    };
     init_regrid_positions(positions_at_last_regrid, parts);
 
     const std::string interaction =
@@ -124,30 +124,37 @@ namespace fdl
         else
           AssertThrow(false, ExcFDLNotImplemented());
 
-        auto init_elemental = [&](auto &inters, auto &guess_1, auto &guess_2, const auto &collection)
-          {
-            constexpr int structdim = std::remove_reference_t<decltype(collection[0])>::dimension;
-            for (unsigned int i = 0; i < collection.size(); ++i)
-              {
-                const unsigned int n_points_1D =
-                  collection[i].get_dof_handler().get_fe().tensor_degree() + 1;
-                inters.emplace_back(std::make_unique<ElementalInteraction<structdim, spacedim>>(
+        auto init_elemental = [&](auto       &inters,
+                                  auto       &guess_1,
+                                  auto       &guess_2,
+                                  const auto &collection)
+        {
+          constexpr int structdim =
+            std::remove_reference_t<decltype(collection[0])>::dimension;
+          for (unsigned int i = 0; i < collection.size(); ++i)
+            {
+              const unsigned int n_points_1D =
+                collection[i].get_dof_handler().get_fe().tensor_degree() + 1;
+              inters.emplace_back(
+                std::make_unique<ElementalInteraction<structdim, spacedim>>(
                   n_points_1D, density, density_kind));
-                guess_1.emplace_back(
-                  input_db->getIntegerWithDefault("n_guess_vectors", 3));
-                guess_2.emplace_back(
-                  input_db->getIntegerWithDefault("n_guess_vectors", 3));
-              }
-          };
+              guess_1.emplace_back(
+                input_db->getIntegerWithDefault("n_guess_vectors", 3));
+              guess_2.emplace_back(
+                input_db->getIntegerWithDefault("n_guess_vectors", 3));
+            }
+        };
         init_elemental(interactions, force_guesses, velocity_guesses, parts);
       }
     else if (interaction == "NODAL")
       {
         auto init_nodal = [&](auto &inters, const auto &collection)
         {
-          constexpr int structdim = std::remove_reference_t<decltype(collection[0])>::dimension;
+          constexpr int structdim =
+            std::remove_reference_t<decltype(collection[0])>::dimension;
           for (unsigned int i = 0; i < collection.size(); ++i)
-            inters.emplace_back(std::make_unique<NodalInteraction<structdim, spacedim>>());
+            inters.emplace_back(
+              std::make_unique<NodalInteraction<structdim, spacedim>>());
         };
         init_nodal(interactions, parts);
       }
@@ -188,9 +195,8 @@ namespace fdl
           ghosts[d] = std::max(ghosts[d], ghost_width);
       }
 
-    auto set_timer = [&](const char *name) {
-      return tbox::TimerManager::getManager()->getTimer(name);
-    };
+    auto set_timer = [&](const char *name)
+    { return tbox::TimerManager::getManager()->getTimer(name); };
 
     t_preprocess_integrate_data =
       set_timer("fdl::IFEDMethod::preprocessIntegrateData()");
@@ -238,21 +244,21 @@ namespace fdl
             auto restart_db = restart_manager->getRootDatabase();
             if (restart_db->isDatabase(object_name))
               {
-                auto db = restart_db->getDatabase(object_name);
+                auto db      = restart_db->getDatabase(object_name);
                 auto do_load = [&](auto &collection, const std::string &prefix)
-                  {
-                    for (unsigned int i = 0; i < collection.size(); ++i)
-                      {
-                        const std::string key = prefix + std::to_string(i);
-                        AssertThrow(db->keyExists(key),
-                                    ExcMessage("Couldn't find key " + key +
-                                               " in the restart database"));
-                        const std::string  serialization = load_binary(key, db);
-                        std::istringstream in_str(serialization);
-                        boost::archive::binary_iarchive iarchive(in_str);
-                        collection[i].load(iarchive, 0);
-                      }
-                  };
+                {
+                  for (unsigned int i = 0; i < collection.size(); ++i)
+                    {
+                      const std::string key = prefix + std::to_string(i);
+                      AssertThrow(db->keyExists(key),
+                                  ExcMessage("Couldn't find key " + key +
+                                             " in the restart database"));
+                      const std::string  serialization = load_binary(key, db);
+                      std::istringstream in_str(serialization);
+                      boost::archive::binary_iarchive iarchive(in_str);
+                      collection[i].load(iarchive, 0);
+                    }
+                };
                 do_load(parts, "part_");
               }
             else
@@ -329,37 +335,55 @@ namespace fdl
       data_time,
       d_ib_solver->getVelocityPhysBdryOp());
 
-    std::vector<std::unique_ptr<TransactionBase>> transactions;
-    // we emplace_back so use a deque to keep pointers valid
-    std::deque<LinearAlgebra::distributed::Vector<double>> rhs_vecs;
-
     // start:
     IBAMR_TIMER_START(t_interpolate_velocity_rhs);
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        const Part<dim, spacedim> &part = parts[part_n];
-        rhs_vecs.emplace_back(part.get_partitioner());
-        transactions.emplace_back(
-          interactions[part_n]->compute_projection_rhs_start(
-            ib_kernels[part_n],
-            u_data_index,
-            part.get_dof_handler(),
-            part_vectors.get_position(part_n, data_time),
-            part.get_dof_handler(),
-            part.get_mapping(),
-            rhs_vecs[part_n]));
-      }
+    auto setup_transaction = [&](const auto &collection,
+                                 const auto &interactions,
+                                 const auto &vectors,
+                                 auto       &transactions,
+                                 auto       &rhs_vectors)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          const auto &part = collection[i];
+          AssertThrow(vectors.dimension == part.dimension,
+                      ExcFDLInternalError());
+          rhs_vectors.emplace_back(part.get_partitioner());
+          transactions.emplace_back(
+            interactions[i]->compute_projection_rhs_start(
+              ib_kernels[i],
+              u_data_index,
+              part.get_dof_handler(),
+              vectors.get_position(i, data_time),
+              part.get_dof_handler(),
+              part.get_mapping(),
+              rhs_vectors[i]));
+        }
+    };
+    // we emplace_back so use a deque to keep pointers valid
+    std::vector<std::unique_ptr<TransactionBase>>          transactions;
+    std::deque<LinearAlgebra::distributed::Vector<double>> rhs_vecs;
+    setup_transaction(
+      parts, interactions, part_vectors, transactions, rhs_vecs);
 
     // Compute:
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      transactions[part_n] =
-        interactions[part_n]->compute_projection_rhs_intermediate(
-          std::move(transactions[part_n]));
+    auto compute_transaction = [](const auto &interactions, auto &transactions)
+    {
+      for (unsigned int i = 0; i < interactions.size(); ++i)
+        transactions[i] = interactions[i]->compute_projection_rhs_intermediate(
+          std::move(transactions[i]));
+    };
+    compute_transaction(interactions, transactions);
 
     // Collect:
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      interactions[part_n]->compute_projection_rhs_finish(
-        std::move(transactions[part_n]));
+    auto collect_transaction = [](const auto &interactions, auto &transactions)
+    {
+      for (unsigned int i = 0; i < interactions.size(); ++i)
+        interactions[i]->compute_projection_rhs_finish(
+          std::move(transactions[i]));
+    };
+    collect_transaction(interactions, transactions);
+
     // We cannot start the linear solve without first finishing this, so use a
     // barrier to keep the timers accurate
     const int ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
@@ -368,51 +392,56 @@ namespace fdl
 
     // Project:
     IBAMR_TIMER_START(t_interpolate_velocity_solve);
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        if (interactions[part_n]->projection_is_interpolation())
-          {
-            // If projection is actually interpolation we have a lot less to do
-            part_vectors.set_velocity(part_n,
-                                      data_time,
-                                      std::move(rhs_vecs[part_n]));
-          }
-        else
-          {
-            SolverControl control(
-              input_db->getIntegerWithDefault("solver_iterations", 100),
-              input_db->getDoubleWithDefault("solver_relative_tolerance",
-                                             1e-6) *
-                rhs_vecs[part_n].l2_norm());
-            SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
-            LinearAlgebra::distributed::Vector<double>           velocity(
-              parts[part_n].get_partitioner());
+    auto do_solve = [&](const auto &collection,
+                        auto       &vectors,
+                        auto       &guesses,
+                        auto       &rhs_vectors)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          if (interactions[i]->projection_is_interpolation())
+            {
+              // If projection is actually interpolation we have a lot less to
+              // do
+              vectors.set_velocity(i, data_time, std::move(rhs_vectors[i]));
+            }
+          else
+            {
+              const auto   &part = collection[i];
+              SolverControl control(
+                input_db->getIntegerWithDefault("solver_iterations", 100),
+                input_db->getDoubleWithDefault("solver_relative_tolerance",
+                                               1e-6) *
+                  rhs_vectors[i].l2_norm());
+              SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
+              LinearAlgebra::distributed::Vector<double>           velocity(
+                part.get_partitioner());
 
-            // If we mess up the matrix-free implementation will fix our
-            // partitioner: make sure we catch that case here
-            Assert(velocity.get_partitioner() ==
-                     parts[part_n].get_partitioner(),
-                   ExcFDLInternalError());
-            velocity_guesses[part_n].guess(velocity, rhs_vecs[part_n]);
-            cg.solve(parts[part_n].get_mass_operator(),
-                     velocity,
-                     rhs_vecs[part_n],
-                     parts[part_n].get_mass_preconditioner());
-            velocity_guesses[part_n].submit(velocity, rhs_vecs[part_n]);
-            // Same
-            Assert(velocity.get_partitioner() ==
-                     parts[part_n].get_partitioner(),
-                   ExcFDLInternalError());
-            part_vectors.set_velocity(part_n, data_time, std::move(velocity));
+              // If we mess up the matrix-free implementation will fix our
+              // partitioner: make sure we catch that case here
+              Assert(velocity.get_partitioner() == part.get_partitioner(),
+                     ExcFDLInternalError());
+              guesses[i].guess(velocity, rhs_vectors[i]);
+              cg.solve(part.get_mass_operator(),
+                       velocity,
+                       rhs_vectors[i],
+                       part.get_mass_preconditioner());
+              guesses[i].submit(velocity, rhs_vectors[i]);
+              // Same
+              Assert(velocity.get_partitioner() == part.get_partitioner(),
+                     ExcFDLInternalError());
+              vectors.set_velocity(i, data_time, std::move(velocity));
 
-            if (input_db->getBoolWithDefault("log_solver_iterations", false))
-              {
-                tbox::plog << "IFEDMethod::interpolateVelocity(): "
-                           << "SolverCG<> converged in " << control.last_step()
-                           << " steps." << std::endl;
-              }
-          }
-      }
+              if (input_db->getBoolWithDefault("log_solver_iterations", false))
+                {
+                  tbox::plog << "IFEDMethod::interpolateVelocity(): "
+                             << "SolverCG<> converged in "
+                             << control.last_step() << " steps." << std::endl;
+                }
+            }
+        }
+    };
+    do_solve(parts, part_vectors, velocity_guesses, rhs_vecs);
     IBAMR_TIMER_STOP(t_interpolate_velocity_solve);
     IBAMR_TIMER_STOP(t_interpolate_velocity);
   }
@@ -439,29 +468,45 @@ namespace fdl
     fill_all(hierarchy, f_scratch_data_index, level_number, level_number, 0.0);
 
     // start:
+    auto setup_transaction = [&](const auto &collection,
+                                 const auto &interactions,
+                                 const auto &vectors,
+                                 auto       &transactions)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          const auto &part = collection[i];
+          AssertThrow(vectors.dimension == part.dimension,
+                      ExcFDLInternalError());
+          transactions.emplace_back(interactions[i]->compute_spread_start(
+            ib_kernels[i],
+            f_scratch_data_index,
+            vectors.get_position(i, data_time),
+            part.get_dof_handler(),
+            part.get_mapping(),
+            part.get_dof_handler(),
+            vectors.get_force(i, data_time)));
+        }
+    };
     std::vector<std::unique_ptr<TransactionBase>> transactions;
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        const Part<dim, spacedim> &part = parts[part_n];
-        transactions.emplace_back(interactions[part_n]->compute_spread_start(
-          ib_kernels[part_n],
-          f_scratch_data_index,
-          part_vectors.get_position(part_n, data_time),
-          part.get_dof_handler(),
-          part.get_mapping(),
-          part.get_dof_handler(),
-          part_vectors.get_force(part_n, data_time)));
-      }
+    setup_transaction(parts, interactions, part_vectors, transactions);
 
     // Compute:
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      transactions[part_n] = interactions[part_n]->compute_spread_intermediate(
-        std::move(transactions[part_n]));
+    auto compute_transaction = [](const auto &interactions, auto &transactions)
+    {
+      for (unsigned int i = 0; i < interactions.size(); ++i)
+        transactions[i] = interactions[i]->compute_spread_intermediate(
+          std::move(transactions[i]));
+    };
+    compute_transaction(interactions, transactions);
 
     // Collect:
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      interactions[part_n]->compute_spread_finish(
-        std::move(transactions[part_n]));
+    auto collect_transaction = [](const auto &interactions, auto &transactions)
+    {
+      for (unsigned int i = 0; i < interactions.size(); ++i)
+        interactions[i]->compute_spread_finish(std::move(transactions[i]));
+    };
+    collect_transaction(interactions, transactions);
 
     // Deal with force values spread outside the physical domain. Since these
     // are spread into ghost regions that don't correspond to actual degrees
@@ -540,21 +585,21 @@ namespace fdl
   {
     IBAMR_TIMER_START(t_max_point_displacement);
     double max_displacement = 0;
-    auto max_op = [&max_displacement](const auto &collection,
-                                      const auto &regrid_positions)
-      {
-        for (unsigned int i = 0; i < collection.size(); ++i)
+
+    auto max_op = [&](const auto &collection, const auto &regrid_positions)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
         {
-            AssertDimension(collection.size(), regrid_positions.size());
-            const auto &ref_position = regrid_positions[i];
-            const auto &position     = collection[i].get_position();
-            const auto  local_size   = position.locally_owned_size();
-            for (unsigned int j = 0; j < local_size; ++j)
-              max_displacement = std::max(max_displacement,
-                std::abs(ref_position.local_element(j) -
-                         position.local_element(j)));
+          AssertDimension(collection.size(), regrid_positions.size());
+          const auto &ref_position = regrid_positions[i];
+          const auto &position     = collection[i].get_position();
+          const auto  local_size   = position.locally_owned_size();
+          for (unsigned int j = 0; j < local_size; ++j)
+            max_displacement = std::max(max_displacement,
+                                        std::abs(ref_position.local_element(j) -
+                                                 position.local_element(j)));
         }
-      };
+    };
     max_op(parts, positions_at_last_regrid);
     max_displacement =
       Utilities::MPI::max(max_displacement, IBTK::IBTK_MPI::getCommunicator());
@@ -584,28 +629,30 @@ namespace fdl
     // happen in beginDataRedistribution() and the array can be cleared in
     // endDataRedistribution()
     auto do_tag = [&](const auto &collection)
-      {
-        for (const auto &part : collection)
-          {
-            constexpr int structdim = std::remove_reference_t<decltype(collection[0])>::dimension;
-            MappingFEField<structdim,
-                           spacedim,
-                           LinearAlgebra::distributed::Vector<double>>
-              mapping(part.get_dof_handler(), part.get_position());
-            const auto local_bboxes =
-              compute_cell_bboxes<structdim, spacedim, float>(part.get_dof_handler(), mapping);
-            // Like most other things this only works with p::S::T now
-            const auto &tria =
-              dynamic_cast<const parallel::shared::Triangulation<structdim, spacedim> &>(
-                part.get_triangulation());
-            const auto global_bboxes =
-              collect_all_active_cell_bboxes(tria, local_bboxes);
-            tbox::Pointer<hier::PatchLevel<spacedim>> patch_level =
-              hierarchy->getPatchLevel(level_number);
-            Assert(patch_level, ExcNotImplemented());
-            tag_cells(global_bboxes, tag_index, patch_level);
-          }
-      };
+    {
+      for (const auto &part : collection)
+        {
+          constexpr int structdim =
+            std::remove_reference_t<decltype(collection[0])>::dimension;
+          MappingFEField<structdim,
+                         spacedim,
+                         LinearAlgebra::distributed::Vector<double>>
+                     mapping(part.get_dof_handler(), part.get_position());
+          const auto local_bboxes =
+            compute_cell_bboxes<structdim, spacedim, float>(
+              part.get_dof_handler(), mapping);
+          // Like most other things this only works with p::S::T now
+          const auto &tria = dynamic_cast<
+            const parallel::shared::Triangulation<structdim, spacedim> &>(
+            part.get_triangulation());
+          const auto global_bboxes =
+            collect_all_active_cell_bboxes(tria, local_bboxes);
+          tbox::Pointer<hier::PatchLevel<spacedim>> patch_level =
+            hierarchy->getPatchLevel(level_number);
+          Assert(patch_level, ExcNotImplemented());
+          tag_cells(global_bboxes, tag_index, patch_level);
+        }
+    };
 
     do_tag(parts);
     IBAMR_TIMER_STOP(t_apply_gradient_detector);
@@ -642,15 +689,20 @@ namespace fdl
     this->half_time    = std::numeric_limits<double>::quiet_NaN();
 
     // update positions and velocities:
+    auto do_set = [](auto &collection, auto &positions, auto &velocities)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          auto &part = collection[i];
+          part.set_position(std::move(positions[i]));
+          part.get_position().update_ghost_values();
+          part.set_velocity(std::move(velocities[i]));
+          part.get_velocity().update_ghost_values();
+        }
+    };
     auto new_positions  = part_vectors.get_all_new_positions();
     auto new_velocities = part_vectors.get_all_new_velocities();
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        parts[part_n].set_position(std::move(new_positions[part_n]));
-        parts[part_n].get_position().update_ghost_values();
-        parts[part_n].set_velocity(std::move(new_velocities[part_n]));
-        parts[part_n].get_velocity().update_ghost_values();
-      }
+    do_set(parts, new_positions, new_velocities);
 
     part_vectors.end_time_step();
     IBAMR_TIMER_STOP(t_postprocess_integrate_data);
@@ -661,25 +713,32 @@ namespace fdl
   IFEDMethod<dim, spacedim>::forwardEulerStep(double current_time,
                                               double new_time)
   {
-    const double dt = new_time - current_time;
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        // Set the position at the end time:
-        LinearAlgebra::distributed::Vector<double> new_position(
-          parts[part_n].get_partitioner());
-        new_position = parts[part_n].get_position();
-        new_position.add(dt, parts[part_n].get_velocity());
-        part_vectors.set_position(part_n, new_time, std::move(new_position));
+    const double dt      = new_time - current_time;
+    auto         do_step = [&](auto &collection, auto &vectors)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          auto &part = collection[i];
+          AssertThrow(vectors.dimension == part.dimension,
+                      ExcFDLInternalError());
+          // Set the position at the end time:
+          LinearAlgebra::distributed::Vector<double> new_position(
+            part.get_partitioner());
+          new_position = part.get_position();
+          new_position.add(dt, part.get_velocity());
+          vectors.set_position(i, new_time, std::move(new_position));
 
-        // Set the position at the half time:
-        LinearAlgebra::distributed::Vector<double> half_position(
-          parts[part_n].get_partitioner());
-        half_position.add(0.5,
-                          part_vectors.get_position(part_n, current_time),
-                          0.5,
-                          part_vectors.get_position(part_n, new_time));
-        part_vectors.set_position(part_n, half_time, std::move(half_position));
-      }
+          // Set the position at the half time:
+          LinearAlgebra::distributed::Vector<double> half_position(
+            part.get_partitioner());
+          half_position.add(0.5,
+                            vectors.get_position(i, current_time),
+                            0.5,
+                            vectors.get_position(i, new_time));
+          vectors.set_position(i, half_time, std::move(half_position));
+        }
+    };
+    do_step(parts, part_vectors);
   }
 
   template <int dim, int spacedim>
@@ -696,25 +755,32 @@ namespace fdl
   void
   IFEDMethod<dim, spacedim>::midpointStep(double current_time, double new_time)
   {
-    const double dt = new_time - current_time;
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        // Set the position at the end time:
-        LinearAlgebra::distributed::Vector<double> new_position(
-          parts[part_n].get_partitioner());
-        new_position = parts[part_n].get_position();
-        new_position.add(dt, part_vectors.get_velocity(part_n, half_time));
-        part_vectors.set_position(part_n, new_time, std::move(new_position));
+    const double dt      = new_time - current_time;
+    auto         do_step = [&](auto &collection, auto &vectors)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          auto &part = collection[i];
+          AssertThrow(vectors.dimension == part.dimension,
+                      ExcFDLInternalError());
+          // Set the position at the end time:
+          LinearAlgebra::distributed::Vector<double> new_position(
+            part.get_partitioner());
+          new_position = part.get_position();
+          new_position.add(dt, vectors.get_velocity(i, half_time));
+          vectors.set_position(i, new_time, std::move(new_position));
 
-        // Set the position at the half time:
-        LinearAlgebra::distributed::Vector<double> half_position(
-          parts[part_n].get_partitioner());
-        half_position.add(0.5,
-                          part_vectors.get_position(part_n, current_time),
-                          0.5,
-                          part_vectors.get_position(part_n, new_time));
-        part_vectors.set_position(part_n, half_time, std::move(half_position));
-      }
+          // Set the position at the half time:
+          LinearAlgebra::distributed::Vector<double> half_position(
+            part.get_partitioner());
+          half_position.add(0.5,
+                            vectors.get_position(i, current_time),
+                            0.5,
+                            vectors.get_position(i, new_time));
+          vectors.set_position(i, half_time, std::move(half_position));
+        }
+    };
+    do_step(parts, part_vectors);
   }
 
   template <int dim, int spacedim>
@@ -736,90 +802,111 @@ namespace fdl
   IFEDMethod<dim, spacedim>::computeLagrangianForce(double data_time)
   {
     IBAMR_TIMER_START(t_compute_lagrangian_force);
-    std::deque<LinearAlgebra::distributed::Vector<double>> forces;
-    std::deque<LinearAlgebra::distributed::Vector<double>> right_hand_sides;
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        const Part<dim, spacedim> &part = parts[part_n];
-        forces.emplace_back(part.get_partitioner());
-        right_hand_sides.emplace_back(part.get_partitioner());
 
-        // The velocity isn't available at data_time so use current_time -
-        // IBFEMethod does this too.
-        const auto &position = part_vectors.get_position(part_n, data_time);
-        const auto &velocity = part_vectors.get_velocity(part_n, current_time);
-        // Unlike velocity interpolation and force spreading we actually need
-        // the ghost values in the native partitioning, so make sure they are
-        // available
-        position.update_ghost_values();
-        velocity.update_ghost_values();
-        for (auto &force : part.get_force_contributions())
-          force->setup_force(data_time, position, velocity);
-        for (auto &active_strain : part.get_active_strains())
-          active_strain->setup_strain(data_time);
+    auto do_load =
+      [&](auto &collection, auto &vectors, auto &forces, auto &right_hand_sides)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          const auto &part = collection[i];
+          AssertThrow(vectors.dimension == part.dimension,
+                      ExcFDLInternalError());
+          forces.emplace_back(part.get_partitioner());
+          right_hand_sides.emplace_back(part.get_partitioner());
 
-        IBAMR_TIMER_START(t_compute_lagrangian_force_pk1);
-        compute_load_vector(part.get_dof_handler(),
-                            part.get_mapping(),
-                            part.get_force_contributions(),
-                            part.get_active_strains(),
-                            data_time,
-                            position,
-                            velocity,
-                            right_hand_sides[part_n]);
-        IBAMR_TIMER_STOP(t_compute_lagrangian_force_pk1);
-      }
+          // The velocity isn't available at data_time so use current_time -
+          // IBFEMethod does this too.
+          const auto &position = vectors.get_position(i, data_time);
+          const auto &velocity = vectors.get_velocity(i, current_time);
+          // Unlike velocity interpolation and force spreading we actually need
+          // the ghost values in the native partitioning, so make sure they are
+          // available
+          position.update_ghost_values();
+          velocity.update_ghost_values();
+          for (auto &force : part.get_force_contributions())
+            force->setup_force(data_time, position, velocity);
+          for (auto &active_strain : part.get_active_strains())
+            active_strain->setup_strain(data_time);
+
+          IBAMR_TIMER_START(t_compute_lagrangian_force_pk1);
+          compute_load_vector(part.get_dof_handler(),
+                              part.get_mapping(),
+                              part.get_force_contributions(),
+                              part.get_active_strains(),
+                              data_time,
+                              position,
+                              velocity,
+                              right_hand_sides[i]);
+          IBAMR_TIMER_STOP(t_compute_lagrangian_force_pk1);
+        }
+    };
+    std::deque<LinearAlgebra::distributed::Vector<double>> part_forces,
+      part_right_hand_sides;
+    do_load(parts, part_vectors, part_forces, part_right_hand_sides);
 
     // Allow compression to overlap:
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      right_hand_sides[part_n].compress_start(part_n, VectorOperation::add);
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      right_hand_sides[part_n].compress_finish(VectorOperation::add);
+    auto do_compress = [](auto &vectors)
+    {
+      for (unsigned int i = 0; i < vectors.size(); ++i)
+        vectors[i].compress_start(i, VectorOperation::add);
+      for (unsigned int i = 0; i < vectors.size(); ++i)
+        vectors[i].compress_finish(VectorOperation::add);
+    };
+    do_compress(part_right_hand_sides);
 
     // And do the actual solve:
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        const Part<dim, spacedim> &part = parts[part_n];
-        if (interactions[part_n]->projection_is_interpolation())
-          {
-            // TODO - we should probably call this the force density
-            part_vectors.set_force(part_n,
-                                   data_time,
-                                   std::move(right_hand_sides[part_n]));
-          }
-        else
-          {
-            IBAMR_TIMER_START(t_compute_lagrangian_force_solve);
-            SolverControl control(
-              input_db->getIntegerWithDefault("solver_iterations", 100),
-              input_db->getDoubleWithDefault("solver_relative_tolerance",
-                                             1e-6) *
-                right_hand_sides[part_n].l2_norm());
-            SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
-            force_guesses[part_n].guess(forces[part_n],
-                                        right_hand_sides[part_n]);
-            cg.solve(part.get_mass_operator(),
-                     forces[part_n],
-                     right_hand_sides[part_n],
-                     part.get_mass_preconditioner());
-            force_guesses[part_n].submit(forces[part_n],
-                                         right_hand_sides[part_n]);
-            if (input_db->getBoolWithDefault("log_solver_iterations", false))
-              {
-                tbox::plog << "IFEDMethod::computeLagrangianForce(): "
-                           << "SolverCG<> converged in " << control.last_step()
-                           << " steps." << std::endl;
-              }
-            part_vectors.set_force(part_n,
-                                   data_time,
-                                   std::move(forces[part_n]));
-            IBAMR_TIMER_STOP(t_compute_lagrangian_force_solve);
-          }
-        for (auto &force : part.get_force_contributions())
-          force->finish_force(data_time);
-        for (auto &active_strain : part.get_active_strains())
-          active_strain->finish_strain(data_time);
-      }
+    auto do_solve = [&](const auto &collection,
+                        const auto &interactions,
+                        auto       &force_guesses,
+                        auto       &vectors,
+                        auto       &forces,
+                        auto       &right_hand_sides)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          const auto &part = parts[i];
+          AssertThrow(vectors.dimension == part.dimension,
+                      ExcFDLInternalError());
+          if (interactions[i]->projection_is_interpolation())
+            {
+              vectors.set_force(i, data_time, std::move(right_hand_sides[i]));
+            }
+          else
+            {
+              IBAMR_TIMER_START(t_compute_lagrangian_force_solve);
+              SolverControl control(
+                input_db->getIntegerWithDefault("solver_iterations", 100),
+                input_db->getDoubleWithDefault("solver_relative_tolerance",
+                                               1e-6) *
+                  right_hand_sides[i].l2_norm());
+              SolverCG<LinearAlgebra::distributed::Vector<double>> cg(control);
+              force_guesses[i].guess(forces[i], right_hand_sides[i]);
+              cg.solve(part.get_mass_operator(),
+                       forces[i],
+                       right_hand_sides[i],
+                       part.get_mass_preconditioner());
+              force_guesses[i].submit(forces[i], right_hand_sides[i]);
+              if (input_db->getBoolWithDefault("log_solver_iterations", false))
+                {
+                  tbox::plog << "IFEDMethod::computeLagrangianForce(): "
+                             << "SolverCG<> converged in "
+                             << control.last_step() << " steps." << std::endl;
+                }
+              vectors.set_force(i, data_time, std::move(forces[i]));
+              IBAMR_TIMER_STOP(t_compute_lagrangian_force_solve);
+            }
+          for (auto &force : part.get_force_contributions())
+            force->finish_force(data_time);
+          for (auto &active_strain : part.get_active_strains())
+            active_strain->finish_strain(data_time);
+        }
+    };
+    do_solve(parts,
+             interactions,
+             force_guesses,
+             part_vectors,
+             part_forces,
+             part_right_hand_sides);
     IBAMR_TIMER_STOP(t_compute_lagrangian_force);
   }
 
@@ -831,67 +918,72 @@ namespace fdl
   void
   IFEDMethod<dim, spacedim>::reinit_interactions()
   {
-    for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-      {
-        const Part<dim, spacedim> &part = parts[part_n];
-
-        const auto &tria =
-          dynamic_cast<const parallel::shared::Triangulation<dim, spacedim> &>(
+    auto do_reinit = [&](const auto &collection, auto &interactions)
+    {
+      for (unsigned int i = 0; i < n_parts(); ++i)
+        {
+          constexpr int structdim =
+            std::remove_reference_t<decltype(collection[0])>::dimension;
+          const auto &part = parts[i];
+          const auto &tria = dynamic_cast<
+            const parallel::shared::Triangulation<structdim, spacedim> &>(
             part.get_triangulation());
-        const DoFHandler<dim, spacedim> &dof_handler = part.get_dof_handler();
-        MappingFEField<dim,
-                       spacedim,
-                       LinearAlgebra::distributed::Vector<double>>
-          mapping(dof_handler, part.get_position());
-        IBAMR_TIMER_START(t_reinit_interactions_bboxes);
-        const auto local_bboxes =
-          compute_cell_bboxes<dim, spacedim, float>(dof_handler, mapping);
-        const auto global_bboxes =
-          collect_all_active_cell_bboxes(tria, local_bboxes);
-        IBAMR_TIMER_STOP(t_reinit_interactions_bboxes);
+          const auto &dof_handler = part.get_dof_handler();
+          MappingFEField<structdim,
+                         spacedim,
+                         LinearAlgebra::distributed::Vector<double>>
+            mapping(dof_handler, part.get_position());
+          IBAMR_TIMER_START(t_reinit_interactions_bboxes);
+          const auto local_bboxes =
+            compute_cell_bboxes<structdim, spacedim, float>(dof_handler,
+                                                            mapping);
+          const auto global_bboxes =
+            collect_all_active_cell_bboxes(tria, local_bboxes);
+          IBAMR_TIMER_STOP(t_reinit_interactions_bboxes);
 
-        IBAMR_TIMER_START(t_reinit_interactions_edges);
-        const auto local_edge_lengths = compute_longest_edge_lengths(
-          tria, mapping, QGauss<1>(dof_handler.get_fe().tensor_degree()));
-        const auto global_edge_lengths =
-          collect_longest_edge_lengths(tria, local_edge_lengths);
-        IBAMR_TIMER_STOP(t_reinit_interactions_edges);
+          IBAMR_TIMER_START(t_reinit_interactions_edges);
+          const auto local_edge_lengths = compute_longest_edge_lengths(
+            tria, mapping, QGauss<1>(dof_handler.get_fe().tensor_degree()));
+          const auto global_edge_lengths =
+            collect_longest_edge_lengths(tria, local_edge_lengths);
+          IBAMR_TIMER_STOP(t_reinit_interactions_edges);
 
-        IBAMR_TIMER_START(t_reinit_interactions_objects);
-        // We already check that this has a valid value earlier on
-        const std::string interaction =
-          input_db->getStringWithDefault("interaction", "ELEMENTAL");
-        const int ln = primary_hierarchy->getFinestLevelNumber();
+          IBAMR_TIMER_START(t_reinit_interactions_objects);
+          // We already check that this has a valid value earlier on
+          const std::string interaction =
+            input_db->getStringWithDefault("interaction", "ELEMENTAL");
+          const int ln = primary_hierarchy->getFinestLevelNumber();
 
-        tbox::Pointer<tbox::Database> interaction_db =
-          new tbox::InputDatabase("interaction");
-        // default database values are OK
+          tbox::Pointer<tbox::Database> interaction_db =
+            new tbox::InputDatabase("interaction");
+          // default database values are OK
 
-        if (interaction == "ELEMENTAL")
-          interactions[part_n]->reinit(
-            interaction_db,
-            tria,
-            global_bboxes,
-            global_edge_lengths,
-            secondary_hierarchy.getSecondaryHierarchy(),
-            std::make_pair(ln, ln));
-        else
-          {
-            dynamic_cast<NodalInteraction<dim, spacedim> &>(
-              *interactions[part_n])
-              .reinit(interaction_db,
-                      tria,
-                      global_bboxes,
-                      secondary_hierarchy.getSecondaryHierarchy(),
-                      std::make_pair(ln, ln),
-                      part.get_dof_handler(),
-                      part.get_position());
-          }
-        // TODO - we should probably add a reinit() function that sets up the
-        // DoFHandler we always need
-        interactions[part_n]->add_dof_handler(part.get_dof_handler());
-        IBAMR_TIMER_STOP(t_reinit_interactions_objects);
-      }
+          if (interaction == "ELEMENTAL")
+            interactions[i]->reinit(interaction_db,
+                                    tria,
+                                    global_bboxes,
+                                    global_edge_lengths,
+                                    secondary_hierarchy.getSecondaryHierarchy(),
+                                    std::make_pair(ln, ln));
+          else
+            {
+              dynamic_cast<NodalInteraction<structdim, spacedim> &>(
+                *interactions[i])
+                .reinit(interaction_db,
+                        tria,
+                        global_bboxes,
+                        secondary_hierarchy.getSecondaryHierarchy(),
+                        std::make_pair(ln, ln),
+                        part.get_dof_handler(),
+                        part.get_position());
+            }
+          // TODO - we should probably add a reinit() function that sets up the
+          // DoFHandler we always need
+          interactions[i]->add_dof_handler(part.get_dof_handler());
+        }
+    };
+    do_reinit(parts, interactions);
+    IBAMR_TIMER_STOP(t_reinit_interactions_objects);
   }
 
 
@@ -902,56 +994,53 @@ namespace fdl
     tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
   {
     IBAMR_TIMER_START(t_begin_data_redistribution);
-    // This function is called before initializePatchHierarchy is - in that case
-    // we don't have a hierarchy, so we don't have any data, and there is naught
-    // to do
+    // This function is called before initializePatchHierarchy is - in that
+    // case we don't have a hierarchy, so we don't have any data, and there is
+    // naught to do
     if (primary_hierarchy)
       {
-        // Weird things happen when we coarsen and refine if some levels are not
-        // present, so fill them all in with zeros to start
+        // Weird things happen when we coarsen and refine if some levels are
+        // not present, so fill them all in with zeros to start
         const int max_ln = primary_hierarchy->getFinestLevelNumber();
-        for (int ln = 0; ln <= max_ln; ++ln)
-          {
-            tbox::Pointer<hier::PatchLevel<spacedim>> primary_level =
-              primary_hierarchy->getPatchLevel(ln);
-            tbox::Pointer<hier::PatchLevel<spacedim>> secondary_level =
-              secondary_hierarchy.getSecondaryHierarchy()->getPatchLevel(ln);
-            if (!primary_level->checkAllocated(
-                  lagrangian_workload_current_index))
-              primary_level->allocatePatchData(
-                lagrangian_workload_current_index);
-            if (!secondary_level->checkAllocated(
-                  lagrangian_workload_current_index))
-              secondary_level->allocatePatchData(
-                lagrangian_workload_current_index);
-          }
-
         fill_all(secondary_hierarchy.getSecondaryHierarchy(),
                  lagrangian_workload_current_index,
                  0,
                  max_ln);
 
         // Start:
+        auto setup_transaction = [&](const auto &collection,
+                                     const auto &interactions,
+                                     auto       &transactions)
+        {
+          for (unsigned int i = 0; i < collection.size(); ++i)
+            {
+              const auto &part = collection[i];
+              transactions.emplace_back(interactions[i]->add_workload_start(
+                lagrangian_workload_current_index,
+                part.get_position(),
+                part.get_dof_handler()));
+            }
+        };
         std::vector<std::unique_ptr<TransactionBase>> transactions;
-        for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-          {
-            const Part<dim, spacedim> &part = parts[part_n];
-            transactions.emplace_back(interactions[part_n]->add_workload_start(
-              lagrangian_workload_current_index,
-              part.get_position(),
-              part.get_dof_handler()));
-          }
+        setup_transaction(parts, interactions, transactions);
 
         // Compute:
-        for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-          transactions[part_n] =
-            interactions[part_n]->add_workload_intermediate(
-              std::move(transactions[part_n]));
+        auto compute_transaction = [](auto &interactions, auto &transactions)
+        {
+          for (unsigned int i = 0; i < transactions.size(); ++i)
+            transactions[i] = interactions[i]->add_workload_intermediate(
+              std::move(transactions[i]));
+        };
+        compute_transaction(interactions, transactions);
 
         // Finish:
-        for (unsigned int part_n = 0; part_n < n_parts(); ++part_n)
-          interactions[part_n]->add_workload_finish(
-            std::move(transactions[part_n]));
+        auto finish_transaction =
+          [](const auto &interactions, auto &transactions)
+        {
+          for (unsigned int i = 0; i < transactions.size(); ++i)
+            interactions[i]->add_workload_finish(std::move(transactions[i]));
+        };
+        finish_transaction(interactions, transactions);
 
         // Move to primary hierarchy (we will read it back in
         // endDataRedistribution)
@@ -983,11 +1072,11 @@ namespace fdl
     if (primary_hierarchy)
       {
         auto do_reset = [](auto &positions_regrid, const auto &collection)
-          {
-            positions_regrid.clear();
-            for (unsigned int i = 0; i < collection.size(); ++i)
-              positions_regrid.push_back(collection[i].get_position());
-          };
+        {
+          positions_regrid.clear();
+          for (unsigned int i = 0; i < collection.size(); ++i)
+            positions_regrid.push_back(collection[i].get_position());
+        };
         do_reset(positions_at_last_regrid, parts);
 
         secondary_hierarchy.reinit(primary_hierarchy->getFinestLevelNumber(),
@@ -1037,26 +1126,21 @@ namespace fdl
 
         // IBTK::HierarchyIntegrator (which controls these data indices) will
         // exchange pointers between the new and current states during
-        // timestepping. In particular: it will swap new and current, deallocate
-        // new, reallocate new, and repeat. This causes (since we only touch
-        // this variable in regrids) this data to get cleared, so save a copy
-        // for plotting purposes.
+        // timestepping. In particular: it will swap new and current,
+        // deallocate new, reallocate new, and repeat. This causes (since we
+        // only touch this variable in regrids) this data to get cleared, so
+        // save a copy for plotting purposes.
 
         // TODO - implement a utility function for copying
-        auto primary_ops = extract_hierarchy_data_ops(lagrangian_workload_var,
-                                                      primary_hierarchy);
-        const int max_ln = primary_hierarchy->getFinestLevelNumber();
-        primary_ops->resetLevels(0, max_ln);
-        for (int ln = 0; ln <= max_ln; ++ln)
-          {
-            tbox::Pointer<hier::PatchLevel<spacedim>> primary_level =
-              primary_hierarchy->getPatchLevel(ln);
-            if (!primary_level->checkAllocated(lagrangian_workload_plot_index))
-              primary_level->allocatePatchData(lagrangian_workload_plot_index);
-          }
-        primary_ops->copyData(lagrangian_workload_plot_index,
-                              lagrangian_workload_current_index,
-                              false);
+        fill_all(primary_hierarchy,
+                 lagrangian_workload_plot_index,
+                 0,
+                 primary_hierarchy->getFinestLevelNumber(),
+                 0);
+        extract_hierarchy_data_ops(lagrangian_workload_var, primary_hierarchy)
+          ->copyData(lagrangian_workload_plot_index,
+                     lagrangian_workload_current_index,
+                     false);
       }
     IBAMR_TIMER_STOP(t_end_data_redistribution);
   }
@@ -1070,21 +1154,21 @@ namespace fdl
   IFEDMethod<dim, spacedim>::putToDatabase(tbox::Pointer<tbox::Database> db)
   {
     auto do_put = [&](auto &collection, const std::string &prefix)
-      {
-        for (unsigned int i = 0; i < collection.size(); ++i)
-          {
-            std::ostringstream              out_str;
-            boost::archive::binary_oarchive oarchive(out_str);
-            collection[i].save(oarchive, 0);
-            // TODO - with C++20 we can use view() instead of str() and skip
-            // this copy
-            const std::string out = out_str.str();
-            save_binary(prefix + std::to_string(i),
-                        out.c_str(),
-                        out.c_str() + out.size(),
-                        db);
-          }
-      };
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          std::ostringstream              out_str;
+          boost::archive::binary_oarchive oarchive(out_str);
+          collection[i].save(oarchive, 0);
+          // TODO - with C++20 we can use view() instead of str() and skip
+          // this copy
+          const std::string out = out_str.str();
+          save_binary(prefix + std::to_string(i),
+                      out.c_str(),
+                      out.c_str() + out.size(),
+                      db);
+        }
+    };
     do_put(parts, "part_");
   }
 
