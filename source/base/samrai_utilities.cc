@@ -34,7 +34,8 @@ namespace fdl
       base_patch_level);
 
     std::vector<tbox::Pointer<hier::Patch<spacedim>>> result;
-    auto get_patches = [&](tbox::Pointer<hier::PatchLevel<spacedim>> level) {
+    auto get_patches = [&](tbox::Pointer<hier::PatchLevel<spacedim>> level)
+    {
       for (typename hier::PatchLevel<spacedim>::Iterator p(level); p; p++)
         result.emplace_back(level->getPatch(p()));
     };
@@ -229,7 +230,13 @@ namespace fdl
     (void)interior_only;
     for (int ln = coarsest_level_number; ln <= finest_level_number; ++ln)
       {
-        auto patches = extract_patches(patch_hierarchy->getPatchLevel(ln));
+        tbox::Pointer<hier::PatchLevel<spacedim>> level =
+          patch_hierarchy->getPatchLevel(ln);
+        AssertThrow(level, ExcFDLInternalError());
+        if (!level->checkAllocated(data_index))
+          level->allocatePatchData(data_index);
+
+        auto patches = extract_patches(level);
 
         for (auto &patch : patches)
           {

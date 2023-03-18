@@ -102,6 +102,8 @@ namespace fdl
 
   /**
    * Same as above, but for a patch hierarchy and data index.
+   *
+   * @note If needed, this function will allocate patch data for @p data_index.
    */
   template <int spacedim, typename field_type = int>
   void
