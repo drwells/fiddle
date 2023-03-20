@@ -51,7 +51,7 @@ namespace fdl
   std::vector<LinearAlgebra::distributed::Vector<double>>
   PartVectors<dim, spacedim>::get_all_new_positions()
   {
-    Assert(new_positions.size(), ExcVectorNotAvailable());
+    Assert(parts.size() == new_positions.size(), ExcVectorNotAvailable());
     return std::move(new_positions);
   }
 
@@ -61,7 +61,7 @@ namespace fdl
   std::vector<LinearAlgebra::distributed::Vector<double>>
   PartVectors<dim, spacedim>::get_all_new_velocities()
   {
-    Assert(new_velocities.size(), ExcVectorNotAvailable());
+    Assert(parts.size() == new_velocities.size(), ExcVectorNotAvailable());
     return std::move(new_velocities);
   }
 

@@ -34,8 +34,35 @@ namespace fdl
                                  const Mapping<dim, spacedim> &,
                                  const Quadrature<1> &)
     {
-      Assert(false, ExcFDLNotImplemented());
+      AssertThrow(false, ExcFDLNotImplemented());
       return {};
+    }
+
+    template <int spacedim>
+    std::vector<float>
+    compute_longest_edge_lengths(const Triangulation<1, spacedim> &tria,
+                                 const Mapping<1, spacedim> &mapping,
+                                 const Quadrature<1> &quadrature)
+    {
+      std::vector<float> result;
+      Assert(tria.get_reference_cells().size() == 1, ExcNotImplemented());
+      const ReferenceCell reference_cell = tria.get_reference_cells().front();
+      FE_Nothing<1, spacedim> fe_nothing(reference_cell);
+
+      FEValues<1, spacedim> fe_values(mapping,
+                                      fe_nothing,
+                                      quadrature,
+                                      update_JxW_values);
+      for (const auto &cell : tria.active_cell_iterators())
+        if (cell->is_locally_owned())
+          {
+            result.push_back(0.0f);
+            fe_values.reinit(cell);
+            for (unsigned int q = 0; q < quadrature.size(); ++q)
+              result.back() += fe_values.JxW(q);
+          }
+
+      return result;
     }
 
     template <int spacedim>
