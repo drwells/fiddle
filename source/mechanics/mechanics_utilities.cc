@@ -94,7 +94,6 @@ namespace fdl
     const LinearAlgebra::distributed::Vector<double> &current_velocity,
     LinearAlgebra::distributed::Vector<double>       &force_rhs)
   {
-    Assert(dim == spacedim, ExcNotImplemented());
 #ifdef DEBUG
     for (const auto *p : boundary_force_contributions)
       {
@@ -217,8 +216,6 @@ namespace fdl
     const LinearAlgebra::distributed::Vector<double>      &current_velocity,
     LinearAlgebra::distributed::Vector<double>            &force_rhs)
   {
-    Assert(dim == spacedim, ExcNotImplemented());
-
     for (const auto *p : force_contributions)
       {
         (void)p;
@@ -241,6 +238,10 @@ namespace fdl
         else
           AssertThrow(false, ExcFDLNotImplemented());
       }
+
+    if (dim != spacedim)
+      AssertThrow(stress_contributions.size() == 0,
+                  ExcMessage("Stresses are not supported on codim 1 meshes."));
 
     AssertThrow(stress_contributions.size() +
                     volume_force_contributions.size() +

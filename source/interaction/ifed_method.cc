@@ -121,6 +121,7 @@ namespace fdl
       input_db->getStringWithDefault("interaction", "ELEMENTAL");
     if (interaction == "ELEMENTAL")
       {
+        AssertThrow(n_penalty_parts() == 0, ExcFDLNotImplemented());
         // IBFEMethod uses this value - lower values aren't guaranteed to work.
         // If dx = dX then we can use a lower density.
         const double density =
@@ -429,6 +430,7 @@ namespace fdl
     // Project:
     IBAMR_TIMER_START(t_interpolate_velocity_solve);
     auto do_solve = [&](const auto &collection,
+                        const auto &interactions,
                         auto       &vectors,
                         auto       &guesses,
                         auto       &rhs_vectors)
@@ -477,8 +479,8 @@ namespace fdl
             }
         }
     };
-    do_solve(parts, part_vectors, velocity_guesses, rhs_vecs);
-    do_solve(penalty_parts, penalty_part_vectors, penalty_velocity_guesses, penalty_rhs_vecs);
+    do_solve(parts, interactions, part_vectors, velocity_guesses, rhs_vecs);
+    do_solve(penalty_parts, penalty_interactions, penalty_part_vectors, penalty_velocity_guesses, penalty_rhs_vecs);
     IBAMR_TIMER_STOP(t_interpolate_velocity_solve);
     IBAMR_TIMER_STOP(t_interpolate_velocity);
   }
@@ -527,8 +529,8 @@ namespace fdl
         }
     };
     std::vector<std::unique_ptr<TransactionBase>> transactions, penalty_transactions;
-    setup_transaction(parts, interactions, part_vectors, transactions);
-    setup_transaction(penalty_parts, penalty_interactions, penalty_part_vectors, penalty_transactions);
+    setup_transaction(parts, interactions, ib_kernels, part_vectors, transactions);
+    setup_transaction(penalty_parts, penalty_interactions, penalty_ib_kernels, penalty_part_vectors, penalty_transactions);
 
     // Compute:
     auto compute_transaction = [](const auto &interactions, auto &transactions)
@@ -916,7 +918,7 @@ namespace fdl
     {
       for (unsigned int i = 0; i < collection.size(); ++i)
         {
-          const auto &part = parts[i];
+          const auto &part = collection[i];
           AssertThrow(vectors.dimension == part.dimension,
                       ExcFDLInternalError());
           if (interactions[i]->projection_is_interpolation())

@@ -119,15 +119,15 @@ namespace fdl
     constraints.close();
 
     // A MatrixFree object sets up the partitioning on its own - use that to
-    // avoid issues with p::s::T where there may not be artificial cells/
+    // avoid issues with p::s::T where there may not be artificial cells
     //
     // TODO - understand this issue well enough to file a bug report
     matrix_free = std::make_shared<MatrixFree<dim, double>>();
-    internal::reinit_matrix_free(
-      *mapping, *dof_handler, constraints, quadrature, *matrix_free);
     if (dim == spacedim)
       {
-        // no matrixfree outside codim 0
+        // matrix-free is only implemented in codim 0
+        internal::reinit_matrix_free(
+          *mapping, *dof_handler, constraints, quadrature, *matrix_free);
         partitioner = matrix_free->get_vector_partitioner();
       }
     else

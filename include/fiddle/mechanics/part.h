@@ -420,6 +420,7 @@ namespace fdl
   const MatrixFreeOperators::Base<dim> &
   Part<dim, spacedim>::get_mass_operator() const
   {
+    AssertThrow(dim == spacedim, ExcFDLNotImplemented());
     return *mass_operator;
   }
 
@@ -427,6 +428,7 @@ namespace fdl
   const PreconditionJacobi<MatrixFreeOperators::Base<dim>> &
   Part<dim, spacedim>::get_mass_preconditioner() const
   {
+    AssertThrow(dim == spacedim, ExcFDLNotImplemented());
     return mass_preconditioner;
   }
 
