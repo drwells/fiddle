@@ -105,8 +105,8 @@ namespace fdl
      */
     IFEDMethod(const std::string                     &object_name,
                tbox::Pointer<tbox::Database>          input_db,
-               std::vector<Part<dim, spacedim>>     &&input_parts,
                std::vector<Part<dim - 1, spacedim>> &&input_penalty_parts,
+               std::vector<Part<dim, spacedim>>     &&input_parts,
                const bool                             register_for_restart = true);
 
     /**

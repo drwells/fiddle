@@ -75,6 +75,20 @@ namespace fdl
     tbox::Pointer<tbox::Database>      input_input_db,
     std::vector<Part<dim, spacedim>> &&input_parts,
     const bool                         register_for_restart)
+      : IFEDMethod<dim, spacedim>(object_name,
+                                  input_input_db,
+                                  {},
+                                  std::move(input_parts),
+                                  register_for_restart)
+  {}
+
+  template <int dim, int spacedim>
+  IFEDMethod<dim, spacedim>::IFEDMethod(
+    const std::string                    &object_name,
+    tbox::Pointer<tbox::Database>         input_input_db,
+    std::vector<Part<dim- 1, spacedim>> &&input_penalty_parts,
+    std::vector<Part<dim, spacedim>>    &&input_parts,
+    const bool                            register_for_restart)
     : object_name(object_name)
     , register_for_restart(register_for_restart)
     , input_db(copy_database(input_input_db))
@@ -83,7 +97,9 @@ namespace fdl
     , half_time(std::numeric_limits<double>::signaling_NaN())
     , new_time(std::numeric_limits<double>::signaling_NaN())
     , parts(std::move(input_parts))
+    , penalty_parts(std::move(input_penalty_parts))
     , part_vectors(this->parts)
+    , penalty_part_vectors(this->penalty_parts)
     , ghosts(0)
     , secondary_hierarchy(object_name + "::secondary_hierarchy",
                           input_db->getDatabase("GriddingAlgorithm"),
