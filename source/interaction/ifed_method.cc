@@ -949,11 +949,11 @@ namespace fdl
   {
     auto do_reinit = [&](const auto &collection, auto &interactions)
     {
-      for (unsigned int i = 0; i < n_parts(); ++i)
+      for (unsigned int i = 0; i < collection.size(); ++i)
         {
           constexpr int structdim =
             std::remove_reference_t<decltype(collection[0])>::dimension;
-          const auto &part = parts[i];
+          const auto &part = collection[i];
           const auto &tria = dynamic_cast<
             const parallel::shared::Triangulation<structdim, spacedim> &>(
             part.get_triangulation());
