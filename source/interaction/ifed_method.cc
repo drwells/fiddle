@@ -168,35 +168,46 @@ namespace fdl
                                "."));
       }
 
-    AssertThrow(input_db->keyExists("IB_kernel"),
-                ExcMessage(
-                  "The IB kernel should be set in the input database."));
-    // values in SAMRAI databases are always arrays, possibly of length 1
-    const int n_ib_kernels = input_db->getArraySize("IB_kernel");
-    AssertThrow(n_ib_kernels == 1 ||
-                  n_ib_kernels == static_cast<int>(n_parts()),
-                ExcMessage("The number of specified IB kernels should either "
-                           "be 1 or equal the number of parts."));
-    ib_kernels.resize(n_ib_kernels);
-    input_db->getStringArray("IB_kernel",
-                             ib_kernels.data(),
-                             static_cast<int>(ib_kernels.size()));
-    // ib_kernels is either length 1 or length n_parts(): deal with the first
-    // case.
-    if (n_ib_kernels == 1)
-      {
-        ib_kernels.resize(n_parts());
-        std::fill(ib_kernels.begin() + 1, ib_kernels.end(), ib_kernels.front());
-      }
+    auto do_kernel = [&](const std::string &key,
+                         const auto &collection,
+                         std::vector<std::string> &kernels)
+    {
+      if (collection.size() > 0)
+        {
+          AssertThrow(input_db->keyExists(key),
+            ExcMessage(key + " must be set in the input database."));
+          // values in SAMRAI databases are always arrays, possibly of
+          // length 1
+          const int n_ib_kernels = input_db->getArraySize(key);
+          AssertThrow(n_ib_kernels == 1 ||
+                      n_ib_kernels == static_cast<int>(collection.size()),
+                      ExcMessage("The number of specified IB kernels should "
+                                 "either be 1 or equal the number of (penalty) "
+                                 "parts."));
+          kernels.resize(n_ib_kernels);
+          input_db->getStringArray(key,
+                                   kernels.data(),
+                                   static_cast<int>(kernels.size()));
+          // ib_kernels is either length 1 or length collection.size(): deal
+          // with the first case.
+          if (n_ib_kernels == 1)
+            {
+              kernels.resize(collection.size());
+              std::fill(kernels.begin() + 1, kernels.end(), kernels.front());
+            }
 
-    // now that we know that, we know the ghost requirements
-    for (const std::string &ib_kernel : ib_kernels)
-      {
-        const int ghost_width =
-          IBTK::LEInteractor::getMinimumGhostWidth(ib_kernel);
-        for (int d = 0; d < spacedim; ++d)
-          ghosts[d] = std::max(ghosts[d], ghost_width);
-      }
+          // now that we know that, we know the ghost requirements
+          for (const std::string &kernel : kernels)
+            {
+              const int ghost_width =
+                IBTK::LEInteractor::getMinimumGhostWidth(kernel);
+              for (int d = 0; d < spacedim; ++d)
+                ghosts[d] = std::max(ghosts[d], ghost_width);
+            }
+        }
+    };
+    do_kernel("IB_kernel", parts, ib_kernels);
+    do_kernel("penalty_IB_kernel", penalty_parts, penalty_ib_kernels);
 
     auto set_timer = [&](const char *name)
     { return tbox::TimerManager::getManager()->getTimer(name); };
@@ -343,6 +354,7 @@ namespace fdl
     IBAMR_TIMER_START(t_interpolate_velocity_rhs);
     auto setup_transaction = [&](const auto &collection,
                                  const auto &interactions,
+                                 const auto &kernels,
                                  const auto &vectors,
                                  auto       &transactions,
                                  auto       &rhs_vectors)
@@ -355,7 +367,7 @@ namespace fdl
           rhs_vectors.emplace_back(part.get_partitioner());
           transactions.emplace_back(
             interactions[i]->compute_projection_rhs_start(
-              ib_kernels[i],
+              kernels[i],
               u_data_index,
               part.get_dof_handler(),
               vectors.get_position(i, data_time),
@@ -368,9 +380,9 @@ namespace fdl
     std::vector<std::unique_ptr<TransactionBase>>          transactions, penalty_transactions;
     std::deque<LinearAlgebra::distributed::Vector<double>> rhs_vecs, penalty_rhs_vecs;
     setup_transaction(
-      parts, interactions, part_vectors, transactions, rhs_vecs);
+      parts, interactions, ib_kernels, part_vectors, transactions, rhs_vecs);
     setup_transaction(
-      penalty_parts, penalty_interactions, penalty_part_vectors, penalty_transactions, penalty_rhs_vecs);
+      penalty_parts, penalty_interactions, penalty_ib_kernels, penalty_part_vectors, penalty_transactions, penalty_rhs_vecs);
 
     // Compute:
     auto compute_transaction = [](const auto &interactions, auto &transactions)
@@ -479,6 +491,7 @@ namespace fdl
     // start:
     auto setup_transaction = [&](const auto &collection,
                                  const auto &interactions,
+                                 const auto &kernels,
                                  const auto &vectors,
                                  auto       &transactions)
     {
@@ -488,7 +501,7 @@ namespace fdl
           AssertThrow(vectors.dimension == part.dimension,
                       ExcFDLInternalError());
           transactions.emplace_back(interactions[i]->compute_spread_start(
-            ib_kernels[i],
+            kernels[i],
             f_scratch_data_index,
             vectors.get_position(i, data_time),
             part.get_dof_handler(),
