@@ -46,6 +46,8 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   // setup deal.II stuff:
   parallel::shared::Triangulation<dim, spacedim> native_tria(
     mpi_comm, {}, test_db->getBoolWithDefault("use_artificial_cells", false));
+  parallel::shared::Triangulation<dim - 1, spacedim> boundary_tria(
+    mpi_comm, {}, test_db->getBoolWithDefault("use_artificial_cells", false));
 
   Point<dim> center;
   center[0]       = 0.6;
@@ -54,17 +56,26 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   GridGenerator::hyper_ball(native_tria, center, 0.2);
   native_tria.refine_global(
     test_db->getIntegerWithDefault("n_global_refinements", 3));
+  GridGenerator::extract_boundary_mesh(native_tria, boundary_tria);
 
   tbox::pout << "Number of elements = " << native_tria.n_active_cells() << '\n';
 
   // fiddle stuff:
   FESystem<dim> fe(FE_Q<dim>(test_db->getIntegerWithDefault("fe_degree", 1)),
-                   dim);
+                   spacedim);
+  FESystem<dim - 1, dim> boundary_fe(FE_Q<dim - 1, spacedim>(
+    test_db->getIntegerWithDefault("fe_degree", 1)), spacedim);
   std::vector<fdl::Part<dim>> parts;
-  parts.emplace_back(native_tria, fe);
+  std::vector<fdl::Part<dim - 1, spacedim>> penalty_parts;
+  const bool test_penalty_parts = test_db->getBoolWithDefault("penalty_parts", false);
+  if (test_penalty_parts)
+    penalty_parts.emplace_back(boundary_tria, boundary_fe);
+  else
+    parts.emplace_back(native_tria, fe);
   tbox::Pointer<IBAMR::IBStrategy> ib_method_ops =
     new fdl::IFEDMethod<dim>("ifed_method",
                              input_db->getDatabase("IFEDMethod"),
+                             std::move(penalty_parts),
                              std::move(parts));
 
   // Create major algorithm and data objects that comprise the
@@ -174,19 +185,29 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                            iteration_num,
                                            loop_time);
 
-          const auto &part =
-            dynamic_cast<fdl::IFEDMethod<NDIM> &>(*ib_method_ops).get_part(0);
-          DataOut<dim> data_out;
-          data_out.attach_dof_handler(part.get_dof_handler());
-          data_out.add_data_vector(part.get_velocity(), "U");
+          auto do_graphics = [&](const auto &part)
+          {
+            constexpr int structdim =
+              std::remove_reference_t<decltype(part)>::dimension;
 
-          MappingFEField<dim,
-                         spacedim,
-                         LinearAlgebra::distributed::Vector<double>>
-            position_mapping(part.get_dof_handler(), part.get_position());
-          data_out.build_patches(position_mapping, fe.tensor_degree());
-          data_out.write_vtu_with_pvtu_record(
-            "./", "solution", iteration_num, mpi_comm, 8);
+            DataOut<structdim, spacedim> data_out;
+            data_out.attach_dof_handler(part.get_dof_handler());
+            data_out.add_data_vector(part.get_velocity(), "U");
+
+            MappingFEField<structdim,
+                           spacedim,
+                           LinearAlgebra::distributed::Vector<double>>
+              position_mapping(part.get_dof_handler(), part.get_position());
+            data_out.build_patches(position_mapping, fe.tensor_degree());
+            data_out.write_vtu_with_pvtu_record(
+              "./", "solution", iteration_num, mpi_comm, 8);
+          };
+
+          auto &ifed = dynamic_cast<fdl::IFEDMethod<NDIM> &>(*ib_method_ops);
+          if (test_penalty_parts)
+            do_graphics(ifed.get_penalty_part(0));
+          else
+            do_graphics(ifed.get_part(0));
         }
     }
 
@@ -197,29 +218,39 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
     proc_out << "rank = " << rank << '\n';
     proc_out << std::setprecision(10);
 
-    const auto &part =
-      dynamic_cast<fdl::IFEDMethod<NDIM> &>(*ib_method_ops).get_part(0);
+    auto do_output = [&](const auto &part)
+    {
+      constexpr int structdim =
+        std::remove_reference_t<decltype(part)>::dimension;
+      MappingFEField<structdim,
+                     spacedim,
+                     LinearAlgebra::distributed::Vector<double>>
+        position_mapping(part.get_dof_handler(), part.get_position());
 
-    MappingFEField<dim, spacedim, LinearAlgebra::distributed::Vector<double>>
-      position_mapping(part.get_dof_handler(), part.get_position());
+      QMidpoint<structdim> quad;
+      FEValues<structdim, spacedim> fe_values(position_mapping,
+                              part.get_dof_handler().get_fe(),
+                              quad,
+                              update_quadrature_points | update_values);
 
-    QMidpoint<dim> quad;
-    FEValues<dim>  fe_values(position_mapping,
-                            part.get_dof_handler().get_fe(),
-                            quad,
-                            update_quadrature_points | update_values);
+      std::vector<Tensor<1, dim>> cell_velocities(quad.size());
+      for (const auto &cell : part.get_dof_handler().active_cell_iterators())
+        if (cell->is_locally_owned())
+          {
+            fe_values.reinit(cell);
+            fe_values[FEValuesExtractors::Vector(0)].get_function_values(
+              part.get_velocity(), cell_velocities);
+            proc_out << cell->active_cell_index() << ": "
+                     << fe_values.get_quadrature_points()[0] << ": "
+                     << cell_velocities[0] << '\n';
+          }
+    };
+    auto &ifed = dynamic_cast<fdl::IFEDMethod<NDIM> &>(*ib_method_ops);
+    if (test_penalty_parts)
+      do_output(ifed.get_penalty_part(0));
+    else
+      do_output(ifed.get_part(0));
 
-    std::vector<Tensor<1, dim>> cell_velocities(quad.size());
-    for (const auto &cell : part.get_dof_handler().active_cell_iterators())
-      if (cell->is_locally_owned())
-        {
-          fe_values.reinit(cell);
-          fe_values[FEValuesExtractors::Vector(0)].get_function_values(
-            part.get_velocity(), cell_velocities);
-          proc_out << cell->active_cell_index() << ": "
-                   << fe_values.get_quadrature_points()[0] << ": "
-                   << cell_velocities[0] << '\n';
-        }
     std::ofstream output;
     if (rank == 0)
       output.open("output");
