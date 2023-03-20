@@ -746,8 +746,8 @@ namespace fdl
     };
     auto new_positions  = part_vectors.get_all_new_positions();
     auto new_velocities = part_vectors.get_all_new_velocities();
-    auto penalty_new_positions  = part_vectors.get_all_new_positions();
-    auto penalty_new_velocities = part_vectors.get_all_new_velocities();
+    auto penalty_new_positions  = penalty_part_vectors.get_all_new_positions();
+    auto penalty_new_velocities = penalty_part_vectors.get_all_new_velocities();
     do_set(parts, new_positions, new_velocities);
     do_set(penalty_parts, penalty_new_positions, penalty_new_velocities);
 
