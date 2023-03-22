@@ -20,10 +20,8 @@
 #include <deal.II/grid/tria.h>
 
 #include <deal.II/numerics/data_out.h>
-#include <deal.II/numerics/vector_tools_interpolate.h>
 
 #include <ibamr/IBExplicitHierarchyIntegrator.h>
-#include <ibamr/INSCollocatedHierarchyIntegrator.h>
 #include <ibamr/INSStaggeredHierarchyIntegrator.h>
 
 #include <ibtk/AppInitializer.h>
