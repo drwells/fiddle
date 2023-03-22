@@ -1,6 +1,6 @@
 ADD_CUSTOM_TARGET(examples)
 
-SET(EXAMPLE_DIRECTORIES elastic-band)
+SET(EXAMPLE_DIRECTORIES elastic-band turek-hron)
 
 FOREACH(_dir ${EXAMPLE_DIRECTORIES})
   ADD_SUBDIRECTORY(${_dir})
