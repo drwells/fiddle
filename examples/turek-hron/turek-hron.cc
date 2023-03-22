@@ -42,9 +42,8 @@ namespace ModelData
 {
   using namespace dealii;
 
-  void
-  make_turek_hron_grid(Triangulation<2> &tria,
-                       const Point<2>   &cylinder_center = Point<2>(0.2, 0.2),
+  std::pair<Triangulation<2>, Triangulation<2>>
+  make_turek_hron_grid(const Point<2>   &cylinder_center = Point<2>(0.2, 0.2),
                        const double      cylinder_radius = 0.05,
                        const double      tail_height     = 0.02,
                        const double      tail_length     = 0.35,
@@ -94,12 +93,15 @@ namespace ModelData
     GridGenerator::subdivided_hyper_rectangle(tail,
                                               {n_x_cells, 1u},
                                               tail_bottom_left,
-                                              tail_upper_right);
+                                              tail_upper_right,
+                                              true);
     for (auto &cell : tail.active_cell_iterators())
       cell->set_material_id(1);
-    GridGenerator::merge_triangulations(disk, tail, tria, 1.0e-12, true);
-    GridTools::shift(cylinder_center, tria);
-    tria.set_manifold(0, PolarManifold<2>(cylinder_center));
+    GridTools::shift(cylinder_center, disk);
+    GridTools::shift(cylinder_center, tail);
+    disk.set_manifold(0, PolarManifold<2>(cylinder_center));
+
+    return std::make_pair(std::move(disk), std::move(tail));
   }
 
   class BeamNeoHookeanStress : public fdl::ForceContribution<2>
@@ -108,10 +110,10 @@ namespace ModelData
     // todo more parameters
     BeamNeoHookeanStress(const Quadrature<2>     &quad,
                          const types::material_id beam_id,
-                         const double             mu_s)
+                         const double             tail_shear_modulus)
       : ForceContribution<2>(quad)
       , beam_id(beam_id)
-      , mu_s(mu_s)
+      , tail_shear_modulus(tail_shear_modulus)
     {}
 
     virtual bool
@@ -134,7 +136,7 @@ namespace ModelData
     }
 
     virtual void
-    compute_stress(const double                   time,
+    compute_stress(const double                   /*time*/,
                    const fdl::MechanicsValues<2> &me_values,
                    const typename Triangulation<2>::active_cell_iterator &cell,
                    ArrayView<Tensor<2, 2>> &stresses) const override
@@ -147,7 +149,7 @@ namespace ModelData
               const auto &FF       = me_values.get_FF()[qp_n];
               const auto &I1       = me_values.get_first_invariant()[qp_n];
               const auto &FF_inv_T = me_values.get_FF_inv_T()[qp_n];
-              stresses[qp_n] = mu_s * n23_J * (FF - (I1 / 3.0) * FF_inv_T);
+              stresses[qp_n] = tail_shear_modulus * n23_J * (FF - (I1 / 3.0) * FF_inv_T);
             }
         }
       else
@@ -158,7 +160,7 @@ namespace ModelData
 
   private:
     types::material_id beam_id;
-    double             mu_s;
+    double             tail_shear_modulus;
   };
 
   class BeamDilatationalStress : public fdl::ForceContribution<2>
@@ -166,10 +168,10 @@ namespace ModelData
   public:
     BeamDilatationalStress(const Quadrature<2>     &quad,
                            const types::material_id beam_id,
-                           const double             beta_s)
+                           const double             tail_bulk_modulus)
       : ForceContribution<2>(quad)
       , beam_id(beam_id)
-      , beta_s(beta_s)
+      , tail_bulk_modulus(tail_bulk_modulus)
     {}
 
     virtual bool
@@ -191,19 +193,18 @@ namespace ModelData
     }
 
     virtual void
-    compute_stress(const double                   time,
+    compute_stress(const double                   /*time*/,
                    const fdl::MechanicsValues<2> &me_values,
                    const typename Triangulation<2>::active_cell_iterator &cell,
                    ArrayView<Tensor<2, 2>> &stresses) const override
     {
-      // if (cell->material_id() == beam_id)
-      if (true)
+      if (cell->material_id() == beam_id)
         {
           for (unsigned int qp_n = 0; qp_n < stresses.size(); ++qp_n)
             {
               const auto &J        = me_values.get_det_FF()[qp_n];
               const auto &FF_inv_T = me_values.get_FF_inv_T()[qp_n];
-              stresses[qp_n]       = beta_s * J * std::log(J) * FF_inv_T;
+              stresses[qp_n]       = tail_bulk_modulus * J * std::log(J) * FF_inv_T;
             }
         }
       else
@@ -214,7 +215,7 @@ namespace ModelData
 
   private:
     types::material_id beam_id;
-    double             beta_s;
+    double             tail_bulk_modulus;
   };
 } // namespace ModelData
 
@@ -247,6 +248,7 @@ main(int argc, char *argv[])
 
   {
     using namespace SAMRAI;
+    using namespace dealii;
     tbox::Pointer<IBTK::AppInitializer> app_initializer =
       new IBTK::AppInitializer(argc, argv, "IB.log");
     tbox::Pointer<tbox::Database> input_db =
@@ -277,12 +279,11 @@ main(int argc, char *argv[])
     const bool dump_timer_data     = app_initializer->dumpTimerData();
     const int  timer_dump_interval = app_initializer->getTimerDumpInterval();
 
-    const double dx = input_db->getDouble("DX");
-    const double ds = input_db->getDouble("MFAC") * dx;
-
-    const double mu_s          = input_db->getDouble("MU_S");
-    const double beta_s        = input_db->getDouble("BETA_S");
-    const double kappa_s_block = input_db->getDouble("KAPPA_S_BLOCK");
+    const double tail_shear_modulus    = input_db->getDouble("tail_shear_modulus");
+    const double tail_bulk_modulus     = input_db->getDouble("tail_bulk_modulus");
+    const double disk_spring_constant  = input_db->getDouble("disk_spring_constant");
+    const double tail_spring_constant  = input_db->getDouble("tail_spring_constant");
+    const double disk_damping_constant = input_db->getDouble("disk_damping_constant");
 
     // Create major algorithm and data objects that comprise the
     // application.  These objects are configured from the input database
@@ -295,47 +296,76 @@ main(int argc, char *argv[])
 
     // Set up the IFEDMethod.
     const MPI_Comm communicator = IBTK::IBTK_MPI::getCommunicator();
-    dealii::parallel::shared::Triangulation<2> tria(communicator, {}, true);
-    ModelData::make_turek_hron_grid(tria);
+    parallel::shared::Triangulation<2> tria(communicator, {}, true);
+    parallel::shared::Triangulation<1, 2> boundary_tria(communicator, {}, true);
+    const Point<2> cylinder_center(0.2, 0.2);
+    auto pair = ModelData::make_turek_hron_grid(cylinder_center, 0.05, 0.02, 0.35, false);
+    auto &disk = pair.first;
+    auto &tail = pair.second;
 
-    // include EFAC
-    const double target_element_size =
-      input_db->getDouble("MFAC") * input_db->getDouble("DX");
-    while (dealii::GridTools::maximal_cell_diameter(tria) > target_element_size)
-      tria.refine_global(1);
+    FESystem<2> fe(FE_Q<2>(2), 2);
+    FESystem<1, 2> boundary_fe(FE_Q<1, 2>(1), 2);
+    QGauss<1>   boundary_quadrature(fe.tensor_degree() + 1);
+    QGauss<2>   quadrature1(fe.tensor_degree() + 1);
+    QGauss<2>   quadrature2(fe.tensor_degree() + 2);
 
-    dealii::FESystem<2> fe(dealii::FE_Q<2>(2), 2);
-    dealii::QGauss<2>   quadrature1(fe.tensor_degree() + 1);
-    dealii::QGauss<2>   quadrature2(fe.tensor_degree() + 2);
-    auto dof_handler = std::make_shared<dealii::DoFHandler<2>>(tria);
-    dof_handler->distribute_dofs(fe);
+    const std::vector<types::material_id> cylinder_ids{0};
 
-    const std::vector<dealii::types::material_id> cylinder_ids{0};
-
-    MappingQ<dim, spacedim> mapping(fe.tensor_degree());
-    auto spring_force = std::make_unique<fdl::SpringForce<2>>(
-      quadrature1,
-      kappa_s_block,
-      *dof_handler,
-      mapping,
-      cylinder_ids,
-      dealii::Functions::IdentityFunction<2>());
-
-    std::vector<std::unique_ptr<fdl::ForceContribution<2>>> force_contributions;
-    force_contributions.emplace_back(std::move(spring_force));
-    force_contributions.emplace_back(
-      std::make_unique<ModelData::BeamNeoHookeanStress>(quadrature2, 1, mu_s));
-    force_contributions.emplace_back(
+    std::vector<std::unique_ptr<fdl::ForceContribution<2>>> beam_forces;
+    std::vector<std::unique_ptr<fdl::ForceContribution<1, 2>>> penalty_forces;
+    beam_forces.emplace_back(
+      std::make_unique<ModelData::BeamNeoHookeanStress>(quadrature2, 1, tail_shear_modulus));
+    beam_forces.emplace_back(
       std::make_unique<ModelData::BeamDilatationalStress>(quadrature2,
                                                           1,
-                                                          beta_s));
+                                                          tail_bulk_modulus));
 
     std::vector<fdl::Part<2>> parts;
-    parts.emplace_back(tria, fe, std::move(force_contributions));
+    std::vector<fdl::Part<1, 2>> penalty_parts;
+    const double target_element_size =
+      input_db->getDouble("MFAC") * input_db->getDouble("DX");
+    if (input_db->getBoolWithDefault("use_boundary_cylinder", false))
+      {
+        while (GridTools::maximal_cell_diameter(disk) > target_element_size)
+          disk.refine_global(1);
+        while (GridTools::maximal_cell_diameter(tail) > target_element_size)
+          tail.refine_global(1);
+
+        std::vector<types::boundary_id> left{0u};
+        beam_forces.emplace_back(std::make_unique<fdl::BoundarySpringForce<2>>(
+          boundary_quadrature, tail_spring_constant, left));
+
+        boundary_tria.set_manifold(0, PolarManifold<1, 2>(cylinder_center));
+        GridGenerator::extract_boundary_mesh(
+          disk, static_cast<Triangulation<1, 2> &>(boundary_tria));
+        penalty_forces.emplace_back(std::make_unique<fdl::SpringForce<1, 2>>(
+          boundary_quadrature, disk_spring_constant, cylinder_ids));
+        penalty_forces.emplace_back(std::make_unique<fdl::DampingForce<1, 2>>(
+          boundary_quadrature, disk_damping_constant));
+        penalty_parts.emplace_back(boundary_tria, boundary_fe, std::move(penalty_forces));
+        tria.copy_triangulation(tail);
+      }
+    else
+      {
+        GridGenerator::merge_triangulations(pair.first, pair.second, tria, 1e-10, true, true);
+        tria.set_manifold(0, PolarManifold<2>(cylinder_center));
+
+        while (GridTools::maximal_cell_diameter(tria) > target_element_size)
+          tria.refine_global(1);
+        // TODO: material-id dependent damping is not yet implemented
+        // std::vector<types::material_id> disk_mids({0u});
+        // beam_forces.emplace_back(std::make_unique<fdl::DampingForce<2>>(
+        //   quadrature1, disk_damping_constant, disk_mids));
+        beam_forces.emplace_back(std::make_unique<fdl::SpringForce<2>>(
+          quadrature1, disk_spring_constant, cylinder_ids));
+      }
+    parts.emplace_back(tria, fe, std::move(beam_forces));
+    
     tbox::Pointer<fdl::IFEDMethod<2>> ib_method_ops =
       new fdl::IFEDMethod<2>("IFEDMethod",
                              app_initializer->getComponentDatabase(
                                "IFEDMethod"),
+                             std::move(penalty_parts),
                              std::move(parts));
     tbox::Pointer<IBAMR::IBHierarchyIntegrator> time_integrator =
       new IBAMR::IBExplicitHierarchyIntegrator(
@@ -440,9 +470,6 @@ main(int argc, char *argv[])
         time_integrator->registerVisItDataWriter(visit_data_writer);
       }
 
-    const bool from_restart =
-      tbox::RestartManager::getManager()->isFromRestart();
-
     // Initialize hierarchy configuration and data on all patches.
     time_integrator->initializePatchHierarchy(patch_hierarchy,
                                               gridding_algorithm);
@@ -465,7 +492,24 @@ main(int argc, char *argv[])
                                              loop_time);
           }
 
-        using namespace dealii;
+        if (ib_method_ops->n_penalty_parts() > 0)
+          {
+            const auto &part = ib_method_ops->get_penalty_part(0);
+            DataOut<1, 2>  data_out;
+            data_out.attach_dof_handler(part.get_dof_handler());
+            data_out.add_data_vector(part.get_velocity(), "U");
+
+            MappingFEField<1, 2, LinearAlgebra::distributed::Vector<double>>
+              position_mapping(part.get_dof_handler(), part.get_position());
+            data_out.build_patches(position_mapping);
+            data_out.write_vtu_with_pvtu_record(
+              app_initializer->getVizDumpDirectory() + "/",
+              "penalty",
+              iteration_num,
+              IBTK::IBTK_MPI::getCommunicator(),
+              8);
+          }
+
         const auto &part = ib_method_ops->get_part(0);
         DataOut<2>  data_out;
         data_out.attach_dof_handler(part.get_dof_handler());
@@ -476,7 +520,7 @@ main(int argc, char *argv[])
         data_out.build_patches(position_mapping);
         data_out.write_vtu_with_pvtu_record(
           app_initializer->getVizDumpDirectory() + "/",
-          "solution",
+          "part",
           iteration_num,
           IBTK::IBTK_MPI::getCommunicator(),
           8);
@@ -536,7 +580,25 @@ main(int argc, char *argv[])
                                                  loop_time);
               }
 
-            using namespace dealii;
+
+            if (ib_method_ops->n_penalty_parts() > 0)
+              {
+                const auto &part = ib_method_ops->get_penalty_part(0);
+                DataOut<1, 2>  data_out;
+                data_out.attach_dof_handler(part.get_dof_handler());
+                data_out.add_data_vector(part.get_velocity(), "U");
+     
+                MappingFEField<1, 2, LinearAlgebra::distributed::Vector<double>>
+                  position_mapping(part.get_dof_handler(), part.get_position());
+                data_out.build_patches(position_mapping);
+                data_out.write_vtu_with_pvtu_record(
+                  app_initializer->getVizDumpDirectory() + "/",
+                  "penalty",
+                  iteration_num,
+                  IBTK::IBTK_MPI::getCommunicator(),
+                  8);
+              }
+
             const auto &part = ib_method_ops->get_part(0);
             DataOut<2>  data_out;
             data_out.attach_dof_handler(part.get_dof_handler());
@@ -547,7 +609,7 @@ main(int argc, char *argv[])
             data_out.build_patches(position_mapping);
             data_out.write_vtu_with_pvtu_record(
               app_initializer->getVizDumpDirectory() + "/",
-              "solution",
+              "part",
               iteration_num,
               IBTK::IBTK_MPI::getCommunicator(),
               8);
@@ -598,7 +660,7 @@ postprocess_data(
   SAMRAI::tbox::Pointer<
     IBAMR::INSHierarchyIntegrator> /*navier_stokes_integrator*/,
   const int /*iteration_num*/,
-  const double loop_time,
+  const double /*loop_time*/,
   const std::string & /*data_dump_dirname*/)
 {
   // compute the lift and drag, somehow
