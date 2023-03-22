@@ -179,7 +179,7 @@ main(int argc, char *argv[])
   parallel::shared::Triangulation<2> tria(communicator, {}, true);
   parallel::shared::Triangulation<1, 2> boundary_tria(communicator, {}, true);
   const Point<2> cylinder_center(0.2, 0.2);
-  auto pair = ModelData::make_turek_hron_grid(cylinder_center, 0.05, 0.02, 0.35, false);
+  auto pair = make_turek_hron_grid(cylinder_center, 0.05, 0.02, 0.35, false);
   auto &disk = pair.first;
   auto &beam = pair.second;
   const bool use_penalty_cylinder = input_db->getBoolWithDefault("use_penalty_cylinder", false);
