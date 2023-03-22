@@ -37,187 +37,68 @@
 #include <LoadBalancer.h>
 #include <StandardTagAndInitialize.h>
 
-// Elasticity model data.
-namespace ModelData
+std::pair<dealii::Triangulation<2>, dealii::Triangulation<2>>
+make_turek_hron_grid(const dealii::Point<2> &cylinder_center = dealii::Point<2>(0.2, 0.2),
+                     const double            cylinder_radius = 0.05,
+                     const double            beam_height     = 0.02,
+                     const double            beam_length     = 0.35,
+                     const bool              curve_left_side_of_beam = true)
 {
   using namespace dealii;
+  AssertThrow(cylinder_radius > beam_height / 2.0,
+              ExcMessage("The grid only makes sense when this is true"));
+  AssertThrow(beam_length > 0.0,
+              ExcMessage("beam length should be positive"));
+  // Use the pythagorean theorem to find the location of the beam - here we
+  // assume the cylinder is centered at 0, 0
+  const Point<2> beam_bottom_left(std::sqrt(std::pow(cylinder_radius, 2) -
+                                            std::pow(beam_height / 2.0, 2)),
+                                  -beam_height / 2.0);
+  const Point<2> beam_upper_right(beam_bottom_left[0] + beam_length,
+                                  beam_bottom_left[1] + beam_height);
 
-  std::pair<Triangulation<2>, Triangulation<2>>
-  make_turek_hron_grid(const Point<2>   &cylinder_center = Point<2>(0.2, 0.2),
-                       const double      cylinder_radius = 0.05,
-                       const double      tail_height     = 0.02,
-                       const double      tail_length     = 0.35,
-                       const bool        curve_left_side_of_tail = true)
-  {
-    AssertThrow(cylinder_radius > tail_height / 2.0,
-                ExcMessage("The grid only makes sense when this is true"));
-    AssertThrow(tail_length > 0.0,
-                ExcMessage("tail length should be positive"));
-    // Use the pythagorean theorem to find the location of the tail - here we
-    // assume the cylinder is centered at 0, 0
-    const Point<2> tail_bottom_left(std::sqrt(std::pow(cylinder_radius, 2) -
-                                              std::pow(tail_height / 2.0, 2)),
-                                    -tail_height / 2.0);
-    const Point<2> tail_upper_right(tail_bottom_left[0] + tail_length,
-                                    tail_bottom_left[1] + tail_height);
+  // start with the disk grid:
+  Triangulation<2> disk;
+  GridGenerator::hyper_ball_balanced(disk, Point<2>(), cylinder_radius);
+  for (auto &cell : disk.active_cell_iterators())
+    cell->set_material_id(0);
+  GridTools::rotate(numbers::PI / 8.0, disk);
 
-    // start with the disk grid:
-    Triangulation<2> disk;
-    GridGenerator::hyper_ball_balanced(disk, Point<2>(), cylinder_radius);
-    for (auto &cell : disk.active_cell_iterators())
-      cell->set_material_id(0);
-    GridTools::rotate(numbers::PI / 8.0, disk);
+  for (auto &face : disk.active_face_iterators())
+    if (std::abs(face->center(true)[0] - cylinder_radius) < 1e-10)
+      {
+        if (!curve_left_side_of_beam)
+          face->set_manifold_id(numbers::flat_manifold_id);
+        // we need to move these vertices down so that they are exactly
+        // beam_height apart, yet also still on the disk
+        Point<2> &p0 = face->vertex(0);
+        Point<2> &p1 = face->vertex(1);
+        Assert(std::abs(p0[0] - p1[0]) < 1e-10,
+               ExcMessage("x coordinates should be equal on this face"));
+        p0[0] = beam_bottom_left[0];
+        p0[1] = std::copysign(beam_bottom_left[1], p0[1]);
+        p1[0] = beam_bottom_left[0];
+        p1[1] = std::copysign(beam_bottom_left[1], p1[1]);
+      }
 
-    for (auto &face : disk.active_face_iterators())
-      if (std::abs(face->center(true)[0] - cylinder_radius) < 1e-10)
-        {
-          if (!curve_left_side_of_tail)
-            face->set_manifold_id(numbers::flat_manifold_id);
-          // we need to move these vertices down so that they are exactly
-          // tail_height apart, yet also still on the disk
-          Point<2> &p0 = face->vertex(0);
-          Point<2> &p1 = face->vertex(1);
-          Assert(std::abs(p0[0] - p1[0]) < 1e-10,
-                 ExcMessage("x coordinates should be equal on this face"));
-          p0[0] = tail_bottom_left[0];
-          p0[1] = std::copysign(tail_bottom_left[1], p0[1]);
-          p1[0] = tail_bottom_left[0];
-          p1[1] = std::copysign(tail_bottom_left[1], p1[1]);
-        }
+  // now set up the beam:
+  Triangulation<2> beam;
+  // we need to use one cell in the y direction: try to pick a sane value in x
+  const unsigned int n_x_cells = std::max(
+    1u, static_cast<unsigned int>(std::round(beam_length / beam_height)));
+  GridGenerator::subdivided_hyper_rectangle(beam,
+                                            {n_x_cells, 1u},
+                                            beam_bottom_left,
+                                            beam_upper_right,
+                                            true);
+  for (auto &cell : beam.active_cell_iterators())
+    cell->set_material_id(1);
+  GridTools::shift(cylinder_center, disk);
+  GridTools::shift(cylinder_center, beam);
+  disk.set_manifold(0, PolarManifold<2>(cylinder_center));
 
-    // now set up the tail:
-    Triangulation<2> tail;
-    // we need to use one cell in the y direction: try to pick a sane value in x
-    const unsigned int n_x_cells = std::max(
-      1u, static_cast<unsigned int>(std::round(tail_length / tail_height)));
-    GridGenerator::subdivided_hyper_rectangle(tail,
-                                              {n_x_cells, 1u},
-                                              tail_bottom_left,
-                                              tail_upper_right,
-                                              true);
-    for (auto &cell : tail.active_cell_iterators())
-      cell->set_material_id(1);
-    GridTools::shift(cylinder_center, disk);
-    GridTools::shift(cylinder_center, tail);
-    disk.set_manifold(0, PolarManifold<2>(cylinder_center));
-
-    return std::make_pair(std::move(disk), std::move(tail));
-  }
-
-  class BeamNeoHookeanStress : public fdl::ForceContribution<2>
-  {
-  public:
-    // todo more parameters
-    BeamNeoHookeanStress(const Quadrature<2>     &quad,
-                         const types::material_id beam_id,
-                         const double             tail_shear_modulus)
-      : ForceContribution<2>(quad)
-      , beam_id(beam_id)
-      , tail_shear_modulus(tail_shear_modulus)
-    {}
-
-    virtual bool
-    is_stress() const override
-    {
-      return true;
-    }
-
-    virtual fdl::MechanicsUpdateFlags
-    get_mechanics_update_flags() const override
-    {
-      return fdl::update_n23_det_FF | fdl::update_FF | fdl::update_FF_inv_T |
-             fdl::update_first_invariant;
-    }
-
-    virtual UpdateFlags
-    get_update_flags() const override
-    {
-      return UpdateFlags::update_default;
-    }
-
-    virtual void
-    compute_stress(const double                   /*time*/,
-                   const fdl::MechanicsValues<2> &me_values,
-                   const typename Triangulation<2>::active_cell_iterator &cell,
-                   ArrayView<Tensor<2, 2>> &stresses) const override
-    {
-      if (cell->material_id() == beam_id)
-        {
-          for (unsigned int qp_n = 0; qp_n < stresses.size(); ++qp_n)
-            {
-              const auto &n23_J    = me_values.get_n23_det_FF()[qp_n];
-              const auto &FF       = me_values.get_FF()[qp_n];
-              const auto &I1       = me_values.get_first_invariant()[qp_n];
-              const auto &FF_inv_T = me_values.get_FF_inv_T()[qp_n];
-              stresses[qp_n] = tail_shear_modulus * n23_J * (FF - (I1 / 3.0) * FF_inv_T);
-            }
-        }
-      else
-        {
-          std::fill(stresses.begin(), stresses.end(), Tensor<2, 2>());
-        }
-    }
-
-  private:
-    types::material_id beam_id;
-    double             tail_shear_modulus;
-  };
-
-  class BeamDilatationalStress : public fdl::ForceContribution<2>
-  {
-  public:
-    BeamDilatationalStress(const Quadrature<2>     &quad,
-                           const types::material_id beam_id,
-                           const double             tail_bulk_modulus)
-      : ForceContribution<2>(quad)
-      , beam_id(beam_id)
-      , tail_bulk_modulus(tail_bulk_modulus)
-    {}
-
-    virtual bool
-    is_stress() const override
-    {
-      return true;
-    }
-
-    virtual fdl::MechanicsUpdateFlags
-    get_mechanics_update_flags() const override
-    {
-      return fdl::update_det_FF | fdl::update_FF_inv_T;
-    }
-
-    virtual UpdateFlags
-    get_update_flags() const override
-    {
-      return UpdateFlags::update_default;
-    }
-
-    virtual void
-    compute_stress(const double                   /*time*/,
-                   const fdl::MechanicsValues<2> &me_values,
-                   const typename Triangulation<2>::active_cell_iterator &cell,
-                   ArrayView<Tensor<2, 2>> &stresses) const override
-    {
-      if (cell->material_id() == beam_id)
-        {
-          for (unsigned int qp_n = 0; qp_n < stresses.size(); ++qp_n)
-            {
-              const auto &J        = me_values.get_det_FF()[qp_n];
-              const auto &FF_inv_T = me_values.get_FF_inv_T()[qp_n];
-              stresses[qp_n]       = tail_bulk_modulus * J * std::log(J) * FF_inv_T;
-            }
-        }
-      else
-        {
-          std::fill(stresses.begin(), stresses.end(), Tensor<2, 2>());
-        }
-    }
-
-  private:
-    types::material_id beam_id;
-    double             tail_bulk_modulus;
-  };
-} // namespace ModelData
+  return std::make_pair(std::move(disk), std::move(beam));
+}
 
 // Function prototypes
 static std::ofstream drag_stream, lift_stream, A_x_posn_stream, A_y_posn_stream;
@@ -279,10 +160,10 @@ main(int argc, char *argv[])
     const bool dump_timer_data     = app_initializer->dumpTimerData();
     const int  timer_dump_interval = app_initializer->getTimerDumpInterval();
 
-    const double tail_shear_modulus    = input_db->getDouble("tail_shear_modulus");
-    const double tail_bulk_modulus     = input_db->getDouble("tail_bulk_modulus");
+    const double beam_shear_modulus    = input_db->getDouble("beam_shear_modulus");
+    const double beam_bulk_modulus     = input_db->getDouble("beam_bulk_modulus");
     const double disk_spring_constant  = input_db->getDouble("disk_spring_constant");
-    const double tail_spring_constant  = input_db->getDouble("tail_spring_constant");
+    const double beam_spring_constant  = input_db->getDouble("beam_spring_constant");
     const double disk_damping_constant = input_db->getDouble("disk_damping_constant");
 
     // Create major algorithm and data objects that comprise the
@@ -301,63 +182,72 @@ main(int argc, char *argv[])
     const Point<2> cylinder_center(0.2, 0.2);
     auto pair = ModelData::make_turek_hron_grid(cylinder_center, 0.05, 0.02, 0.35, false);
     auto &disk = pair.first;
-    auto &tail = pair.second;
+    auto &beam = pair.second;
+    const bool use_penalty_cylinder = input_db->getBoolWithDefault("use_penalty_cylinder", false);
 
-    FESystem<2> fe(FE_Q<2>(2), 2);
-    FESystem<1, 2> boundary_fe(FE_Q<1, 2>(1), 2);
-    QGauss<1>   boundary_quadrature(fe.tensor_degree() + 1);
-    QGauss<2>   quadrature1(fe.tensor_degree() + 1);
-    QGauss<2>   quadrature2(fe.tensor_degree() + 2);
+    const unsigned int penalty_fe_degree = 1;
+    const unsigned int beam_fe_degree = 2;
+    FESystem<2>        fe(FE_Q<2>(beam_fe_degree), 2);
+    FESystem<1, 2>     penalty_fe(FE_Q<1, 2>(penalty_fe_degree), 2);
 
-    const std::vector<types::material_id> cylinder_ids{0};
+    QGauss<1> boundary_quadrature(fe.tensor_degree() + 1);
+    QGauss<2> quadrature1(fe.tensor_degree() + 1);
+    QGauss<2> quadrature2(fe.tensor_degree() + 2);
+
+    std::vector<types::material_id> penalty_ids;
+    std::vector<types::material_id> beam_ids;
+    // We can skip the ID lookup when we have separate parts
+    if (use_penalty_cylinder)
+      {
+        penalty_ids.push_back(0);
+        beam_ids.push_back(1);
+      }
 
     std::vector<std::unique_ptr<fdl::ForceContribution<2>>> beam_forces;
+    beam_forces.emplace_back(std::make_unique<fdl::ModifiedNeoHookeanStress<2>>(
+      quadrature2, beam_shear_modulus, beam_ids));
+    beam_forces.emplace_back(std::make_unique<fdl::JLogJVolumetricEnergyStress<2>>(
+      quadrature2, beam_bulk_modulus, beam_ids));
     std::vector<std::unique_ptr<fdl::ForceContribution<1, 2>>> penalty_forces;
-    beam_forces.emplace_back(
-      std::make_unique<ModelData::BeamNeoHookeanStress>(quadrature2, 1, tail_shear_modulus));
-    beam_forces.emplace_back(
-      std::make_unique<ModelData::BeamDilatationalStress>(quadrature2,
-                                                          1,
-                                                          tail_bulk_modulus));
 
     std::vector<fdl::Part<2>> parts;
     std::vector<fdl::Part<1, 2>> penalty_parts;
     const double target_element_size =
       input_db->getDouble("MFAC") * input_db->getDouble("DX");
-    if (input_db->getBoolWithDefault("use_boundary_cylinder", false))
+    if (use_penalty_cylinder)
       {
-        while (GridTools::maximal_cell_diameter(disk) > target_element_size)
+        while (GridTools::maximal_cell_diameter(disk) > target_element_size * penalty_fe_degree)
           disk.refine_global(1);
-        while (GridTools::maximal_cell_diameter(tail) > target_element_size)
-          tail.refine_global(1);
+        while (GridTools::maximal_cell_diameter(beam) > target_element_size * beam_fe_degree)
+          beam.refine_global(1);
 
         std::vector<types::boundary_id> left{0u};
         beam_forces.emplace_back(std::make_unique<fdl::BoundarySpringForce<2>>(
-          boundary_quadrature, tail_spring_constant, left));
+          boundary_quadrature, beam_spring_constant, left));
 
         boundary_tria.set_manifold(0, PolarManifold<1, 2>(cylinder_center));
         GridGenerator::extract_boundary_mesh(
           disk, static_cast<Triangulation<1, 2> &>(boundary_tria));
         penalty_forces.emplace_back(std::make_unique<fdl::SpringForce<1, 2>>(
-          boundary_quadrature, disk_spring_constant, cylinder_ids));
+          boundary_quadrature, disk_spring_constant, penalty_ids));
         penalty_forces.emplace_back(std::make_unique<fdl::DampingForce<1, 2>>(
           boundary_quadrature, disk_damping_constant));
-        penalty_parts.emplace_back(boundary_tria, boundary_fe, std::move(penalty_forces));
-        tria.copy_triangulation(tail);
+        penalty_parts.emplace_back(boundary_tria, penalty_fe, std::move(penalty_forces));
+        tria.copy_triangulation(beam);
       }
     else
       {
         GridGenerator::merge_triangulations(pair.first, pair.second, tria, 1e-10, true, true);
         tria.set_manifold(0, PolarManifold<2>(cylinder_center));
 
-        while (GridTools::maximal_cell_diameter(tria) > target_element_size)
+        while (GridTools::maximal_cell_diameter(tria) > beam_fe_degree * target_element_size)
           tria.refine_global(1);
         // TODO: material-id dependent damping is not yet implemented
         // std::vector<types::material_id> disk_mids({0u});
         // beam_forces.emplace_back(std::make_unique<fdl::DampingForce<2>>(
         //   quadrature1, disk_damping_constant, disk_mids));
         beam_forces.emplace_back(std::make_unique<fdl::SpringForce<2>>(
-          quadrature1, disk_spring_constant, cylinder_ids));
+          quadrature1, disk_spring_constant, penalty_ids));
       }
     parts.emplace_back(tria, fe, std::move(beam_forces));
     

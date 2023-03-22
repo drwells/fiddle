@@ -1,4 +1,4 @@
-use_boundary_cylinder = TRUE
+use_penalty_cylinder = TRUE
 
 // physical parameters
 L     = 2.46            // width  of computational domain (m)
@@ -51,11 +51,11 @@ PROJECTION_METHOD_TYPE = "PRESSURE_UPDATE"
 SECOND_ORDER_PRESSURE_UPDATE = TRUE
 
 // model parameters
-tail_shear_modulus = 2.0e6
+beam_shear_modulus = 2.0e6
 
 // penalty parameters
-tail_bulk_modulus = DX/DT^2
-tail_spring_constant = 400*DX/DT^2
+beam_bulk_modulus = DX/DT^2
+beam_spring_constant = 400*DX/DT^2
 disk_spring_constant = 400*DX/DT^2
 disk_damping_constant = 0.05*DX/DT^2
 
