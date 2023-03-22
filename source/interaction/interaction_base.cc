@@ -232,7 +232,7 @@ namespace fdl
     if (index >= scatters.size())
       scatters.resize(index + 1);
     std::vector<Scatter<double>> &this_dh_scatters = scatters[index];
-    this_dh_scatters.emplace_back(scatter);
+    this_dh_scatters.emplace_back(std::move(scatter));
   }
 
 

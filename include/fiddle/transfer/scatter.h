@@ -37,6 +37,17 @@ namespace fdl
     Scatter() = default;
 
     /**
+     * Move constructor.
+     */
+    Scatter(Scatter<T> &&) = default;
+
+    /**
+     * Move assignment.
+     */
+    Scatter<T> &
+    operator=(Scatter<T> &&) = default;
+
+    /**
      * Constructor.
      */
     Scatter(const std::vector<types::global_dof_index> &overlap,
