@@ -685,7 +685,7 @@ namespace fdl
           const auto local_bboxes =
             compute_cell_bboxes<structdim, spacedim, float>(
               part.get_dof_handler(), mapping);
-          // Like most other things this only works with p::S::T now
+          // Like most other things this only works with p::s::T now
           const auto &tria = dynamic_cast<
             const parallel::shared::Triangulation<structdim, spacedim> &>(
             part.get_triangulation());
