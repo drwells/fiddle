@@ -685,7 +685,7 @@ namespace fdl
           const auto local_bboxes =
             compute_cell_bboxes<structdim, spacedim, float>(
               part.get_dof_handler(), mapping);
-          // Like most other things this only works with p::S::T now
+          // Like most other things this only works with p::s::T now
           const auto &tria = dynamic_cast<
             const parallel::shared::Triangulation<structdim, spacedim> &>(
             part.get_triangulation());
@@ -735,15 +735,22 @@ namespace fdl
     this->half_time    = std::numeric_limits<double>::quiet_NaN();
 
     // update positions and velocities:
-    auto do_set = [](auto &collection, auto &positions, auto &velocities)
+    unsigned int channel = 0;
+    auto do_set = [&](auto &collection, auto &positions, auto &velocities)
     {
       for (unsigned int i = 0; i < collection.size(); ++i)
         {
           auto &part = collection[i];
           part.set_position(std::move(positions[i]));
-          part.get_position().update_ghost_values();
+          part.get_position().update_ghost_values_start(channel++);
           part.set_velocity(std::move(velocities[i]));
-          part.get_velocity().update_ghost_values();
+          part.get_velocity().update_ghost_values_start(channel++);
+        }
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          auto &part = collection[i];
+          part.get_position().update_ghost_values_finish();
+          part.get_velocity().update_ghost_values_finish();
         }
     };
     auto new_positions  = part_vectors.get_all_new_positions();
@@ -773,14 +780,15 @@ namespace fdl
                       ExcFDLInternalError());
           // Set the position at the end time:
           LinearAlgebra::distributed::Vector<double> new_position(
-            part.get_partitioner());
-          new_position = part.get_position();
+            part.get_position());
+          new_position.set_ghost_state(false);
           new_position.add(dt, part.get_velocity());
           vectors.set_position(i, new_time, std::move(new_position));
 
           // Set the position at the half time:
           LinearAlgebra::distributed::Vector<double> half_position(
             part.get_partitioner());
+          half_position.set_ghost_state(false);
           half_position.add(0.5,
                             vectors.get_position(i, current_time),
                             0.5,
@@ -816,14 +824,15 @@ namespace fdl
                       ExcFDLInternalError());
           // Set the position at the end time:
           LinearAlgebra::distributed::Vector<double> new_position(
-            part.get_partitioner());
-          new_position = part.get_position();
+            part.get_position());
+          new_position.set_ghost_state(false);
           new_position.add(dt, vectors.get_velocity(i, half_time));
           vectors.set_position(i, new_time, std::move(new_position));
 
           // Set the position at the half time:
           LinearAlgebra::distributed::Vector<double> half_position(
             part.get_partitioner());
+          half_position.set_ghost_state(false);
           half_position.add(0.5,
                             vectors.get_position(i, current_time),
                             0.5,
@@ -855,9 +864,18 @@ namespace fdl
   {
     IBAMR_TIMER_START(t_compute_lagrangian_force);
 
+    unsigned int channel = 0;
     auto do_load =
       [&](auto &collection, auto &vectors, auto &forces, auto &right_hand_sides)
     {
+      // Unlike velocity interpolation and force spreading we actually need
+      // the ghost values in the native partitioning, so make sure they are
+      // available
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        vectors.get_position(i, data_time).update_ghost_values_start(channel++);
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        vectors.get_position(i, data_time).update_ghost_values_finish();
+
       for (unsigned int i = 0; i < collection.size(); ++i)
         {
           const auto &part = collection[i];
@@ -866,15 +884,11 @@ namespace fdl
           forces.emplace_back(part.get_partitioner());
           right_hand_sides.emplace_back(part.get_partitioner());
 
-          // The velocity isn't available at data_time so use current_time -
-          // IBFEMethod does this too.
           const auto &position = vectors.get_position(i, data_time);
-          const auto &velocity = vectors.get_velocity(i, current_time);
-          // Unlike velocity interpolation and force spreading we actually need
-          // the ghost values in the native partitioning, so make sure they are
-          // available
-          position.update_ghost_values();
-          velocity.update_ghost_values();
+          // The velocity isn't available at data_time so use current_time -
+          // IBFEMethod does this too. This is always equal to the part's
+          // current velocity and, by convention, has up-to-date ghost values.
+          const auto &velocity = part.get_velocity();
           for (auto &force : part.get_force_contributions())
             force->setup_force(data_time, position, velocity);
           for (auto &active_strain : part.get_active_strains())

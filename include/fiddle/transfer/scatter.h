@@ -39,13 +39,13 @@ namespace fdl
     /**
      * Move constructor.
      */
-    Scatter(Scatter<T> &&) = default;
+    Scatter(Scatter<T> &&);
 
     /**
      * Move assignment.
      */
     Scatter<T> &
-    operator=(Scatter<T> &&) = default;
+    operator=(Scatter<T> &&);
 
     /**
      * Constructor.
@@ -100,5 +100,26 @@ namespace fdl
 
     LinearAlgebra::distributed::Vector<T> scatterer;
   };
+
+
+  //
+  // inline functions
+  //
+
+  template <typename T>
+  Scatter<T>::Scatter(Scatter<T> &&t)
+  {
+    overlap_dofs.swap(t.overlap_dofs);
+    scatterer.swap(t.scatterer);
+  }
+
+  template <typename T>
+  Scatter<T> &
+  Scatter<T>::operator=(Scatter<T> &&t)
+  {
+    overlap_dofs.swap(t.overlap_dofs);
+    scatterer.swap(t.scatterer);
+    return *this;
+  }
 } // namespace fdl
 #endif

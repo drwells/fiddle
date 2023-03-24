@@ -93,11 +93,6 @@ public:
     this->part_vectors.set_force(0,
                                  this->current_time,
                                  std::move(current_force));
-    // Check that we don't have a bug that existed prior to about June of 2021
-    // w.r.t. move ctors and LA::d::V
-    Assert(
-      this->part_vectors.get_force(0, this->current_time).has_ghost_elements(),
-      ExcMessage("Should have ghosts"));
   }
 
   // just for testing - plot the force
@@ -320,9 +315,9 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
       const auto  &part = ifed_method.get_part(0);
       DataOut<dim> data_out;
       data_out.attach_dof_handler(part.get_dof_handler());
-      data_out.add_data_vector(ifed_method.get_force(), "F");
-      Assert(ifed_method.get_force().has_ghost_elements(),
-             ExcMessage("Should have ghosts"));
+      auto &force = ifed_method.get_force();
+      force.update_ghost_values();
+      data_out.add_data_vector(force, "F");
 
       MappingFEField<dim, spacedim, LinearAlgebra::distributed::Vector<double>>
         position_mapping(part.get_dof_handler(), part.get_position());

@@ -23,6 +23,12 @@ namespace fdl
    * beginning of the timestep, but by the end of the timestep we will also have
    * it at the end. This class provides some basic checking to make sure we only
    * access vectors that exist at the requested time.
+   *
+   * The major operations done at each timestep, namely IB operations and
+   * linear algebra, do not require ghost values. Hence this class will always
+   * set stored vectors to 'unghosted' to avoid extra communication. If you
+   * need ghost values then you will need to call the relevant functions as
+   * needed.
    */
   template <int dim, int spacedim = dim>
   class PartVectors

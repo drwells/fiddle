@@ -119,6 +119,7 @@ namespace fdl
     LinearAlgebra::distributed::Vector<double> position)
   {
     AssertIndexRange(part_n, parts.size());
+    position.set_ghost_state(false);
     switch (get_time_step(time))
       {
         case TimeStep::Current:
@@ -171,6 +172,7 @@ namespace fdl
     LinearAlgebra::distributed::Vector<double> velocity)
   {
     AssertIndexRange(part_n, parts.size());
+    velocity.set_ghost_state(false);
     switch (get_time_step(time))
       {
         case TimeStep::Current:
@@ -225,6 +227,7 @@ namespace fdl
     LinearAlgebra::distributed::Vector<double> force)
   {
     AssertIndexRange(part_n, parts.size());
+    force.set_ghost_state(false);
     switch (get_time_step(time))
       {
         case TimeStep::Current:
