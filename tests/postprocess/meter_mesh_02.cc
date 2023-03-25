@@ -55,6 +55,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   auto tuple           = setup_hierarchy<spacedim>(app_initializer);
   auto patch_hierarchy = std::get<0>(tuple);
   auto f_idx           = std::get<5>(tuple);
+  auto g_idx           = std::get<6>(tuple);
 
   // setup deal.II stuff
   parallel::shared::Triangulation<dim, spacedim> tria(mpi_comm);
@@ -63,6 +64,10 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   FunctionParser<spacedim> fp(extract_fp_string(test_db->getDatabase("f")),
                               "PI=" + std::to_string(numbers::PI),
                               "X_0,X_1,X_2");
+  FunctionParser<spacedim> gp(extract_fp_string(test_db->getDatabase("g")),
+                              "PI=" + std::to_string(numbers::PI),
+                              "X_0,X_1,X_2");
+
 
   FESystem<dim, spacedim>   fe(FE_Q<dim, spacedim>(1), spacedim);
   DoFHandler<dim, spacedim> dof_handler(tria);
@@ -131,11 +136,17 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
       meter_mesh.get_triangulation();
     const auto interpolated_F =
       meter_mesh.interpolate_vector_field(f_idx, "BSPLINE_3");
+    const auto interpolated_G =
+      meter_mesh.interpolate_scalar_field(g_idx, "BSPLINE_3");
     DataOut<dim - 1, spacedim> data_out;
-    data_out.attach_dof_handler(meter_mesh.get_vector_dof_handler());
-    data_out.add_data_vector(interpolated_F, "F");
+    data_out.add_data_vector(meter_mesh.get_vector_dof_handler(),
+                             interpolated_F,
+                             "F");
+    data_out.add_data_vector(meter_mesh.get_scalar_dof_handler(),
+                             interpolated_G,
+                             "G");
 
-    double global_error = 0.0;
+    double global_f_error = 0.0;
     {
       Vector<double> error(meter_tria.n_active_cells());
       interpolated_F.update_ghost_values();
@@ -146,12 +157,28 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                         error,
                                         QGauss<dim - 1>(3),
                                         VectorTools::L2_norm);
-      global_error = VectorTools::compute_global_error(meter_tria,
-                                                       error,
-                                                       VectorTools::L2_norm);
+      global_f_error = VectorTools::compute_global_error(meter_tria,
+                                                         error,
+                                                         VectorTools::L2_norm);
+    }
+    double global_g_error = 0.0;
+    {
+      Vector<double> error(meter_tria.n_active_cells());
+      interpolated_G.update_ghost_values();
+      VectorTools::integrate_difference(meter_mesh.get_mapping(),
+                                        meter_mesh.get_scalar_dof_handler(),
+                                        interpolated_G,
+                                        gp,
+                                        error,
+                                        QGauss<dim - 1>(3),
+                                        VectorTools::L2_norm);
+      global_g_error = VectorTools::compute_global_error(meter_tria,
+                                                         error,
+                                                         VectorTools::L2_norm);
     }
 
     Tensor<1, spacedim> mean_velocity;
+    double              flux;
     double              area = 0.0;
     if (dim == 3)
       {
@@ -166,6 +193,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
         const Triangulation<dim - 1, spacedim> &meter_tria =
           meter_mesh.get_triangulation();
         Quadrature<dim - 2>           face_quadrature(points, weights);
+        QGaussSimplex<dim - 1>        cell_quadrature(3);
         FE_Nothing<dim - 1, spacedim> fe_nothing(
           meter_tria.get_reference_cells()[0]);
         FEFaceValues<dim - 1, spacedim> face_values(meter_mesh.get_mapping(),
@@ -173,26 +201,47 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                                     face_quadrature,
                                                     update_JxW_values |
                                                       update_quadrature_points);
+        FEValues<dim - 1, spacedim>     fe_values(meter_mesh.get_mapping(),
+                                              fe_nothing,
+                                              cell_quadrature,
+                                              update_normal_vectors |
+                                                update_quadrature_points |
+                                                update_JxW_values);
         for (const auto &cell : meter_tria.active_cell_iterators())
-          for (unsigned int face_no : cell->face_indices())
-            if (cell->face(face_no)->at_boundary())
+          {
+            fe_values.reinit(cell);
+            for (unsigned int q = 0; q < cell_quadrature.size(); ++q)
               {
-                face_values.reinit(cell, face_no);
-                for (unsigned int d = 0; d < spacedim; ++d)
-                  {
-                    mean_velocity[d] +=
-                      fp.value(face_values.get_quadrature_points()[0], d) *
-                      face_values.get_JxW_values()[0];
-                    mean_velocity[d] +=
-                      fp.value(face_values.get_quadrature_points()[1], d) *
-                      face_values.get_JxW_values()[1];
-                  }
-                area += face_values.get_JxW_values()[0];
-                area += face_values.get_JxW_values()[1];
+                Tensor<1, spacedim> fp_value;
+                for (unsigned int d = 0; d < dim; ++d)
+                  fp_value[d] = fp.value(fe_values.quadrature_point(q), d);
+                flux +=
+                  fp_value * fe_values.normal_vector(q) * fe_values.JxW(q);
               }
+
+            for (unsigned int face_no : cell->face_indices())
+              if (cell->face(face_no)->at_boundary())
+                {
+                  face_values.reinit(cell, face_no);
+                  for (unsigned int d = 0; d < spacedim; ++d)
+                    {
+                      mean_velocity[d] +=
+                        fp.value(face_values.get_quadrature_points()[0], d) *
+                        face_values.get_JxW_values()[0];
+                      mean_velocity[d] +=
+                        fp.value(face_values.get_quadrature_points()[1], d) *
+                        face_values.get_JxW_values()[1];
+                    }
+                  area += face_values.get_JxW_values()[0];
+                  area += face_values.get_JxW_values()[1];
+                }
+          }
         mean_velocity /= area;
       }
 
+    const double meter_flux = meter_mesh.compute_flux(f_idx, "BSPLINE_3");
+    const double meter_centroid_g =
+      meter_mesh.compute_centroid_value(g_idx, "BSPLINE_3");
     if (rank == 0)
       output << "number of hull points = " << bounding_disk_points.size()
              << std::endl
@@ -201,9 +250,16 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
              << "number of active cells = " << meter_tria.n_active_cells()
              << std::endl
              << "centroid = " << meter_mesh.get_centroid() << std::endl
-             << "global error in F = " << global_error << std::endl
+             << "computed centroid G = " << gp.value(meter_mesh.get_centroid())
+             << std::endl
+             << "   meter centroid G = " << meter_centroid_g << std::endl
+             << "global error in F = " << global_f_error << std::endl
+             << "global error in G = " << global_g_error << std::endl
              << "computed mean velocity = " << mean_velocity << std::endl
              << "   meter mean velocity = " << meter_mesh.get_mean_velocity()
+             << std::endl
+             << "computed flux = " << flux << std::endl
+             << "   meter flux = " << meter_flux << std::endl
              << std::endl
              << "global error in mean velocity = "
              << (mean_velocity - meter_mesh.get_mean_velocity()).norm()

@@ -195,6 +195,19 @@ namespace fdl
     compute_mean_value(const int data_idx, const std::string &kernel_name);
 
     /**
+     * Compute the flux of some quantity through the meter mesh.
+     */
+    double
+    compute_flux(const int data_idx, const std::string &kernel_name);
+
+    /**
+     * Interpolate the value of some scalar field at the centroid.
+     */
+    double
+    compute_centroid_value(const int          data_idx,
+                           const std::string &kernel_name) const;
+
+    /**
      * Return the centroid of the meter mesh. This point may not be inside the
      * mesh.
      */
@@ -273,6 +286,17 @@ namespace fdl
      * Meter centroid.
      */
     Point<spacedim> centroid;
+
+    /**
+     * Meter centroid, in reference cell coordinates.
+     */
+    Point<dim - 1> ref_centroid;
+
+    /**
+     * Cell containing the centroid.
+     */
+    typename Triangulation<dim - 1, spacedim>::active_cell_iterator
+      centroid_cell;
 
     /**
      * Scalar FiniteElement used on meter_tria
