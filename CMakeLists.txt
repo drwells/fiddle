@@ -122,18 +122,36 @@ FOREACH(_d ${FIDDLE_DIMENSIONS})
   TARGET_LINK_LIBRARIES(${_lib} PUBLIC FIDDLEHeaders)
   # if we want to write a config header it should be added as a dependency here
 
+  # Check for the new version
+  IF("${DEAL_II_INCLUDE_DIRS}" STREQUAL "")
+    SET(_use_dealii_targets TRUE)
+  ELSE()
+    SET(_use_dealii_targets FALSE)
+  ENDIF()
+
   # add some flags to get triangle compiling
   TARGET_COMPILE_OPTIONS(${_lib} PRIVATE -DANSI_DECLARATORS)
   TARGET_COMPILE_OPTIONS(${_lib} PRIVATE -DTRILIBRARY)
 
   IF(${CMAKE_BUILD_TYPE} STREQUAL "Debug" OR ${CMAKE_BUILD_TYPE} STREQUAL "DEBUG")
-    TARGET_LINK_LIBRARIES(${_lib} PUBLIC ${DEAL_II_LIBRARIES_DEBUG})
+    IF(${_use_dealii_targets})
+      TARGET_LINK_LIBRARIES(${_lib} PUBLIC dealii::dealii_debug)
+    ELSE()
+      TARGET_LINK_LIBRARIES(${_lib} PUBLIC ${DEAL_II_LIBRARIES_DEBUG})
+    ENDIF()
   ELSEIF(${CMAKE_BUILD_TYPE} STREQUAL "RELEASE" OR ${CMAKE_BUILD_TYPE} STREQUAL "Release")
-    TARGET_LINK_LIBRARIES(${_lib} PUBLIC ${DEAL_II_LIBRARIES_RELEASE})
+    IF(${_use_dealii_targets})
+      TARGET_LINK_LIBRARIES(${_lib} PUBLIC dealii::dealii_release)
+    ELSE()
+      TARGET_LINK_LIBRARIES(${_lib} PUBLIC ${DEAL_II_LIBRARIES_RELEASE})
+    ENDIF()
   ELSE()
     MESSAGE(FATAL_ERROR "CMAKE_BUILD_TYPE should be DEBUG or RELEASE")
   ENDIF()
-  TARGET_INCLUDE_DIRECTORIES(${_lib} PUBLIC ${DEAL_II_INCLUDE_DIRS})
+
+  IF(NOT $(_use_dealii_targets))
+    TARGET_INCLUDE_DIRECTORIES(${_lib} PUBLIC ${DEAL_II_INCLUDE_DIRS})
+  ENDIF()
 
   TARGET_LINK_LIBRARIES(${_lib} PUBLIC "IBAMR::IBAMR${_d}d")
 
