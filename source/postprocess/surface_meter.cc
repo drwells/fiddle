@@ -74,9 +74,9 @@ namespace fdl
           {
             std::vector<unsigned int> all_vertices;
             GridTools::delete_duplicated_vertices(vertices,
-                                          cell_data,
-                                          sub_cell_data,
-                                          all_vertices);
+                                                  cell_data,
+                                                  sub_cell_data,
+                                                  all_vertices);
           }
         GridTools::consistently_order_cells(cell_data);
         tria.create_triangulation(vertices, cell_data, sub_cell_data);
@@ -91,7 +91,9 @@ namespace fdl
 
         // the input may be a parallel Triangulation, so copy back-and-forth
         Triangulation<2, 3> serial_tria;
-        create_planar_triangulation(boundary_points, serial_tria, additional_data);
+        create_planar_triangulation(boundary_points,
+                                    serial_tria,
+                                    additional_data);
         fit_boundary_vertices(boundary_points, serial_tria);
         tria.clear();
         tria.copy_triangulation(serial_tria);
@@ -147,7 +149,7 @@ namespace fdl
   bool
   SurfaceMeter<dim, spacedim>::uses_codim_zero_mesh() const
   {
-      return position_dof_handler != nullptr;
+    return position_dof_handler != nullptr;
   }
 
   template <int dim, int spacedim>
@@ -190,7 +192,7 @@ namespace fdl
   void
   SurfaceMeter<dim, spacedim>::reinit_tria(
     const std::vector<Point<spacedim>> &boundary_points,
-    const bool place_additional_boundary_vertices)
+    const bool                          place_additional_boundary_vertices)
   {
     double dx_0 = std::numeric_limits<double>::max();
     tbox::Pointer<hier::PatchLevel<spacedim>> level =
@@ -212,8 +214,8 @@ namespace fdl
     meter_tria.clear();
     Triangle::AdditionalData additional_data;
     additional_data.target_element_area = target_element_area;
-    additional_data.place_additional_boundary_vertices
-      = place_additional_boundary_vertices;
+    additional_data.place_additional_boundary_vertices =
+      place_additional_boundary_vertices;
     internal::setup_meter_tria(boundary_points, meter_tria, additional_data);
 
     meter_mapping = meter_tria.get_reference_cells()[0]
