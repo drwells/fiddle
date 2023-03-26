@@ -9,6 +9,11 @@ test
     function_2 = "sin(2*PI*(X_0-0.1234))*sin(2*PI*(X_1-0.1234))*cos(2*PI*(X_2-0.1234))"
   }
 
+  g
+  {
+    function = "cos(2*PI*(X_0-0.1234))*sin(2*PI*(X_1-0.1234))*sin(2*PI*(X_2-0.1234))"
+  }
+
   n_global_refinements = 4
 }
 

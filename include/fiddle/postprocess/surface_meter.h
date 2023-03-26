@@ -71,9 +71,11 @@ namespace fdl
      * @param[in] position_dof_handler DoFHandler describing the position and
      * velocity finite element spaces.
      *
-     * @param[in] convex_hull Points, in reference coordinates, describing the
-     * boundary of the meter mesh. These points typically outline a disk and
-     * typically come from a node set defined on the Triangulation associated
+     * @param[in] boundary_points Points, in reference configuration coordinates
+     * (i.e., they are on the interior or boundary of the Triangulation),
+     * describing the boundary of the meter mesh. These points typically outline
+     * a disk and typically come from a node set defined on the Triangulation
+     * associated
      * with @p dof_handler.
      *
      * @warning This function uses PointValues to compute the positions of the
@@ -86,7 +88,7 @@ namespace fdl
     SurfaceMeter(
       const Mapping<dim, spacedim>                     &mapping,
       const DoFHandler<dim, spacedim>                  &position_dof_handler,
-      const std::vector<Point<spacedim>>               &convex_hull,
+      const std::vector<Point<spacedim>>               &boundary_points,
       tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
       const LinearAlgebra::distributed::Vector<double> &position,
       const LinearAlgebra::distributed::Vector<double> &velocity);
@@ -96,7 +98,7 @@ namespace fdl
      * element fields.
      */
     SurfaceMeter(
-      const std::vector<Point<spacedim>>               &convex_hull,
+      const std::vector<Point<spacedim>>               &boundary_points,
       const std::vector<Tensor<1, spacedim>>           &velocity,
       tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy);
 
@@ -122,7 +124,7 @@ namespace fdl
      * constructor) uses purely nodal data.
      */
     void
-    reinit(const std::vector<Point<spacedim>>     &convex_hull,
+    reinit(const std::vector<Point<spacedim>>     &boundary_points,
            const std::vector<Tensor<1, spacedim>> &velocity);
 
     /**
@@ -193,6 +195,19 @@ namespace fdl
     compute_mean_value(const int data_idx, const std::string &kernel_name);
 
     /**
+     * Compute the flux of some quantity through the meter mesh.
+     */
+    double
+    compute_flux(const int data_idx, const std::string &kernel_name);
+
+    /**
+     * Interpolate the value of some scalar field at the centroid.
+     */
+    double
+    compute_centroid_value(const int          data_idx,
+                           const std::string &kernel_name) const;
+
+    /**
      * Return the centroid of the meter mesh. This point may not be inside the
      * mesh.
      */
@@ -213,7 +228,7 @@ namespace fdl
      * points and then add more.
      */
     void
-    reinit_tria(const std::vector<Point<spacedim>> &convex_hull,
+    reinit_tria(const std::vector<Point<spacedim>> &boundary_points,
                 const bool place_additional_boundary_vertices);
 
     void
@@ -271,6 +286,17 @@ namespace fdl
      * Meter centroid.
      */
     Point<spacedim> centroid;
+
+    /**
+     * Meter centroid, in reference cell coordinates.
+     */
+    Point<dim - 1> ref_centroid;
+
+    /**
+     * Cell containing the centroid.
+     */
+    typename Triangulation<dim - 1, spacedim>::active_cell_iterator
+      centroid_cell;
 
     /**
      * Scalar FiniteElement used on meter_tria

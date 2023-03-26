@@ -56,11 +56,9 @@ namespace fdl
 
     /**
      * Scatter a sequential vector indexed by the specified overlap dofs into
-     * the
-     * parallel distributed vector @p output. Since multiple values may be set for
-     * the same dof in the overlap vector a VectorOperation is required to
-     * combine
-     * values. Ghost values of @p output are not set.
+     * the parallel distributed vector @p output. Since multiple values may be
+     * set for the same dof in the overlap vector a VectorOperation is required
+     * to combine values. Ghost values of @p output are not set.
      */
     void
     overlap_to_global_start(const Vector<T>                       &input,
