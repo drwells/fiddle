@@ -98,9 +98,9 @@ main(int argc, char **argv)
     current[i] = 2.0 + reference[i];
 
   // We have to do some manual setup of stuff normally done inside the library
-  MappingCartesian<2>     mapping;
-  QMidpoint<2>            quadrature;
-  const double spring_constant = 10.0;
+  MappingCartesian<2> mapping;
+  QMidpoint<2>        quadrature;
+  const double        spring_constant = 10.0;
 
   std::unique_ptr<fdl::SpringForce<2>> spring_force;
   if (input_db->getBoolWithDefault("multiple_materials", false))
@@ -111,16 +111,20 @@ main(int argc, char **argv)
       else
         materials = {42, 99, 99, 99, 42};
       if (input_db->getBoolWithDefault("use_function", false))
-        spring_force = std::make_unique<fdl::SpringForce<2>>(quadrature,
-                                                             spring_constant,
-                                                             dof_handler,
-                                                             mapping,
-                                                             IP2<2>(),
-                                                             materials);
+        {
+          spring_force = std::make_unique<fdl::SpringForce<2>>(quadrature,
+                                                               spring_constant,
+                                                               dof_handler,
+                                                               mapping,
+                                                               IP2<2>(),
+                                                               materials);
+          spring_force->set_reference_position(reference);
+        }
       else
         // use the reference configuration in one of the tests
-        spring_force = std::make_unique<fdl::SpringForce<2>>(
-          quadrature, spring_constant, materials);
+        spring_force = std::make_unique<fdl::SpringForce<2>>(quadrature,
+                                                             spring_constant,
+                                                             materials);
     }
   else
     {
@@ -132,13 +136,13 @@ main(int argc, char **argv)
                                                              spring_constant,
                                                              dof_handler,
                                                              current);
+      spring_force->set_reference_position(reference);
     }
-  spring_force->set_reference_position(reference);
 
   FEValues<2>             fe_values(mapping,
-                                    fe,
-                                    quadrature,
-                                    spring_force->get_update_flags());
+                        fe,
+                        quadrature,
+                        spring_force->get_update_flags());
   fdl::MechanicsValues<2> m_values(fe_values,
                                    current,
                                    current,
