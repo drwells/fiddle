@@ -528,12 +528,6 @@ namespace fdl
   public:
     /**
      * Constructor.
-     */
-    JLogJVolumetricEnergyStress(const Quadrature<dim> &quad,
-                                const double           bulk_modulus);
-
-    /**
-     * Constructor.
      *
      * @note if @p material_ids is empty then the force will be applied on
      * every cell.
@@ -586,12 +580,6 @@ namespace fdl
     : public ForceContribution<dim, spacedim, Number>
   {
   public:
-    /**
-     * Constructor.
-     */
-    LogarithmicVolumetricEnergyStress(const Quadrature<dim> &quad,
-                                      const double           bulk_modulus);
-
     /**
      * Constructor.
      *

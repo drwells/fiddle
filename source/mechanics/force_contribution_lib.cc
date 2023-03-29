@@ -774,14 +774,6 @@ namespace fdl
 
   template <int dim, int spacedim, typename Number>
   JLogJVolumetricEnergyStress<dim, spacedim, Number>::
-    JLogJVolumetricEnergyStress(const Quadrature<dim> &quad,
-                                const double           bulk_modulus)
-    : ForceContribution<dim, spacedim, Number>(quad)
-    , bulk_modulus(bulk_modulus)
-  {}
-
-  template <int dim, int spacedim, typename Number>
-  JLogJVolumetricEnergyStress<dim, spacedim, Number>::
     JLogJVolumetricEnergyStress(
       const Quadrature<dim>                 &quad,
       const double                           bulk_modulus,
@@ -839,14 +831,6 @@ namespace fdl
   //
   // LogarithmicVolumetricEnergyStress
   //
-
-  template <int dim, int spacedim, typename Number>
-  LogarithmicVolumetricEnergyStress<dim, spacedim, Number>::
-    LogarithmicVolumetricEnergyStress(const Quadrature<dim> &quad,
-                                      const double           bulk_modulus)
-    : ForceContribution<dim, spacedim, Number>(quad)
-    , bulk_modulus(bulk_modulus)
-  {}
 
   template <int dim, int spacedim, typename Number>
   LogarithmicVolumetricEnergyStress<dim, spacedim, Number>::
