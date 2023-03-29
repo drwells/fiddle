@@ -1,0 +1,163 @@
+Number of cells = 16
+DampingForce
+cell = 2.0 material id = 1
+  -0.531565 0.500591
+  -0.540451 1.86823
+  -1.98383 0.424855
+  -2.01699 1.58558
+cell = 2.1 material id = 1
+  -0.55822 2.94638
+  -0.597882 4.5243
+  -2.08331 2.72253
+  -2.23132 4.66802
+cell = 2.2 material id = 42
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.3 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.4 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.5 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.6 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.7 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.8 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.9 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.10 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.11 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.12 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.13 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.14 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.15 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+SpringForce
+cell = 2.0 material id = 1
+  -0.250264 -0.265971
+  -0.926413 -0.266123
+  -0.20862 -0.983916
+  -0.773549 -0.988352
+cell = 2.1 material id = 1
+  -1.45014 -0.267746
+  -2.18126 -0.269477
+  -1.31719 -0.995493
+  -2.19286 -0.987066
+cell = 2.2 material id = 42
+  -0.214264 -1.48849
+  -0.794627 -1.46478
+  -0.265817 -2.13276
+  -0.987859 -2.01937
+cell = 2.3 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.4 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.5 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.6 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.7 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.8 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.9 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.10 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.11 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.12 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.13 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.14 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
+cell = 2.15 material id = 0
+  0 0
+  0 0
+  0 0
+  0 0
