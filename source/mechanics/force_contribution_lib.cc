@@ -364,10 +364,12 @@ namespace fdl
 
   template <int dim, int spacedim, typename Number>
   DampingForce<dim, spacedim, Number>::DampingForce(
-    const Quadrature<dim> &quad,
-    const double           damping_constant)
+    const Quadrature<dim>                 &quad,
+    const double                           damping_constant,
+    const std::vector<types::material_id> &material_ids)
     : ForceContribution<dim, spacedim, double>(quad)
     , damping_constant(damping_constant)
+    , material_ids(material_ids)
   {}
 
   template <int dim, int spacedim, typename Number>
@@ -390,14 +392,29 @@ namespace fdl
     const double /*time*/,
     const MechanicsValues<dim, spacedim> &m_values,
     const typename Triangulation<dim, spacedim>::active_cell_iterator
-      & /*cell*/,
+      & cell,
     ArrayView<Tensor<1, spacedim, Number>> &forces) const
   {
-    std::copy(m_values.get_velocity_values().begin(),
-              m_values.get_velocity_values().end(),
-              forces.begin());
-    for (auto &force : forces)
-      force *= -damping_constant;
+    if (this->material_ids.size() > 0 &&
+        !std::binary_search(this->material_ids.begin(),
+                            this->material_ids.end(),
+                            cell->material_id()))
+      {
+        // the user specified a subset of material ids and we currently don't
+        // match - fill with zeros
+        for (auto &force : forces)
+          force = 0.0;
+      }
+    else
+      {
+        Assert(forces.size() == this->get_velocity_values().size(),
+               ExcInternalError());
+        std::copy(m_values.get_velocity_values().begin(),
+                  m_values.get_velocity_values().end(),
+                  forces.begin());
+        for (auto &force : forces)
+            force *= -damping_constant;
+      }
   }
 
   //

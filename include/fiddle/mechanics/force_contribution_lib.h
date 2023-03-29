@@ -234,7 +234,9 @@ namespace fdl
     /**
      * Constructor.
      */
-    DampingForce(const Quadrature<dim> &quad, const double damping_constant);
+    DampingForce(const Quadrature<dim> &quad,
+                 const double damping_constant,
+                 const std::vector<types::material_id> &material_ids = {});
 
     /**
      * Get the update flags this force contribution requires for MechanicsValues
@@ -251,12 +253,14 @@ namespace fdl
       const double                          time,
       const MechanicsValues<dim, spacedim> &m_values,
       const typename Triangulation<dim, spacedim>::active_cell_iterator
-        & /*cell*/,
+        & cell,
       ArrayView<Tensor<1, spacedim, Number>> &forces) const override;
 
 
   protected:
     double damping_constant;
+
+    std::vector<types::material_id> material_ids;
   };
 
   /**
