@@ -325,6 +325,47 @@ namespace fdl
     return t_ptr;
   }
 
+
+  template <int dim, int spacedim>
+  void
+  NodalInteraction<dim, spacedim>::compute_projection_rhs_finish(
+    std::unique_ptr<TransactionBase> t_ptr)
+  {
+    auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
+    Assert((trans.operation ==
+            Transaction<dim, spacedim>::Operation::Interpolation),
+           ExcMessage("Transaction operation should be Interpolation"));
+    Assert((trans.next_state == Transaction<dim, spacedim>::State::Finish),
+           ExcMessage("Transaction state should be Finish"));
+
+    trans.rhs_scatter.overlap_to_global_finish(trans.overlap_rhs,
+                                               trans.rhs_scatter_back_op,
+                                               *trans.native_rhs);
+    trans.next_state = Transaction<dim, spacedim>::State::Done;
+
+    // If nodes are outside the domain then their value is still -DBL_MAX (in
+    // contrast, if a node moved from one patch to another, the max operation
+    // would have resolved the -DBL_MAX value). Hence we need to fix that here:
+    //
+    // TODO: if this takes a measurable amount of time to execute then it
+    // would be better to only check DoFs which are within 1 cell of the
+    // boundary as of the last regrid.
+    auto &vec = *trans.native_rhs;
+    const auto size = vec.locally_owned_size();
+    DEAL_II_OPENMP_SIMD_PRAGMA
+    for (types::global_dof_index i = 0; i < size; ++i)
+      {
+        double &v = vec.local_element(i);
+        if (v == std::numeric_limits<double>::lowest())
+          v = 0.0;
+      }
+
+    this->return_scatter(*trans.native_position_dof_handler,
+                         std::move(trans.position_scatter));
+    this->return_scatter(*trans.native_dof_handler,
+                         std::move(trans.rhs_scatter));
+  }
+
   template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
   NodalInteraction<dim, spacedim>::compute_spread_intermediate(
