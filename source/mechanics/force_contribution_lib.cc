@@ -407,7 +407,7 @@ namespace fdl
       }
     else
       {
-        Assert(forces.size() == this->get_velocity_values().size(),
+        Assert(forces.size() == m_values.get_velocity_values().size(),
                ExcInternalError());
         std::copy(m_values.get_velocity_values().begin(),
                   m_values.get_velocity_values().end(),

@@ -178,7 +178,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     }
 
     Tensor<1, spacedim> mean_velocity;
-    double              flux;
+    double              flux = 0.0;
     double              area = 0.0;
     if (dim == 3)
       {

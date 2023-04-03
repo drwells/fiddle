@@ -104,6 +104,12 @@ namespace fdl
     /**
      * TODO
      */
+    virtual void
+    compute_projection_rhs_finish(std::unique_ptr<TransactionBase> transaction) override;
+
+    /**
+     * TODO
+     */
     virtual std::unique_ptr<TransactionBase>
     compute_spread_intermediate(
       std::unique_ptr<TransactionBase> transaction) override;

@@ -53,7 +53,10 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   center[0]       = 0.6;
   center[1]       = 0.5;
   center[dim - 1] = 0.5; // works in 2D and 3D
-  GridGenerator::hyper_ball(native_tria, center, 0.2);
+  if (test_db->getBoolWithDefault("use_points_outside_domain", false))
+    GridGenerator::hyper_cube(native_tria, -0.0001, 1.0001, true);
+  else
+    GridGenerator::hyper_ball(native_tria, center, 0.2);
   native_tria.refine_global(
     test_db->getIntegerWithDefault("n_global_refinements", 3));
   GridGenerator::extract_boundary_mesh(native_tria, boundary_tria);
