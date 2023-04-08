@@ -107,11 +107,11 @@ namespace fdl
     /// Possible states for a transaction.
     enum class State
     {
-      NativeToOverlapStart,
-      NativeToOverlapFinish,
+      ScatterStart,
+      ScatterFinish,
       Intermediate,
-      OverlapToNativeStart,
-      OverlapToNativeFinish,
+      AccumulateStart,
+      AccumulateFinish,
       Done
     };
 
@@ -158,11 +158,11 @@ namespace fdl
     /// Possible states for a transaction.
     enum class State
     {
-      NativeToOverlapStart,
-      NativeToOverlapFinish,
+      ScatterStart,
+      ScatterFinish,
       Intermediate,
-      OverlapToNativeStart,
-      OverlapToNativeFinish,
+      AccumulateStart,
+      AccumulateFinish,
       Done
     };
 
@@ -266,17 +266,17 @@ namespace fdl
      * interpolation requires multiple data transfers it is split into five
      * parts. In particular, this first function begins the asynchronous scatter
      * from the native representation to the overlapping representation (the
-     * 'forward' direction).
+     * 'scatter' direction).
      *
      * @return This function returns a Transaction object which completely
      * encapsulates the current state of the interpolation.
      *
      * @warning The Transaction returned by this method stores pointers to all
      * of the input arguments. Those pointers must remain valid until after
-     * compute_projection_rhs_finish is called.
+     * compute_projection_rhs_accumulate_finish() is called.
      */
     virtual std::unique_ptr<TransactionBase>
-    compute_projection_rhs_forward_start(
+    compute_projection_rhs_scatter_start(
       const std::string                                &kernel_name,
       const int                                         data_idx,
       const DoFHandler<dim, spacedim>                  &position_dof_handler,
@@ -289,12 +289,12 @@ namespace fdl
      * Finish the scatter to the overlap representation.
      */
     virtual std::unique_ptr<TransactionBase>
-    compute_projection_rhs_forward_finish(
+    compute_projection_rhs_scatter_finish(
       std::unique_ptr<TransactionBase> transaction) const;
 
     /**
-     * Middle part of velocity interpolation - finalizes the forward scatters
-     * and then performs the actual computations.
+     * Middle part of velocity interpolation - finalizes the scatters and then
+     * performs the actual computations.
      *
      * @note this function does not compute anything - inheriting classes should
      * reimplement this method to set up the RHS in the desired way.
@@ -304,13 +304,20 @@ namespace fdl
       std::unique_ptr<TransactionBase> transaction) const;
 
     /**
-     * Finish the computation of the RHS vector corresponding to projecting @p
-     * data_idx onto the finite element space specified by @p dof_handler.
-     * This step accumulates the RHS vector computed in the overlap
+     * This step begins accumulation of the RHS vector computed in the overlap
      * representation back to the native representation.
      */
+    virtual std::unique_ptr<TransactionBase>
+    compute_projection_rhs_accumulate_start(
+      std::unique_ptr<TransactionBase> transaction) const;
+
+    /**
+     * Finish the computation of the RHS vector corresponding to projecting @p
+     * data_idx onto the finite element space specified by @p dof_handler.
+     */
     virtual void
-    compute_projection_rhs_finish(std::unique_ptr<TransactionBase> transaction);
+    compute_projection_rhs_accumulate_finish(
+      std::unique_ptr<TransactionBase> transaction);
 
     /**
      * Start spreading from the provided finite element field @p F by adding

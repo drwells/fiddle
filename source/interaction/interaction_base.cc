@@ -280,7 +280,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
-  InteractionBase<dim, spacedim>::compute_projection_rhs_forward_start(
+  InteractionBase<dim, spacedim>::compute_projection_rhs_scatter_start(
     const std::string                                &kernel_name,
     const int                                         data_idx,
     const DoFHandler<dim, spacedim>                  &position_dof_handler,
@@ -334,7 +334,7 @@ namespace fdl
 
     // Setup state:
     transaction.next_state =
-      Transaction<dim, spacedim>::State::NativeToOverlapFinish;
+      Transaction<dim, spacedim>::State::ScatterFinish;
     transaction.operation =
       Transaction<dim, spacedim>::Operation::Interpolation;
 
@@ -348,7 +348,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
-  InteractionBase<dim, spacedim>::compute_projection_rhs_forward_finish(
+  InteractionBase<dim, spacedim>::compute_projection_rhs_scatter_finish(
     std::unique_ptr<TransactionBase> t_ptr) const
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
@@ -356,8 +356,8 @@ namespace fdl
             Transaction<dim, spacedim>::Operation::Interpolation),
            ExcMessage("Transaction operation should be Interpolation"));
     Assert((trans.next_state ==
-            Transaction<dim, spacedim>::State::NativeToOverlapFinish),
-           ExcMessage("Transaction state should be NativeToOverlapFinish"));
+            Transaction<dim, spacedim>::State::ScatterFinish),
+           ExcMessage("Transaction state should be ScatterFinish"));
 
     trans.position_scatter.global_to_overlap_finish(*trans.native_position,
                                                     trans.overlap_position);
@@ -384,16 +384,34 @@ namespace fdl
 
     // this is the point at which a base class would normally do computations.
 
-    // After we compute we begin the scatter back to the native partitioning:
-    trans.next_state = Transaction<dim, spacedim>::State::OverlapToNativeFinish;
+    trans.next_state = Transaction<dim, spacedim>::State::AccumulateFinish;
 
-    // This object *cannot* get here without the first scatter finishing so
-    // using channel 0 again is fine
+    return t_ptr;
+  }
+
+
+
+  template <int dim, int spacedim>
+  std::unique_ptr<TransactionBase>
+  InteractionBase<dim, spacedim>::compute_projection_rhs_accumulate_start(
+    std::unique_ptr<TransactionBase> t_ptr) const
+  {
+    auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
+    Assert((trans.operation ==
+            Transaction<dim, spacedim>::Operation::Interpolation),
+           ExcMessage("Transaction operation should be Interpolation"));
+    Assert((trans.next_state ==
+            Transaction<dim, spacedim>::State::AccumulateStart),
+           ExcMessage("Transaction state should be AccumulateStart"));
+
+    // This object cannot get here without the first scatter finishing so using
+    // channel 0 again is fine
     trans.rhs_scatter.overlap_to_global_start(trans.overlap_rhs,
                                               trans.rhs_scatter_back_op,
                                               0,
                                               *trans.native_rhs);
 
+    trans.next_state = Transaction<dim, spacedim>::State::AccumulateFinish;
 
     return t_ptr;
   }
@@ -402,7 +420,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  InteractionBase<dim, spacedim>::compute_projection_rhs_finish(
+  InteractionBase<dim, spacedim>::compute_projection_rhs_accumulate_finish(
     std::unique_ptr<TransactionBase> t_ptr)
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
@@ -410,8 +428,8 @@ namespace fdl
             Transaction<dim, spacedim>::Operation::Interpolation),
            ExcMessage("Transaction operation should be Interpolation"));
     Assert((trans.next_state ==
-            Transaction<dim, spacedim>::State::OverlapToNativeFinish),
-           ExcMessage("Transaction state should be OverlapToNativeFinish"));
+            Transaction<dim, spacedim>::State::AccumulateFinish),
+           ExcMessage("Transaction state should be AccumulateFinish"));
 
     trans.rhs_scatter.overlap_to_global_finish(trans.overlap_rhs,
                                                trans.rhs_scatter_back_op,
@@ -519,7 +537,7 @@ namespace fdl
 
     // this is the point at which a base class would normally do computations.
 
-    trans.next_state = Transaction<dim, spacedim>::State::OverlapToNativeFinish;
+    trans.next_state = Transaction<dim, spacedim>::State::AccumulateFinish;
 
     return t_ptr;
   }
@@ -536,8 +554,8 @@ namespace fdl
             Transaction<dim, spacedim>::Operation::Spreading),
            ExcMessage("Transaction operation should be Spreading"));
     Assert((trans.next_state ==
-            Transaction<dim, spacedim>::State::OverlapToNativeFinish),
-           ExcMessage("Transaction state should be OverlapToNativeFinish"));
+            Transaction<dim, spacedim>::State::AccumulateFinish),
+           ExcMessage("Transaction state should be AccumulateFinish"));
 
     // since no data is moved there is nothing else to do here
 
@@ -593,8 +611,8 @@ namespace fdl
   {
     auto &trans = dynamic_cast<WorkloadTransaction<dim, spacedim> &>(*t_ptr);
     Assert((trans.next_state ==
-            WorkloadTransaction<dim, spacedim>::State::OverlapToNativeFinish),
-           ExcMessage("Transaction state should be OverlapToNativeFinish"));
+            WorkloadTransaction<dim, spacedim>::State::AccumulateFinish),
+           ExcMessage("Transaction state should be AccumulateFinish"));
 
     trans.next_state = WorkloadTransaction<dim, spacedim>::State::Done;
 

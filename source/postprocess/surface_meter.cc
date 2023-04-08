@@ -424,19 +424,13 @@ namespace fdl
   {
     LinearAlgebra::distributed::Vector<double> interpolated_data(
       scalar_partitioner);
-    auto transaction = nodal_interaction->compute_projection_rhs_forward_start(
-      kernel_name,
-      data_idx,
-      vector_dof_handler,
-      identity_position,
-      scalar_dof_handler,
-      *meter_mapping,
-      interpolated_data);
-    transaction = nodal_interaction->compute_projection_rhs_forward_finish(
-      std::move(transaction));
-    transaction = nodal_interaction->compute_projection_rhs_intermediate(
-      std::move(transaction));
-    nodal_interaction->compute_projection_rhs_finish(std::move(transaction));
+    nodal_interaction->interpolate(kernel_name,
+                                   data_idx,
+                                   vector_dof_handler,
+                                   identity_position,
+                                   scalar_dof_handler,
+                                   *meter_mapping,
+                                   interpolated_data);
     interpolated_data.update_ghost_values();
 
     return interpolated_data;
@@ -450,19 +444,13 @@ namespace fdl
   {
     LinearAlgebra::distributed::Vector<double> interpolated_data(
       vector_partitioner);
-    auto transaction = nodal_interaction->compute_projection_rhs_forward_start(
-      kernel_name,
-      data_idx,
-      vector_dof_handler,
-      identity_position,
-      vector_dof_handler,
-      *meter_mapping,
-      interpolated_data);
-    transaction = nodal_interaction->compute_projection_rhs_forward_finish(
-      std::move(transaction));
-    transaction = nodal_interaction->compute_projection_rhs_intermediate(
-      std::move(transaction));
-    nodal_interaction->compute_projection_rhs_finish(std::move(transaction));
+    nodal_interaction->interpolate(kernel_name,
+                                   data_idx,
+                                   vector_dof_handler,
+                                   identity_position,
+                                   vector_dof_handler,
+                                   *meter_mapping,
+                                   interpolated_data);
     interpolated_data.update_ghost_values();
 
     return interpolated_data;

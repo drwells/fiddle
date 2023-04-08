@@ -128,7 +128,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   LinearAlgebra::distributed::Vector<double> F_rhs(F_partitioner);
 
   auto transaction =
-    interaction_base.compute_projection_rhs_forward_start("BSPLINE_3",
+    interaction_base.compute_projection_rhs_scatter_start("BSPLINE_3",
                                                           f_idx,
                                                           position_dof_handler,
                                                           position,
@@ -140,7 +140,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   auto &trans = dynamic_cast<fdl::Transaction<dim> &>(*transaction);
   trans.rhs_scatter_back_op = VectorOperation::add;
 
-  transaction = interaction_base.compute_projection_rhs_forward_finish(
+  transaction = interaction_base.compute_projection_rhs_scatter_finish(
     std::move(transaction));
   transaction = interaction_base.compute_projection_rhs_intermediate(
     std::move(transaction));

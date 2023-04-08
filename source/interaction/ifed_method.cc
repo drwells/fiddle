@@ -370,14 +370,14 @@ namespace fdl
       data_time,
       d_ib_solver->getVelocityPhysBdryOp());
 
-    // start:
     IBAMR_TIMER_START(t_interpolate_velocity_rhs);
-    auto setup_transaction = [&](const auto &collection,
-                                 const auto &interactions,
-                                 const auto &kernels,
-                                 const auto &vectors,
-                                 auto       &transactions,
-                                 auto       &rhs_vectors)
+    // native to overlap:
+    auto scatter_start = [&](const auto &collection,
+                             const auto &interactions,
+                             const auto &kernels,
+                             const auto &vectors,
+                             auto       &transactions,
+                             auto       &rhs_vectors)
     {
       for (unsigned int i = 0; i < collection.size(); ++i)
         {
@@ -386,7 +386,7 @@ namespace fdl
                       ExcFDLInternalError());
           rhs_vectors.emplace_back(part.get_partitioner());
           transactions.emplace_back(
-            interactions[i]->compute_projection_rhs_forward_start(
+            interactions[i]->compute_projection_rhs_scatter_start(
               kernels[i],
               u_data_index,
               part.get_dof_handler(),
@@ -396,11 +396,11 @@ namespace fdl
               rhs_vectors[i]));
         }
     };
-    auto forward_finish = [](const auto &interactions, auto &transactions)
+    auto scatter_finish = [](const auto &interactions, auto &transactions)
     {
       for (unsigned int i = 0; i < interactions.size(); ++i)
         transactions[i] =
-          interactions[i]->compute_projection_rhs_forward_finish(
+          interactions[i]->compute_projection_rhs_scatter_finish(
             std::move(transactions[i]));
     };
     // we emplace_back so use a deque to keep pointers valid
@@ -408,16 +408,16 @@ namespace fdl
       penalty_transactions;
     std::deque<LinearAlgebra::distributed::Vector<double>> rhs_vecs,
       penalty_rhs_vecs;
-    setup_transaction(
+    scatter_start(
       parts, interactions, ib_kernels, part_vectors, transactions, rhs_vecs);
-    setup_transaction(penalty_parts,
-                      penalty_interactions,
-                      penalty_ib_kernels,
-                      penalty_part_vectors,
-                      penalty_transactions,
-                      penalty_rhs_vecs);
-    forward_finish(interactions, transactions);
-    forward_finish(penalty_interactions, penalty_transactions);
+    scatter_start(penalty_parts,
+                  penalty_interactions,
+                  penalty_ib_kernels,
+                  penalty_part_vectors,
+                  penalty_transactions,
+                  penalty_rhs_vecs);
+    scatter_finish(interactions, transactions);
+    scatter_finish(penalty_interactions, penalty_transactions);
 
     // Compute:
     auto compute_transaction = [](const auto &interactions, auto &transactions)
@@ -429,15 +429,24 @@ namespace fdl
     compute_transaction(interactions, transactions);
     compute_transaction(penalty_interactions, penalty_transactions);
 
-    // Collect:
-    auto collect_transaction = [](const auto &interactions, auto &transactions)
+    // Move back:
+    auto accumulate_start = [](const auto &interactions, auto &transactions)
     {
       for (unsigned int i = 0; i < interactions.size(); ++i)
-        interactions[i]->compute_projection_rhs_finish(
+        transactions[i] =
+          interactions[i]->compute_projection_rhs_accumulate_start(
+            std::move(transactions[i]));
+    };
+    auto accumulate_finish = [](const auto &interactions, auto &transactions)
+    {
+      for (unsigned int i = 0; i < interactions.size(); ++i)
+        interactions[i]->compute_projection_rhs_accumulate_finish(
           std::move(transactions[i]));
     };
-    collect_transaction(interactions, transactions);
-    collect_transaction(penalty_interactions, penalty_transactions);
+    accumulate_start(interactions, transactions);
+    accumulate_start(penalty_interactions, penalty_transactions);
+    accumulate_finish(interactions, transactions);
+    accumulate_finish(penalty_interactions, penalty_transactions);
 
     // We cannot start the linear solve without first finishing this, so use a
     // barrier to keep the timers accurate

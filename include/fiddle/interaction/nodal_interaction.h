@@ -105,7 +105,22 @@ namespace fdl
      * TODO
      */
     virtual void
-    compute_projection_rhs_finish(std::unique_ptr<TransactionBase> transaction) override;
+    compute_projection_rhs_accumulate_finish(
+      std::unique_ptr<TransactionBase> transaction) override;
+
+    /**
+     * Convenience method which calls all of the other interpolation functions
+     * in the correct order. Some care should be taken when using this function
+     * since it may exhibit poor performance with multiple parts.
+     */
+    void
+    interpolate(const std::string               &kernel_name,
+                const int                        data_idx,
+                const DoFHandler<dim, spacedim> &position_dof_handler,
+                const LinearAlgebra::distributed::Vector<double> &position,
+                const DoFHandler<dim, spacedim>                  &dof_handler,
+                const Mapping<dim, spacedim>                     &mapping,
+                LinearAlgebra::distributed::Vector<double>       &result);
 
     /**
      * TODO

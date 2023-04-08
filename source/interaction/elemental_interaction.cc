@@ -239,13 +239,7 @@ namespace fdl
                            *trans.mapping,
                            trans.overlap_rhs);
 
-    // After we compute we begin the scatter back to the native partitioning:
-    trans.rhs_scatter.overlap_to_global_start(trans.overlap_rhs,
-                                              trans.rhs_scatter_back_op,
-                                              0,
-                                              *trans.native_rhs);
-
-    trans.next_state = Transaction<dim, spacedim>::State::OverlapToNativeFinish;
+    trans.next_state = Transaction<dim, spacedim>::State::AccumulateStart;
 
     return t_ptr;
   }
@@ -285,7 +279,7 @@ namespace fdl
                    *trans.mapping,
                    trans.overlap_solution);
 
-    trans.next_state = Transaction<dim, spacedim>::State::OverlapToNativeFinish;
+    trans.next_state = Transaction<dim, spacedim>::State::AccumulateFinish;
 
     return t_ptr;
   }
@@ -315,7 +309,7 @@ namespace fdl
                             quadratures);
 
     trans.next_state =
-      WorkloadTransaction<dim, spacedim>::State::OverlapToNativeFinish;
+      WorkloadTransaction<dim, spacedim>::State::AccumulateFinish;
 
     return t_ptr;
   }
