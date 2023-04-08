@@ -80,7 +80,7 @@ namespace fdl
   template <int dim, int spacedim>
   void
   NodalInteraction<dim, spacedim>::reinit(
-    const tbox::Pointer<tbox::Database> &/*input_db*/,
+    const tbox::Pointer<tbox::Database> & /*input_db*/,
     const parallel::shared::Triangulation<dim, spacedim> & /*native_tria*/,
     const std::vector<BoundingBox<spacedim, float>> & /*active_cell_bboxes*/,
     const std::vector<float> & /*active_cell_lengths*/,
@@ -346,7 +346,7 @@ namespace fdl
     // TODO: if this takes a measurable amount of time to execute then it
     // would be better to only check DoFs which are within 1 cell of the
     // boundary as of the last regrid.
-    auto &vec = *trans.native_rhs;
+    auto      &vec  = *trans.native_rhs;
     const auto size = vec.locally_owned_size();
     DEAL_II_OPENMP_SIMD_PRAGMA
     for (types::global_dof_index i = 0; i < size; ++i)
