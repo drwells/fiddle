@@ -333,7 +333,8 @@ namespace fdl
     transaction.rhs_scatter_back_op = this->get_rhs_scatter_type();
 
     // Setup state:
-    transaction.next_state = Transaction<dim, spacedim>::State::ForwardFinish;
+    transaction.next_state =
+      Transaction<dim, spacedim>::State::NativeToOverlapFinish;
     transaction.operation =
       Transaction<dim, spacedim>::Operation::Interpolation;
 
@@ -355,8 +356,8 @@ namespace fdl
             Transaction<dim, spacedim>::Operation::Interpolation),
            ExcMessage("Transaction operation should be Interpolation"));
     Assert((trans.next_state ==
-            Transaction<dim, spacedim>::State::ForwardFinish),
-           ExcMessage("Transaction state should be ForwardFinish"));
+            Transaction<dim, spacedim>::State::NativeToOverlapFinish),
+           ExcMessage("Transaction state should be NativeToOverlapFinish"));
 
     trans.position_scatter.global_to_overlap_finish(*trans.native_position,
                                                     trans.overlap_position);
@@ -384,6 +385,7 @@ namespace fdl
     // this is the point at which a base class would normally do computations.
 
     // After we compute we begin the scatter back to the native partitioning:
+    trans.next_state = Transaction<dim, spacedim>::State::OverlapToNativeFinish;
 
     // This object *cannot* get here without the first scatter finishing so
     // using channel 0 again is fine
@@ -392,7 +394,6 @@ namespace fdl
                                               0,
                                               *trans.native_rhs);
 
-    trans.next_state = Transaction<dim, spacedim>::State::Finish;
 
     return t_ptr;
   }
@@ -408,8 +409,9 @@ namespace fdl
     Assert((trans.operation ==
             Transaction<dim, spacedim>::Operation::Interpolation),
            ExcMessage("Transaction operation should be Interpolation"));
-    Assert((trans.next_state == Transaction<dim, spacedim>::State::Finish),
-           ExcMessage("Transaction state should be Finish"));
+    Assert((trans.next_state ==
+            Transaction<dim, spacedim>::State::OverlapToNativeFinish),
+           ExcMessage("Transaction state should be OverlapToNativeFinish"));
 
     trans.rhs_scatter.overlap_to_global_finish(trans.overlap_rhs,
                                                trans.rhs_scatter_back_op,
@@ -517,7 +519,7 @@ namespace fdl
 
     // this is the point at which a base class would normally do computations.
 
-    trans.next_state = Transaction<dim, spacedim>::State::Finish;
+    trans.next_state = Transaction<dim, spacedim>::State::OverlapToNativeFinish;
 
     return t_ptr;
   }
@@ -533,8 +535,9 @@ namespace fdl
     Assert((trans.operation ==
             Transaction<dim, spacedim>::Operation::Spreading),
            ExcMessage("Transaction operation should be Spreading"));
-    Assert((trans.next_state == Transaction<dim, spacedim>::State::Finish),
-           ExcMessage("Transaction state should be Finish"));
+    Assert((trans.next_state ==
+            Transaction<dim, spacedim>::State::OverlapToNativeFinish),
+           ExcMessage("Transaction state should be OverlapToNativeFinish"));
 
     // since no data is moved there is nothing else to do here
 
@@ -590,8 +593,8 @@ namespace fdl
   {
     auto &trans = dynamic_cast<WorkloadTransaction<dim, spacedim> &>(*t_ptr);
     Assert((trans.next_state ==
-            WorkloadTransaction<dim, spacedim>::State::Finish),
-           ExcMessage("Transaction state should be Finish"));
+            WorkloadTransaction<dim, spacedim>::State::OverlapToNativeFinish),
+           ExcMessage("Transaction state should be OverlapToNativeFinish"));
 
     trans.next_state = WorkloadTransaction<dim, spacedim>::State::Done;
 

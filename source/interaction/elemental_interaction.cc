@@ -245,7 +245,7 @@ namespace fdl
                                               0,
                                               *trans.native_rhs);
 
-    trans.next_state = Transaction<dim, spacedim>::State::Finish;
+    trans.next_state = Transaction<dim, spacedim>::State::OverlapToNativeFinish;
 
     return t_ptr;
   }
@@ -285,7 +285,7 @@ namespace fdl
                    *trans.mapping,
                    trans.overlap_solution);
 
-    trans.next_state = Transaction<dim, spacedim>::State::Finish;
+    trans.next_state = Transaction<dim, spacedim>::State::OverlapToNativeFinish;
 
     return t_ptr;
   }
@@ -314,7 +314,8 @@ namespace fdl
                             quadrature_indices,
                             quadratures);
 
-    trans.next_state = WorkloadTransaction<dim, spacedim>::State::Finish;
+    trans.next_state =
+      WorkloadTransaction<dim, spacedim>::State::OverlapToNativeFinish;
 
     return t_ptr;
   }

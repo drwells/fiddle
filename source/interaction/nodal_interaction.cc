@@ -316,8 +316,8 @@ namespace fdl
                                               0,
                                               *trans.native_rhs);
 
-    trans.next_state = Transaction<dim, spacedim>::State::Finish;
 
+    trans.next_state = Transaction<dim, spacedim>::State::OverlapToNativeFinish;
     return t_ptr;
   }
 
@@ -331,7 +331,8 @@ namespace fdl
     Assert((trans.operation ==
             Transaction<dim, spacedim>::Operation::Interpolation),
            ExcMessage("Transaction operation should be Interpolation"));
-    Assert((trans.next_state == Transaction<dim, spacedim>::State::Finish),
+    Assert((trans.next_state ==
+            Transaction<dim, spacedim>::State::OverlapToNativeFinish),
            ExcMessage("Transaction state should be Finish"));
 
     trans.rhs_scatter.overlap_to_global_finish(trans.overlap_rhs,
@@ -396,7 +397,7 @@ namespace fdl
                          trans.overlap_position,
                          trans.overlap_solution);
 
-    trans.next_state = Transaction<dim, spacedim>::State::Finish;
+    trans.next_state = Transaction<dim, spacedim>::State::OverlapToNativeFinish;
 
     return t_ptr;
   }
@@ -421,7 +422,8 @@ namespace fdl
                   get_nodal_patch_map(*trans.native_position_dof_handler)),
                 trans.overlap_position);
 
-    trans.next_state = WorkloadTransaction<dim, spacedim>::State::Finish;
+    trans.next_state =
+      WorkloadTransaction<dim, spacedim>::State::OverlapToNativeFinish;
 
     return t_ptr;
   }

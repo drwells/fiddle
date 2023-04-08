@@ -107,10 +107,11 @@ namespace fdl
     /// Possible states for a transaction.
     enum class State
     {
-      ForwardStart,
-      ForwardFinish,
+      NativeToOverlapStart,
+      NativeToOverlapFinish,
       Intermediate,
-      Finish,
+      OverlapToNativeStart,
+      OverlapToNativeFinish,
       Done
     };
 
@@ -157,9 +158,11 @@ namespace fdl
     /// Possible states for a transaction.
     enum class State
     {
-      Start,
+      NativeToOverlapStart,
+      NativeToOverlapFinish,
       Intermediate,
-      Finish,
+      OverlapToNativeStart,
+      OverlapToNativeFinish,
       Done
     };
 
