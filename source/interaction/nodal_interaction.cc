@@ -288,10 +288,6 @@ namespace fdl
             Transaction<dim, spacedim>::State::Intermediate),
            ExcMessage("Transaction state should be Intermediate"));
 
-    // Finish communication:
-    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
-                                                    trans.overlap_position);
-
     // If needed, convert the given position vector into the relevant nodal
     // one
     const bool reuse_nodes =

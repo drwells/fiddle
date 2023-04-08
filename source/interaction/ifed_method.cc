@@ -383,7 +383,7 @@ namespace fdl
                       ExcFDLInternalError());
           rhs_vectors.emplace_back(part.get_partitioner());
           transactions.emplace_back(
-            interactions[i]->compute_projection_rhs_start(
+            interactions[i]->compute_projection_rhs_forward_start(
               kernels[i],
               u_data_index,
               part.get_dof_handler(),
@@ -393,13 +393,28 @@ namespace fdl
               rhs_vectors[i]));
         }
     };
+    auto forward_finish = [](const auto &interactions, auto &transactions)
+    {
+      for (unsigned int i = 0; i < interactions.size(); ++i)
+        transactions[i] =
+          interactions[i]->compute_projection_rhs_forward_finish(
+            std::move(transactions[i]));
+    };
     // we emplace_back so use a deque to keep pointers valid
-    std::vector<std::unique_ptr<TransactionBase>>          transactions, penalty_transactions;
-    std::deque<LinearAlgebra::distributed::Vector<double>> rhs_vecs, penalty_rhs_vecs;
+    std::vector<std::unique_ptr<TransactionBase>> transactions,
+      penalty_transactions;
+    std::deque<LinearAlgebra::distributed::Vector<double>> rhs_vecs,
+      penalty_rhs_vecs;
     setup_transaction(
       parts, interactions, ib_kernels, part_vectors, transactions, rhs_vecs);
-    setup_transaction(
-      penalty_parts, penalty_interactions, penalty_ib_kernels, penalty_part_vectors, penalty_transactions, penalty_rhs_vecs);
+    setup_transaction(penalty_parts,
+                      penalty_interactions,
+                      penalty_ib_kernels,
+                      penalty_part_vectors,
+                      penalty_transactions,
+                      penalty_rhs_vecs);
+    forward_finish(interactions, transactions);
+    forward_finish(penalty_interactions, penalty_transactions);
 
     // Compute:
     auto compute_transaction = [](const auto &interactions, auto &transactions)

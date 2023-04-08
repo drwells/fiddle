@@ -136,13 +136,15 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   {
     interaction.add_dof_handler(F_dof_handler);
     auto transaction =
-      interaction.compute_projection_rhs_start("BSPLINE_3",
-                                               f_idx,
-                                               position_dof_handler,
-                                               position,
-                                               F_dof_handler,
-                                               F_mapping,
-                                               interpolated_F);
+      interaction.compute_projection_rhs_forward_start("BSPLINE_3",
+                                                       f_idx,
+                                                       position_dof_handler,
+                                                       position,
+                                                       F_dof_handler,
+                                                       F_mapping,
+                                                       interpolated_F);
+    transaction =
+      interaction.compute_projection_rhs_forward_finish(std::move(transaction));
     transaction =
       interaction.compute_projection_rhs_intermediate(std::move(transaction));
     interaction.compute_projection_rhs_finish(std::move(transaction));

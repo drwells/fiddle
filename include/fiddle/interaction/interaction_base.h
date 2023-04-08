@@ -107,7 +107,8 @@ namespace fdl
     /// Possible states for a transaction.
     enum class State
     {
-      Start,
+      ForwardStart,
+      ForwardFinish,
       Intermediate,
       Finish,
       Done
@@ -258,11 +259,11 @@ namespace fdl
 
     /**
      * Start the computation of the RHS vector corresponding to projecting @p
-     * data_idx onto the finite element space specified by @p dof_handler.
-     * Since interpolation requires multiple data transfers it is split into
-     * three parts. In particular, this first function begins the asynchronous
-     * scatter from the native representation to the overlapping
-     * representation.
+     * data_idx onto the finite element space specified by @p dof_handler. Since
+     * interpolation requires multiple data transfers it is split into five
+     * parts. In particular, this first function begins the asynchronous scatter
+     * from the native representation to the overlapping representation (the
+     * 'forward' direction).
      *
      * @return This function returns a Transaction object which completely
      * encapsulates the current state of the interpolation.
@@ -272,7 +273,7 @@ namespace fdl
      * compute_projection_rhs_finish is called.
      */
     virtual std::unique_ptr<TransactionBase>
-    compute_projection_rhs_start(
+    compute_projection_rhs_forward_start(
       const std::string                                &kernel_name,
       const int                                         data_idx,
       const DoFHandler<dim, spacedim>                  &position_dof_handler,
@@ -280,6 +281,13 @@ namespace fdl
       const DoFHandler<dim, spacedim>                  &dof_handler,
       const Mapping<dim, spacedim>                     &mapping,
       LinearAlgebra::distributed::Vector<double>       &rhs);
+
+    /**
+     * Finish the scatter to the overlap representation.
+     */
+    virtual std::unique_ptr<TransactionBase>
+    compute_projection_rhs_forward_finish(
+      std::unique_ptr<TransactionBase> transaction) const;
 
     /**
      * Middle part of velocity interpolation - finalizes the forward scatters

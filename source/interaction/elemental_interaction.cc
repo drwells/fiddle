@@ -223,10 +223,6 @@ namespace fdl
             Transaction<dim, spacedim>::State::Intermediate),
            ExcMessage("Transaction state should be Intermediate"));
 
-    // Finish communication:
-    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
-                                                    trans.overlap_position);
-
     MappingFEField<dim, spacedim, Vector<double>> position_mapping(
       this->get_overlap_dof_handler(*trans.native_position_dof_handler),
       trans.overlap_position);

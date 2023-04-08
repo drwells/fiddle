@@ -280,7 +280,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
-  InteractionBase<dim, spacedim>::compute_projection_rhs_start(
+  InteractionBase<dim, spacedim>::compute_projection_rhs_forward_start(
     const std::string                                &kernel_name,
     const int                                         data_idx,
     const DoFHandler<dim, spacedim>                  &position_dof_handler,
@@ -333,12 +333,35 @@ namespace fdl
     transaction.rhs_scatter_back_op = this->get_rhs_scatter_type();
 
     // Setup state:
-    transaction.next_state = Transaction<dim, spacedim>::State::Intermediate;
+    transaction.next_state = Transaction<dim, spacedim>::State::ForwardFinish;
     transaction.operation =
       Transaction<dim, spacedim>::Operation::Interpolation;
 
     transaction.position_scatter.global_to_overlap_start(
       *transaction.native_position, 0, transaction.overlap_position);
+
+    return t_ptr;
+  }
+
+
+
+  template <int dim, int spacedim>
+  std::unique_ptr<TransactionBase>
+  InteractionBase<dim, spacedim>::compute_projection_rhs_forward_finish(
+    std::unique_ptr<TransactionBase> t_ptr) const
+  {
+    auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
+    Assert((trans.operation ==
+            Transaction<dim, spacedim>::Operation::Interpolation),
+           ExcMessage("Transaction operation should be Interpolation"));
+    Assert((trans.next_state ==
+            Transaction<dim, spacedim>::State::ForwardFinish),
+           ExcMessage("Transaction state should be ForwardFinish"));
+
+    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
+                                                    trans.overlap_position);
+
+    trans.next_state = Transaction<dim, spacedim>::State::Intermediate;
 
     return t_ptr;
   }
@@ -357,9 +380,6 @@ namespace fdl
     Assert((trans.next_state ==
             Transaction<dim, spacedim>::State::Intermediate),
            ExcMessage("Transaction state should be Intermediate"));
-
-    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
-                                                    trans.overlap_position);
 
     // this is the point at which a base class would normally do computations.
 
