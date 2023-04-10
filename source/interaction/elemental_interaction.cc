@@ -223,10 +223,6 @@ namespace fdl
             Transaction<dim, spacedim>::State::Intermediate),
            ExcMessage("Transaction state should be Intermediate"));
 
-    // Finish communication:
-    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
-                                                    trans.overlap_position);
-
     MappingFEField<dim, spacedim, Vector<double>> position_mapping(
       this->get_overlap_dof_handler(*trans.native_position_dof_handler),
       trans.overlap_position);
@@ -243,13 +239,7 @@ namespace fdl
                            *trans.mapping,
                            trans.overlap_rhs);
 
-    // After we compute we begin the scatter back to the native partitioning:
-    trans.rhs_scatter.overlap_to_global_start(trans.overlap_rhs,
-                                              trans.rhs_scatter_back_op,
-                                              0,
-                                              *trans.native_rhs);
-
-    trans.next_state = Transaction<dim, spacedim>::State::Finish;
+    trans.next_state = Transaction<dim, spacedim>::State::AccumulateStart;
 
     return t_ptr;
   }
@@ -267,13 +257,6 @@ namespace fdl
             Transaction<dim, spacedim>::State::Intermediate),
            ExcMessage("Transaction state should be Intermediate"));
 
-    // Finish communication:
-    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
-                                                    trans.overlap_position);
-
-    trans.solution_scatter.global_to_overlap_finish(*trans.native_solution,
-                                                    trans.overlap_solution);
-
     MappingFEField<dim, spacedim, Vector<double>> position_mapping(
       this->get_overlap_dof_handler(*trans.native_position_dof_handler),
       trans.overlap_position);
@@ -289,7 +272,7 @@ namespace fdl
                    *trans.mapping,
                    trans.overlap_solution);
 
-    trans.next_state = Transaction<dim, spacedim>::State::Finish;
+    trans.next_state = Transaction<dim, spacedim>::State::AccumulateFinish;
 
     return t_ptr;
   }
@@ -318,7 +301,8 @@ namespace fdl
                             quadrature_indices,
                             quadratures);
 
-    trans.next_state = WorkloadTransaction<dim, spacedim>::State::Finish;
+    trans.next_state =
+      WorkloadTransaction<dim, spacedim>::State::AccumulateFinish;
 
     return t_ptr;
   }

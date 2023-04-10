@@ -107,9 +107,11 @@ namespace fdl
     /// Possible states for a transaction.
     enum class State
     {
-      Start,
+      ScatterStart,
+      ScatterFinish,
       Intermediate,
-      Finish,
+      AccumulateStart,
+      AccumulateFinish,
       Done
     };
 
@@ -156,9 +158,11 @@ namespace fdl
     /// Possible states for a transaction.
     enum class State
     {
-      Start,
+      ScatterStart,
+      ScatterFinish,
       Intermediate,
-      Finish,
+      AccumulateStart,
+      AccumulateFinish,
       Done
     };
 
@@ -172,6 +176,22 @@ namespace fdl
    * described by a finite element field. This class sets up the data structures
    * and communication patterns necessary for all types of interaction (like
    * nodal or elemental coupling).
+   *
+   * SAMRAI and deal.II use independent parallel load balancing strategies. In
+   * practice this means that operations which require access to both sets of
+   * data can be load balanced arbitrarily badly (e.g., SAMRAI may generate a
+   * single Patch covering all of the FE data, which would require a single
+   * processor to do 100% of the interaction work). This problem is mostly
+   * mitigated by the use of OverlapTriangulation here and
+   * IBTK::SecondaryHierarchy in IFEDMethod, which together load balance the
+   * coupling (interpolation and spreading) operations. This secondary data
+   * partitioning results in some additional complexity in moving data between
+   * different representations. To achieve good load balancing, communication is
+   * split into two steps for moving between the 'native' and 'overlap'
+   * partitioning in each direction, which results in five steps for
+   * interpolation and four for spreading. This complexity is handled by
+   * IFEDMethod: for the most part, inheriting classes should only need to
+   * modify the 'intermediate' functions which do the actual computations.
    */
   template <int dim, int spacedim = dim>
   class InteractionBase
@@ -258,21 +278,21 @@ namespace fdl
 
     /**
      * Start the computation of the RHS vector corresponding to projecting @p
-     * data_idx onto the finite element space specified by @p dof_handler.
-     * Since interpolation requires multiple data transfers it is split into
-     * three parts. In particular, this first function begins the asynchronous
-     * scatter from the native representation to the overlapping
-     * representation.
+     * data_idx onto the finite element space specified by @p dof_handler. Since
+     * interpolation requires multiple data transfers it is split into five
+     * parts. In particular, this first function begins the asynchronous scatter
+     * from the native representation to the overlapping representation (the
+     * 'scatter' direction).
      *
      * @return This function returns a Transaction object which completely
      * encapsulates the current state of the interpolation.
      *
      * @warning The Transaction returned by this method stores pointers to all
      * of the input arguments. Those pointers must remain valid until after
-     * compute_projection_rhs_finish is called.
+     * compute_projection_rhs_accumulate_finish() is called.
      */
     virtual std::unique_ptr<TransactionBase>
-    compute_projection_rhs_start(
+    compute_projection_rhs_scatter_start(
       const std::string                                &kernel_name,
       const int                                         data_idx,
       const DoFHandler<dim, spacedim>                  &position_dof_handler,
@@ -282,8 +302,15 @@ namespace fdl
       LinearAlgebra::distributed::Vector<double>       &rhs);
 
     /**
-     * Middle part of velocity interpolation - finalizes the forward scatters
-     * and then performs the actual computations.
+     * Finish the scatter to the overlap representation for computing the RHS.
+     */
+    virtual std::unique_ptr<TransactionBase>
+    compute_projection_rhs_scatter_finish(
+      std::unique_ptr<TransactionBase> transaction) const;
+
+    /**
+     * Middle part of velocity interpolation - finalizes the scatters and then
+     * performs the actual computations.
      *
      * @note this function does not compute anything - inheriting classes should
      * reimplement this method to set up the RHS in the desired way.
@@ -293,17 +320,24 @@ namespace fdl
       std::unique_ptr<TransactionBase> transaction) const;
 
     /**
-     * Finish the computation of the RHS vector corresponding to projecting @p
-     * data_idx onto the finite element space specified by @p dof_handler.
-     * This step accumulates the RHS vector computed in the overlap
+     * This step begins accumulation of the RHS vector computed in the overlap
      * representation back to the native representation.
      */
-    virtual void
-    compute_projection_rhs_finish(std::unique_ptr<TransactionBase> transaction);
+    virtual std::unique_ptr<TransactionBase>
+    compute_projection_rhs_accumulate_start(
+      std::unique_ptr<TransactionBase> transaction) const;
 
     /**
-     * Start spreading from the provided finite element field @p F by adding
-     * them onto the SAMRAI data index @p data_idx.
+     * Finish the computation of the RHS vector corresponding to projecting @p
+     * data_idx onto the finite element space specified by @p dof_handler.
+     */
+    virtual void
+    compute_projection_rhs_accumulate_finish(
+      std::unique_ptr<TransactionBase> transaction);
+
+    /**
+     * Start spreading from the provided finite element field @p solution by
+     * adding them onto the SAMRAI data index @p data_idx.
      *
      * Since, for multi-part models, many different objects may add forces into
      * @p data_idx, at the end of the three spread functions forces may be
@@ -314,10 +348,10 @@ namespace fdl
      *
      * @warning The Transaction returned by this method stores pointers to all
      * of the input arguments. Those pointers must remain valid until after
-     * compute_projection_rhs_finish is called.
+     * compute_spread_finish() is called.
      */
     virtual std::unique_ptr<TransactionBase>
-    compute_spread_start(
+    compute_spread_scatter_start(
       const std::string                                &kernel_name,
       const int                                         data_idx,
       const LinearAlgebra::distributed::Vector<double> &position,
@@ -325,6 +359,13 @@ namespace fdl
       const Mapping<dim, spacedim>                     &mapping,
       const DoFHandler<dim, spacedim>                  &dof_handler,
       const LinearAlgebra::distributed::Vector<double> &solution);
+
+    /**
+     * Finish the scatter to the overlap representation for spreading.
+     */
+    virtual std::unique_ptr<TransactionBase>
+    compute_spread_scatter_finish(
+      std::unique_ptr<TransactionBase> transaction) const;
 
     /**
      * Middle part of spreading - performs the actual computations and does not
@@ -338,8 +379,9 @@ namespace fdl
       std::unique_ptr<TransactionBase> spread_transaction);
 
     /**
-     * Finish spreading from the provided finite element field @p F by adding
-     * them onto the SAMRAI data index @p data_idx.
+     * Finish spreading from the provided finite element field @p F. Since no FE
+     * data needs to be accumulated (only FD data) this function does not
+     * communicate and, unlike interpolation, can therefore happen in one step.
      */
     virtual void
     compute_spread_finish(std::unique_ptr<TransactionBase> spread_transaction);

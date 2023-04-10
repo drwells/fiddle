@@ -80,7 +80,7 @@ namespace fdl
   template <int dim, int spacedim>
   void
   NodalInteraction<dim, spacedim>::reinit(
-    const tbox::Pointer<tbox::Database> &/*input_db*/,
+    const tbox::Pointer<tbox::Database> & /*input_db*/,
     const parallel::shared::Triangulation<dim, spacedim> & /*native_tria*/,
     const std::vector<BoundingBox<spacedim, float>> & /*active_cell_bboxes*/,
     const std::vector<float> & /*active_cell_lengths*/,
@@ -288,10 +288,6 @@ namespace fdl
             Transaction<dim, spacedim>::State::Intermediate),
            ExcMessage("Transaction state should be Intermediate"));
 
-    // Finish communication:
-    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
-                                                    trans.overlap_position);
-
     // If needed, convert the given position vector into the relevant nodal
     // one
     const bool reuse_nodes =
@@ -314,28 +310,22 @@ namespace fdl
                                               nodal_coordinates,
                                 trans.overlap_rhs);
 
-    // After we compute we begin the scatter back to the native partitioning:
-    trans.rhs_scatter.overlap_to_global_start(trans.overlap_rhs,
-                                              trans.rhs_scatter_back_op,
-                                              0,
-                                              *trans.native_rhs);
-
-    trans.next_state = Transaction<dim, spacedim>::State::Finish;
-
+    trans.next_state = Transaction<dim, spacedim>::State::AccumulateStart;
     return t_ptr;
   }
 
 
   template <int dim, int spacedim>
   void
-  NodalInteraction<dim, spacedim>::compute_projection_rhs_finish(
+  NodalInteraction<dim, spacedim>::compute_projection_rhs_accumulate_finish(
     std::unique_ptr<TransactionBase> t_ptr)
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
     Assert((trans.operation ==
             Transaction<dim, spacedim>::Operation::Interpolation),
            ExcMessage("Transaction operation should be Interpolation"));
-    Assert((trans.next_state == Transaction<dim, spacedim>::State::Finish),
+    Assert((trans.next_state ==
+            Transaction<dim, spacedim>::State::AccumulateFinish),
            ExcMessage("Transaction state should be Finish"));
 
     trans.rhs_scatter.overlap_to_global_finish(trans.overlap_rhs,
@@ -350,7 +340,7 @@ namespace fdl
     // TODO: if this takes a measurable amount of time to execute then it
     // would be better to only check DoFs which are within 1 cell of the
     // boundary as of the last regrid.
-    auto &vec = *trans.native_rhs;
+    auto      &vec  = *trans.native_rhs;
     const auto size = vec.locally_owned_size();
     DEAL_II_OPENMP_SIMD_PRAGMA
     for (types::global_dof_index i = 0; i < size; ++i)
@@ -365,6 +355,35 @@ namespace fdl
     this->return_scatter(*trans.native_dof_handler,
                          std::move(trans.rhs_scatter));
   }
+
+
+
+  template <int dim, int spacedim>
+  void
+  NodalInteraction<dim, spacedim>::interpolate(
+    const std::string                                &kernel_name,
+    const int                                         data_idx,
+    const DoFHandler<dim, spacedim>                  &position_dof_handler,
+    const LinearAlgebra::distributed::Vector<double> &position,
+    const DoFHandler<dim, spacedim>                  &dof_handler,
+    const Mapping<dim, spacedim>                     &mapping,
+    LinearAlgebra::distributed::Vector<double>       &rhs)
+  {
+    auto trans =
+      this->compute_projection_rhs_scatter_start(kernel_name,
+                                                 data_idx,
+                                                 position_dof_handler,
+                                                 position,
+                                                 dof_handler,
+                                                 mapping,
+                                                 rhs);
+    trans = this->compute_projection_rhs_scatter_finish(std::move(trans));
+    trans = this->compute_projection_rhs_intermediate(std::move(trans));
+    trans = this->compute_projection_rhs_accumulate_start(std::move(trans));
+    this->compute_projection_rhs_accumulate_finish(std::move(trans));
+  }
+
+
 
   template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
@@ -384,13 +403,6 @@ namespace fdl
     AssertThrow(this->level_numbers.first == this->level_numbers.second,
                 ExcFDLNotImplemented());
 
-    // Finish communication:
-    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
-                                                    trans.overlap_position);
-
-    trans.solution_scatter.global_to_overlap_finish(*trans.native_solution,
-                                                    trans.overlap_solution);
-
     // Actually do the spreading:
     compute_nodal_spread(trans.kernel_name,
                          trans.current_data_idx,
@@ -400,7 +412,7 @@ namespace fdl
                          trans.overlap_position,
                          trans.overlap_solution);
 
-    trans.next_state = Transaction<dim, spacedim>::State::Finish;
+    trans.next_state = Transaction<dim, spacedim>::State::AccumulateFinish;
 
     return t_ptr;
   }
@@ -425,7 +437,8 @@ namespace fdl
                   get_nodal_patch_map(*trans.native_position_dof_handler)),
                 trans.overlap_position);
 
-    trans.next_state = WorkloadTransaction<dim, spacedim>::State::Finish;
+    trans.next_state =
+      WorkloadTransaction<dim, spacedim>::State::AccumulateFinish;
 
     return t_ptr;
   }
