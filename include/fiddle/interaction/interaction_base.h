@@ -176,6 +176,22 @@ namespace fdl
    * described by a finite element field. This class sets up the data structures
    * and communication patterns necessary for all types of interaction (like
    * nodal or elemental coupling).
+   *
+   * SAMRAI and deal.II use independent parallel load balancing strategies. In
+   * practice this means that operations which require access to both sets of
+   * data can be load balanced arbitrarily badly (e.g., SAMRAI may generate a
+   * single Patch covering all of the FE data, which would require a single
+   * processor to do 100% of the interaction work). This problem is mostly
+   * mitigated by the use of OverlapTriangulation here and
+   * IBTK::SecondaryHierarchy in IFEDMethod, which together load balance the
+   * coupling (interpolation and spreading) operations. This secondary data
+   * partitioning results in some additional complexity in moving data between
+   * different representations. To achieve good load balancing, communication is
+   * split into two steps for moving between the 'native' and 'overlap'
+   * partitioning in each direction, which results in five steps for
+   * interpolation and four for spreading. This complexity is handled by
+   * IFEDMethod: for the most part, inheriting classes should only need to
+   * modify the 'intermediate' functions which do the actual computations.
    */
   template <int dim, int spacedim = dim>
   class InteractionBase
