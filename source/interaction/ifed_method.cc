@@ -537,37 +537,45 @@ namespace fdl
       data_cache->getCachedPatchDataIndex(f_data_index);
     fill_all(hierarchy, f_scratch_data_index, level_number, level_number, 0.0);
 
-    // start:
-    auto setup_transaction = [&](const auto &collection,
-                                 const auto &interactions,
-                                 const auto &kernels,
-                                 const auto &vectors,
-                                 auto       &transactions)
+    // native to overlap:
+    auto scatter_start = [&](const auto &collection,
+                             const auto &interactions,
+                             const auto &kernels,
+                             const auto &vectors,
+                             auto       &transactions)
     {
       for (unsigned int i = 0; i < collection.size(); ++i)
         {
           const auto &part = collection[i];
           AssertThrow(vectors.dimension == part.dimension,
                       ExcFDLInternalError());
-          transactions.emplace_back(interactions[i]->compute_spread_start(
-            kernels[i],
-            f_scratch_data_index,
-            vectors.get_position(i, data_time),
-            part.get_dof_handler(),
-            part.get_mapping(),
-            part.get_dof_handler(),
-            vectors.get_force(i, data_time)));
+          transactions.emplace_back(
+            interactions[i]->compute_spread_scatter_start(
+              kernels[i],
+              f_scratch_data_index,
+              vectors.get_position(i, data_time),
+              part.get_dof_handler(),
+              part.get_mapping(),
+              part.get_dof_handler(),
+              vectors.get_force(i, data_time)));
         }
+    };
+    auto scatter_finish = [](const auto &interactions, auto &transactions)
+    {
+      for (unsigned int i = 0; i < interactions.size(); ++i)
+        transactions[i] = interactions[i]->compute_spread_scatter_finish(
+          std::move(transactions[i]));
     };
     std::vector<std::unique_ptr<TransactionBase>> transactions,
       penalty_transactions;
-    setup_transaction(
-      parts, interactions, ib_kernels, part_vectors, transactions);
-    setup_transaction(penalty_parts,
-                      penalty_interactions,
-                      penalty_ib_kernels,
-                      penalty_part_vectors,
-                      penalty_transactions);
+    scatter_start(parts, interactions, ib_kernels, part_vectors, transactions);
+    scatter_start(penalty_parts,
+                  penalty_interactions,
+                  penalty_ib_kernels,
+                  penalty_part_vectors,
+                  penalty_transactions);
+    scatter_finish(interactions, transactions);
+    scatter_finish(penalty_interactions, penalty_transactions);
 
     // Compute:
     auto compute_transaction = [](const auto &interactions, auto &transactions)

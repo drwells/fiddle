@@ -286,7 +286,7 @@ namespace fdl
       LinearAlgebra::distributed::Vector<double>       &rhs);
 
     /**
-     * Finish the scatter to the overlap representation.
+     * Finish the scatter to the overlap representation for computing the RHS.
      */
     virtual std::unique_ptr<TransactionBase>
     compute_projection_rhs_scatter_finish(
@@ -320,8 +320,8 @@ namespace fdl
       std::unique_ptr<TransactionBase> transaction);
 
     /**
-     * Start spreading from the provided finite element field @p F by adding
-     * them onto the SAMRAI data index @p data_idx.
+     * Start spreading from the provided finite element field @p solution by
+     * adding them onto the SAMRAI data index @p data_idx.
      *
      * Since, for multi-part models, many different objects may add forces into
      * @p data_idx, at the end of the three spread functions forces may be
@@ -332,10 +332,10 @@ namespace fdl
      *
      * @warning The Transaction returned by this method stores pointers to all
      * of the input arguments. Those pointers must remain valid until after
-     * compute_projection_rhs_finish is called.
+     * compute_spread_finish() is called.
      */
     virtual std::unique_ptr<TransactionBase>
-    compute_spread_start(
+    compute_spread_scatter_start(
       const std::string                                &kernel_name,
       const int                                         data_idx,
       const LinearAlgebra::distributed::Vector<double> &position,
@@ -343,6 +343,13 @@ namespace fdl
       const Mapping<dim, spacedim>                     &mapping,
       const DoFHandler<dim, spacedim>                  &dof_handler,
       const LinearAlgebra::distributed::Vector<double> &solution);
+
+    /**
+     * Finish the scatter to the overlap representation for spreading.
+     */
+    virtual std::unique_ptr<TransactionBase>
+    compute_spread_scatter_finish(
+      std::unique_ptr<TransactionBase> transaction) const;
 
     /**
      * Middle part of spreading - performs the actual computations and does not
@@ -356,8 +363,9 @@ namespace fdl
       std::unique_ptr<TransactionBase> spread_transaction);
 
     /**
-     * Finish spreading from the provided finite element field @p F by adding
-     * them onto the SAMRAI data index @p data_idx.
+     * Finish spreading from the provided finite element field @p F. Since no FE
+     * data needs to be accumulated (only FD data) this function does not
+     * communicate and, unlike interpolation, can therefore happen in one step.
      */
     virtual void
     compute_spread_finish(std::unique_ptr<TransactionBase> spread_transaction);

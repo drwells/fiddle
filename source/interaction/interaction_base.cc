@@ -333,8 +333,7 @@ namespace fdl
     transaction.rhs_scatter_back_op = this->get_rhs_scatter_type();
 
     // Setup state:
-    transaction.next_state =
-      Transaction<dim, spacedim>::State::ScatterFinish;
+    transaction.next_state = Transaction<dim, spacedim>::State::ScatterFinish;
     transaction.operation =
       Transaction<dim, spacedim>::Operation::Interpolation;
 
@@ -445,7 +444,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   std::unique_ptr<TransactionBase>
-  InteractionBase<dim, spacedim>::compute_spread_start(
+  InteractionBase<dim, spacedim>::compute_spread_scatter_start(
     const std::string                                &kernel_name,
     const int                                         data_idx,
     const LinearAlgebra::distributed::Vector<double> &position,
@@ -499,7 +498,7 @@ namespace fdl
       get_overlap_dof_handler(dof_handler).n_dofs());
 
     // Setup state:
-    transaction.next_state = Transaction<dim, spacedim>::State::Intermediate;
+    transaction.next_state = Transaction<dim, spacedim>::State::ScatterFinish;
     transaction.operation  = Transaction<dim, spacedim>::Operation::Spreading;
 
     // OK, now start scattering:
@@ -511,6 +510,31 @@ namespace fdl
 
     transaction.solution_scatter.global_to_overlap_start(
       *transaction.native_solution, 1, transaction.overlap_solution);
+
+    return t_ptr;
+  }
+
+
+
+  template <int dim, int spacedim>
+  std::unique_ptr<TransactionBase>
+  InteractionBase<dim, spacedim>::compute_spread_scatter_finish(
+    std::unique_ptr<TransactionBase> t_ptr) const
+  {
+    auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
+    Assert((trans.operation ==
+            Transaction<dim, spacedim>::Operation::Spreading),
+           ExcMessage("Transaction operation should be Spreading"));
+    Assert((trans.next_state ==
+            Transaction<dim, spacedim>::State::ScatterFinish),
+           ExcMessage("Transaction state should be Intermediate"));
+
+    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
+                                                    trans.overlap_position);
+    trans.solution_scatter.global_to_overlap_finish(*trans.native_solution,
+                                                    trans.overlap_solution);
+
+    trans.next_state = Transaction<dim, spacedim>::State::Intermediate;
 
     return t_ptr;
   }

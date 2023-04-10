@@ -403,13 +403,6 @@ namespace fdl
     AssertThrow(this->level_numbers.first == this->level_numbers.second,
                 ExcFDLNotImplemented());
 
-    // Finish communication:
-    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
-                                                    trans.overlap_position);
-
-    trans.solution_scatter.global_to_overlap_finish(*trans.native_solution,
-                                                    trans.overlap_solution);
-
     // Actually do the spreading:
     compute_nodal_spread(trans.kernel_name,
                          trans.current_data_idx,
