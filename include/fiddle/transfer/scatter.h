@@ -3,6 +3,7 @@
 
 #include <fiddle/base/config.h>
 
+#include <deal.II/base/aligned_vector.h>
 #include <deal.II/base/index_set.h>
 
 #include <deal.II/lac/la_parallel_vector.h>
@@ -15,8 +16,9 @@ namespace fdl
   using namespace dealii;
 
   /**
-   * LA::d::V-based replacement for PETSc's VecScatter. Moves data from overlap
-   * to distributed views.
+   * dealii::MPI::Partitioner-based replacement for PETSc's VecScatter. Moves
+   * data back-and-forth from the standard 'global' partitioning to the overlap
+   * partitioning used for IB calculations.
    *
    * @note instantiations are only available for float and double.
    *
@@ -34,7 +36,7 @@ namespace fdl
     /**
      * Default constructor. Sets up an empty object over MPI_COMM_SELF.
      */
-    Scatter() = default;
+    Scatter();
 
     /**
      * Move constructor.
@@ -50,7 +52,7 @@ namespace fdl
     /**
      * Constructor.
      */
-    Scatter(const std::vector<types::global_dof_index> &overlap,
+    Scatter(const std::vector<types::global_dof_index> &overlap_dofs,
             const IndexSet                             &local,
             const MPI_Comm                             &communicator);
 
@@ -94,9 +96,34 @@ namespace fdl
                              Vector<T> &output);
 
   protected:
-    std::vector<types::global_dof_index> overlap_dofs;
+    std::shared_ptr<Utilities::MPI::Partitioner> partitioner;
 
-    LinearAlgebra::distributed::Vector<T> scatterer;
+    /**
+     * Number of DoFs in the overlap partitioning.
+     */
+    std::size_t n_overlap_dofs;
+
+    /**
+     * Indices of overlap_dofs which correspond to entries in the ghost buffer.
+     * These are sorted so that the first entry is an index into an
+     * overlap-partitioned vector corresponding to the in the first entry of the
+     * ghost buffer (i.e., they are contiguous in the ghost buffer and not in
+     * the overlap-partitioned vector).
+     */
+    std::vector<unsigned int> overlap_ghost_indices;
+
+    /**
+     * Indices of overlap_dofs which correspond to local (i.e, computed with
+     * Partitioner::global_to_local()) locally-owned (i.e., not in the ghost
+     * region) indices of the global vector. The first entry in the pair is an
+     * index into an overlap-partitioned vector and the second is the local
+     * index of a global vector.
+     */
+    std::vector<std::pair<unsigned int, unsigned int>> overlap_local_indices;
+
+    AlignedVector<T>         ghost_buffer;
+    AlignedVector<T>         import_buffer;
+    std::vector<MPI_Request> requests;
   };
 
 
@@ -107,16 +134,26 @@ namespace fdl
   template <typename T>
   Scatter<T>::Scatter(Scatter<T> &&t)
   {
-    overlap_dofs.swap(t.overlap_dofs);
-    scatterer.swap(t.scatterer);
+    partitioner.swap(t.partitioner);
+    std::swap(n_overlap_dofs, t.n_overlap_dofs);
+    overlap_ghost_indices.swap(t.overlap_ghost_indices);
+    overlap_local_indices.swap(t.overlap_local_indices);
+    ghost_buffer.swap(t.ghost_buffer);
+    import_buffer.swap(t.import_buffer);
+    requests.swap(t.requests);
   }
 
   template <typename T>
   Scatter<T> &
   Scatter<T>::operator=(Scatter<T> &&t)
   {
-    overlap_dofs.swap(t.overlap_dofs);
-    scatterer.swap(t.scatterer);
+    partitioner.swap(t.partitioner);
+    std::swap(n_overlap_dofs, t.n_overlap_dofs);
+    overlap_ghost_indices.swap(t.overlap_ghost_indices);
+    overlap_local_indices.swap(t.overlap_local_indices);
+    ghost_buffer.swap(t.ghost_buffer);
+    import_buffer.swap(t.import_buffer);
+    requests.swap(t.requests);
     return *this;
   }
 } // namespace fdl

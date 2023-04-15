@@ -26,28 +26,57 @@ namespace fdl
     return ghost_dofs;
   }
 
-
+  template <typename T>
+  Scatter<T>::Scatter()
+    : partitioner(std::make_shared<Utilities::MPI::Partitioner>())
+    , n_overlap_dofs(0)
+  {}
 
   template <typename T>
-  Scatter<T>::Scatter(const std::vector<types::global_dof_index> &overlap,
+  Scatter<T>::Scatter(const std::vector<types::global_dof_index> &overlap_dofs,
                       const IndexSet                             &local_dofs,
                       const MPI_Comm                             &communicator)
-    : overlap_dofs(overlap)
-    , scatterer(local_dofs,
-                setup_ghost_dofs(overlap_dofs, local_dofs),
-                communicator)
+    : partitioner(std::make_shared<Utilities::MPI::Partitioner>(
+        local_dofs,
+        setup_ghost_dofs(overlap_dofs, local_dofs),
+        communicator))
+    , n_overlap_dofs(overlap_dofs.size())
+    , ghost_buffer(partitioner->n_ghost_indices())
+    , import_buffer(partitioner->n_import_indices())
   {
     Assert(local_dofs.is_contiguous() == true,
            ExcMessage("The index set specified in local_dofs is not "
                       "contiguous."));
 #ifdef DEBUG
-    for (const types::global_dof_index index : overlap)
+    for (const types::global_dof_index index : overlap_dofs)
       {
         Assert(index < local_dofs.size(),
                ExcMessage("dofs in overlap should be in the global range "
                           "specified by local_dofs"));
       }
 #endif
+    std::vector<std::pair<unsigned int, unsigned int>> overlap_pairs;
+    for (unsigned int i = 0; i < overlap_dofs.size(); ++i)
+      if (!partitioner->in_local_range(overlap_dofs[i]))
+        {
+          overlap_pairs.emplace_back(
+            partitioner->ghost_indices().index_within_set(overlap_dofs[i]), i);
+        }
+    Assert(overlap_pairs.size() == partitioner->ghost_indices().n_elements(),
+           ExcFDLInternalError());
+    std::sort(overlap_pairs.begin(),
+              overlap_pairs.end(),
+              [](const auto &a, const auto &b) { return a.first < b.first; });
+    for (unsigned int i = 0; i < overlap_pairs.size(); ++i)
+      {
+        Assert(overlap_pairs[i].first == i, ExcFDLInternalError());
+        overlap_ghost_indices.push_back(overlap_pairs[i].second);
+      }
+
+    for (std::size_t i = 0; i < overlap_dofs.size(); ++i)
+      if (partitioner->in_local_range(overlap_dofs[i]))
+        overlap_local_indices.emplace_back(
+          i, partitioner->global_to_local(overlap_dofs[i]));
   }
 
 
@@ -60,11 +89,9 @@ namespace fdl
     const unsigned int                     channel,
     LinearAlgebra::distributed::Vector<T> &output)
   {
-    (void)output;
-    Assert(input.size() == overlap_dofs.size(),
+    Assert(input.size() == n_overlap_dofs,
            ExcMessage("Input vector should be indexed by overlap dofs"));
-    Assert(output.locally_owned_elements() ==
-             scatterer.locally_owned_elements(),
+    Assert(output.locally_owned_size() == partitioner->locally_owned_size(),
            ExcMessage("The output vector should have the same number of dofs "
                       "as were provided to the constructor in local"));
 
@@ -75,32 +102,38 @@ namespace fdl
     // communicate so we can't really check for consistent settings (i.e., there
     // is no correct value set on the owning processor). Hence we do a max
     // operation instead and hope the caller isn't doing anything too weird.
+    output.set_ghost_state(false);
     if (operation == VectorOperation::add)
-      scatterer = 0.0;
+      output = 0.0;
     else if (operation == VectorOperation::insert ||
              operation == VectorOperation::max)
       {
-        const auto size = scatterer.locally_owned_size() +
-                          scatterer.get_partitioner()->n_ghost_indices();
-        for (std::size_t i = 0; i < size; ++i)
-          scatterer.local_element(i) = std::numeric_limits<T>::lowest();
+        const auto size = output.locally_owned_size() +
+                          output.get_partitioner()->n_ghost_indices();
+        std::fill(output.get_values(),
+                  output.get_values() + size,
+                  std::numeric_limits<T>::lowest());
       }
     else
       {
         Assert(false, ExcFDLNotImplemented());
       }
-    // TODO: we can probably do the index translation just once and store it
-    // so we could instead use scatterer::local_element(). It might be faster
-    // but it will take up more memory.
-    for (std::size_t i = 0; i < overlap_dofs.size(); ++i)
-      scatterer[overlap_dofs[i]] = input[i];
-    // The ghost array is out of sync with the actual values the vector should
-    // have - explicitly set it as such so we can compress
-    scatterer.set_ghost_state(false);
+
+    for (unsigned int i = 0; i < overlap_ghost_indices.size(); ++i)
+      ghost_buffer[i] = input[overlap_ghost_indices[i]];
+
+    for (const auto &pair : overlap_local_indices)
+      output.local_element(pair.second) = input[pair.first];
 
     const VectorOperation::values actual_op =
       operation == VectorOperation::insert ? VectorOperation::max : operation;
-    scatterer.compress_start(channel, actual_op);
+
+    partitioner->import_from_ghosted_array_start(
+      actual_op,
+      channel,
+      ArrayView<T>(ghost_buffer.data(), ghost_buffer.size()),
+      ArrayView<T>(import_buffer.data(), import_buffer.size()),
+      requests);
   }
 
 
@@ -113,19 +146,21 @@ namespace fdl
     LinearAlgebra::distributed::Vector<T> &output)
   {
     (void)input;
-    Assert(input.size() == overlap_dofs.size(),
+    Assert(input.size() == n_overlap_dofs,
            ExcMessage("Input vector should be indexed by overlap dofs"));
-    Assert(output.locally_owned_elements() ==
-             scatterer.locally_owned_elements(),
+    Assert(output.locally_owned_size() == partitioner->locally_owned_size(),
            ExcMessage("The output vector should have the same number of dofs "
                       "as were provided to the constructor in local"));
 
     const VectorOperation::values actual_op =
       operation == VectorOperation::insert ? VectorOperation::max : operation;
-    scatterer.compress_finish(actual_op);
 
-    for (std::size_t i = 0; i < scatterer.locally_owned_size(); ++i)
-      output.local_element(i) = scatterer.local_element(i);
+    partitioner->import_from_ghosted_array_finish<T>(
+      actual_op,
+      ArrayView<const T>(import_buffer.data(), import_buffer.size()),
+      ArrayView<T>(output.get_values(), output.locally_owned_size()),
+      ArrayView<T>(ghost_buffer.data(), ghost_buffer.size()),
+      requests);
   }
 
 
@@ -138,17 +173,18 @@ namespace fdl
     Vector<T>                                   &output)
   {
     (void)output;
-    Assert(output.size() == overlap_dofs.size(),
+    Assert(output.size() == n_overlap_dofs,
            ExcMessage("output vector should be indexed by overlap dofs"));
-    Assert(input.locally_owned_elements() == scatterer.locally_owned_elements(),
+    Assert(input.locally_owned_size() == partitioner->locally_owned_size(),
            ExcMessage("The output vector should have the same number of dofs "
                       "as were provided to the constructor in local"));
 
-    scatterer.zero_out_ghost_values();
-    for (std::size_t i = 0; i < scatterer.locally_owned_size(); ++i)
-      scatterer.local_element(i) = input.local_element(i);
-
-    scatterer.update_ghost_values_start(channel);
+    partitioner->export_to_ghosted_array_start<T>(
+      channel,
+      ArrayView<const T>(input.get_values(), input.locally_owned_size()),
+      ArrayView<T>(import_buffer.data(), import_buffer.size()),
+      ArrayView<T>(ghost_buffer.data(), ghost_buffer.size()),
+      requests);
   }
 
 
@@ -159,17 +195,20 @@ namespace fdl
     const LinearAlgebra::distributed::Vector<T> &input,
     Vector<T>                                   &output)
   {
-    (void)input;
-    Assert(output.size() == overlap_dofs.size(),
+    Assert(output.size() == n_overlap_dofs,
            ExcMessage("output vector should be indexed by overlap dofs"));
-    Assert(input.locally_owned_elements() == scatterer.locally_owned_elements(),
+    Assert(input.locally_owned_size() == partitioner->locally_owned_size(),
            ExcMessage("The output vector should have the same number of dofs "
                       "as were provided to the constructor in local"));
 
-    scatterer.update_ghost_values_finish();
+    partitioner->export_to_ghosted_array_finish(
+      ArrayView<T>(ghost_buffer.data(), ghost_buffer.size()), requests);
 
-    for (std::size_t i = 0; i < output.size(); ++i)
-      output[i] = scatterer[overlap_dofs[i]];
+    for (unsigned int i = 0; i < overlap_ghost_indices.size(); ++i)
+      output[overlap_ghost_indices[i]] = ghost_buffer[i];
+
+    for (const auto &pair : overlap_local_indices)
+      output[pair.first] = input.local_element(pair.second);
   }
 
   template class Scatter<float>;
