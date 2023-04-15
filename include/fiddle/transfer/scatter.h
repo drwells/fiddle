@@ -95,6 +95,19 @@ namespace fdl
     global_to_overlap_finish(const LinearAlgebra::distributed::Vector<T> &input,
                              Vector<T> &output);
 
+    /**
+     * Delegate responsibility for completing all outstanding MPI requests to
+     * some other object (i.e., someone else will call MPI_Waitall() or an
+     * equivalent function). The corresponding requests owned by this object
+     * will be set to MPI_REQUEST_NULL (i.e., completed requests).
+     *
+     * When doing multiple concurrent global to overlap scatters, the sum of the
+     * scatters is load balanced but individual scatters are not. Hence it is
+     * more efficient to wait for all scatters simultaneously than individually.
+     */
+    std::vector<MPI_Request>
+    delegate_outstanding_requests();
+
   protected:
     std::shared_ptr<Utilities::MPI::Partitioner> partitioner;
 

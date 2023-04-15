@@ -211,6 +211,15 @@ namespace fdl
       output[pair.first] = input.local_element(pair.second);
   }
 
+  template <typename T>
+  std::vector<MPI_Request>
+  Scatter<T>::delegate_outstanding_requests()
+  {
+    auto copy = requests;
+    std::fill(requests.begin(), requests.end(), MPI_REQUEST_NULL);
+    return copy;
+  }
+
   template class Scatter<float>;
   template class Scatter<double>;
 } // namespace fdl
