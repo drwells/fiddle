@@ -371,6 +371,7 @@ namespace fdl
       d_ib_solver->getVelocityPhysBdryOp());
 
     IBAMR_TIMER_START(t_interpolate_velocity_rhs);
+    std::vector<MPI_Request> requests;
     // native to overlap:
     auto scatter_start = [&](const auto &collection,
                              const auto &interactions,
@@ -394,6 +395,11 @@ namespace fdl
               part.get_dof_handler(),
               part.get_mapping(),
               rhs_vectors[i]));
+          auto current_requests =
+            transactions[i]->delegate_outstanding_requests();
+          requests.insert(requests.end(),
+                          current_requests.begin(),
+                          current_requests.end());
         }
     };
     auto scatter_finish = [](const auto &interactions, auto &transactions)
@@ -416,6 +422,10 @@ namespace fdl
                   penalty_part_vectors,
                   penalty_transactions,
                   penalty_rhs_vecs);
+    int ierr =
+      MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
+    AssertThrowMPI(ierr);
+    requests.resize(0);
     scatter_finish(interactions, transactions);
     scatter_finish(penalty_interactions, penalty_transactions);
 
@@ -430,12 +440,19 @@ namespace fdl
     compute_transaction(penalty_interactions, penalty_transactions);
 
     // Move back:
-    auto accumulate_start = [](const auto &interactions, auto &transactions)
+    auto accumulate_start = [&](const auto &interactions, auto &transactions)
     {
       for (unsigned int i = 0; i < interactions.size(); ++i)
-        transactions[i] =
-          interactions[i]->compute_projection_rhs_accumulate_start(
-            std::move(transactions[i]));
+        {
+          transactions[i] =
+            interactions[i]->compute_projection_rhs_accumulate_start(
+              std::move(transactions[i]));
+          auto current_requests =
+            transactions[i]->delegate_outstanding_requests();
+          requests.insert(requests.end(),
+                          current_requests.begin(),
+                          current_requests.end());
+        }
     };
     auto accumulate_finish = [](const auto &interactions, auto &transactions)
     {
@@ -445,12 +462,15 @@ namespace fdl
     };
     accumulate_start(interactions, transactions);
     accumulate_start(penalty_interactions, penalty_transactions);
+    ierr = MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
+    AssertThrowMPI(ierr);
+    requests.resize(0);
     accumulate_finish(interactions, transactions);
     accumulate_finish(penalty_interactions, penalty_transactions);
 
     // We cannot start the linear solve without first finishing this, so use a
     // barrier to keep the timers accurate
-    const int ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
+    ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
     AssertThrowMPI(ierr);
     IBAMR_TIMER_STOP(t_interpolate_velocity_rhs);
 
@@ -537,6 +557,7 @@ namespace fdl
       data_cache->getCachedPatchDataIndex(f_data_index);
     fill_all(hierarchy, f_scratch_data_index, level_number, level_number, 0.0);
 
+    std::vector<MPI_Request> requests;
     // native to overlap:
     auto scatter_start = [&](const auto &collection,
                              const auto &interactions,
@@ -558,6 +579,11 @@ namespace fdl
               part.get_mapping(),
               part.get_dof_handler(),
               vectors.get_force(i, data_time)));
+          auto current_requests =
+            transactions[i]->delegate_outstanding_requests();
+          requests.insert(requests.end(),
+                          current_requests.begin(),
+                          current_requests.end());
         }
     };
     auto scatter_finish = [](const auto &interactions, auto &transactions)
@@ -574,18 +600,32 @@ namespace fdl
                   penalty_ib_kernels,
                   penalty_part_vectors,
                   penalty_transactions);
+    int ierr =
+      MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
+    AssertThrowMPI(ierr);
+    requests.resize(0);
     scatter_finish(interactions, transactions);
     scatter_finish(penalty_interactions, penalty_transactions);
 
     // Compute:
-    auto compute_transaction = [](const auto &interactions, auto &transactions)
+    auto compute_transaction = [&](const auto &interactions, auto &transactions)
     {
       for (unsigned int i = 0; i < interactions.size(); ++i)
-        transactions[i] = interactions[i]->compute_spread_intermediate(
-          std::move(transactions[i]));
+        {
+          transactions[i] = interactions[i]->compute_spread_intermediate(
+            std::move(transactions[i]));
+          auto current_requests =
+            transactions[i]->delegate_outstanding_requests();
+          requests.insert(requests.end(),
+                          current_requests.begin(),
+                          current_requests.end());
+        }
     };
     compute_transaction(interactions, transactions);
     compute_transaction(penalty_interactions, penalty_transactions);
+    ierr = MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
+    AssertThrowMPI(ierr);
+    requests.resize(0);
 
     // Collect:
     auto collect_transaction = [](const auto &interactions, auto &transactions)

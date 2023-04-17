@@ -26,6 +26,34 @@ namespace fdl
   using namespace dealii;
   using namespace SAMRAI;
 
+  std::vector<MPI_Request>
+  TransactionBase::delegate_outstanding_requests()
+  {
+    return {};
+  }
+
+  template <int dim, int spacedim>
+  std::vector<MPI_Request>
+  Transaction<dim, spacedim>::delegate_outstanding_requests()
+  {
+    auto copy1 = position_scatter.delegate_outstanding_requests();
+    auto copy2 = solution_scatter.delegate_outstanding_requests();
+    auto copy3 = rhs_scatter.delegate_outstanding_requests();
+
+    std::vector<MPI_Request> result;
+    result.insert(result.end(), copy1.begin(), copy1.end());
+    result.insert(result.end(), copy2.begin(), copy2.end());
+    result.insert(result.end(), copy3.begin(), copy3.end());
+    return result;
+  }
+
+  template <int dim, int spacedim>
+  std::vector<MPI_Request>
+  WorkloadTransaction<dim, spacedim>::delegate_outstanding_requests()
+  {
+    return position_scatter.delegate_outstanding_requests();
+  }
+
   template <int dim, int spacedim>
   InteractionBase<dim, spacedim>::InteractionBase()
     : communicator(MPI_COMM_NULL)

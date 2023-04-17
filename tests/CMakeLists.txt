@@ -1,6 +1,6 @@
 ADD_CUSTOM_TARGET(tests)
 
-SET(TEST_DIRECTORIES base grid interaction mechanics postprocess)
+SET(TEST_DIRECTORIES base grid interaction mechanics postprocess transfer)
 
 FOREACH(_dir ${TEST_DIRECTORIES})
   ADD_CUSTOM_TARGET("tests-${_dir}")
@@ -156,6 +156,8 @@ SETUP(postprocess point_values_01.cc fiddle2d)
 SETUP(postprocess meter_mesh_01.cc fiddle2d)
 SETUP(postprocess meter_mesh_02.cc fiddle3d)
 
+# transfer:
+SETUP(transfer scatter_01.cc fiddle2d)
 
 ADD_CUSTOM_COMMAND(TARGET tests
   POST_BUILD
