@@ -104,11 +104,6 @@ namespace fdl
                const bool register_for_restart = true);
 
     /**
-     * Destructor.
-     */
-    ~IFEDMethod();
-
-    /**
      * @}
      */
 
@@ -238,10 +233,6 @@ namespace fdl
      * Book-keeping
      * @{
      */
-    std::string object_name;
-
-    bool register_for_restart;
-
     tbox::Pointer<tbox::Database> input_db;
 
     std::vector<std::string> ib_kernels;

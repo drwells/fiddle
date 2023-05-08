@@ -11,6 +11,8 @@
 
 #include <ibtk/IBTK_MPI.h>
 
+#include <tbox/RestartManager.h>
+
 #include <limits>
 
 namespace
@@ -33,9 +35,13 @@ namespace fdl
 
   template <int dim, int spacedim>
   IFEDMethodBase<dim, spacedim>::IFEDMethodBase(
+    const std::string                     &object_name,
     std::vector<Part<dim - 1, spacedim>> &&input_surface_parts,
-    std::vector<Part<dim, spacedim>>     &&input_parts)
-    : current_time(std::numeric_limits<double>::signaling_NaN())
+    std::vector<Part<dim, spacedim>>     &&input_parts,
+    const bool                             register_for_restart)
+    : object_name(object_name)
+    , register_for_restart(register_for_restart)
+    , current_time(std::numeric_limits<double>::signaling_NaN())
     , half_time(std::numeric_limits<double>::signaling_NaN())
     , new_time(std::numeric_limits<double>::signaling_NaN())
     , parts(std::move(input_parts))
@@ -59,9 +65,57 @@ namespace fdl
       for (const auto &part : collection)
         vectors.push_back(part.get_position());
     };
+
+    if (register_for_restart)
+      {
+        auto *restart_manager = tbox::RestartManager::getManager();
+        restart_manager->registerRestartItem(object_name, this);
+        if (restart_manager->isFromRestart())
+          {
+            auto restart_db = restart_manager->getRootDatabase();
+            if (restart_db->isDatabase(object_name))
+              {
+                auto db      = restart_db->getDatabase(object_name);
+                auto do_load = [&](auto &collection, const std::string &prefix)
+                {
+                  for (unsigned int i = 0; i < collection.size(); ++i)
+                    {
+                      const std::string key = prefix + std::to_string(i);
+                      AssertThrow(db->keyExists(key),
+                                  ExcMessage("Couldn't find key " + key +
+                                             " in the restart database"));
+                      const std::string  serialization = load_binary(key, db);
+                      std::istringstream in_str(serialization);
+                      boost::archive::binary_iarchive iarchive(in_str);
+                      collection[i].load(iarchive, 0);
+                    }
+                };
+                do_load(this->parts, "part_");
+                do_load(this->surface_parts, "surface_part_");
+              }
+            else
+              {
+                AssertThrow(false,
+                            ExcMessage(
+                              "The restart database does not contain key " +
+                              object_name));
+              }
+          }
+      }
+
     init_regrid_positions(positions_at_last_regrid, parts);
     init_regrid_positions(surface_positions_at_last_regrid, surface_parts);
   }
+
+  template <int dim, int spacedim>
+  IFEDMethodBase<dim, spacedim>::~IFEDMethodBase()
+  {
+    if (register_for_restart)
+      {
+        tbox::RestartManager::getManager()->unregisterRestartItem(object_name);
+      }
+  }
+
 
   template <int dim, int spacedim>
   void

@@ -28,8 +28,16 @@ namespace fdl
   public:
     static_assert(spacedim == NDIM, "Only available for spacedim == NDIM");
 
-    IFEDMethodBase(std::vector<Part<dim - 1, spacedim>> &&input_surface_parts,
-                   std::vector<Part<dim, spacedim>>     &&input_parts);
+    IFEDMethodBase(const std::string                     &object_name,
+                   std::vector<Part<dim - 1, spacedim>> &&input_surface_parts,
+                   std::vector<Part<dim, spacedim>>     &&input_parts,
+                   const bool register_for_restart = true);
+
+    /**
+     * Destructor.
+     */
+    ~IFEDMethodBase();
+
     /**
      * @name fluid-structure interaction.
      * @{
@@ -128,6 +136,10 @@ namespace fdl
      * Book-keeping
      * @{
      */
+    std::string object_name;
+
+    bool register_for_restart;
+
     double current_time;
     double half_time;
     double new_time;

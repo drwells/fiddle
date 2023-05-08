@@ -32,7 +32,6 @@
 #include <HierarchyDataOpsManager.h>
 #include <IntVector.h>
 #include <VariableDatabase.h>
-#include <tbox/RestartManager.h>
 #include <tbox/TimerManager.h>
 
 #include <deque>
@@ -88,10 +87,10 @@ namespace fdl
     std::vector<Part<dim - 1, spacedim>> &&input_surface_parts,
     std::vector<Part<dim, spacedim>>     &&input_parts,
     const bool                             register_for_restart)
-    : IFEDMethodBase<dim, spacedim>(std::move(input_surface_parts),
-                                    std::move(input_parts))
-    , object_name(object_name)
-    , register_for_restart(register_for_restart)
+    : IFEDMethodBase<dim, spacedim>(object_name,
+                                    std::move(input_surface_parts),
+                                    std::move(input_parts),
+                                    register_for_restart)
     , input_db(copy_database(input_input_db))
     , started_time_integration(false)
     , ghosts(0)
@@ -253,52 +252,6 @@ namespace fdl
       set_timer("fdl::IFEDMethod::reinit_interactions()[edges]");
     t_reinit_interactions_objects =
       set_timer("fdl::IFEDMethod::reinit_interactions()[objects]");
-
-    if (register_for_restart)
-      {
-        auto *restart_manager = tbox::RestartManager::getManager();
-        restart_manager->registerRestartItem(object_name, this);
-        if (restart_manager->isFromRestart())
-          {
-            auto restart_db = restart_manager->getRootDatabase();
-            if (restart_db->isDatabase(object_name))
-              {
-                auto db      = restart_db->getDatabase(object_name);
-                auto do_load = [&](auto &collection, const std::string &prefix)
-                {
-                  for (unsigned int i = 0; i < collection.size(); ++i)
-                    {
-                      const std::string key = prefix + std::to_string(i);
-                      AssertThrow(db->keyExists(key),
-                                  ExcMessage("Couldn't find key " + key +
-                                             " in the restart database"));
-                      const std::string  serialization = load_binary(key, db);
-                      std::istringstream in_str(serialization);
-                      boost::archive::binary_iarchive iarchive(in_str);
-                      collection[i].load(iarchive, 0);
-                    }
-                };
-                do_load(this->parts, "part_");
-                do_load(this->surface_parts, "surface_part_");
-              }
-            else
-              {
-                AssertThrow(false,
-                            ExcMessage(
-                              "The restart database does not contain key " +
-                              object_name));
-              }
-          }
-      }
-  }
-
-  template <int dim, int spacedim>
-  IFEDMethod<dim, spacedim>::~IFEDMethod()
-  {
-    if (register_for_restart)
-      {
-        tbox::RestartManager::getManager()->unregisterRestartItem(object_name);
-      }
   }
 
   template <int dim, int spacedim>
@@ -1153,7 +1106,7 @@ namespace fdl
     // we need ghosts for CONSERVATIVE_LINEAR_REFINE
     const hier::IntVector<spacedim> ghosts = 1;
     lagrangian_workload_var = new pdat::CellVariable<spacedim, double>(
-      object_name + "::lagrangian_workload");
+      this->object_name + "::lagrangian_workload");
     this->registerVariable(lagrangian_workload_current_index,
                            lagrangian_workload_new_index,
                            lagrangian_workload_scratch_index,
@@ -1163,7 +1116,7 @@ namespace fdl
                            "CONSERVATIVE_LINEAR_REFINE");
 
     auto *var_db  = hier::VariableDatabase<spacedim>::getDatabase();
-    auto  context = var_db->getContext(object_name);
+    auto  context = var_db->getContext(this->object_name);
     lagrangian_workload_plot_index =
       var_db->registerVariableAndContext(lagrangian_workload_var,
                                          context,
