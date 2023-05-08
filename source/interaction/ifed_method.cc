@@ -93,9 +93,6 @@ namespace fdl
     , register_for_restart(register_for_restart)
     , input_db(copy_database(input_input_db))
     , started_time_integration(false)
-    , current_time(std::numeric_limits<double>::signaling_NaN())
-    , half_time(std::numeric_limits<double>::signaling_NaN())
-    , new_time(std::numeric_limits<double>::signaling_NaN())
     , parts(std::move(input_parts))
     , surface_parts(std::move(input_surface_parts))
     , part_vectors(this->parts)
@@ -856,6 +853,8 @@ namespace fdl
                                               double new_time)
   {
     const double dt      = new_time - current_time;
+    Assert(this->current_time == current_time,
+           ExcFDLNotImplemented());
     auto         do_step = [&](auto &collection, auto &vectors)
     {
       for (unsigned int i = 0; i < collection.size(); ++i)
@@ -878,7 +877,7 @@ namespace fdl
                             vectors.get_position(i, current_time),
                             0.5,
                             vectors.get_position(i, new_time));
-          vectors.set_position(i, half_time, std::move(half_position));
+          vectors.set_position(i, this->half_time, std::move(half_position));
         }
     };
     do_step(parts, part_vectors);
@@ -900,6 +899,8 @@ namespace fdl
   IFEDMethod<dim, spacedim>::midpointStep(double current_time, double new_time)
   {
     const double dt      = new_time - current_time;
+    Assert(this->current_time == current_time,
+           ExcFDLNotImplemented());
     auto         do_step = [&](auto &collection, auto &vectors)
     {
       for (unsigned int i = 0; i < collection.size(); ++i)
@@ -911,7 +912,7 @@ namespace fdl
           LinearAlgebra::distributed::Vector<double> new_position(
             part.get_position());
           new_position.set_ghost_state(false);
-          new_position.add(dt, vectors.get_velocity(i, half_time));
+          new_position.add(dt, vectors.get_velocity(i, this->half_time));
           vectors.set_position(i, new_time, std::move(new_position));
 
           // Set the position at the half time:
@@ -922,7 +923,7 @@ namespace fdl
                             vectors.get_position(i, current_time),
                             0.5,
                             vectors.get_position(i, new_time));
-          vectors.set_position(i, half_time, std::move(half_position));
+          vectors.set_position(i, this->half_time, std::move(half_position));
         }
     };
     do_step(parts, part_vectors);

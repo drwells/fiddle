@@ -9,15 +9,20 @@
 
 namespace fdl
 {
-  using namespace dealii;
-  using namespace SAMRAI;
-
   /**
    */
   template <int dim, int spacedim = dim>
   class IFEDMethodBase : public IBAMR::IBStrategy
   {
+  public:
     static_assert(spacedim == NDIM, "Only available for spacedim == NDIM");
+
+    IFEDMethodBase();
+
+  protected:
+    double current_time;
+    double half_time;
+    double new_time;
   };
 } // namespace fdl
 

@@ -288,9 +288,6 @@ namespace fdl
 
     bool started_time_integration;
 
-    double current_time;
-    double half_time;
-    double new_time;
     /**
      * @}
      */
