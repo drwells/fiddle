@@ -49,7 +49,6 @@ namespace
   static tbox::Timer *t_compute_lagrangian_force_pk1;
   static tbox::Timer *t_compute_lagrangian_force_solve;
   static tbox::Timer *t_spread_force;
-  static tbox::Timer *t_max_point_displacement;
   static tbox::Timer *t_compute_lagrangian_fluid_source;
   static tbox::Timer *t_spread_fluid_source;
   static tbox::Timer *t_add_workload_estimate;
@@ -103,15 +102,6 @@ namespace fdl
     // IBAMR does not support using threads so unconditionally disable them
     // here.
     MultithreadInfo::set_thread_limit(1);
-
-    auto init_regrid_positions = [](auto &vectors, const auto &collection)
-    {
-      for (const auto &part : collection)
-        vectors.push_back(part.get_position());
-    };
-    init_regrid_positions(positions_at_last_regrid, this->parts);
-    init_regrid_positions(surface_positions_at_last_regrid,
-                          this->surface_parts);
 
     const std::string interaction =
       input_db->getStringWithDefault("interaction", "ELEMENTAL");
@@ -248,8 +238,6 @@ namespace fdl
     t_compute_lagrangian_force_solve =
       set_timer("fdl::IFEDMethod::computeLagrangianForce()[solve]");
     t_spread_force = set_timer("fdl::IFEDMethod::spreadForce()");
-    t_max_point_displacement =
-      set_timer("fdl::IFEDMethod::getMaxPointDisplacement()");
     t_compute_lagrangian_fluid_source =
       set_timer("fdl::IFEDMethod::computeLagrangianFluidSource()");
     t_spread_fluid_source = set_timer("fdl::IFEDMethod::spreadFluidSource()");
@@ -316,27 +304,29 @@ namespace fdl
   template <int dim, int spacedim>
   void
   IFEDMethod<dim, spacedim>::initializePatchHierarchy(
-    tbox::Pointer<hier::PatchHierarchy<spacedim>> hierarchy,
-    tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/,
-    int /*u_data_index*/,
+    tbox::Pointer<hier::PatchHierarchy<spacedim>>    hierarchy,
+    tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg,
+    int                                              u_data_index,
     const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>>
-      & /*u_synch_scheds*/,
+      &u_synch_scheds,
     const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
-      & /*u_ghost_fill_scheds*/,
-    int /*integrator_step*/,
-    double /*init_data_time*/,
-    bool /*initial_time*/)
+          &u_ghost_fill_scheds,
+    int    integrator_step,
+    double init_data_time,
+    bool   initial_time)
   {
-    primary_hierarchy = hierarchy;
+    IFEDMethodBase<dim, spacedim>::initializePatchHierarchy(hierarchy,
+                                                            gridding_alg,
+                                                            u_data_index,
+                                                            u_synch_scheds,
+                                                            u_ghost_fill_scheds,
+                                                            integrator_step,
+                                                            init_data_time,
+                                                            initial_time);
 
-    primary_eulerian_data_cache = std::make_shared<IBTK::SAMRAIDataCache>();
-    primary_eulerian_data_cache->setPatchHierarchy(hierarchy);
-    primary_eulerian_data_cache->resetLevels(0,
-                                             hierarchy->getFinestLevelNumber());
-
-    secondary_hierarchy.reinit(primary_hierarchy->getFinestLevelNumber(),
-                               primary_hierarchy->getFinestLevelNumber(),
-                               primary_hierarchy);
+    secondary_hierarchy.reinit(this->patch_hierarchy->getFinestLevelNumber(),
+                               this->patch_hierarchy->getFinestLevelNumber(),
+                               this->patch_hierarchy);
 
     reinit_interactions();
   }
@@ -361,7 +351,7 @@ namespace fdl
 
     // Update the secondary hierarchy:
     secondary_hierarchy.transferPrimaryToSecondary(
-      primary_hierarchy->getFinestLevelNumber(),
+      this->patch_hierarchy->getFinestLevelNumber(),
       u_data_index,
       u_data_index,
       data_time,
@@ -553,7 +543,7 @@ namespace fdl
     double data_time)
   {
     IBAMR_TIMER_START(t_spread_force);
-    const int level_number = primary_hierarchy->getFinestLevelNumber();
+    const int level_number = this->patch_hierarchy->getFinestLevelNumber();
 
     std::shared_ptr<IBTK::SAMRAIDataCache> data_cache =
       secondary_hierarchy.getSAMRAIDataCache();
@@ -689,13 +679,13 @@ namespace fdl
     // Sum values back into the primary hierarchy.
     {
       auto f_primary_data_ops =
-        extract_hierarchy_data_ops(f_var, primary_hierarchy);
+        extract_hierarchy_data_ops(f_var, this->patch_hierarchy);
       f_primary_data_ops->resetLevels(level_number, level_number);
       const auto f_primary_scratch_data_index =
-        primary_eulerian_data_cache->getCachedPatchDataIndex(f_data_index);
+        this->eulerian_data_cache->getCachedPatchDataIndex(f_data_index);
       // we have to zero everything here since the scratch to primary
       // communication does not touch ghost cells, which may have junk
-      fill_all(primary_hierarchy,
+      fill_all(this->patch_hierarchy,
                f_primary_scratch_data_index,
                level_number,
                level_number,
@@ -710,41 +700,6 @@ namespace fdl
                               f_primary_scratch_data_index);
     }
     IBAMR_TIMER_STOP(t_spread_force);
-  }
-
-
-  template <int dim, int spacedim>
-  double
-  IFEDMethod<dim, spacedim>::getMaxPointDisplacement() const
-  {
-    IBAMR_TIMER_START(t_max_point_displacement);
-    double max_displacement = 0;
-
-    auto max_op = [&](const auto &collection, const auto &regrid_positions)
-    {
-      for (unsigned int i = 0; i < collection.size(); ++i)
-        {
-          AssertDimension(collection.size(), regrid_positions.size());
-          const auto &ref_position = regrid_positions[i];
-          const auto &position     = collection[i].get_position();
-          const auto  local_size   = position.locally_owned_size();
-          for (unsigned int j = 0; j < local_size; ++j)
-            max_displacement = std::max(max_displacement,
-                                        std::abs(ref_position.local_element(j) -
-                                                 position.local_element(j)));
-        }
-    };
-    max_op(this->parts, positions_at_last_regrid);
-    max_op(this->surface_parts, surface_positions_at_last_regrid);
-    max_displacement =
-      Utilities::MPI::max(max_displacement, IBTK::IBTK_MPI::getCommunicator());
-
-    return max_displacement /
-           IBTK::get_min_patch_dx(
-             dynamic_cast<const hier::PatchLevel<spacedim> &>(
-               *primary_hierarchy->getPatchLevel(
-                 primary_hierarchy->getFinestLevelNumber())));
-    IBAMR_TIMER_STOP(t_max_point_displacement);
   }
 
   //
@@ -989,7 +944,7 @@ namespace fdl
           // We already check that this has a valid value earlier on
           const std::string interaction =
             input_db->getStringWithDefault("interaction", "ELEMENTAL");
-          const int ln = primary_hierarchy->getFinestLevelNumber();
+          const int ln = this->patch_hierarchy->getFinestLevelNumber();
 
           tbox::Pointer<tbox::Database> interaction_db =
             new tbox::InputDatabase("interaction");
@@ -1028,18 +983,20 @@ namespace fdl
   template <int dim, int spacedim>
   void
   IFEDMethod<dim, spacedim>::beginDataRedistribution(
-    tbox::Pointer<hier::PatchHierarchy<spacedim>> /*hierarchy*/,
-    tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
+    tbox::Pointer<hier::PatchHierarchy<spacedim>>    hierarchy,
+    tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg)
   {
     IBAMR_TIMER_START(t_begin_data_redistribution);
+    IFEDMethodBase<dim, spacedim>::beginDataRedistribution(hierarchy,
+                                                           gridding_alg);
     // This function is called before initializePatchHierarchy is - in that
     // case we don't have a hierarchy, so we don't have any data, and there is
     // naught to do
-    if (primary_hierarchy)
+    if (this->patch_hierarchy)
       {
         // Weird things happen when we coarsen and refine if some levels are
         // not present, so fill them all in with zeros to start
-        const int max_ln = primary_hierarchy->getFinestLevelNumber();
+        const int max_ln = this->patch_hierarchy->getFinestLevelNumber();
         fill_all(secondary_hierarchy.getSecondaryHierarchy(),
                  lagrangian_workload_current_index,
                  0,
@@ -1088,7 +1045,7 @@ namespace fdl
 
         // Move to primary hierarchy (we will read it back in
         // endDataRedistribution)
-        fill_all(primary_hierarchy,
+        fill_all(this->patch_hierarchy,
                  lagrangian_workload_current_index,
                  0,
                  max_ln);
@@ -1108,26 +1065,18 @@ namespace fdl
   template <int dim, int spacedim>
   void
   IFEDMethod<dim, spacedim>::endDataRedistribution(
-    tbox::Pointer<hier::PatchHierarchy<spacedim>> /*hierarchy*/,
-    tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
+    tbox::Pointer<hier::PatchHierarchy<spacedim>>    hierarchy,
+    tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg)
   {
     IBAMR_TIMER_START(t_end_data_redistribution);
     // same as beginDataRedistribution
-    if (primary_hierarchy)
+    if (this->patch_hierarchy)
       {
-        auto do_reset = [](auto &positions_regrid, const auto &collection)
-        {
-          positions_regrid.clear();
-          for (unsigned int i = 0; i < collection.size(); ++i)
-            positions_regrid.push_back(collection[i].get_position());
-        };
-        do_reset(positions_at_last_regrid, this->parts);
-        do_reset(surface_positions_at_last_regrid, this->surface_parts);
-
-        secondary_hierarchy.reinit(primary_hierarchy->getFinestLevelNumber(),
-                                   primary_hierarchy->getFinestLevelNumber(),
-                                   primary_hierarchy,
-                                   lagrangian_workload_current_index);
+        secondary_hierarchy.reinit(
+          this->patch_hierarchy->getFinestLevelNumber(),
+          this->patch_hierarchy->getFinestLevelNumber(),
+          this->patch_hierarchy,
+          lagrangian_workload_current_index);
 
         reinit_interactions();
 
@@ -1136,7 +1085,7 @@ namespace fdl
              (!started_time_integration &&
               !input_db->getBoolWithDefault("skip_initial_workload", false))))
           {
-            const int ln            = primary_hierarchy->getFinestLevelNumber();
+            const int ln = this->patch_hierarchy->getFinestLevelNumber();
             auto      secondary_ops = extract_hierarchy_data_ops(
               lagrangian_workload_var,
               secondary_hierarchy.getSecondaryHierarchy());
@@ -1177,16 +1126,19 @@ namespace fdl
         // save a copy for plotting purposes.
 
         // TODO - implement a utility function for copying
-        fill_all(primary_hierarchy,
+        fill_all(this->patch_hierarchy,
                  lagrangian_workload_plot_index,
                  0,
-                 primary_hierarchy->getFinestLevelNumber(),
+                 this->patch_hierarchy->getFinestLevelNumber(),
                  0);
-        extract_hierarchy_data_ops(lagrangian_workload_var, primary_hierarchy)
+        extract_hierarchy_data_ops(lagrangian_workload_var,
+                                   this->patch_hierarchy)
           ->copyData(lagrangian_workload_plot_index,
                      lagrangian_workload_current_index,
                      false);
       }
+    IFEDMethodBase<dim, spacedim>::endDataRedistribution(hierarchy,
+                                                         gridding_alg);
     IBAMR_TIMER_STOP(t_end_data_redistribution);
   }
 

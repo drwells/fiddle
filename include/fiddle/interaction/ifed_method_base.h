@@ -8,6 +8,8 @@
 
 #include <ibamr/IBStrategy.h>
 
+#include <ibtk/SAMRAIDataCache.h>
+
 #include <BasePatchHierarchy.h>
 #include <tbox/Pointer.h>
 
@@ -32,6 +34,8 @@ namespace fdl
      * @name fluid-structure interaction.
      * @{
      */
+    virtual double
+    getMaxPointDisplacement() const override;
 
     /**
      * Tag cells in @p hierarchy that intersect with the structure.
@@ -44,6 +48,48 @@ namespace fdl
       int                                               tag_index,
       bool                                              initial_time,
       bool uses_richardson_extrapolation_too) override;
+    /**
+     * @}
+     */
+
+    /**
+     * @name Initialization.
+     * @{
+     */
+
+    /**
+     * Initialize Lagrangian data corresponding to the given AMR patch hierarchy
+     * at the start of a computation. This may involve reading restart data.
+     */
+    virtual void
+    initializePatchHierarchy(
+      tbox::Pointer<hier::PatchHierarchy<spacedim>>    hierarchy,
+      tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg,
+      int                                              u_data_index,
+      const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>>
+        &u_synch_scheds,
+      const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
+            &u_ghost_fill_scheds,
+      int    integrator_step,
+      double init_data_time,
+      bool   initial_time) override;
+    /**
+     * @}
+     */
+
+    /**
+     * @name Parallel data distribution.
+     * @{
+     */
+    virtual void
+    beginDataRedistribution(
+      tbox::Pointer<hier::PatchHierarchy<spacedim>>    hierarchy,
+      tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg) override;
+
+    virtual void
+    endDataRedistribution(
+      tbox::Pointer<hier::PatchHierarchy<spacedim>>    hierarchy,
+      tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg) override;
     /**
      * @}
      */
@@ -80,6 +126,17 @@ namespace fdl
      */
 
     /**
+     * Finite difference data structures
+     * @{
+     */
+    tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy;
+
+    std::shared_ptr<IBTK::SAMRAIDataCache> eulerian_data_cache;
+    /**
+     * @}
+     */
+
+    /**
      * Finite element data structures
      * @{
      */
@@ -90,6 +147,12 @@ namespace fdl
     PartVectors<dim, spacedim> part_vectors;
 
     PartVectors<dim - 1, spacedim> surface_part_vectors;
+
+    std::deque<LinearAlgebra::distributed::Vector<double>>
+      positions_at_last_regrid;
+
+    std::deque<LinearAlgebra::distributed::Vector<double>>
+      surface_positions_at_last_regrid;
     /**
      * @}
      */

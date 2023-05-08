@@ -9,7 +9,6 @@
 #include <fiddle/interaction/ifed_method_base.h>
 #include <fiddle/interaction/interaction_base.h>
 
-#include <ibtk/SAMRAIDataCache.h>
 #include <ibtk/SAMRAIGhostDataAccumulator.h>
 #include <ibtk/SecondaryHierarchy.h>
 
@@ -157,9 +156,6 @@ namespace fdl
                 const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
                       &f_prolongation_scheds,
                 double data_time) override;
-
-    virtual double
-    getMaxPointDisplacement() const override;
     /**
      * @}
      */
@@ -274,12 +270,6 @@ namespace fdl
       surface_force_guesses;
     std::vector<InitialGuess<LinearAlgebra::distributed::Vector<double>>>
       surface_velocity_guesses;
-
-    std::deque<LinearAlgebra::distributed::Vector<double>>
-      positions_at_last_regrid;
-
-    std::deque<LinearAlgebra::distributed::Vector<double>>
-      surface_positions_at_last_regrid;
     /**
      * @}
      */
@@ -288,11 +278,7 @@ namespace fdl
      * Finite difference data structures
      * @{
      */
-    tbox::Pointer<hier::PatchHierarchy<spacedim>> primary_hierarchy;
-
     SAMRAI::hier::IntVector<spacedim> ghosts;
-
-    std::shared_ptr<IBTK::SAMRAIDataCache> primary_eulerian_data_cache;
 
     IBTK::SecondaryHierarchy secondary_hierarchy;
 
