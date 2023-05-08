@@ -9,11 +9,6 @@
 #include <fiddle/interaction/ifed_method_base.h>
 #include <fiddle/interaction/interaction_base.h>
 
-#include <fiddle/mechanics/part.h>
-#include <fiddle/mechanics/part_vectors.h>
-
-#include <ibamr/IBStrategy.h>
-
 #include <ibtk/LEInteractor.h>
 #include <ibtk/SAMRAIDataCache.h>
 #include <ibtk/SAMRAIGhostDataAccumulator.h>
@@ -296,14 +291,6 @@ namespace fdl
      * Finite element data structures
      * @{
      */
-    std::vector<Part<dim, spacedim>> parts;
-
-    std::vector<Part<dim - 1, spacedim>> surface_parts;
-
-    PartVectors<dim, spacedim> part_vectors;
-
-    PartVectors<dim - 1, spacedim> surface_part_vectors;
-
     std::vector<InitialGuess<LinearAlgebra::distributed::Vector<double>>>
       force_guesses;
     std::vector<InitialGuess<LinearAlgebra::distributed::Vector<double>>>
@@ -374,14 +361,14 @@ namespace fdl
   inline std::size_t
   IFEDMethod<dim, spacedim>::n_parts() const
   {
-    return parts.size();
+    return this->parts.size();
   }
 
   template <int dim, int spacedim>
   inline std::size_t
   IFEDMethod<dim, spacedim>::n_surface_parts() const
   {
-    return surface_parts.size();
+    return this->surface_parts.size();
   }
 
   template <int dim, int spacedim>
@@ -389,7 +376,7 @@ namespace fdl
   IFEDMethod<dim, spacedim>::get_part(const unsigned int part_n) const
   {
     AssertIndexRange(part_n, n_parts());
-    return parts[part_n];
+    return this->parts[part_n];
   }
 
   template <int dim, int spacedim>
@@ -398,7 +385,7 @@ namespace fdl
     const unsigned int surface_part_n) const
   {
     AssertIndexRange(surface_part_n, n_surface_parts());
-    return surface_parts[surface_part_n];
+    return this->surface_parts[surface_part_n];
   }
 
   template <int dim, int spacedim>

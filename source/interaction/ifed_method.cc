@@ -89,14 +89,12 @@ namespace fdl
     std::vector<Part<dim - 1, spacedim>> &&input_surface_parts,
     std::vector<Part<dim, spacedim>>     &&input_parts,
     const bool                             register_for_restart)
-    : object_name(object_name)
+    : IFEDMethodBase<dim, spacedim>(std::move(input_surface_parts),
+                                    std::move(input_parts))
+    , object_name(object_name)
     , register_for_restart(register_for_restart)
     , input_db(copy_database(input_input_db))
     , started_time_integration(false)
-    , parts(std::move(input_parts))
-    , surface_parts(std::move(input_surface_parts))
-    , part_vectors(this->parts)
-    , surface_part_vectors(this->surface_parts)
     , ghosts(0)
     , secondary_hierarchy(object_name + "::secondary_hierarchy",
                           input_db->getDatabase("GriddingAlgorithm"),
@@ -111,8 +109,9 @@ namespace fdl
       for (const auto &part : collection)
         vectors.push_back(part.get_position());
     };
-    init_regrid_positions(positions_at_last_regrid, parts);
-    init_regrid_positions(surface_positions_at_last_regrid, surface_parts);
+    init_regrid_positions(positions_at_last_regrid, this->parts);
+    init_regrid_positions(surface_positions_at_last_regrid,
+                          this->surface_parts);
 
     const std::string interaction =
       input_db->getStringWithDefault("interaction", "ELEMENTAL");
@@ -159,11 +158,14 @@ namespace fdl
                 input_db->getIntegerWithDefault("n_guess_vectors", 3));
             }
         };
-        init_elemental(interactions, force_guesses, velocity_guesses, parts);
+        init_elemental(interactions,
+                       force_guesses,
+                       velocity_guesses,
+                       this->parts);
         init_elemental(surface_interactions,
                        surface_force_guesses,
                        surface_velocity_guesses,
-                       surface_parts);
+                       this->surface_parts);
       }
     else if (interaction == "NODAL")
       {
@@ -175,8 +177,8 @@ namespace fdl
             inters.emplace_back(
               std::make_unique<NodalInteraction<structdim, spacedim>>());
         };
-        init_nodal(interactions, parts);
-        init_nodal(surface_interactions, surface_parts);
+        init_nodal(interactions, this->parts);
+        init_nodal(surface_interactions, this->surface_parts);
       }
     else
       {
@@ -223,8 +225,8 @@ namespace fdl
             }
         }
     };
-    do_kernel("IB_kernel", parts, ib_kernels);
-    do_kernel("surface_IB_kernel", surface_parts, surface_ib_kernels);
+    do_kernel("IB_kernel", this->parts, ib_kernels);
+    do_kernel("surface_IB_kernel", this->surface_parts, surface_ib_kernels);
 
     auto set_timer = [&](const char *name)
     { return tbox::TimerManager::getManager()->getTimer(name); };
@@ -290,8 +292,8 @@ namespace fdl
                       collection[i].load(iarchive, 0);
                     }
                 };
-                do_load(parts, "part_");
-                do_load(surface_parts, "surface_part_");
+                do_load(this->parts, "part_");
+                do_load(this->surface_parts, "surface_part_");
               }
             else
               {
@@ -411,12 +413,16 @@ namespace fdl
       surface_transactions;
     std::deque<LinearAlgebra::distributed::Vector<double>> rhs_vecs,
       surface_rhs_vecs;
-    scatter_start(
-      parts, interactions, ib_kernels, part_vectors, transactions, rhs_vecs);
-    scatter_start(surface_parts,
+    scatter_start(this->parts,
+                  interactions,
+                  ib_kernels,
+                  this->part_vectors,
+                  transactions,
+                  rhs_vecs);
+    scatter_start(this->surface_parts,
                   surface_interactions,
                   surface_ib_kernels,
-                  surface_part_vectors,
+                  this->surface_part_vectors,
                   surface_transactions,
                   surface_rhs_vecs);
     int ierr =
@@ -523,10 +529,14 @@ namespace fdl
             }
         }
     };
-    do_solve(parts, interactions, part_vectors, velocity_guesses, rhs_vecs);
-    do_solve(surface_parts,
+    do_solve(this->parts,
+             interactions,
+             this->part_vectors,
+             velocity_guesses,
+             rhs_vecs);
+    do_solve(this->surface_parts,
              surface_interactions,
-             surface_part_vectors,
+             this->surface_part_vectors,
              surface_velocity_guesses,
              surface_rhs_vecs);
     IBAMR_TIMER_STOP(t_interpolate_velocity_solve);
@@ -591,11 +601,12 @@ namespace fdl
     };
     std::vector<std::unique_ptr<TransactionBase>> transactions,
       surface_transactions;
-    scatter_start(parts, interactions, ib_kernels, part_vectors, transactions);
-    scatter_start(surface_parts,
+    scatter_start(
+      this->parts, interactions, ib_kernels, this->part_vectors, transactions);
+    scatter_start(this->surface_parts,
                   surface_interactions,
                   surface_ib_kernels,
-                  surface_part_vectors,
+                  this->surface_part_vectors,
                   surface_transactions);
     int ierr =
       MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
@@ -725,8 +736,8 @@ namespace fdl
                                                  position.local_element(j)));
         }
     };
-    max_op(parts, positions_at_last_regrid);
-    max_op(surface_parts, surface_positions_at_last_regrid);
+    max_op(this->parts, positions_at_last_regrid);
+    max_op(this->surface_parts, surface_positions_at_last_regrid);
     max_displacement =
       Utilities::MPI::max(max_displacement, IBTK::IBTK_MPI::getCommunicator());
 
@@ -780,8 +791,8 @@ namespace fdl
         }
     };
 
-    do_tag(parts);
-    do_tag(surface_parts);
+    do_tag(this->parts);
+    do_tag(this->surface_parts);
     IBAMR_TIMER_STOP(t_apply_gradient_detector);
   }
 
@@ -797,8 +808,8 @@ namespace fdl
   {
     IBAMR_TIMER_START(t_preprocess_integrate_data);
     started_time_integration = true;
-    part_vectors.begin_time_step(current_time, new_time);
-    surface_part_vectors.begin_time_step(current_time, new_time);
+    this->part_vectors.begin_time_step(current_time, new_time);
+    this->surface_part_vectors.begin_time_step(current_time, new_time);
     this->current_time = current_time;
     this->new_time     = new_time;
     this->half_time    = current_time + 0.5 * (new_time - current_time);
@@ -835,15 +846,17 @@ namespace fdl
           part.get_velocity().update_ghost_values_finish();
         }
     };
-    auto new_positions          = part_vectors.get_all_new_positions();
-    auto new_velocities         = part_vectors.get_all_new_velocities();
-    auto surface_new_positions  = surface_part_vectors.get_all_new_positions();
-    auto surface_new_velocities = surface_part_vectors.get_all_new_velocities();
-    do_set(parts, new_positions, new_velocities);
-    do_set(surface_parts, surface_new_positions, surface_new_velocities);
+    auto new_positions  = this->part_vectors.get_all_new_positions();
+    auto new_velocities = this->part_vectors.get_all_new_velocities();
+    auto surface_new_positions =
+      this->surface_part_vectors.get_all_new_positions();
+    auto surface_new_velocities =
+      this->surface_part_vectors.get_all_new_velocities();
+    do_set(this->parts, new_positions, new_velocities);
+    do_set(this->surface_parts, surface_new_positions, surface_new_velocities);
 
-    part_vectors.end_time_step();
-    surface_part_vectors.end_time_step();
+    this->part_vectors.end_time_step();
+    this->surface_part_vectors.end_time_step();
     IBAMR_TIMER_STOP(t_postprocess_integrate_data);
   }
 
@@ -852,10 +865,9 @@ namespace fdl
   IFEDMethod<dim, spacedim>::forwardEulerStep(double current_time,
                                               double new_time)
   {
-    const double dt      = new_time - current_time;
-    Assert(this->current_time == current_time,
-           ExcFDLNotImplemented());
-    auto         do_step = [&](auto &collection, auto &vectors)
+    const double dt = new_time - current_time;
+    Assert(this->current_time == current_time, ExcFDLNotImplemented());
+    auto do_step = [&](auto &collection, auto &vectors)
     {
       for (unsigned int i = 0; i < collection.size(); ++i)
         {
@@ -880,8 +892,8 @@ namespace fdl
           vectors.set_position(i, this->half_time, std::move(half_position));
         }
     };
-    do_step(parts, part_vectors);
-    do_step(surface_parts, surface_part_vectors);
+    do_step(this->parts, this->part_vectors);
+    do_step(this->surface_parts, this->surface_part_vectors);
   }
 
   template <int dim, int spacedim>
@@ -898,10 +910,9 @@ namespace fdl
   void
   IFEDMethod<dim, spacedim>::midpointStep(double current_time, double new_time)
   {
-    const double dt      = new_time - current_time;
-    Assert(this->current_time == current_time,
-           ExcFDLNotImplemented());
-    auto         do_step = [&](auto &collection, auto &vectors)
+    const double dt = new_time - current_time;
+    Assert(this->current_time == current_time, ExcFDLNotImplemented());
+    auto do_step = [&](auto &collection, auto &vectors)
     {
       for (unsigned int i = 0; i < collection.size(); ++i)
         {
@@ -926,8 +937,8 @@ namespace fdl
           vectors.set_position(i, this->half_time, std::move(half_position));
         }
     };
-    do_step(parts, part_vectors);
-    do_step(surface_parts, surface_part_vectors);
+    do_step(this->parts, this->part_vectors);
+    do_step(this->surface_parts, this->surface_part_vectors);
   }
 
   template <int dim, int spacedim>
@@ -994,9 +1005,12 @@ namespace fdl
     };
     std::deque<LinearAlgebra::distributed::Vector<double>> part_forces,
       part_right_hand_sides, surface_part_forces, surface_part_right_hand_sides;
-    do_load(parts, part_vectors, part_forces, part_right_hand_sides);
-    do_load(surface_parts,
-            surface_part_vectors,
+    do_load(this->parts,
+            this->part_vectors,
+            part_forces,
+            part_right_hand_sides);
+    do_load(this->surface_parts,
+            this->surface_part_vectors,
             surface_part_forces,
             surface_part_right_hand_sides);
 
@@ -1058,16 +1072,16 @@ namespace fdl
             active_strain->finish_strain(data_time);
         }
     };
-    do_solve(parts,
+    do_solve(this->parts,
              interactions,
              force_guesses,
-             part_vectors,
+             this->part_vectors,
              part_forces,
              part_right_hand_sides);
-    do_solve(surface_parts,
+    do_solve(this->surface_parts,
              surface_interactions,
              surface_force_guesses,
-             surface_part_vectors,
+             this->surface_part_vectors,
              surface_part_forces,
              surface_part_right_hand_sides);
     IBAMR_TIMER_STOP(t_compute_lagrangian_force);
@@ -1145,8 +1159,8 @@ namespace fdl
           interactions[i]->add_dof_handler(part.get_dof_handler());
         }
     };
-    do_reinit(parts, interactions);
-    do_reinit(surface_parts, surface_interactions);
+    do_reinit(this->parts, interactions);
+    do_reinit(this->surface_parts, surface_interactions);
     IBAMR_TIMER_STOP(t_reinit_interactions_objects);
   }
 
@@ -1187,8 +1201,8 @@ namespace fdl
         };
         std::vector<std::unique_ptr<TransactionBase>> transactions,
           surface_transactions;
-        setup_transaction(parts, interactions, transactions);
-        setup_transaction(surface_parts,
+        setup_transaction(this->parts, interactions, transactions);
+        setup_transaction(this->surface_parts,
                           surface_interactions,
                           surface_transactions);
 
@@ -1247,8 +1261,8 @@ namespace fdl
           for (unsigned int i = 0; i < collection.size(); ++i)
             positions_regrid.push_back(collection[i].get_position());
         };
-        do_reset(positions_at_last_regrid, parts);
-        do_reset(surface_positions_at_last_regrid, surface_parts);
+        do_reset(positions_at_last_regrid, this->parts);
+        do_reset(surface_positions_at_last_regrid, this->surface_parts);
 
         secondary_hierarchy.reinit(primary_hierarchy->getFinestLevelNumber(),
                                    primary_hierarchy->getFinestLevelNumber(),
@@ -1340,8 +1354,8 @@ namespace fdl
                       db);
         }
     };
-    do_put(parts, "part_");
-    do_put(surface_parts, "surface_part_");
+    do_put(this->parts, "part_");
+    do_put(this->surface_parts, "surface_part_");
   }
 
 
