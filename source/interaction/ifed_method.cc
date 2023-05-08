@@ -86,7 +86,7 @@ namespace fdl
   IFEDMethod<dim, spacedim>::IFEDMethod(
     const std::string                     &object_name,
     tbox::Pointer<tbox::Database>          input_input_db,
-    std::vector<Part<dim - 1, spacedim>> &&input_penalty_parts,
+    std::vector<Part<dim - 1, spacedim>> &&input_surface_parts,
     std::vector<Part<dim, spacedim>>     &&input_parts,
     const bool                             register_for_restart)
     : object_name(object_name)
@@ -97,9 +97,9 @@ namespace fdl
     , half_time(std::numeric_limits<double>::signaling_NaN())
     , new_time(std::numeric_limits<double>::signaling_NaN())
     , parts(std::move(input_parts))
-    , penalty_parts(std::move(input_penalty_parts))
+    , surface_parts(std::move(input_surface_parts))
     , part_vectors(this->parts)
-    , penalty_part_vectors(this->penalty_parts)
+    , surface_part_vectors(this->surface_parts)
     , ghosts(0)
     , secondary_hierarchy(object_name + "::secondary_hierarchy",
                           input_db->getDatabase("GriddingAlgorithm"),
@@ -115,13 +115,13 @@ namespace fdl
         vectors.push_back(part.get_position());
     };
     init_regrid_positions(positions_at_last_regrid, parts);
-    init_regrid_positions(penalty_positions_at_last_regrid, penalty_parts);
+    init_regrid_positions(surface_positions_at_last_regrid, surface_parts);
 
     const std::string interaction =
       input_db->getStringWithDefault("interaction", "ELEMENTAL");
     if (interaction == "ELEMENTAL")
       {
-        AssertThrow(n_penalty_parts() == 0, ExcFDLNotImplemented());
+        AssertThrow(n_surface_parts() == 0, ExcFDLNotImplemented());
         // IBFEMethod uses this value - lower values aren't guaranteed to work.
         // If dx = dX then we can use a lower density.
         const double density =
@@ -163,10 +163,10 @@ namespace fdl
             }
         };
         init_elemental(interactions, force_guesses, velocity_guesses, parts);
-        init_elemental(penalty_interactions,
-                       penalty_force_guesses,
-                       penalty_velocity_guesses,
-                       penalty_parts);
+        init_elemental(surface_interactions,
+                       surface_force_guesses,
+                       surface_velocity_guesses,
+                       surface_parts);
       }
     else if (interaction == "NODAL")
       {
@@ -179,7 +179,7 @@ namespace fdl
               std::make_unique<NodalInteraction<structdim, spacedim>>());
         };
         init_nodal(interactions, parts);
-        init_nodal(penalty_interactions, penalty_parts);
+        init_nodal(surface_interactions, surface_parts);
       }
     else
       {
@@ -202,7 +202,7 @@ namespace fdl
           AssertThrow(n_ib_kernels == 1 ||
                         n_ib_kernels == static_cast<int>(collection.size()),
                       ExcMessage("The number of specified IB kernels should "
-                                 "either be 1 or equal the number of (penalty) "
+                                 "either be 1 or equal the number of (surface) "
                                  "parts."));
           kernels.resize(n_ib_kernels);
           input_db->getStringArray(key,
@@ -227,7 +227,7 @@ namespace fdl
         }
     };
     do_kernel("IB_kernel", parts, ib_kernels);
-    do_kernel("penalty_IB_kernel", penalty_parts, penalty_ib_kernels);
+    do_kernel("surface_IB_kernel", surface_parts, surface_ib_kernels);
 
     auto set_timer = [&](const char *name)
     { return tbox::TimerManager::getManager()->getTimer(name); };
@@ -294,7 +294,7 @@ namespace fdl
                     }
                 };
                 do_load(parts, "part_");
-                do_load(penalty_parts, "penalty_part_");
+                do_load(surface_parts, "surface_part_");
               }
             else
               {
@@ -411,23 +411,23 @@ namespace fdl
     };
     // we emplace_back so use a deque to keep pointers valid
     std::vector<std::unique_ptr<TransactionBase>> transactions,
-      penalty_transactions;
+      surface_transactions;
     std::deque<LinearAlgebra::distributed::Vector<double>> rhs_vecs,
-      penalty_rhs_vecs;
+      surface_rhs_vecs;
     scatter_start(
       parts, interactions, ib_kernels, part_vectors, transactions, rhs_vecs);
-    scatter_start(penalty_parts,
-                  penalty_interactions,
-                  penalty_ib_kernels,
-                  penalty_part_vectors,
-                  penalty_transactions,
-                  penalty_rhs_vecs);
+    scatter_start(surface_parts,
+                  surface_interactions,
+                  surface_ib_kernels,
+                  surface_part_vectors,
+                  surface_transactions,
+                  surface_rhs_vecs);
     int ierr =
       MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
     AssertThrowMPI(ierr);
     requests.resize(0);
     scatter_finish(interactions, transactions);
-    scatter_finish(penalty_interactions, penalty_transactions);
+    scatter_finish(surface_interactions, surface_transactions);
 
     // Compute:
     auto compute_transaction = [](const auto &interactions, auto &transactions)
@@ -437,7 +437,7 @@ namespace fdl
           std::move(transactions[i]));
     };
     compute_transaction(interactions, transactions);
-    compute_transaction(penalty_interactions, penalty_transactions);
+    compute_transaction(surface_interactions, surface_transactions);
 
     // Move back:
     auto accumulate_start = [&](const auto &interactions, auto &transactions)
@@ -461,12 +461,12 @@ namespace fdl
           std::move(transactions[i]));
     };
     accumulate_start(interactions, transactions);
-    accumulate_start(penalty_interactions, penalty_transactions);
+    accumulate_start(surface_interactions, surface_transactions);
     ierr = MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
     AssertThrowMPI(ierr);
     requests.resize(0);
     accumulate_finish(interactions, transactions);
-    accumulate_finish(penalty_interactions, penalty_transactions);
+    accumulate_finish(surface_interactions, surface_transactions);
 
     // We cannot start the linear solve without first finishing this, so use a
     // barrier to keep the timers accurate
@@ -527,11 +527,11 @@ namespace fdl
         }
     };
     do_solve(parts, interactions, part_vectors, velocity_guesses, rhs_vecs);
-    do_solve(penalty_parts,
-             penalty_interactions,
-             penalty_part_vectors,
-             penalty_velocity_guesses,
-             penalty_rhs_vecs);
+    do_solve(surface_parts,
+             surface_interactions,
+             surface_part_vectors,
+             surface_velocity_guesses,
+             surface_rhs_vecs);
     IBAMR_TIMER_STOP(t_interpolate_velocity_solve);
     IBAMR_TIMER_STOP(t_interpolate_velocity);
   }
@@ -593,19 +593,19 @@ namespace fdl
           std::move(transactions[i]));
     };
     std::vector<std::unique_ptr<TransactionBase>> transactions,
-      penalty_transactions;
+      surface_transactions;
     scatter_start(parts, interactions, ib_kernels, part_vectors, transactions);
-    scatter_start(penalty_parts,
-                  penalty_interactions,
-                  penalty_ib_kernels,
-                  penalty_part_vectors,
-                  penalty_transactions);
+    scatter_start(surface_parts,
+                  surface_interactions,
+                  surface_ib_kernels,
+                  surface_part_vectors,
+                  surface_transactions);
     int ierr =
       MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
     AssertThrowMPI(ierr);
     requests.resize(0);
     scatter_finish(interactions, transactions);
-    scatter_finish(penalty_interactions, penalty_transactions);
+    scatter_finish(surface_interactions, surface_transactions);
 
     // Compute:
     auto compute_transaction = [&](const auto &interactions, auto &transactions)
@@ -622,7 +622,7 @@ namespace fdl
         }
     };
     compute_transaction(interactions, transactions);
-    compute_transaction(penalty_interactions, penalty_transactions);
+    compute_transaction(surface_interactions, surface_transactions);
     ierr = MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
     AssertThrowMPI(ierr);
     requests.resize(0);
@@ -634,7 +634,7 @@ namespace fdl
         interactions[i]->compute_spread_finish(std::move(transactions[i]));
     };
     collect_transaction(interactions, transactions);
-    collect_transaction(penalty_interactions, penalty_transactions);
+    collect_transaction(surface_interactions, surface_transactions);
 
     // Deal with force values spread outside the physical domain. Since these
     // are spread into ghost regions that don't correspond to actual degrees
@@ -729,7 +729,7 @@ namespace fdl
         }
     };
     max_op(parts, positions_at_last_regrid);
-    max_op(penalty_parts, penalty_positions_at_last_regrid);
+    max_op(surface_parts, surface_positions_at_last_regrid);
     max_displacement =
       Utilities::MPI::max(max_displacement, IBTK::IBTK_MPI::getCommunicator());
 
@@ -784,7 +784,7 @@ namespace fdl
     };
 
     do_tag(parts);
-    do_tag(penalty_parts);
+    do_tag(surface_parts);
     IBAMR_TIMER_STOP(t_apply_gradient_detector);
   }
 
@@ -801,7 +801,7 @@ namespace fdl
     IBAMR_TIMER_START(t_preprocess_integrate_data);
     started_time_integration = true;
     part_vectors.begin_time_step(current_time, new_time);
-    penalty_part_vectors.begin_time_step(current_time, new_time);
+    surface_part_vectors.begin_time_step(current_time, new_time);
     this->current_time = current_time;
     this->new_time     = new_time;
     this->half_time    = current_time + 0.5 * (new_time - current_time);
@@ -840,13 +840,13 @@ namespace fdl
     };
     auto new_positions          = part_vectors.get_all_new_positions();
     auto new_velocities         = part_vectors.get_all_new_velocities();
-    auto penalty_new_positions  = penalty_part_vectors.get_all_new_positions();
-    auto penalty_new_velocities = penalty_part_vectors.get_all_new_velocities();
+    auto surface_new_positions  = surface_part_vectors.get_all_new_positions();
+    auto surface_new_velocities = surface_part_vectors.get_all_new_velocities();
     do_set(parts, new_positions, new_velocities);
-    do_set(penalty_parts, penalty_new_positions, penalty_new_velocities);
+    do_set(surface_parts, surface_new_positions, surface_new_velocities);
 
     part_vectors.end_time_step();
-    penalty_part_vectors.end_time_step();
+    surface_part_vectors.end_time_step();
     IBAMR_TIMER_STOP(t_postprocess_integrate_data);
   }
 
@@ -882,7 +882,7 @@ namespace fdl
         }
     };
     do_step(parts, part_vectors);
-    do_step(penalty_parts, penalty_part_vectors);
+    do_step(surface_parts, surface_part_vectors);
   }
 
   template <int dim, int spacedim>
@@ -926,7 +926,7 @@ namespace fdl
         }
     };
     do_step(parts, part_vectors);
-    do_step(penalty_parts, penalty_part_vectors);
+    do_step(surface_parts, surface_part_vectors);
   }
 
   template <int dim, int spacedim>
@@ -992,12 +992,12 @@ namespace fdl
         }
     };
     std::deque<LinearAlgebra::distributed::Vector<double>> part_forces,
-      part_right_hand_sides, penalty_part_forces, penalty_part_right_hand_sides;
+      part_right_hand_sides, surface_part_forces, surface_part_right_hand_sides;
     do_load(parts, part_vectors, part_forces, part_right_hand_sides);
-    do_load(penalty_parts,
-            penalty_part_vectors,
-            penalty_part_forces,
-            penalty_part_right_hand_sides);
+    do_load(surface_parts,
+            surface_part_vectors,
+            surface_part_forces,
+            surface_part_right_hand_sides);
 
     // Allow compression to overlap:
     auto do_compress = [](auto &vectors)
@@ -1008,7 +1008,7 @@ namespace fdl
         vectors[i].compress_finish(VectorOperation::add);
     };
     do_compress(part_right_hand_sides);
-    do_compress(penalty_part_right_hand_sides);
+    do_compress(surface_part_right_hand_sides);
 
     // And do the actual solve:
     auto do_solve = [&](const auto &collection,
@@ -1063,12 +1063,12 @@ namespace fdl
              part_vectors,
              part_forces,
              part_right_hand_sides);
-    do_solve(penalty_parts,
-             penalty_interactions,
-             penalty_force_guesses,
-             penalty_part_vectors,
-             penalty_part_forces,
-             penalty_part_right_hand_sides);
+    do_solve(surface_parts,
+             surface_interactions,
+             surface_force_guesses,
+             surface_part_vectors,
+             surface_part_forces,
+             surface_part_right_hand_sides);
     IBAMR_TIMER_STOP(t_compute_lagrangian_force);
   }
 
@@ -1145,7 +1145,7 @@ namespace fdl
         }
     };
     do_reinit(parts, interactions);
-    do_reinit(penalty_parts, penalty_interactions);
+    do_reinit(surface_parts, surface_interactions);
     IBAMR_TIMER_STOP(t_reinit_interactions_objects);
   }
 
@@ -1185,11 +1185,11 @@ namespace fdl
             }
         };
         std::vector<std::unique_ptr<TransactionBase>> transactions,
-          penalty_transactions;
+          surface_transactions;
         setup_transaction(parts, interactions, transactions);
-        setup_transaction(penalty_parts,
-                          penalty_interactions,
-                          penalty_transactions);
+        setup_transaction(surface_parts,
+                          surface_interactions,
+                          surface_transactions);
 
         // Compute:
         auto compute_transaction = [](auto &interactions, auto &transactions)
@@ -1199,7 +1199,7 @@ namespace fdl
               std::move(transactions[i]));
         };
         compute_transaction(interactions, transactions);
-        compute_transaction(penalty_interactions, penalty_transactions);
+        compute_transaction(surface_interactions, surface_transactions);
 
         // Finish:
         auto finish_transaction =
@@ -1209,7 +1209,7 @@ namespace fdl
             interactions[i]->add_workload_finish(std::move(transactions[i]));
         };
         finish_transaction(interactions, transactions);
-        finish_transaction(penalty_interactions, penalty_transactions);
+        finish_transaction(surface_interactions, surface_transactions);
 
         // Move to primary hierarchy (we will read it back in
         // endDataRedistribution)
@@ -1247,7 +1247,7 @@ namespace fdl
             positions_regrid.push_back(collection[i].get_position());
         };
         do_reset(positions_at_last_regrid, parts);
-        do_reset(penalty_positions_at_last_regrid, penalty_parts);
+        do_reset(surface_positions_at_last_regrid, surface_parts);
 
         secondary_hierarchy.reinit(primary_hierarchy->getFinestLevelNumber(),
                                    primary_hierarchy->getFinestLevelNumber(),
@@ -1340,7 +1340,7 @@ namespace fdl
         }
     };
     do_put(parts, "part_");
-    do_put(penalty_parts, "penalty_part_");
+    do_put(surface_parts, "surface_part_");
   }
 
 

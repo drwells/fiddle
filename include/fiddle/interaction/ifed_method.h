@@ -101,13 +101,13 @@ namespace fdl
                const bool                         register_for_restart = true);
 
     /**
-     * Constructor. Assumes ownership of the provided parts and penalty parts.
+     * Constructor. Assumes ownership of the provided parts and surface parts.
      */
     IFEDMethod(const std::string                     &object_name,
                tbox::Pointer<tbox::Database>          input_db,
-               std::vector<Part<dim - 1, spacedim>> &&input_penalty_parts,
+               std::vector<Part<dim - 1, spacedim>> &&input_surface_parts,
                std::vector<Part<dim, spacedim>>     &&input_parts,
-               const bool                             register_for_restart = true);
+               const bool register_for_restart = true);
 
     /**
      * Destructor.
@@ -248,13 +248,13 @@ namespace fdl
     n_parts() const;
 
     std::size_t
-    n_penalty_parts() const;
+    n_surface_parts() const;
 
     const Part<dim, spacedim> &
     get_part(const unsigned int part_n) const;
 
     const Part<dim - 1, spacedim> &
-    get_penalty_part(const unsigned int penalty_part_n) const;
+    get_surface_part(const unsigned int surface_part_n) const;
 
     int
     get_lagrangian_workload_current_index() const;
@@ -283,7 +283,7 @@ namespace fdl
 
     std::vector<std::string> ib_kernels;
 
-    std::vector<std::string> penalty_ib_kernels;
+    std::vector<std::string> surface_ib_kernels;
 
     bool started_time_integration;
 
@@ -300,11 +300,11 @@ namespace fdl
      */
     std::vector<Part<dim, spacedim>> parts;
 
-    std::vector<Part<dim - 1, spacedim>> penalty_parts;
+    std::vector<Part<dim - 1, spacedim>> surface_parts;
 
     PartVectors<dim, spacedim> part_vectors;
 
-    PartVectors<dim - 1, spacedim> penalty_part_vectors;
+    PartVectors<dim - 1, spacedim> surface_part_vectors;
 
     std::vector<InitialGuess<LinearAlgebra::distributed::Vector<double>>>
       force_guesses;
@@ -312,15 +312,15 @@ namespace fdl
       velocity_guesses;
 
     std::vector<InitialGuess<LinearAlgebra::distributed::Vector<double>>>
-      penalty_force_guesses;
+      surface_force_guesses;
     std::vector<InitialGuess<LinearAlgebra::distributed::Vector<double>>>
-      penalty_velocity_guesses;
+      surface_velocity_guesses;
 
     std::deque<LinearAlgebra::distributed::Vector<double>>
       positions_at_last_regrid;
 
     std::deque<LinearAlgebra::distributed::Vector<double>>
-      penalty_positions_at_last_regrid;
+      surface_positions_at_last_regrid;
     /**
      * @}
      */
@@ -356,7 +356,8 @@ namespace fdl
      */
     std::vector<std::unique_ptr<InteractionBase<dim, spacedim>>> interactions;
 
-    std::vector<std::unique_ptr<InteractionBase<dim - 1, spacedim>>> penalty_interactions;
+    std::vector<std::unique_ptr<InteractionBase<dim - 1, spacedim>>>
+      surface_interactions;
     /**
      * @}
      */
@@ -380,9 +381,9 @@ namespace fdl
 
   template <int dim, int spacedim>
   inline std::size_t
-  IFEDMethod<dim, spacedim>::n_penalty_parts() const
+  IFEDMethod<dim, spacedim>::n_surface_parts() const
   {
-    return penalty_parts.size();
+    return surface_parts.size();
   }
 
   template <int dim, int spacedim>
@@ -395,10 +396,11 @@ namespace fdl
 
   template <int dim, int spacedim>
   inline const Part<dim - 1, spacedim> &
-  IFEDMethod<dim, spacedim>::get_penalty_part(const unsigned int penalty_part_n) const
+  IFEDMethod<dim, spacedim>::get_surface_part(
+    const unsigned int surface_part_n) const
   {
-    AssertIndexRange(penalty_part_n, n_penalty_parts());
-    return penalty_parts[penalty_part_n];
+    AssertIndexRange(surface_part_n, n_surface_parts());
+    return surface_parts[surface_part_n];
   }
 
   template <int dim, int spacedim>
