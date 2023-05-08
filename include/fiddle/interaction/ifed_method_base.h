@@ -23,6 +23,25 @@ namespace fdl
     IFEDMethodBase(std::vector<Part<dim - 1, spacedim>> &&input_surface_parts,
                    std::vector<Part<dim, spacedim>>     &&input_parts);
 
+    /**
+     * @name timestepping.
+     * @{
+     */
+    virtual void
+    forwardEulerStep(double current_time, double new_time) override;
+
+    virtual void
+    backwardEulerStep(double current_time, double new_time) override;
+
+    virtual void
+    midpointStep(double current_time, double new_time) override;
+
+    virtual void
+    trapezoidalStep(double current_time, double new_time) override;
+    /**
+     * @}
+     */
+
   protected:
     /**
      * Book-keeping

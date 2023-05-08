@@ -193,18 +193,6 @@ namespace fdl
                              int /*num_cycles*/) override;
 
     virtual void
-    forwardEulerStep(double current_time, double new_time) override;
-
-    virtual void
-    backwardEulerStep(double current_time, double new_time) override;
-
-    virtual void
-    midpointStep(double current_time, double new_time) override;
-
-    virtual void
-    trapezoidalStep(double current_time, double new_time) override;
-
-    virtual void
     computeLagrangianForce(double data_time) override;
     /**
      * @}
