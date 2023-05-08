@@ -107,6 +107,16 @@ namespace fdl
      * @{
      */
     virtual void
+    preprocessIntegrateData(double current_time,
+                            double new_time,
+                            int    num_cycles) override;
+
+    virtual void
+    postprocessIntegrateData(double current_time,
+                             double new_time,
+                             int    num_cycles) override;
+
+    virtual void
     forwardEulerStep(double current_time, double new_time) override;
 
     virtual void
@@ -117,6 +127,10 @@ namespace fdl
 
     virtual void
     trapezoidalStep(double current_time, double new_time) override;
+    /**
+     * @}
+     */
+
     /**
      * @}
      */
@@ -139,6 +153,8 @@ namespace fdl
     std::string object_name;
 
     bool register_for_restart;
+
+    bool started_time_integration;
 
     double current_time;
     double half_time;

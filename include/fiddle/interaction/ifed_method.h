@@ -151,23 +151,6 @@ namespace fdl
                 const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
                       &f_prolongation_scheds,
                 double data_time) override;
-    /**
-     * @}
-     */
-
-    /**
-     * @name timestepping.
-     * @{
-     */
-    virtual void
-    preprocessIntegrateData(double current_time,
-                            double new_time,
-                            int /*num_cycles*/) override;
-
-    virtual void
-    postprocessIntegrateData(double /*current_time*/,
-                             double /*new_time*/,
-                             int /*num_cycles*/) override;
 
     virtual void
     computeLagrangianForce(double data_time) override;
@@ -238,8 +221,6 @@ namespace fdl
     std::vector<std::string> ib_kernels;
 
     std::vector<std::string> surface_ib_kernels;
-
-    bool started_time_integration;
 
     /**
      * @}

@@ -5,6 +5,8 @@
 #include <fiddle/interaction/ifed_method_base.h>
 #include <fiddle/interaction/interaction_utilities.h>
 
+#include <deal.II/base/multithread_info.h>
+
 #include <deal.II/fe/mapping_fe_field.h>
 
 #include <ibamr/ibamr_utilities.h>
@@ -22,6 +24,8 @@ namespace
   static tbox::Timer *t_max_point_displacement;
   static tbox::Timer *t_begin_data_redistribution;
   static tbox::Timer *t_end_data_redistribution;
+  static tbox::Timer *t_preprocess_integrate_data;
+  static tbox::Timer *t_postprocess_integrate_data;
 } // namespace
 
 namespace fdl
@@ -41,6 +45,7 @@ namespace fdl
     const bool                             register_for_restart)
     : object_name(object_name)
     , register_for_restart(register_for_restart)
+    , started_time_integration(false)
     , current_time(std::numeric_limits<double>::signaling_NaN())
     , half_time(std::numeric_limits<double>::signaling_NaN())
     , new_time(std::numeric_limits<double>::signaling_NaN())
@@ -49,6 +54,10 @@ namespace fdl
     , part_vectors(this->parts)
     , surface_part_vectors(this->surface_parts)
   {
+    // IBAMR does not support using threads so unconditionally disable them
+    // here.
+    MultithreadInfo::set_thread_limit(1);
+
     auto set_timer = [&](const char *name)
     { return tbox::TimerManager::getManager()->getTimer(name); };
     t_apply_gradient_detector =
@@ -59,6 +68,10 @@ namespace fdl
       set_timer("fdl::IFEDMethodBase::beginDataRedistribution()");
     t_end_data_redistribution =
       set_timer("fdl::IFEDMethodBase::endDataRedistribution()");
+    t_preprocess_integrate_data =
+      set_timer("fdl::IFEDMethodBase::preprocessIntegrateData()");
+    t_postprocess_integrate_data =
+      set_timer("fdl::IFEDMethodBase::postprocessIntegrateData()");
 
     auto init_regrid_positions = [](auto &vectors, const auto &collection)
     {
@@ -257,6 +270,65 @@ namespace fdl
   //
   // Time stepping
   //
+
+  template <int dim, int spacedim>
+  void
+  IFEDMethodBase<dim, spacedim>::preprocessIntegrateData(double current_time,
+                                                         double new_time,
+                                                         int /*num_cycles*/)
+  {
+    IBAMR_TIMER_START(t_preprocess_integrate_data);
+    started_time_integration = true;
+    part_vectors.begin_time_step(current_time, new_time);
+    surface_part_vectors.begin_time_step(current_time, new_time);
+    current_time = current_time;
+    new_time     = new_time;
+    half_time    = current_time + 0.5 * (new_time - current_time);
+    IBAMR_TIMER_STOP(t_preprocess_integrate_data);
+  }
+
+  template <int dim, int spacedim>
+  void
+  IFEDMethodBase<dim, spacedim>::postprocessIntegrateData(
+    double /*current_time*/,
+    double /*new_time*/,
+    int /*num_cycles*/)
+  {
+    IBAMR_TIMER_START(t_postprocess_integrate_data);
+    current_time = std::numeric_limits<double>::quiet_NaN();
+    new_time     = std::numeric_limits<double>::quiet_NaN();
+    half_time    = std::numeric_limits<double>::quiet_NaN();
+
+    // update positions and velocities:
+    unsigned int channel = 0;
+    auto do_set = [&](auto &collection, auto &positions, auto &velocities)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          auto &part = collection[i];
+          part.set_position(std::move(positions[i]));
+          part.get_position().update_ghost_values_start(channel++);
+          part.set_velocity(std::move(velocities[i]));
+          part.get_velocity().update_ghost_values_start(channel++);
+        }
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          auto &part = collection[i];
+          part.get_position().update_ghost_values_finish();
+          part.get_velocity().update_ghost_values_finish();
+        }
+    };
+    auto new_positions          = part_vectors.get_all_new_positions();
+    auto new_velocities         = part_vectors.get_all_new_velocities();
+    auto surface_new_positions  = surface_part_vectors.get_all_new_positions();
+    auto surface_new_velocities = surface_part_vectors.get_all_new_velocities();
+    do_set(parts, new_positions, new_velocities);
+    do_set(surface_parts, surface_new_positions, surface_new_velocities);
+
+    part_vectors.end_time_step();
+    surface_part_vectors.end_time_step();
+    IBAMR_TIMER_STOP(t_postprocess_integrate_data);
+  }
 
   template <int dim, int spacedim>
   void

@@ -12,7 +12,6 @@
 #include <fiddle/mechanics/mechanics_utilities.h>
 
 #include <deal.II/base/mpi.h>
-#include <deal.II/base/multithread_info.h>
 #include <deal.II/base/utilities.h>
 
 #include <deal.II/distributed/shared_tria.h>
@@ -26,6 +25,7 @@
 
 #include <ibtk/IBTK_MPI.h>
 #include <ibtk/LEInteractor.h>
+#include <ibtk/RobinPhysBdryPatchStrategy.h>
 #include <ibtk/ibtk_utilities.h>
 
 #include <CellVariable.h>
@@ -39,8 +39,6 @@
 namespace
 {
   using namespace SAMRAI;
-  static tbox::Timer *t_preprocess_integrate_data;
-  static tbox::Timer *t_postprocess_integrate_data;
   static tbox::Timer *t_interpolate_velocity;
   static tbox::Timer *t_interpolate_velocity_rhs;
   static tbox::Timer *t_interpolate_velocity_solve;
@@ -92,16 +90,11 @@ namespace fdl
                                     std::move(input_parts),
                                     register_for_restart)
     , input_db(copy_database(input_input_db))
-    , started_time_integration(false)
     , ghosts(0)
     , secondary_hierarchy(object_name + "::secondary_hierarchy",
                           input_db->getDatabase("GriddingAlgorithm"),
                           input_db->getDatabase("LoadBalancer"))
   {
-    // IBAMR does not support using threads so unconditionally disable them
-    // here.
-    MultithreadInfo::set_thread_limit(1);
-
     const std::string interaction =
       input_db->getStringWithDefault("interaction", "ELEMENTAL");
     if (interaction == "ELEMENTAL")
@@ -220,10 +213,6 @@ namespace fdl
     auto set_timer = [&](const char *name)
     { return tbox::TimerManager::getManager()->getTimer(name); };
 
-    t_preprocess_integrate_data =
-      set_timer("fdl::IFEDMethod::preprocessIntegrateData()");
-    t_postprocess_integrate_data =
-      set_timer("fdl::IFEDMethod::postprocessIntegrateData()");
     t_interpolate_velocity =
       set_timer("fdl::IFEDMethod::interpolateVelocity()");
     t_interpolate_velocity_rhs =
@@ -656,70 +645,6 @@ namespace fdl
   }
 
   //
-  // Time stepping
-  //
-
-  template <int dim, int spacedim>
-  void
-  IFEDMethod<dim, spacedim>::preprocessIntegrateData(double current_time,
-                                                     double new_time,
-                                                     int /*num_cycles*/)
-  {
-    IBAMR_TIMER_START(t_preprocess_integrate_data);
-    started_time_integration = true;
-    this->part_vectors.begin_time_step(current_time, new_time);
-    this->surface_part_vectors.begin_time_step(current_time, new_time);
-    this->current_time = current_time;
-    this->new_time     = new_time;
-    this->half_time    = current_time + 0.5 * (new_time - current_time);
-    IBAMR_TIMER_STOP(t_preprocess_integrate_data);
-  }
-
-  template <int dim, int spacedim>
-  void
-  IFEDMethod<dim, spacedim>::postprocessIntegrateData(double /*current_time*/,
-                                                      double /*new_time*/,
-                                                      int /*num_cycles*/)
-  {
-    IBAMR_TIMER_START(t_postprocess_integrate_data);
-    this->current_time = std::numeric_limits<double>::quiet_NaN();
-    this->new_time     = std::numeric_limits<double>::quiet_NaN();
-    this->half_time    = std::numeric_limits<double>::quiet_NaN();
-
-    // update positions and velocities:
-    unsigned int channel = 0;
-    auto do_set = [&](auto &collection, auto &positions, auto &velocities)
-    {
-      for (unsigned int i = 0; i < collection.size(); ++i)
-        {
-          auto &part = collection[i];
-          part.set_position(std::move(positions[i]));
-          part.get_position().update_ghost_values_start(channel++);
-          part.set_velocity(std::move(velocities[i]));
-          part.get_velocity().update_ghost_values_start(channel++);
-        }
-      for (unsigned int i = 0; i < collection.size(); ++i)
-        {
-          auto &part = collection[i];
-          part.get_position().update_ghost_values_finish();
-          part.get_velocity().update_ghost_values_finish();
-        }
-    };
-    auto new_positions  = this->part_vectors.get_all_new_positions();
-    auto new_velocities = this->part_vectors.get_all_new_velocities();
-    auto surface_new_positions =
-      this->surface_part_vectors.get_all_new_positions();
-    auto surface_new_velocities =
-      this->surface_part_vectors.get_all_new_velocities();
-    do_set(this->parts, new_positions, new_velocities);
-    do_set(this->surface_parts, surface_new_positions, surface_new_velocities);
-
-    this->part_vectors.end_time_step();
-    this->surface_part_vectors.end_time_step();
-    IBAMR_TIMER_STOP(t_postprocess_integrate_data);
-  }
-
-  //
   // Mechanics
   //
 
@@ -1034,8 +959,8 @@ namespace fdl
         reinit_interactions();
 
         if (input_db->getBoolWithDefault("enable_logging", true) &&
-            (started_time_integration ||
-             (!started_time_integration &&
+            (this->started_time_integration ||
+             (!this->started_time_integration &&
               !input_db->getBoolWithDefault("skip_initial_workload", false))))
           {
             const int ln = this->patch_hierarchy->getFinestLevelNumber();
