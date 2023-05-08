@@ -8,10 +8,16 @@
 
 #include <ibamr/IBStrategy.h>
 
+#include <BasePatchHierarchy.h>
+#include <tbox/Pointer.h>
+
 #include <vector>
 
 namespace fdl
 {
+  using namespace dealii;
+  using namespace SAMRAI;
+
   /**
    */
   template <int dim, int spacedim = dim>
@@ -22,6 +28,25 @@ namespace fdl
 
     IFEDMethodBase(std::vector<Part<dim - 1, spacedim>> &&input_surface_parts,
                    std::vector<Part<dim, spacedim>>     &&input_parts);
+    /**
+     * @name fluid-structure interaction.
+     * @{
+     */
+
+    /**
+     * Tag cells in @p hierarchy that intersect with the structure.
+     */
+    virtual void
+    applyGradientDetector(
+      tbox::Pointer<hier::BasePatchHierarchy<spacedim>> hierarchy,
+      int                                               level_number,
+      double                                            error_data_time,
+      int                                               tag_index,
+      bool                                              initial_time,
+      bool uses_richardson_extrapolation_too) override;
+    /**
+     * @}
+     */
 
     /**
      * @name timestepping.

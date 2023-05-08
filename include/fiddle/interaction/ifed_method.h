@@ -9,7 +9,6 @@
 #include <fiddle/interaction/ifed_method_base.h>
 #include <fiddle/interaction/interaction_base.h>
 
-#include <ibtk/LEInteractor.h>
 #include <ibtk/SAMRAIDataCache.h>
 #include <ibtk/SAMRAIGhostDataAccumulator.h>
 #include <ibtk/SecondaryHierarchy.h>
@@ -161,19 +160,6 @@ namespace fdl
 
     virtual double
     getMaxPointDisplacement() const override;
-
-    /**
-     * Tag cells in @p hierarchy that intersect with the structure.
-     */
-    virtual void
-    applyGradientDetector(
-      tbox::Pointer<hier::BasePatchHierarchy<spacedim>> hierarchy,
-      int                                               level_number,
-      double                                            error_data_time,
-      int                                               tag_index,
-      bool                                              initial_time,
-      bool uses_richardson_extrapolation_too) override;
-
     /**
      * @}
      */
