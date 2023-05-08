@@ -141,6 +141,18 @@ namespace fdl
      */
     virtual void
     putToDatabase(tbox::Pointer<tbox::Database> db) override;
+
+    std::size_t
+    n_parts() const;
+
+    std::size_t
+    n_surface_parts() const;
+
+    const Part<dim, spacedim> &
+    get_part(const unsigned int part_n) const;
+
+    const Part<dim - 1, spacedim> &
+    get_surface_part(const unsigned int surface_part_n) const;
     /**
      * @}
      */
@@ -195,6 +207,39 @@ namespace fdl
      * @}
      */
   };
+
+  // ----------------------------- inline functions ----------------------------
+
+  template <int dim, int spacedim>
+  inline std::size_t
+  IFEDMethodBase<dim, spacedim>::n_parts() const
+  {
+    return parts.size();
+  }
+
+  template <int dim, int spacedim>
+  inline std::size_t
+  IFEDMethodBase<dim, spacedim>::n_surface_parts() const
+  {
+    return surface_parts.size();
+  }
+
+  template <int dim, int spacedim>
+  inline const Part<dim, spacedim> &
+  IFEDMethodBase<dim, spacedim>::get_part(const unsigned int part_n) const
+  {
+    AssertIndexRange(part_n, n_parts());
+    return parts[part_n];
+  }
+
+  template <int dim, int spacedim>
+  inline const Part<dim - 1, spacedim> &
+  IFEDMethodBase<dim, spacedim>::get_surface_part(
+    const unsigned int surface_part_n) const
+  {
+    AssertIndexRange(surface_part_n, n_surface_parts());
+    return surface_parts[surface_part_n];
+  }
 } // namespace fdl
 
 #endif

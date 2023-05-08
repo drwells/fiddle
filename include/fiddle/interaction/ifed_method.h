@@ -185,18 +185,6 @@ namespace fdl
     void
     registerEulerianVariables() override;
 
-    std::size_t
-    n_parts() const;
-
-    std::size_t
-    n_surface_parts() const;
-
-    const Part<dim, spacedim> &
-    get_part(const unsigned int part_n) const;
-
-    const Part<dim - 1, spacedim> &
-    get_surface_part(const unsigned int surface_part_n) const;
-
     int
     get_lagrangian_workload_current_index() const;
     /**
@@ -284,37 +272,6 @@ namespace fdl
   IFEDMethod<dim, spacedim>::getMinimumGhostCellWidth() const
   {
     return ghosts;
-  }
-
-  template <int dim, int spacedim>
-  inline std::size_t
-  IFEDMethod<dim, spacedim>::n_parts() const
-  {
-    return this->parts.size();
-  }
-
-  template <int dim, int spacedim>
-  inline std::size_t
-  IFEDMethod<dim, spacedim>::n_surface_parts() const
-  {
-    return this->surface_parts.size();
-  }
-
-  template <int dim, int spacedim>
-  inline const Part<dim, spacedim> &
-  IFEDMethod<dim, spacedim>::get_part(const unsigned int part_n) const
-  {
-    AssertIndexRange(part_n, n_parts());
-    return this->parts[part_n];
-  }
-
-  template <int dim, int spacedim>
-  inline const Part<dim - 1, spacedim> &
-  IFEDMethod<dim, spacedim>::get_surface_part(
-    const unsigned int surface_part_n) const
-  {
-    AssertIndexRange(surface_part_n, n_surface_parts());
-    return this->surface_parts[surface_part_n];
   }
 
   template <int dim, int spacedim>

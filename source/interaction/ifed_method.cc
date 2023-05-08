@@ -99,7 +99,7 @@ namespace fdl
       input_db->getStringWithDefault("interaction", "ELEMENTAL");
     if (interaction == "ELEMENTAL")
       {
-        AssertThrow(n_surface_parts() == 0, ExcFDLNotImplemented());
+        AssertThrow(this->n_surface_parts() == 0, ExcFDLNotImplemented());
         // IBFEMethod uses this value - lower values aren't guaranteed to work.
         // If dx = dX then we can use a lower density.
         const double density =
