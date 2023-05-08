@@ -368,7 +368,7 @@ namespace fdl
       u_data_index,
       u_data_index,
       data_time,
-      d_ib_solver->getVelocityPhysBdryOp());
+      this->d_ib_solver->getVelocityPhysBdryOp());
 
     IBAMR_TIMER_START(t_interpolate_velocity_rhs);
     std::vector<MPI_Request> requests;
@@ -1353,13 +1353,13 @@ namespace fdl
     const hier::IntVector<spacedim> ghosts = 1;
     lagrangian_workload_var = new pdat::CellVariable<spacedim, double>(
       object_name + "::lagrangian_workload");
-    registerVariable(lagrangian_workload_current_index,
-                     lagrangian_workload_new_index,
-                     lagrangian_workload_scratch_index,
-                     lagrangian_workload_var,
-                     ghosts,
-                     "CONSERVATIVE_COARSEN",
-                     "CONSERVATIVE_LINEAR_REFINE");
+    this->registerVariable(lagrangian_workload_current_index,
+                           lagrangian_workload_new_index,
+                           lagrangian_workload_scratch_index,
+                           lagrangian_workload_var,
+                           ghosts,
+                           "CONSERVATIVE_COARSEN",
+                           "CONSERVATIVE_LINEAR_REFINE");
 
     auto *var_db  = hier::VariableDatabase<spacedim>::getDatabase();
     auto  context = var_db->getContext(object_name);

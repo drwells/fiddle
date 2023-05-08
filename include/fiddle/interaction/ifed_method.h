@@ -6,6 +6,7 @@
 #include <fiddle/base/exceptions.h>
 #include <fiddle/base/initial_guess.h>
 
+#include <fiddle/interaction/ifed_method_base.h>
 #include <fiddle/interaction/interaction_base.h>
 
 #include <fiddle/mechanics/part.h>
@@ -82,7 +83,7 @@ namespace fdl
    * computations).
    */
   template <int dim, int spacedim = dim>
-  class IFEDMethod : public IBAMR::IBStrategy
+  class IFEDMethod : public IFEDMethodBase<dim, spacedim>
   {
   public:
     static_assert(spacedim == NDIM, "Only available for spacedim == NDIM");
