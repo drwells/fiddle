@@ -113,6 +113,16 @@ namespace fdl
      * @}
      */
 
+    /**
+     * @name book-keeping.
+     * @{
+     */
+    virtual void
+    putToDatabase(tbox::Pointer<tbox::Database> db) override;
+    /**
+     * @}
+     */
+
   protected:
     /**
      * Book-keeping

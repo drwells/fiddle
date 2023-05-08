@@ -201,9 +201,6 @@ namespace fdl
      * @name book-keeping.
      * @{
      */
-    virtual void
-    putToDatabase(tbox::Pointer<tbox::Database> db) override;
-
     virtual const hier::IntVector<spacedim> &
     getMinimumGhostCellWidth() const override;
 

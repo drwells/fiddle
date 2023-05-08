@@ -1,3 +1,5 @@
+#include <fiddle/base/samrai_utilities.h>
+
 #include <fiddle/grid/box_utilities.h>
 
 #include <fiddle/interaction/ifed_method_base.h>
@@ -294,6 +296,33 @@ namespace fdl
     Assert(false, ExcFDLNotImplemented());
   }
 
+  //
+  // Book-keeping
+  //
+
+  template <int dim, int spacedim>
+  void
+  IFEDMethodBase<dim, spacedim>::putToDatabase(tbox::Pointer<tbox::Database> db)
+  {
+    auto do_put = [&](auto &collection, const std::string &prefix)
+    {
+      for (unsigned int i = 0; i < collection.size(); ++i)
+        {
+          std::ostringstream              out_str;
+          boost::archive::binary_oarchive oarchive(out_str);
+          collection[i].save(oarchive, 0);
+          // TODO - with C++20 we can use view() instead of str() and skip
+          // this copy
+          const std::string out = out_str.str();
+          save_binary(prefix + std::to_string(i),
+                      out.c_str(),
+                      out.c_str() + out.size(),
+                      db);
+        }
+    };
+    do_put(parts, "part_");
+    do_put(surface_parts, "surface_part_");
+  }
 
   template class IFEDMethodBase<NDIM, NDIM>;
 } // namespace fdl
