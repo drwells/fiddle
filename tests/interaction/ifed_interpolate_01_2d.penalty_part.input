@@ -2,7 +2,7 @@ test
 {
   use_artificial_cells = TRUE
 
-  penalty_parts = TRUE
+  surface_parts = TRUE
 }
 
 // physical parameters
@@ -98,7 +98,7 @@ IBHierarchyIntegrator {
 }
 
 IFEDMethod {
-   penalty_IB_kernel = "BSPLINE_3"
+   surface_IB_kernel = "BSPLINE_3"
 
    // penalty parts only work with nodal interaction right now
    interaction = "NODAL"

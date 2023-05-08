@@ -6,15 +6,9 @@
 #include <fiddle/base/exceptions.h>
 #include <fiddle/base/initial_guess.h>
 
+#include <fiddle/interaction/ifed_method_base.h>
 #include <fiddle/interaction/interaction_base.h>
 
-#include <fiddle/mechanics/part.h>
-#include <fiddle/mechanics/part_vectors.h>
-
-#include <ibamr/IBStrategy.h>
-
-#include <ibtk/LEInteractor.h>
-#include <ibtk/SAMRAIDataCache.h>
 #include <ibtk/SAMRAIGhostDataAccumulator.h>
 #include <ibtk/SecondaryHierarchy.h>
 
@@ -82,7 +76,7 @@ namespace fdl
    * computations).
    */
   template <int dim, int spacedim = dim>
-  class IFEDMethod : public IBAMR::IBStrategy
+  class IFEDMethod : public IFEDMethodBase<dim, spacedim>
   {
   public:
     static_assert(spacedim == NDIM, "Only available for spacedim == NDIM");
@@ -101,18 +95,13 @@ namespace fdl
                const bool                         register_for_restart = true);
 
     /**
-     * Constructor. Assumes ownership of the provided parts and penalty parts.
+     * Constructor. Assumes ownership of the provided parts and surface parts.
      */
     IFEDMethod(const std::string                     &object_name,
                tbox::Pointer<tbox::Database>          input_db,
-               std::vector<Part<dim - 1, spacedim>> &&input_penalty_parts,
+               std::vector<Part<dim - 1, spacedim>> &&input_surface_parts,
                std::vector<Part<dim, spacedim>>     &&input_parts,
-               const bool                             register_for_restart = true);
-
-    /**
-     * Destructor.
-     */
-    ~IFEDMethod();
+               const bool register_for_restart = true);
 
     /**
      * @}
@@ -163,51 +152,6 @@ namespace fdl
                       &f_prolongation_scheds,
                 double data_time) override;
 
-    virtual double
-    getMaxPointDisplacement() const override;
-
-    /**
-     * Tag cells in @p hierarchy that intersect with the structure.
-     */
-    virtual void
-    applyGradientDetector(
-      tbox::Pointer<hier::BasePatchHierarchy<spacedim>> hierarchy,
-      int                                               level_number,
-      double                                            error_data_time,
-      int                                               tag_index,
-      bool                                              initial_time,
-      bool uses_richardson_extrapolation_too) override;
-
-    /**
-     * @}
-     */
-
-    /**
-     * @name timestepping.
-     * @{
-     */
-    virtual void
-    preprocessIntegrateData(double current_time,
-                            double new_time,
-                            int /*num_cycles*/) override;
-
-    virtual void
-    postprocessIntegrateData(double /*current_time*/,
-                             double /*new_time*/,
-                             int /*num_cycles*/) override;
-
-    virtual void
-    forwardEulerStep(double current_time, double new_time) override;
-
-    virtual void
-    backwardEulerStep(double current_time, double new_time) override;
-
-    virtual void
-    midpointStep(double current_time, double new_time) override;
-
-    virtual void
-    trapezoidalStep(double current_time, double new_time) override;
-
     virtual void
     computeLagrangianForce(double data_time) override;
     /**
@@ -235,26 +179,11 @@ namespace fdl
      * @name book-keeping.
      * @{
      */
-    virtual void
-    putToDatabase(tbox::Pointer<tbox::Database> db) override;
-
     virtual const hier::IntVector<spacedim> &
     getMinimumGhostCellWidth() const override;
 
     void
     registerEulerianVariables() override;
-
-    std::size_t
-    n_parts() const;
-
-    std::size_t
-    n_penalty_parts() const;
-
-    const Part<dim, spacedim> &
-    get_part(const unsigned int part_n) const;
-
-    const Part<dim - 1, spacedim> &
-    get_penalty_part(const unsigned int penalty_part_n) const;
 
     int
     get_lagrangian_workload_current_index() const;
@@ -275,21 +204,12 @@ namespace fdl
      * Book-keeping
      * @{
      */
-    std::string object_name;
-
-    bool register_for_restart;
-
     tbox::Pointer<tbox::Database> input_db;
 
     std::vector<std::string> ib_kernels;
 
-    std::vector<std::string> penalty_ib_kernels;
+    std::vector<std::string> surface_ib_kernels;
 
-    bool started_time_integration;
-
-    double current_time;
-    double half_time;
-    double new_time;
     /**
      * @}
      */
@@ -298,29 +218,15 @@ namespace fdl
      * Finite element data structures
      * @{
      */
-    std::vector<Part<dim, spacedim>> parts;
-
-    std::vector<Part<dim - 1, spacedim>> penalty_parts;
-
-    PartVectors<dim, spacedim> part_vectors;
-
-    PartVectors<dim - 1, spacedim> penalty_part_vectors;
-
     std::vector<InitialGuess<LinearAlgebra::distributed::Vector<double>>>
       force_guesses;
     std::vector<InitialGuess<LinearAlgebra::distributed::Vector<double>>>
       velocity_guesses;
 
     std::vector<InitialGuess<LinearAlgebra::distributed::Vector<double>>>
-      penalty_force_guesses;
+      surface_force_guesses;
     std::vector<InitialGuess<LinearAlgebra::distributed::Vector<double>>>
-      penalty_velocity_guesses;
-
-    std::deque<LinearAlgebra::distributed::Vector<double>>
-      positions_at_last_regrid;
-
-    std::deque<LinearAlgebra::distributed::Vector<double>>
-      penalty_positions_at_last_regrid;
+      surface_velocity_guesses;
     /**
      * @}
      */
@@ -329,11 +235,7 @@ namespace fdl
      * Finite difference data structures
      * @{
      */
-    tbox::Pointer<hier::PatchHierarchy<spacedim>> primary_hierarchy;
-
     SAMRAI::hier::IntVector<spacedim> ghosts;
-
-    std::shared_ptr<IBTK::SAMRAIDataCache> primary_eulerian_data_cache;
 
     IBTK::SecondaryHierarchy secondary_hierarchy;
 
@@ -356,7 +258,8 @@ namespace fdl
      */
     std::vector<std::unique_ptr<InteractionBase<dim, spacedim>>> interactions;
 
-    std::vector<std::unique_ptr<InteractionBase<dim - 1, spacedim>>> penalty_interactions;
+    std::vector<std::unique_ptr<InteractionBase<dim - 1, spacedim>>>
+      surface_interactions;
     /**
      * @}
      */
@@ -369,36 +272,6 @@ namespace fdl
   IFEDMethod<dim, spacedim>::getMinimumGhostCellWidth() const
   {
     return ghosts;
-  }
-
-  template <int dim, int spacedim>
-  inline std::size_t
-  IFEDMethod<dim, spacedim>::n_parts() const
-  {
-    return parts.size();
-  }
-
-  template <int dim, int spacedim>
-  inline std::size_t
-  IFEDMethod<dim, spacedim>::n_penalty_parts() const
-  {
-    return penalty_parts.size();
-  }
-
-  template <int dim, int spacedim>
-  inline const Part<dim, spacedim> &
-  IFEDMethod<dim, spacedim>::get_part(const unsigned int part_n) const
-  {
-    AssertIndexRange(part_n, n_parts());
-    return parts[part_n];
-  }
-
-  template <int dim, int spacedim>
-  inline const Part<dim - 1, spacedim> &
-  IFEDMethod<dim, spacedim>::get_penalty_part(const unsigned int penalty_part_n) const
-  {
-    AssertIndexRange(penalty_part_n, n_penalty_parts());
-    return penalty_parts[penalty_part_n];
   }
 
   template <int dim, int spacedim>

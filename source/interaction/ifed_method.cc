@@ -12,7 +12,6 @@
 #include <fiddle/mechanics/mechanics_utilities.h>
 
 #include <deal.II/base/mpi.h>
-#include <deal.II/base/multithread_info.h>
 #include <deal.II/base/utilities.h>
 
 #include <deal.II/distributed/shared_tria.h>
@@ -25,13 +24,14 @@
 #include <ibamr/ibamr_utilities.h>
 
 #include <ibtk/IBTK_MPI.h>
+#include <ibtk/LEInteractor.h>
+#include <ibtk/RobinPhysBdryPatchStrategy.h>
 #include <ibtk/ibtk_utilities.h>
 
 #include <CellVariable.h>
 #include <HierarchyDataOpsManager.h>
 #include <IntVector.h>
 #include <VariableDatabase.h>
-#include <tbox/RestartManager.h>
 #include <tbox/TimerManager.h>
 
 #include <deque>
@@ -39,8 +39,6 @@
 namespace
 {
   using namespace SAMRAI;
-  static tbox::Timer *t_preprocess_integrate_data;
-  static tbox::Timer *t_postprocess_integrate_data;
   static tbox::Timer *t_interpolate_velocity;
   static tbox::Timer *t_interpolate_velocity_rhs;
   static tbox::Timer *t_interpolate_velocity_solve;
@@ -48,13 +46,11 @@ namespace
   static tbox::Timer *t_compute_lagrangian_force_pk1;
   static tbox::Timer *t_compute_lagrangian_force_solve;
   static tbox::Timer *t_spread_force;
-  static tbox::Timer *t_max_point_displacement;
   static tbox::Timer *t_compute_lagrangian_fluid_source;
   static tbox::Timer *t_spread_fluid_source;
   static tbox::Timer *t_add_workload_estimate;
   static tbox::Timer *t_begin_data_redistribution;
   static tbox::Timer *t_end_data_redistribution;
-  static tbox::Timer *t_apply_gradient_detector;
   static tbox::Timer *t_reinit_interactions_bboxes;
   static tbox::Timer *t_reinit_interactions_edges;
   static tbox::Timer *t_reinit_interactions_objects;
@@ -86,42 +82,24 @@ namespace fdl
   IFEDMethod<dim, spacedim>::IFEDMethod(
     const std::string                     &object_name,
     tbox::Pointer<tbox::Database>          input_input_db,
-    std::vector<Part<dim - 1, spacedim>> &&input_penalty_parts,
+    std::vector<Part<dim - 1, spacedim>> &&input_surface_parts,
     std::vector<Part<dim, spacedim>>     &&input_parts,
     const bool                             register_for_restart)
-    : object_name(object_name)
-    , register_for_restart(register_for_restart)
+    : IFEDMethodBase<dim, spacedim>(object_name,
+                                    std::move(input_surface_parts),
+                                    std::move(input_parts),
+                                    register_for_restart)
     , input_db(copy_database(input_input_db))
-    , started_time_integration(false)
-    , current_time(std::numeric_limits<double>::signaling_NaN())
-    , half_time(std::numeric_limits<double>::signaling_NaN())
-    , new_time(std::numeric_limits<double>::signaling_NaN())
-    , parts(std::move(input_parts))
-    , penalty_parts(std::move(input_penalty_parts))
-    , part_vectors(this->parts)
-    , penalty_part_vectors(this->penalty_parts)
     , ghosts(0)
     , secondary_hierarchy(object_name + "::secondary_hierarchy",
                           input_db->getDatabase("GriddingAlgorithm"),
                           input_db->getDatabase("LoadBalancer"))
   {
-    // IBAMR does not support using threads so unconditionally disable them
-    // here.
-    MultithreadInfo::set_thread_limit(1);
-
-    auto init_regrid_positions = [](auto &vectors, const auto &collection)
-    {
-      for (const auto &part : collection)
-        vectors.push_back(part.get_position());
-    };
-    init_regrid_positions(positions_at_last_regrid, parts);
-    init_regrid_positions(penalty_positions_at_last_regrid, penalty_parts);
-
     const std::string interaction =
       input_db->getStringWithDefault("interaction", "ELEMENTAL");
     if (interaction == "ELEMENTAL")
       {
-        AssertThrow(n_penalty_parts() == 0, ExcFDLNotImplemented());
+        AssertThrow(this->n_surface_parts() == 0, ExcFDLNotImplemented());
         // IBFEMethod uses this value - lower values aren't guaranteed to work.
         // If dx = dX then we can use a lower density.
         const double density =
@@ -162,11 +140,14 @@ namespace fdl
                 input_db->getIntegerWithDefault("n_guess_vectors", 3));
             }
         };
-        init_elemental(interactions, force_guesses, velocity_guesses, parts);
-        init_elemental(penalty_interactions,
-                       penalty_force_guesses,
-                       penalty_velocity_guesses,
-                       penalty_parts);
+        init_elemental(interactions,
+                       force_guesses,
+                       velocity_guesses,
+                       this->parts);
+        init_elemental(surface_interactions,
+                       surface_force_guesses,
+                       surface_velocity_guesses,
+                       this->surface_parts);
       }
     else if (interaction == "NODAL")
       {
@@ -178,8 +159,8 @@ namespace fdl
             inters.emplace_back(
               std::make_unique<NodalInteraction<structdim, spacedim>>());
         };
-        init_nodal(interactions, parts);
-        init_nodal(penalty_interactions, penalty_parts);
+        init_nodal(interactions, this->parts);
+        init_nodal(surface_interactions, this->surface_parts);
       }
     else
       {
@@ -202,7 +183,7 @@ namespace fdl
           AssertThrow(n_ib_kernels == 1 ||
                         n_ib_kernels == static_cast<int>(collection.size()),
                       ExcMessage("The number of specified IB kernels should "
-                                 "either be 1 or equal the number of (penalty) "
+                                 "either be 1 or equal the number of (surface) "
                                  "parts."));
           kernels.resize(n_ib_kernels);
           input_db->getStringArray(key,
@@ -226,16 +207,12 @@ namespace fdl
             }
         }
     };
-    do_kernel("IB_kernel", parts, ib_kernels);
-    do_kernel("penalty_IB_kernel", penalty_parts, penalty_ib_kernels);
+    do_kernel("IB_kernel", this->parts, ib_kernels);
+    do_kernel("surface_IB_kernel", this->surface_parts, surface_ib_kernels);
 
     auto set_timer = [&](const char *name)
     { return tbox::TimerManager::getManager()->getTimer(name); };
 
-    t_preprocess_integrate_data =
-      set_timer("fdl::IFEDMethod::preprocessIntegrateData()");
-    t_postprocess_integrate_data =
-      set_timer("fdl::IFEDMethod::postprocessIntegrateData()");
     t_interpolate_velocity =
       set_timer("fdl::IFEDMethod::interpolateVelocity()");
     t_interpolate_velocity_rhs =
@@ -249,8 +226,6 @@ namespace fdl
     t_compute_lagrangian_force_solve =
       set_timer("fdl::IFEDMethod::computeLagrangianForce()[solve]");
     t_spread_force = set_timer("fdl::IFEDMethod::spreadForce()");
-    t_max_point_displacement =
-      set_timer("fdl::IFEDMethod::getMaxPointDisplacement()");
     t_compute_lagrangian_fluid_source =
       set_timer("fdl::IFEDMethod::computeLagrangianFluidSource()");
     t_spread_fluid_source = set_timer("fdl::IFEDMethod::spreadFluidSource()");
@@ -260,86 +235,40 @@ namespace fdl
       set_timer("fdl::IFEDMethod::beginDataRedistribution()");
     t_end_data_redistribution =
       set_timer("fdl::IFEDMethod::endDataRedistribution()");
-    t_apply_gradient_detector =
-      set_timer("fdl::IFEDMethod::applyGradientDetector()");
     t_reinit_interactions_bboxes =
       set_timer("fdl::IFEDMethod::reinit_interactions()[bboxes]");
     t_reinit_interactions_edges =
       set_timer("fdl::IFEDMethod::reinit_interactions()[edges]");
     t_reinit_interactions_objects =
       set_timer("fdl::IFEDMethod::reinit_interactions()[objects]");
-
-    if (register_for_restart)
-      {
-        auto *restart_manager = tbox::RestartManager::getManager();
-        restart_manager->registerRestartItem(object_name, this);
-        if (restart_manager->isFromRestart())
-          {
-            auto restart_db = restart_manager->getRootDatabase();
-            if (restart_db->isDatabase(object_name))
-              {
-                auto db      = restart_db->getDatabase(object_name);
-                auto do_load = [&](auto &collection, const std::string &prefix)
-                {
-                  for (unsigned int i = 0; i < collection.size(); ++i)
-                    {
-                      const std::string key = prefix + std::to_string(i);
-                      AssertThrow(db->keyExists(key),
-                                  ExcMessage("Couldn't find key " + key +
-                                             " in the restart database"));
-                      const std::string  serialization = load_binary(key, db);
-                      std::istringstream in_str(serialization);
-                      boost::archive::binary_iarchive iarchive(in_str);
-                      collection[i].load(iarchive, 0);
-                    }
-                };
-                do_load(parts, "part_");
-                do_load(penalty_parts, "penalty_part_");
-              }
-            else
-              {
-                AssertThrow(false,
-                            ExcMessage(
-                              "The restart database does not contain key " +
-                              object_name));
-              }
-          }
-      }
-  }
-
-  template <int dim, int spacedim>
-  IFEDMethod<dim, spacedim>::~IFEDMethod()
-  {
-    if (register_for_restart)
-      {
-        tbox::RestartManager::getManager()->unregisterRestartItem(object_name);
-      }
   }
 
   template <int dim, int spacedim>
   void
   IFEDMethod<dim, spacedim>::initializePatchHierarchy(
-    tbox::Pointer<hier::PatchHierarchy<spacedim>> hierarchy,
-    tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/,
-    int /*u_data_index*/,
+    tbox::Pointer<hier::PatchHierarchy<spacedim>>    hierarchy,
+    tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg,
+    int                                              u_data_index,
     const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>>
-      & /*u_synch_scheds*/,
+      &u_synch_scheds,
     const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
-      & /*u_ghost_fill_scheds*/,
-    int /*integrator_step*/,
-    double /*init_data_time*/,
-    bool /*initial_time*/)
+          &u_ghost_fill_scheds,
+    int    integrator_step,
+    double init_data_time,
+    bool   initial_time)
   {
-    primary_hierarchy = hierarchy;
+    IFEDMethodBase<dim, spacedim>::initializePatchHierarchy(hierarchy,
+                                                            gridding_alg,
+                                                            u_data_index,
+                                                            u_synch_scheds,
+                                                            u_ghost_fill_scheds,
+                                                            integrator_step,
+                                                            init_data_time,
+                                                            initial_time);
 
-    primary_eulerian_data_cache = std::make_shared<IBTK::SAMRAIDataCache>();
-    primary_eulerian_data_cache->setPatchHierarchy(hierarchy);
-    primary_eulerian_data_cache->resetLevels(0,
-                                             hierarchy->getFinestLevelNumber());
-
-    secondary_hierarchy.reinit(primary_hierarchy->getFinestLevelNumber(),
-                               primary_hierarchy->getFinestLevelNumber(),
-                               primary_hierarchy);
+    secondary_hierarchy.reinit(this->patch_hierarchy->getFinestLevelNumber(),
+                               this->patch_hierarchy->getFinestLevelNumber(),
+                               this->patch_hierarchy);
 
     reinit_interactions();
   }
@@ -364,11 +293,11 @@ namespace fdl
 
     // Update the secondary hierarchy:
     secondary_hierarchy.transferPrimaryToSecondary(
-      primary_hierarchy->getFinestLevelNumber(),
+      this->patch_hierarchy->getFinestLevelNumber(),
       u_data_index,
       u_data_index,
       data_time,
-      d_ib_solver->getVelocityPhysBdryOp());
+      this->d_ib_solver->getVelocityPhysBdryOp());
 
     IBAMR_TIMER_START(t_interpolate_velocity_rhs);
     std::vector<MPI_Request> requests;
@@ -411,23 +340,27 @@ namespace fdl
     };
     // we emplace_back so use a deque to keep pointers valid
     std::vector<std::unique_ptr<TransactionBase>> transactions,
-      penalty_transactions;
+      surface_transactions;
     std::deque<LinearAlgebra::distributed::Vector<double>> rhs_vecs,
-      penalty_rhs_vecs;
-    scatter_start(
-      parts, interactions, ib_kernels, part_vectors, transactions, rhs_vecs);
-    scatter_start(penalty_parts,
-                  penalty_interactions,
-                  penalty_ib_kernels,
-                  penalty_part_vectors,
-                  penalty_transactions,
-                  penalty_rhs_vecs);
+      surface_rhs_vecs;
+    scatter_start(this->parts,
+                  interactions,
+                  ib_kernels,
+                  this->part_vectors,
+                  transactions,
+                  rhs_vecs);
+    scatter_start(this->surface_parts,
+                  surface_interactions,
+                  surface_ib_kernels,
+                  this->surface_part_vectors,
+                  surface_transactions,
+                  surface_rhs_vecs);
     int ierr =
       MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
     AssertThrowMPI(ierr);
     requests.resize(0);
     scatter_finish(interactions, transactions);
-    scatter_finish(penalty_interactions, penalty_transactions);
+    scatter_finish(surface_interactions, surface_transactions);
 
     // Compute:
     auto compute_transaction = [](const auto &interactions, auto &transactions)
@@ -437,7 +370,7 @@ namespace fdl
           std::move(transactions[i]));
     };
     compute_transaction(interactions, transactions);
-    compute_transaction(penalty_interactions, penalty_transactions);
+    compute_transaction(surface_interactions, surface_transactions);
 
     // Move back:
     auto accumulate_start = [&](const auto &interactions, auto &transactions)
@@ -461,12 +394,12 @@ namespace fdl
           std::move(transactions[i]));
     };
     accumulate_start(interactions, transactions);
-    accumulate_start(penalty_interactions, penalty_transactions);
+    accumulate_start(surface_interactions, surface_transactions);
     ierr = MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
     AssertThrowMPI(ierr);
     requests.resize(0);
     accumulate_finish(interactions, transactions);
-    accumulate_finish(penalty_interactions, penalty_transactions);
+    accumulate_finish(surface_interactions, surface_transactions);
 
     // We cannot start the linear solve without first finishing this, so use a
     // barrier to keep the timers accurate
@@ -526,12 +459,16 @@ namespace fdl
             }
         }
     };
-    do_solve(parts, interactions, part_vectors, velocity_guesses, rhs_vecs);
-    do_solve(penalty_parts,
-             penalty_interactions,
-             penalty_part_vectors,
-             penalty_velocity_guesses,
-             penalty_rhs_vecs);
+    do_solve(this->parts,
+             interactions,
+             this->part_vectors,
+             velocity_guesses,
+             rhs_vecs);
+    do_solve(this->surface_parts,
+             surface_interactions,
+             this->surface_part_vectors,
+             surface_velocity_guesses,
+             surface_rhs_vecs);
     IBAMR_TIMER_STOP(t_interpolate_velocity_solve);
     IBAMR_TIMER_STOP(t_interpolate_velocity);
   }
@@ -548,7 +485,7 @@ namespace fdl
     double data_time)
   {
     IBAMR_TIMER_START(t_spread_force);
-    const int level_number = primary_hierarchy->getFinestLevelNumber();
+    const int level_number = this->patch_hierarchy->getFinestLevelNumber();
 
     std::shared_ptr<IBTK::SAMRAIDataCache> data_cache =
       secondary_hierarchy.getSAMRAIDataCache();
@@ -593,19 +530,20 @@ namespace fdl
           std::move(transactions[i]));
     };
     std::vector<std::unique_ptr<TransactionBase>> transactions,
-      penalty_transactions;
-    scatter_start(parts, interactions, ib_kernels, part_vectors, transactions);
-    scatter_start(penalty_parts,
-                  penalty_interactions,
-                  penalty_ib_kernels,
-                  penalty_part_vectors,
-                  penalty_transactions);
+      surface_transactions;
+    scatter_start(
+      this->parts, interactions, ib_kernels, this->part_vectors, transactions);
+    scatter_start(this->surface_parts,
+                  surface_interactions,
+                  surface_ib_kernels,
+                  this->surface_part_vectors,
+                  surface_transactions);
     int ierr =
       MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
     AssertThrowMPI(ierr);
     requests.resize(0);
     scatter_finish(interactions, transactions);
-    scatter_finish(penalty_interactions, penalty_transactions);
+    scatter_finish(surface_interactions, surface_transactions);
 
     // Compute:
     auto compute_transaction = [&](const auto &interactions, auto &transactions)
@@ -622,7 +560,7 @@ namespace fdl
         }
     };
     compute_transaction(interactions, transactions);
-    compute_transaction(penalty_interactions, penalty_transactions);
+    compute_transaction(surface_interactions, surface_transactions);
     ierr = MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
     AssertThrowMPI(ierr);
     requests.resize(0);
@@ -634,7 +572,7 @@ namespace fdl
         interactions[i]->compute_spread_finish(std::move(transactions[i]));
     };
     collect_transaction(interactions, transactions);
-    collect_transaction(penalty_interactions, penalty_transactions);
+    collect_transaction(surface_interactions, surface_transactions);
 
     // Deal with force values spread outside the physical domain. Since these
     // are spread into ghost regions that don't correspond to actual degrees
@@ -683,13 +621,13 @@ namespace fdl
     // Sum values back into the primary hierarchy.
     {
       auto f_primary_data_ops =
-        extract_hierarchy_data_ops(f_var, primary_hierarchy);
+        extract_hierarchy_data_ops(f_var, this->patch_hierarchy);
       f_primary_data_ops->resetLevels(level_number, level_number);
       const auto f_primary_scratch_data_index =
-        primary_eulerian_data_cache->getCachedPatchDataIndex(f_data_index);
+        this->eulerian_data_cache->getCachedPatchDataIndex(f_data_index);
       // we have to zero everything here since the scratch to primary
       // communication does not touch ghost cells, which may have junk
-      fill_all(primary_hierarchy,
+      fill_all(this->patch_hierarchy,
                f_primary_scratch_data_index,
                level_number,
                level_number,
@@ -704,239 +642,6 @@ namespace fdl
                               f_primary_scratch_data_index);
     }
     IBAMR_TIMER_STOP(t_spread_force);
-  }
-
-
-  template <int dim, int spacedim>
-  double
-  IFEDMethod<dim, spacedim>::getMaxPointDisplacement() const
-  {
-    IBAMR_TIMER_START(t_max_point_displacement);
-    double max_displacement = 0;
-
-    auto max_op = [&](const auto &collection, const auto &regrid_positions)
-    {
-      for (unsigned int i = 0; i < collection.size(); ++i)
-        {
-          AssertDimension(collection.size(), regrid_positions.size());
-          const auto &ref_position = regrid_positions[i];
-          const auto &position     = collection[i].get_position();
-          const auto  local_size   = position.locally_owned_size();
-          for (unsigned int j = 0; j < local_size; ++j)
-            max_displacement = std::max(max_displacement,
-                                        std::abs(ref_position.local_element(j) -
-                                                 position.local_element(j)));
-        }
-    };
-    max_op(parts, positions_at_last_regrid);
-    max_op(penalty_parts, penalty_positions_at_last_regrid);
-    max_displacement =
-      Utilities::MPI::max(max_displacement, IBTK::IBTK_MPI::getCommunicator());
-
-    return max_displacement /
-           IBTK::get_min_patch_dx(
-             dynamic_cast<const hier::PatchLevel<spacedim> &>(
-               *primary_hierarchy->getPatchLevel(
-                 primary_hierarchy->getFinestLevelNumber())));
-    IBAMR_TIMER_STOP(t_max_point_displacement);
-  }
-
-
-  template <int dim, int spacedim>
-  void
-  IFEDMethod<dim, spacedim>::applyGradientDetector(
-    tbox::Pointer<hier::BasePatchHierarchy<spacedim>> hierarchy,
-    int                                               level_number,
-    double /*error_data_time*/,
-    int tag_index,
-    bool /*initial_time*/,
-    bool /*uses_richardson_extrapolation_too*/)
-  {
-    IBAMR_TIMER_START(t_apply_gradient_detector);
-    // TODO: we should find a way to save the bboxes so they do not need to be
-    // computed for each level that needs tagging - conceivably this could
-    // happen in beginDataRedistribution() and the array can be cleared in
-    // endDataRedistribution()
-    auto do_tag = [&](const auto &collection)
-    {
-      for (const auto &part : collection)
-        {
-          constexpr int structdim =
-            std::remove_reference_t<decltype(collection[0])>::dimension;
-          MappingFEField<structdim,
-                         spacedim,
-                         LinearAlgebra::distributed::Vector<double>>
-                     mapping(part.get_dof_handler(), part.get_position());
-          const auto local_bboxes =
-            compute_cell_bboxes<structdim, spacedim, float>(
-              part.get_dof_handler(), mapping);
-          // Like most other things this only works with p::s::T now
-          const auto &tria = dynamic_cast<
-            const parallel::shared::Triangulation<structdim, spacedim> &>(
-            part.get_triangulation());
-          const auto global_bboxes =
-            collect_all_active_cell_bboxes(tria, local_bboxes);
-          tbox::Pointer<hier::PatchLevel<spacedim>> patch_level =
-            hierarchy->getPatchLevel(level_number);
-          Assert(patch_level, ExcNotImplemented());
-          tag_cells(global_bboxes, tag_index, patch_level);
-        }
-    };
-
-    do_tag(parts);
-    do_tag(penalty_parts);
-    IBAMR_TIMER_STOP(t_apply_gradient_detector);
-  }
-
-  //
-  // Time stepping
-  //
-
-  template <int dim, int spacedim>
-  void
-  IFEDMethod<dim, spacedim>::preprocessIntegrateData(double current_time,
-                                                     double new_time,
-                                                     int /*num_cycles*/)
-  {
-    IBAMR_TIMER_START(t_preprocess_integrate_data);
-    started_time_integration = true;
-    part_vectors.begin_time_step(current_time, new_time);
-    penalty_part_vectors.begin_time_step(current_time, new_time);
-    this->current_time = current_time;
-    this->new_time     = new_time;
-    this->half_time    = current_time + 0.5 * (new_time - current_time);
-    IBAMR_TIMER_STOP(t_preprocess_integrate_data);
-  }
-
-  template <int dim, int spacedim>
-  void
-  IFEDMethod<dim, spacedim>::postprocessIntegrateData(double /*current_time*/,
-                                                      double /*new_time*/,
-                                                      int /*num_cycles*/)
-  {
-    IBAMR_TIMER_START(t_postprocess_integrate_data);
-    this->current_time = std::numeric_limits<double>::quiet_NaN();
-    this->new_time     = std::numeric_limits<double>::quiet_NaN();
-    this->half_time    = std::numeric_limits<double>::quiet_NaN();
-
-    // update positions and velocities:
-    unsigned int channel = 0;
-    auto do_set = [&](auto &collection, auto &positions, auto &velocities)
-    {
-      for (unsigned int i = 0; i < collection.size(); ++i)
-        {
-          auto &part = collection[i];
-          part.set_position(std::move(positions[i]));
-          part.get_position().update_ghost_values_start(channel++);
-          part.set_velocity(std::move(velocities[i]));
-          part.get_velocity().update_ghost_values_start(channel++);
-        }
-      for (unsigned int i = 0; i < collection.size(); ++i)
-        {
-          auto &part = collection[i];
-          part.get_position().update_ghost_values_finish();
-          part.get_velocity().update_ghost_values_finish();
-        }
-    };
-    auto new_positions          = part_vectors.get_all_new_positions();
-    auto new_velocities         = part_vectors.get_all_new_velocities();
-    auto penalty_new_positions  = penalty_part_vectors.get_all_new_positions();
-    auto penalty_new_velocities = penalty_part_vectors.get_all_new_velocities();
-    do_set(parts, new_positions, new_velocities);
-    do_set(penalty_parts, penalty_new_positions, penalty_new_velocities);
-
-    part_vectors.end_time_step();
-    penalty_part_vectors.end_time_step();
-    IBAMR_TIMER_STOP(t_postprocess_integrate_data);
-  }
-
-  template <int dim, int spacedim>
-  void
-  IFEDMethod<dim, spacedim>::forwardEulerStep(double current_time,
-                                              double new_time)
-  {
-    const double dt      = new_time - current_time;
-    auto         do_step = [&](auto &collection, auto &vectors)
-    {
-      for (unsigned int i = 0; i < collection.size(); ++i)
-        {
-          auto &part = collection[i];
-          AssertThrow(vectors.dimension == part.dimension,
-                      ExcFDLInternalError());
-          // Set the position at the end time:
-          LinearAlgebra::distributed::Vector<double> new_position(
-            part.get_position());
-          new_position.set_ghost_state(false);
-          new_position.add(dt, part.get_velocity());
-          vectors.set_position(i, new_time, std::move(new_position));
-
-          // Set the position at the half time:
-          LinearAlgebra::distributed::Vector<double> half_position(
-            part.get_partitioner());
-          half_position.set_ghost_state(false);
-          half_position.add(0.5,
-                            vectors.get_position(i, current_time),
-                            0.5,
-                            vectors.get_position(i, new_time));
-          vectors.set_position(i, half_time, std::move(half_position));
-        }
-    };
-    do_step(parts, part_vectors);
-    do_step(penalty_parts, penalty_part_vectors);
-  }
-
-  template <int dim, int spacedim>
-  void
-  IFEDMethod<dim, spacedim>::backwardEulerStep(double current_time,
-                                               double new_time)
-  {
-    (void)current_time;
-    (void)new_time;
-    Assert(false, ExcFDLNotImplemented());
-  }
-
-  template <int dim, int spacedim>
-  void
-  IFEDMethod<dim, spacedim>::midpointStep(double current_time, double new_time)
-  {
-    const double dt      = new_time - current_time;
-    auto         do_step = [&](auto &collection, auto &vectors)
-    {
-      for (unsigned int i = 0; i < collection.size(); ++i)
-        {
-          auto &part = collection[i];
-          AssertThrow(vectors.dimension == part.dimension,
-                      ExcFDLInternalError());
-          // Set the position at the end time:
-          LinearAlgebra::distributed::Vector<double> new_position(
-            part.get_position());
-          new_position.set_ghost_state(false);
-          new_position.add(dt, vectors.get_velocity(i, half_time));
-          vectors.set_position(i, new_time, std::move(new_position));
-
-          // Set the position at the half time:
-          LinearAlgebra::distributed::Vector<double> half_position(
-            part.get_partitioner());
-          half_position.set_ghost_state(false);
-          half_position.add(0.5,
-                            vectors.get_position(i, current_time),
-                            0.5,
-                            vectors.get_position(i, new_time));
-          vectors.set_position(i, half_time, std::move(half_position));
-        }
-    };
-    do_step(parts, part_vectors);
-    do_step(penalty_parts, penalty_part_vectors);
-  }
-
-  template <int dim, int spacedim>
-  void
-  IFEDMethod<dim, spacedim>::trapezoidalStep(double current_time,
-                                             double new_time)
-  {
-    (void)current_time;
-    (void)new_time;
-    Assert(false, ExcFDLNotImplemented());
   }
 
   //
@@ -992,12 +697,15 @@ namespace fdl
         }
     };
     std::deque<LinearAlgebra::distributed::Vector<double>> part_forces,
-      part_right_hand_sides, penalty_part_forces, penalty_part_right_hand_sides;
-    do_load(parts, part_vectors, part_forces, part_right_hand_sides);
-    do_load(penalty_parts,
-            penalty_part_vectors,
-            penalty_part_forces,
-            penalty_part_right_hand_sides);
+      part_right_hand_sides, surface_part_forces, surface_part_right_hand_sides;
+    do_load(this->parts,
+            this->part_vectors,
+            part_forces,
+            part_right_hand_sides);
+    do_load(this->surface_parts,
+            this->surface_part_vectors,
+            surface_part_forces,
+            surface_part_right_hand_sides);
 
     // Allow compression to overlap:
     auto do_compress = [](auto &vectors)
@@ -1008,7 +716,7 @@ namespace fdl
         vectors[i].compress_finish(VectorOperation::add);
     };
     do_compress(part_right_hand_sides);
-    do_compress(penalty_part_right_hand_sides);
+    do_compress(surface_part_right_hand_sides);
 
     // And do the actual solve:
     auto do_solve = [&](const auto &collection,
@@ -1057,18 +765,18 @@ namespace fdl
             active_strain->finish_strain(data_time);
         }
     };
-    do_solve(parts,
+    do_solve(this->parts,
              interactions,
              force_guesses,
-             part_vectors,
+             this->part_vectors,
              part_forces,
              part_right_hand_sides);
-    do_solve(penalty_parts,
-             penalty_interactions,
-             penalty_force_guesses,
-             penalty_part_vectors,
-             penalty_part_forces,
-             penalty_part_right_hand_sides);
+    do_solve(this->surface_parts,
+             surface_interactions,
+             surface_force_guesses,
+             this->surface_part_vectors,
+             surface_part_forces,
+             surface_part_right_hand_sides);
     IBAMR_TIMER_STOP(t_compute_lagrangian_force);
   }
 
@@ -1114,7 +822,7 @@ namespace fdl
           // We already check that this has a valid value earlier on
           const std::string interaction =
             input_db->getStringWithDefault("interaction", "ELEMENTAL");
-          const int ln = primary_hierarchy->getFinestLevelNumber();
+          const int ln = this->patch_hierarchy->getFinestLevelNumber();
 
           tbox::Pointer<tbox::Database> interaction_db =
             new tbox::InputDatabase("interaction");
@@ -1144,8 +852,8 @@ namespace fdl
           interactions[i]->add_dof_handler(part.get_dof_handler());
         }
     };
-    do_reinit(parts, interactions);
-    do_reinit(penalty_parts, penalty_interactions);
+    do_reinit(this->parts, interactions);
+    do_reinit(this->surface_parts, surface_interactions);
     IBAMR_TIMER_STOP(t_reinit_interactions_objects);
   }
 
@@ -1153,18 +861,20 @@ namespace fdl
   template <int dim, int spacedim>
   void
   IFEDMethod<dim, spacedim>::beginDataRedistribution(
-    tbox::Pointer<hier::PatchHierarchy<spacedim>> /*hierarchy*/,
-    tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
+    tbox::Pointer<hier::PatchHierarchy<spacedim>>    hierarchy,
+    tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg)
   {
     IBAMR_TIMER_START(t_begin_data_redistribution);
+    IFEDMethodBase<dim, spacedim>::beginDataRedistribution(hierarchy,
+                                                           gridding_alg);
     // This function is called before initializePatchHierarchy is - in that
     // case we don't have a hierarchy, so we don't have any data, and there is
     // naught to do
-    if (primary_hierarchy)
+    if (this->patch_hierarchy)
       {
         // Weird things happen when we coarsen and refine if some levels are
         // not present, so fill them all in with zeros to start
-        const int max_ln = primary_hierarchy->getFinestLevelNumber();
+        const int max_ln = this->patch_hierarchy->getFinestLevelNumber();
         fill_all(secondary_hierarchy.getSecondaryHierarchy(),
                  lagrangian_workload_current_index,
                  0,
@@ -1185,11 +895,11 @@ namespace fdl
             }
         };
         std::vector<std::unique_ptr<TransactionBase>> transactions,
-          penalty_transactions;
-        setup_transaction(parts, interactions, transactions);
-        setup_transaction(penalty_parts,
-                          penalty_interactions,
-                          penalty_transactions);
+          surface_transactions;
+        setup_transaction(this->parts, interactions, transactions);
+        setup_transaction(this->surface_parts,
+                          surface_interactions,
+                          surface_transactions);
 
         // Compute:
         auto compute_transaction = [](auto &interactions, auto &transactions)
@@ -1199,7 +909,7 @@ namespace fdl
               std::move(transactions[i]));
         };
         compute_transaction(interactions, transactions);
-        compute_transaction(penalty_interactions, penalty_transactions);
+        compute_transaction(surface_interactions, surface_transactions);
 
         // Finish:
         auto finish_transaction =
@@ -1209,11 +919,11 @@ namespace fdl
             interactions[i]->add_workload_finish(std::move(transactions[i]));
         };
         finish_transaction(interactions, transactions);
-        finish_transaction(penalty_interactions, penalty_transactions);
+        finish_transaction(surface_interactions, surface_transactions);
 
         // Move to primary hierarchy (we will read it back in
         // endDataRedistribution)
-        fill_all(primary_hierarchy,
+        fill_all(this->patch_hierarchy,
                  lagrangian_workload_current_index,
                  0,
                  max_ln);
@@ -1233,35 +943,27 @@ namespace fdl
   template <int dim, int spacedim>
   void
   IFEDMethod<dim, spacedim>::endDataRedistribution(
-    tbox::Pointer<hier::PatchHierarchy<spacedim>> /*hierarchy*/,
-    tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
+    tbox::Pointer<hier::PatchHierarchy<spacedim>>    hierarchy,
+    tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg)
   {
     IBAMR_TIMER_START(t_end_data_redistribution);
     // same as beginDataRedistribution
-    if (primary_hierarchy)
+    if (this->patch_hierarchy)
       {
-        auto do_reset = [](auto &positions_regrid, const auto &collection)
-        {
-          positions_regrid.clear();
-          for (unsigned int i = 0; i < collection.size(); ++i)
-            positions_regrid.push_back(collection[i].get_position());
-        };
-        do_reset(positions_at_last_regrid, parts);
-        do_reset(penalty_positions_at_last_regrid, penalty_parts);
-
-        secondary_hierarchy.reinit(primary_hierarchy->getFinestLevelNumber(),
-                                   primary_hierarchy->getFinestLevelNumber(),
-                                   primary_hierarchy,
-                                   lagrangian_workload_current_index);
+        secondary_hierarchy.reinit(
+          this->patch_hierarchy->getFinestLevelNumber(),
+          this->patch_hierarchy->getFinestLevelNumber(),
+          this->patch_hierarchy,
+          lagrangian_workload_current_index);
 
         reinit_interactions();
 
         if (input_db->getBoolWithDefault("enable_logging", true) &&
-            (started_time_integration ||
-             (!started_time_integration &&
+            (this->started_time_integration ||
+             (!this->started_time_integration &&
               !input_db->getBoolWithDefault("skip_initial_workload", false))))
           {
-            const int ln            = primary_hierarchy->getFinestLevelNumber();
+            const int ln = this->patch_hierarchy->getFinestLevelNumber();
             auto      secondary_ops = extract_hierarchy_data_ops(
               lagrangian_workload_var,
               secondary_hierarchy.getSecondaryHierarchy());
@@ -1302,16 +1004,19 @@ namespace fdl
         // save a copy for plotting purposes.
 
         // TODO - implement a utility function for copying
-        fill_all(primary_hierarchy,
+        fill_all(this->patch_hierarchy,
                  lagrangian_workload_plot_index,
                  0,
-                 primary_hierarchy->getFinestLevelNumber(),
+                 this->patch_hierarchy->getFinestLevelNumber(),
                  0);
-        extract_hierarchy_data_ops(lagrangian_workload_var, primary_hierarchy)
+        extract_hierarchy_data_ops(lagrangian_workload_var,
+                                   this->patch_hierarchy)
           ->copyData(lagrangian_workload_plot_index,
                      lagrangian_workload_current_index,
                      false);
       }
+    IFEDMethodBase<dim, spacedim>::endDataRedistribution(hierarchy,
+                                                         gridding_alg);
     IBAMR_TIMER_STOP(t_end_data_redistribution);
   }
 
@@ -1321,48 +1026,22 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  IFEDMethod<dim, spacedim>::putToDatabase(tbox::Pointer<tbox::Database> db)
-  {
-    auto do_put = [&](auto &collection, const std::string &prefix)
-    {
-      for (unsigned int i = 0; i < collection.size(); ++i)
-        {
-          std::ostringstream              out_str;
-          boost::archive::binary_oarchive oarchive(out_str);
-          collection[i].save(oarchive, 0);
-          // TODO - with C++20 we can use view() instead of str() and skip
-          // this copy
-          const std::string out = out_str.str();
-          save_binary(prefix + std::to_string(i),
-                      out.c_str(),
-                      out.c_str() + out.size(),
-                      db);
-        }
-    };
-    do_put(parts, "part_");
-    do_put(penalty_parts, "penalty_part_");
-  }
-
-
-
-  template <int dim, int spacedim>
-  void
   IFEDMethod<dim, spacedim>::registerEulerianVariables()
   {
     // we need ghosts for CONSERVATIVE_LINEAR_REFINE
     const hier::IntVector<spacedim> ghosts = 1;
     lagrangian_workload_var = new pdat::CellVariable<spacedim, double>(
-      object_name + "::lagrangian_workload");
-    registerVariable(lagrangian_workload_current_index,
-                     lagrangian_workload_new_index,
-                     lagrangian_workload_scratch_index,
-                     lagrangian_workload_var,
-                     ghosts,
-                     "CONSERVATIVE_COARSEN",
-                     "CONSERVATIVE_LINEAR_REFINE");
+      this->object_name + "::lagrangian_workload");
+    this->registerVariable(lagrangian_workload_current_index,
+                           lagrangian_workload_new_index,
+                           lagrangian_workload_scratch_index,
+                           lagrangian_workload_var,
+                           ghosts,
+                           "CONSERVATIVE_COARSEN",
+                           "CONSERVATIVE_LINEAR_REFINE");
 
     auto *var_db  = hier::VariableDatabase<spacedim>::getDatabase();
-    auto  context = var_db->getContext(object_name);
+    auto  context = var_db->getContext(this->object_name);
     lagrangian_workload_plot_index =
       var_db->registerVariableAndContext(lagrangian_workload_var,
                                          context,

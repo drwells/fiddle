@@ -66,19 +66,21 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   // fiddle stuff:
   FESystem<dim> fe(FE_Q<dim>(test_db->getIntegerWithDefault("fe_degree", 1)),
                    spacedim);
-  FESystem<dim - 1, dim> boundary_fe(FE_Q<dim - 1, spacedim>(
-    test_db->getIntegerWithDefault("fe_degree", 1)), spacedim);
-  std::vector<fdl::Part<dim>> parts;
-  std::vector<fdl::Part<dim - 1, spacedim>> penalty_parts;
-  const bool test_penalty_parts = test_db->getBoolWithDefault("penalty_parts", false);
-  if (test_penalty_parts)
-    penalty_parts.emplace_back(boundary_tria, boundary_fe);
+  FESystem<dim - 1, dim> boundary_fe(
+    FE_Q<dim - 1, spacedim>(test_db->getIntegerWithDefault("fe_degree", 1)),
+    spacedim);
+  std::vector<fdl::Part<dim>>               parts;
+  std::vector<fdl::Part<dim - 1, spacedim>> surface_parts;
+  const bool                                test_surface_parts =
+    test_db->getBoolWithDefault("surface_parts", false);
+  if (test_surface_parts)
+    surface_parts.emplace_back(boundary_tria, boundary_fe);
   else
     parts.emplace_back(native_tria, fe);
   tbox::Pointer<IBAMR::IBStrategy> ib_method_ops =
     new fdl::IFEDMethod<dim>("ifed_method",
                              input_db->getDatabase("IFEDMethod"),
-                             std::move(penalty_parts),
+                             std::move(surface_parts),
                              std::move(parts));
 
   // Create major algorithm and data objects that comprise the
@@ -207,8 +209,8 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
           };
 
           auto &ifed = dynamic_cast<fdl::IFEDMethod<NDIM> &>(*ib_method_ops);
-          if (test_penalty_parts)
-            do_graphics(ifed.get_penalty_part(0));
+          if (test_surface_parts)
+            do_graphics(ifed.get_surface_part(0));
           else
             do_graphics(ifed.get_part(0));
         }
@@ -230,11 +232,12 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
                      LinearAlgebra::distributed::Vector<double>>
         position_mapping(part.get_dof_handler(), part.get_position());
 
-      QMidpoint<structdim> quad;
+      QMidpoint<structdim>          quad;
       FEValues<structdim, spacedim> fe_values(position_mapping,
-                              part.get_dof_handler().get_fe(),
-                              quad,
-                              update_quadrature_points | update_values);
+                                              part.get_dof_handler().get_fe(),
+                                              quad,
+                                              update_quadrature_points |
+                                                update_values);
 
       std::vector<Tensor<1, dim>> cell_velocities(quad.size());
       for (const auto &cell : part.get_dof_handler().active_cell_iterators())
@@ -249,8 +252,8 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
           }
     };
     auto &ifed = dynamic_cast<fdl::IFEDMethod<NDIM> &>(*ib_method_ops);
-    if (test_penalty_parts)
-      do_output(ifed.get_penalty_part(0));
+    if (test_surface_parts)
+      do_output(ifed.get_surface_part(0));
     else
       do_output(ifed.get_part(0));
 
