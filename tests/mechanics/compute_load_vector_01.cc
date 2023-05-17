@@ -241,7 +241,12 @@ test()
   if (Utilities::MPI::this_mpi_process(comm) == 0)
     output.open("output");
 
-  parallel::shared::Triangulation<dim, spacedim> tria(comm);
+  const auto mesh_partitioner =
+    parallel::shared::Triangulation<dim, spacedim>::Settings::partition_zorder;
+  parallel::shared::Triangulation<dim, spacedim> tria(comm,
+                                                      {},
+                                                      false,
+                                                      mesh_partitioner);
   GridGenerator::hyper_shell(tria, Point<dim>(), 1.0, 2.0, 0, true);
   tria.refine_global(1);
   if (Utilities::MPI::this_mpi_process(comm) == 0)

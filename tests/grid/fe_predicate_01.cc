@@ -59,7 +59,12 @@ main(int argc, char **argv)
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
   const auto                       mpi_comm = MPI_COMM_WORLD;
   const auto rank = Utilities::MPI::this_mpi_process(mpi_comm);
-  parallel::shared::Triangulation<2> native_tria(mpi_comm);
+  const auto partitioner =
+    parallel::shared::Triangulation<2>::Settings::partition_zorder;
+  parallel::shared::Triangulation<2> native_tria(mpi_comm,
+                                                 {},
+                                                 false,
+                                                 partitioner);
   GridGenerator::hyper_ball(native_tria);
   for (unsigned int i = 0; i < 3; ++i)
     {

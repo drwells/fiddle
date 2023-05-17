@@ -115,7 +115,12 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                               TimerOutput::summary,
                               TimerOutput::wall_times);
   // setup deal.II stuff:
-  parallel::shared::Triangulation<dim, spacedim> native_tria(MPI_COMM_WORLD);
+  const auto partitioner =
+    parallel::shared::Triangulation<dim, spacedim>::Settings::partition_zorder;
+  parallel::shared::Triangulation<dim, spacedim> native_tria(mpi_comm,
+                                                             {},
+                                                             false,
+                                                             partitioner);
   {
     TimerOutput::Scope t(computing_timer, "grid_in");
     GridIn<dim>        grid_in(native_tria);

@@ -161,7 +161,12 @@ test()
   double old_error = 1.0;
   for (unsigned int n_refinements = 0; n_refinements < 6; ++n_refinements)
     {
-      parallel::shared::Triangulation<dim, spacedim> tria(comm);
+      const auto mesh_partitioner =
+        parallel::shared::Triangulation<dim, spacedim>::Settings::partition_zorder;
+      parallel::shared::Triangulation<dim, spacedim> tria(comm,
+                                                          {},
+                                                          false,
+                                                          mesh_partitioner);
       GridGenerator::hyper_shell(tria, Point<dim>(), 1.0, 2.0, 0, true);
       tria.refine_global(n_refinements);
       if (Utilities::MPI::this_mpi_process(comm) == 0)

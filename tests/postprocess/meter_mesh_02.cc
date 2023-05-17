@@ -58,7 +58,12 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   auto g_idx           = std::get<6>(tuple);
 
   // setup deal.II stuff
-  parallel::shared::Triangulation<dim, spacedim> tria(mpi_comm);
+  const auto mesh_partitioner =
+    parallel::shared::Triangulation<dim, spacedim>::Settings::partition_zorder;
+  parallel::shared::Triangulation<dim, spacedim> tria(mpi_comm,
+                                                      {},
+                                                      false,
+                                                      mesh_partitioner);
   GridGenerator::hyper_ball(tria, Point<dim>(), 0.4);
   tria.refine_global(2);
   FunctionParser<spacedim> fp(extract_fp_string(test_db->getDatabase("f")),

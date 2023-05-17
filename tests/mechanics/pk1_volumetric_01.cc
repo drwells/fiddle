@@ -139,7 +139,12 @@ test()
     output.open("output");
   for (unsigned int n_refinements = 0; n_refinements < 7; ++n_refinements)
     {
-      parallel::shared::Triangulation<dim, spacedim> tria(comm);
+      const auto mesh_partitioner =
+        parallel::shared::Triangulation<dim, spacedim>::Settings::partition_zorder;
+      parallel::shared::Triangulation<dim, spacedim> tria(comm,
+                                                          {},
+                                                          false,
+                                                          mesh_partitioner);
       GridGenerator::hyper_cube(tria);
       tria.refine_global(n_refinements);
       FESystem<dim, spacedim>   fe(FE_Q<dim, spacedim>(2), spacedim);

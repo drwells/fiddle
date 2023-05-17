@@ -38,7 +38,12 @@ test()
   const auto rank     = Utilities::MPI::this_mpi_process(mpi_comm);
   const auto n_procs  = Utilities::MPI::n_mpi_processes(mpi_comm);
 
-  parallel::shared::Triangulation<spacedim> tria(mpi_comm);
+  const auto partitioner =
+    parallel::shared::Triangulation<spacedim>::Settings::partition_zorder;
+  parallel::shared::Triangulation<spacedim> tria(mpi_comm,
+                                                 {},
+                                                 false,
+                                                 partitioner);
   GridGenerator::hyper_ball(tria);
   tria.refine_global(1);
 

@@ -33,9 +33,12 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   auto input_db = app_initializer->getInputDatabase();
 
   // setup deal.II stuff:
+  const auto partitioner =
+    parallel::shared::Triangulation<dim, spacedim>::Settings::partition_zorder;
   parallel::shared::Triangulation<dim, spacedim> native_tria(MPI_COMM_WORLD,
                                                              {},
-                                                             true);
+                                                             false,
+                                                             partitioner);
   GridGenerator::hyper_cube(native_tria);
   native_tria.refine_global(3);
   FESystem<dim, spacedim> fe(FE_Q<dim, spacedim>(2), spacedim);
