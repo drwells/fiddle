@@ -157,14 +157,14 @@ namespace fdl
     /**
      * Interpolate a scalar-valued quantity.
      */
-    LinearAlgebra::distributed::Vector<double>
+    virtual LinearAlgebra::distributed::Vector<double>
     interpolate_scalar_field(const int          data_idx,
                              const std::string &kernel_name) const;
 
     /**
      * Interpolate a vector-valued quantity.
      */
-    LinearAlgebra::distributed::Vector<double>
+    virtual LinearAlgebra::distributed::Vector<double>
     interpolate_vector_field(const int          data_idx,
                              const std::string &kernel_name) const;
 
@@ -181,7 +181,7 @@ namespace fdl
      *   the average of the pointwise velocities. In 3D it is the mean value
      *   of the velocity field computed on the boundary.
      */
-    Tensor<1, spacedim>
+    virtual Tensor<1, spacedim>
     get_mean_velocity() const;
 
     /**
@@ -191,19 +191,19 @@ namespace fdl
      * Cartesian grid. This class will copy the data into a scratch index and
      * update ghost data.
      */
-    double
+    virtual double
     compute_mean_value(const int data_idx, const std::string &kernel_name);
 
     /**
      * Compute the flux of some quantity through the meter mesh.
      */
-    double
+    virtual double
     compute_flux(const int data_idx, const std::string &kernel_name);
 
     /**
      * Interpolate the value of some scalar field at the centroid.
      */
-    double
+    virtual double
     compute_centroid_value(const int          data_idx,
                            const std::string &kernel_name) const;
 
@@ -211,7 +211,7 @@ namespace fdl
      * Return the centroid of the meter mesh. This point may not be inside the
      * mesh.
      */
-    Point<spacedim>
+    virtual Point<spacedim>
     get_centroid() const;
 
   protected:
