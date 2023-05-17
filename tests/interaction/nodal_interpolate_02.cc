@@ -55,7 +55,12 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   const auto rank     = Utilities::MPI::this_mpi_process(mpi_comm);
 
   // setup deal.II stuff:
-  parallel::shared::Triangulation<dim, spacedim> native_tria(mpi_comm);
+  const auto partitioner =
+    parallel::shared::Triangulation<dim, spacedim>::Settings::partition_zorder;
+  parallel::shared::Triangulation<dim, spacedim> native_tria(mpi_comm,
+                                                             {},
+                                                             false,
+                                                             partitioner);
   GridGenerator::hyper_ball(native_tria, Point<spacedim>(), 1.0);
   const auto test_db = input_db->getDatabase("test");
   native_tria.refine_global(

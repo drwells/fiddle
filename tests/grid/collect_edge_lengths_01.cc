@@ -21,7 +21,12 @@ main(int argc, char **argv)
   using namespace dealii;
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
   const int rank = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
-  parallel::shared::Triangulation<2> tria(MPI_COMM_WORLD);
+  const auto partitioner =
+    parallel::shared::Triangulation<2>::Settings::partition_zorder;
+  parallel::shared::Triangulation<2> tria(MPI_COMM_WORLD,
+                                          {},
+                                          false,
+                                          partitioner);
   GridGenerator::hyper_ball(tria);
   tria.refine_global(3);
 

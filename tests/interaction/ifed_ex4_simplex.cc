@@ -152,8 +152,13 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   const auto mpi_comm = MPI_COMM_WORLD;
 
   // setup deal.II stuff:
+  const auto partitioner =
+    parallel::shared::Triangulation<dim, spacedim>::Settings::partition_zorder;
   parallel::shared::Triangulation<dim, spacedim> native_tria(
-    mpi_comm, {}, test_db->getBoolWithDefault("use_artificial_cells", true));
+    mpi_comm,
+    {},
+    test_db->getBoolWithDefault("use_artificial_cells", false),
+    partitioner);
 
   Point<dim> center;
   center[0]       = 0.6;

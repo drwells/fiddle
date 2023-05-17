@@ -149,7 +149,12 @@ test(const bool use_simplex)
   for (unsigned int n_refinements = 0; n_refinements < max_refinements;
        ++n_refinements)
     {
-      parallel::shared::Triangulation<dim, spacedim> tria(comm);
+      const auto mesh_partitioner =
+        parallel::shared::Triangulation<dim, spacedim>::Settings::partition_zorder;
+      parallel::shared::Triangulation<dim, spacedim> tria(comm,
+                                                          {},
+                                                          false,
+                                                          mesh_partitioner);
       if (use_simplex)
         {
           parallel::shared::Triangulation<dim, spacedim> hypercube_tria(comm);

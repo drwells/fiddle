@@ -36,8 +36,13 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   auto           input_db = app_initializer->getInputDatabase();
   auto           test_db  = input_db->getDatabase("test");
 
+  const auto partitioner =
+    parallel::shared::Triangulation<dim, spacedim>::Settings::partition_zorder;
   parallel::shared::Triangulation<dim, spacedim> tria(
-    mpi_comm, {}, test_db->getBoolWithDefault("use_artificial_cells", false));
+    mpi_comm,
+    {},
+    test_db->getBoolWithDefault("use_artificial_cells", false),
+    partitioner);
   GridGenerator::hyper_cube(tria);
   std::vector<Point<spacedim>> evaluation_points;
   {

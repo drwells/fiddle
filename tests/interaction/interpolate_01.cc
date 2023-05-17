@@ -67,7 +67,12 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   const auto rank     = Utilities::MPI::this_mpi_process(mpi_comm);
 
   // setup deal.II stuff:
-  parallel::shared::Triangulation<dim, spacedim> native_tria(MPI_COMM_WORLD);
+  const auto partitioner =
+    parallel::shared::Triangulation<dim, spacedim>::Settings::partition_zorder;
+  parallel::shared::Triangulation<dim, spacedim> native_tria(mpi_comm,
+                                                             {},
+                                                             false,
+                                                             partitioner);
   GridGenerator::concentric_hyper_shells(
     native_tria, Point<spacedim>(), 0.125, 0.25, 2, 0.0);
   native_tria.refine_global(4);

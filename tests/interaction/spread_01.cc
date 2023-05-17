@@ -70,7 +70,12 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   const auto rank     = Utilities::MPI::this_mpi_process(mpi_comm);
 
   // setup deal.II stuff:
-  parallel::shared::Triangulation<dim, spacedim> native_tria(MPI_COMM_WORLD);
+  const auto partitioner =
+    parallel::shared::Triangulation<dim, spacedim>::Settings::partition_zorder;
+  parallel::shared::Triangulation<dim, spacedim> native_tria(mpi_comm,
+                                                             {},
+                                                             false,
+                                                             partitioner);
   GridGenerator::hyper_cube(native_tria);
   // Even though we are periodic in both directions we don't ever need to
   // actually enforce this in the finite element code as far as spreading goes

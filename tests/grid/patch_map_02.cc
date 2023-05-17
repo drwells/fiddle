@@ -125,7 +125,12 @@ main(int argc, char **argv)
     {
       using namespace dealii;
 
-      parallel::shared::Triangulation<NDIM> native_tria(mpi_comm);
+      const auto partitioner =
+        parallel::shared::Triangulation<NDIM>::Settings::partition_zorder;
+      parallel::shared::Triangulation<NDIM> native_tria(mpi_comm,
+                                                        {},
+                                                        false,
+                                                        partitioner);
       GridGenerator::hyper_ball(native_tria);
       native_tria.refine_global(6 - NDIM);
 
