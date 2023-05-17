@@ -281,9 +281,9 @@ namespace fdl
     started_time_integration = true;
     part_vectors.begin_time_step(current_time, new_time);
     surface_part_vectors.begin_time_step(current_time, new_time);
-    current_time = current_time;
-    new_time     = new_time;
-    half_time    = current_time + 0.5 * (new_time - current_time);
+    this->current_time = current_time;
+    this->new_time     = new_time;
+    this->half_time    = current_time + 0.5 * (new_time - current_time);
     IBAMR_TIMER_STOP(t_preprocess_integrate_data);
   }
 
