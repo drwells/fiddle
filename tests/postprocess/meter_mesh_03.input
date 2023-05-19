@@ -1,0 +1,46 @@
+N = 64
+
+CartesianGeometry {
+   domain_boxes       = [(0, 0, 0), (N - 1, N - 1, N - 1)]
+   x_lo               = -2, -2, -2
+   x_up               = 2, 2, 2
+   periodic_dimension = 0, 0, 0
+}
+
+GriddingAlgorithm {
+   max_levels = 2
+
+   ratio_to_coarser {level_1 = 4, 2, 2}
+
+   largest_patch_size {level_0 = 12, 12, 12}
+
+   smallest_patch_size {level_0 =   4,  4, 4}
+
+   efficiency_tolerance = 0.70e0
+   combine_efficiency   = 0.85e0
+}
+
+StandardTagAndInitialize {
+   tagging_method = "REFINE_BOXES"
+   RefineBoxes {
+      level_0 = [(N/4, 4, 4), (3*N/4 - 1, N - 1, N - 1)]
+   }
+}
+
+LoadBalancer {
+   bin_pack_method = "SPATIAL"
+   max_workload_factor = 1
+}
+
+test{
+}
+
+Main{
+   log_file_name = "output"
+   log_all_nodes = FALSE
+
+// visualization dump parameters
+   viz_writer = "VisIt"
+   viz_dump_dirname = "viz3d"
+   visit_number_procs_per_file = 1
+}

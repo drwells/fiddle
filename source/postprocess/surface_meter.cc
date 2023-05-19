@@ -184,7 +184,11 @@ namespace fdl
            ExcMessage("This function may only be called when the SurfaceMeter "
                       "is set up without an underlying codimension zero "
                       "Triangulation."));
+#if NDIM == 2
     reinit_tria(boundary_points, true);
+#else
+    reinit_tria(boundary_points, false);
+#endif
     reinit_mean_velocity(velocity_values);
   }
 
