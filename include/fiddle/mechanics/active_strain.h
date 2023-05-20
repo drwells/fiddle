@@ -17,6 +17,11 @@ namespace fdl
 
   /**
    * Interface class for defining active strains on Parts.
+   *
+   * ActiveStrain objects work together with MechanicsValues to modify the
+   * deformation gradients specified to ForceContribution objects. These
+   * modification operations are definde by push_deformation_gradient_forward()
+   * and pull_stress_back().
    */
   template <int dim, int spacedim = dim, typename Number = double>
   class ActiveStrain

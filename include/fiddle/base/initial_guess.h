@@ -13,6 +13,11 @@ IBTK_ENABLE_EXTRA_WARNINGS
 
 namespace fdl
 {
+  /**
+   * Class for computing initial guesses - essentially the same as
+   * IBTK::InitialGuess. Uses the 'Fischer-3' algorithm (same as PETSc) to
+   * compute guesses via projection.
+   */
   template <typename VectorType>
   class InitialGuess
   {
