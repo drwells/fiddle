@@ -8,6 +8,33 @@
 namespace fdl
 {
   template <int dim>
+  SingleQuadrature<dim>::SingleQuadrature(const Quadrature<dim> &quad)
+    : single_quad(quad)
+  {}
+
+  template <int dim>
+  const Quadrature<dim> &
+  SingleQuadrature<dim>::operator[](const unsigned char /*n_points_1D*/) const
+  {
+    return single_quad;
+  }
+
+  template <int dim>
+  unsigned char
+  SingleQuadrature<dim>::get_index(
+    const double /*eulerian_length*/,
+    const double /*lagrangian_length*/) const
+  {
+    std::size_t n_points_1D = 1;
+    while (std::pow(n_points_1D, dim) < single_quad.size())
+      ++n_points_1D;
+
+    Assert(n_points_1D < std::size_t(std::numeric_limits<unsigned char>::max()),
+           ExcFDLNotImplemented());
+    return static_cast<unsigned char>(n_points_1D);
+  }
+
+  template <int dim>
   QGaussFamily<dim>::QGaussFamily(const unsigned int min_points_1D,
                                   const double       point_density,
                                   const DensityKind  density_kind)
@@ -285,7 +312,8 @@ namespace fdl
         for (unsigned char index = quadratures.size(); index <= n_points_1D;
              ++index)
           {
-            auto next_power_of_2 = [](const unsigned int lower_bound) {
+            auto next_power_of_2 = [](const unsigned int lower_bound)
+            {
               unsigned int result = 1;
               while (result < lower_bound)
                 result = result << 1;
@@ -431,6 +459,9 @@ namespace fdl
         return quadratures[n_points_1D];
       }
   }
+
+  template class SingleQuadrature<NDIM - 1>;
+  template class SingleQuadrature<NDIM>;
 
   template class QGaussFamily<NDIM - 1>;
   template class QGaussFamily<NDIM>;
