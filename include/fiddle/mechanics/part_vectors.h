@@ -131,9 +131,6 @@ namespace fdl
     std::vector<LinearAlgebra::distributed::Vector<double>> half_velocities;
     std::vector<LinearAlgebra::distributed::Vector<double>> new_velocities;
   };
-
-  // ----------------------------- inline functions ----------------------------
-
 } // namespace fdl
 
 #endif

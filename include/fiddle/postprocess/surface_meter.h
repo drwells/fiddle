@@ -328,6 +328,10 @@ namespace fdl
     std::unique_ptr<NodalInteraction<dim - 1, spacedim>> nodal_interaction;
   };
 
+
+  // --------------------------- inline functions --------------------------- //
+
+
   template <int dim, int spacedim>
   Point<spacedim>
   SurfaceMeter<dim, spacedim>::get_centroid() const

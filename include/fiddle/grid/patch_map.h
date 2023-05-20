@@ -205,11 +205,10 @@ namespace fdl
     // The last entry is the total number of cells. Used by the iterators.
     std::vector<std::vector<std::size_t>> cummulative_n_cells;
   };
-} // namespace fdl
 
-namespace fdl
-{
-  // ---------------------------- inline functions -----------------------------
+
+  // --------------------------- inline functions --------------------------- //
+
 
   template <int dim, int spacedim>
   const Triangulation<dim, spacedim> &

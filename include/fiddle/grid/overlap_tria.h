@@ -118,9 +118,9 @@ namespace fdl
   };
 
 
-  //
-  // inline functions
-  //
+  // --------------------------- inline functions --------------------------- //
+
+
   template <int dim, int spacedim>
   const parallel::shared::Triangulation<dim, spacedim> &
   OverlapTriangulation<dim, spacedim>::get_native_triangulation() const

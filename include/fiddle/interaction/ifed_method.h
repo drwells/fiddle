@@ -265,7 +265,9 @@ namespace fdl
      */
   };
 
-  // ----------------------------- inline functions ----------------------------
+
+  // --------------------------- inline functions --------------------------- //
+
 
   template <int dim, int spacedim>
   inline const hier::IntVector<spacedim> &

@@ -140,9 +140,8 @@ namespace fdl
   };
 
 
-  //
-  // inline functions
-  //
+  // --------------------------- inline functions --------------------------- //
+
 
   template <typename T>
   Scatter<T>::Scatter(Scatter<T> &&t)
