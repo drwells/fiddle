@@ -49,6 +49,22 @@ namespace fdl
     dealii::Table<2, dealii::Tensor<1, spacedim>>          fibers;
     types::global_cell_index local_processor_min_cell_index;
   };
+
+
+  // --------------------------- inline functions --------------------------- //
+
+
+  template <int dim, int spacedim>
+  inline ArrayView<const Tensor<1, spacedim>>
+  FiberNetwork<dim, spacedim>::get_fibers(
+    const typename Triangulation<dim, spacedim>::active_cell_iterator &cell)
+    const
+  {
+    auto cell_index =
+      cell->global_active_cell_index() - local_processor_min_cell_index;
+
+    return make_array_view(fibers, cell_index, 0, fibers.size(1));
+  }
 } // namespace fdl
 
 #endif

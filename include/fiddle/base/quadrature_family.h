@@ -68,29 +68,14 @@ namespace fdl
   class SingleQuadrature : public QuadratureFamily<dim>
   {
   public:
-    SingleQuadrature(const Quadrature<dim> &quad)
-      : single_quad(quad)
-    {}
+    SingleQuadrature(const Quadrature<dim> &quad);
 
     virtual const Quadrature<dim> &
-    operator[](const unsigned char /*n_points_1D*/) const override
-    {
-      return single_quad;
-    }
+    operator[](const unsigned char /*n_points_1D*/) const override;
 
     virtual unsigned char
     get_index(const double /*eulerian_length*/,
-              const double /*lagrangian_length*/) const override
-    {
-      std::size_t n_points_1D = 1;
-      while (std::pow(n_points_1D, dim) < single_quad.size())
-        ++n_points_1D;
-
-      Assert(n_points_1D <
-               std::size_t(std::numeric_limits<unsigned char>::max()),
-             ExcFDLNotImplemented());
-      return static_cast<unsigned char>(n_points_1D);
-    }
+              const double /*lagrangian_length*/) const override;
 
   protected:
     Quadrature<dim> single_quad;

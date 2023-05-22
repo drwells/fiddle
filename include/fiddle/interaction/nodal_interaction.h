@@ -95,14 +95,16 @@ namespace fdl
     projection_is_interpolation() const override;
 
     /**
-     * TODO
+     * Do the actual work associated with nodal interpolation by, if necessary,
+     * computing nodes and then calling compute_nodal_interpolation().
      */
     virtual std::unique_ptr<TransactionBase>
     compute_projection_rhs_intermediate(
       std::unique_ptr<TransactionBase> transaction) const override;
 
     /**
-     * TODO
+     * Finish nodal interaction. Unlike the base class method this method sets
+     * velocities of nodes outside the domain to zero.
      */
     virtual void
     compute_projection_rhs_accumulate_finish(
@@ -123,7 +125,7 @@ namespace fdl
                 LinearAlgebra::distributed::Vector<double>       &result);
 
     /**
-     * TODO
+     * Do some checks and then call compute_nodal_spread().
      */
     virtual std::unique_ptr<TransactionBase>
     compute_spread_intermediate(

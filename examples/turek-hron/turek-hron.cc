@@ -36,17 +36,17 @@
 #include <StandardTagAndInitialize.h>
 
 std::pair<dealii::Triangulation<2>, dealii::Triangulation<2>>
-make_turek_hron_grid(const dealii::Point<2> &cylinder_center = dealii::Point<2>(0.2, 0.2),
-                     const double            cylinder_radius = 0.05,
-                     const double            beam_height     = 0.02,
-                     const double            beam_length     = 0.35,
-                     const bool              curve_left_side_of_beam = true)
+make_turek_hron_grid(
+  const dealii::Point<2> &cylinder_center         = dealii::Point<2>(0.2, 0.2),
+  const double            cylinder_radius         = 0.05,
+  const double            beam_height             = 0.02,
+  const double            beam_length             = 0.35,
+  const bool              curve_left_side_of_beam = true)
 {
   using namespace dealii;
   AssertThrow(cylinder_radius > beam_height / 2.0,
               ExcMessage("The grid only makes sense when this is true"));
-  AssertThrow(beam_length > 0.0,
-              ExcMessage("beam length should be positive"));
+  AssertThrow(beam_length > 0.0, ExcMessage("beam length should be positive"));
   // Use the pythagorean theorem to find the location of the beam - here we
   // assume the cylinder is centered at 0, 0
   const Point<2> beam_bottom_left(std::sqrt(std::pow(cylinder_radius, 2) -
@@ -82,13 +82,11 @@ make_turek_hron_grid(const dealii::Point<2> &cylinder_center = dealii::Point<2>(
   // now set up the beam:
   Triangulation<2> beam;
   // we need to use one cell in the y direction: try to pick a sane value in x
-  const unsigned int n_x_cells = std::max(
-    1u, static_cast<unsigned int>(std::round(beam_length / beam_height)));
-  GridGenerator::subdivided_hyper_rectangle(beam,
-                                            {n_x_cells, 1u},
-                                            beam_bottom_left,
-                                            beam_upper_right,
-                                            true);
+  const unsigned int n_x_cells =
+    std::max(1u,
+             static_cast<unsigned int>(std::round(beam_length / beam_height)));
+  GridGenerator::subdivided_hyper_rectangle(
+    beam, {n_x_cells, 1u}, beam_bottom_left, beam_upper_right, true);
   for (auto &cell : beam.active_cell_iterators())
     cell->set_material_id(1);
   GridTools::shift(cylinder_center, disk);
@@ -129,8 +127,7 @@ main(int argc, char *argv[])
   using namespace dealii;
   tbox::Pointer<IBTK::AppInitializer> app_initializer =
     new IBTK::AppInitializer(argc, argv, "IB.log");
-  tbox::Pointer<tbox::Database> input_db =
-    app_initializer->getInputDatabase();
+  tbox::Pointer<tbox::Database> input_db = app_initializer->getInputDatabase();
 
   // Get various standard options set in the input file.
   const bool dump_viz_data     = app_initializer->dumpVizData();
@@ -138,8 +135,8 @@ main(int argc, char *argv[])
   const bool uses_visit =
     dump_viz_data && app_initializer->getVisItDataWriter();
 
-  const bool dump_restart_data    = app_initializer->dumpRestartData();
-  const int restart_dump_interval = app_initializer->getRestartDumpInterval();
+  const bool dump_restart_data     = app_initializer->dumpRestartData();
+  const int  restart_dump_interval = app_initializer->getRestartDumpInterval();
   const std::string restart_dump_dirname =
     app_initializer->getRestartDumpDirectory();
 
@@ -157,11 +154,14 @@ main(int argc, char *argv[])
   const bool dump_timer_data     = app_initializer->dumpTimerData();
   const int  timer_dump_interval = app_initializer->getTimerDumpInterval();
 
-  const double beam_shear_modulus    = input_db->getDouble("beam_shear_modulus");
-  const double beam_bulk_modulus     = input_db->getDouble("beam_bulk_modulus");
-  const double disk_spring_constant  = input_db->getDouble("disk_spring_constant");
-  const double beam_spring_constant  = input_db->getDouble("beam_spring_constant");
-  const double disk_damping_constant = input_db->getDouble("disk_damping_constant");
+  const double beam_shear_modulus = input_db->getDouble("beam_shear_modulus");
+  const double beam_bulk_modulus  = input_db->getDouble("beam_bulk_modulus");
+  const double disk_spring_constant =
+    input_db->getDouble("disk_spring_constant");
+  const double beam_spring_constant =
+    input_db->getDouble("beam_spring_constant");
+  const double disk_damping_constant =
+    input_db->getDouble("disk_damping_constant");
 
   // Create major algorithm and data objects that comprise the
   // application.  These objects are configured from the input database
@@ -169,21 +169,21 @@ main(int argc, char *argv[])
   tbox::Pointer<IBAMR::INSHierarchyIntegrator> navier_stokes_integrator =
     new IBAMR::INSStaggeredHierarchyIntegrator(
       "INSStaggeredHierarchyIntegrator",
-      app_initializer->getComponentDatabase(
-        "INSStaggeredHierarchyIntegrator"));
+      app_initializer->getComponentDatabase("INSStaggeredHierarchyIntegrator"));
 
   // Set up the IFEDMethod.
   const MPI_Comm communicator = IBTK::IBTK_MPI::getCommunicator();
-  parallel::shared::Triangulation<2> tria(communicator, {}, true);
+  parallel::shared::Triangulation<2>    tria(communicator, {}, true);
   parallel::shared::Triangulation<1, 2> boundary_tria(communicator, {}, true);
-  const Point<2> cylinder_center(0.2, 0.2);
-  auto pair = make_turek_hron_grid(cylinder_center, 0.05, 0.02, 0.35, false);
+  const Point<2>                        cylinder_center(0.2, 0.2);
+  auto  pair = make_turek_hron_grid(cylinder_center, 0.05, 0.02, 0.35, false);
   auto &disk = pair.first;
   auto &beam = pair.second;
-  const bool use_penalty_cylinder = input_db->getBoolWithDefault("use_penalty_cylinder", false);
+  const bool use_penalty_cylinder =
+    input_db->getBoolWithDefault("use_penalty_cylinder", false);
 
   const unsigned int penalty_fe_degree = 1;
-  const unsigned int beam_fe_degree = 2;
+  const unsigned int beam_fe_degree    = 2;
   FESystem<2>        fe(FE_Q<2>(beam_fe_degree), 2);
   FESystem<1, 2>     penalty_fe(FE_Q<1, 2>(penalty_fe_degree), 2);
 
@@ -203,19 +203,23 @@ main(int argc, char *argv[])
   std::vector<std::unique_ptr<fdl::ForceContribution<2>>> beam_forces;
   beam_forces.emplace_back(std::make_unique<fdl::ModifiedNeoHookeanStress<2>>(
     quadrature2, beam_shear_modulus, beam_ids));
-  beam_forces.emplace_back(std::make_unique<fdl::JLogJVolumetricEnergyStress<2>>(
-    quadrature2, beam_bulk_modulus, beam_ids));
+  beam_forces.emplace_back(
+    std::make_unique<fdl::JLogJVolumetricEnergyStress<2>>(quadrature2,
+                                                          beam_bulk_modulus,
+                                                          beam_ids));
   std::vector<std::unique_ptr<fdl::ForceContribution<1, 2>>> penalty_forces;
 
-  std::vector<fdl::Part<2>> parts;
+  std::vector<fdl::Part<2>>    parts;
   std::vector<fdl::Part<1, 2>> penalty_parts;
-  const double target_element_size =
+  const double                 target_element_size =
     input_db->getDouble("MFAC") * input_db->getDouble("DX");
   if (use_penalty_cylinder)
     {
-      while (GridTools::maximal_cell_diameter(disk) > target_element_size * penalty_fe_degree)
+      while (GridTools::maximal_cell_diameter(disk) >
+             target_element_size * penalty_fe_degree)
         disk.refine_global(1);
-      while (GridTools::maximal_cell_diameter(beam) > target_element_size * beam_fe_degree)
+      while (GridTools::maximal_cell_diameter(beam) >
+             target_element_size * beam_fe_degree)
         beam.refine_global(1);
 
       std::vector<types::boundary_id> left{0u};
@@ -227,17 +231,22 @@ main(int argc, char *argv[])
         disk, static_cast<Triangulation<1, 2> &>(boundary_tria));
       penalty_forces.emplace_back(std::make_unique<fdl::SpringForce<1, 2>>(
         boundary_quadrature, disk_spring_constant, penalty_ids));
-      penalty_forces.emplace_back(std::make_unique<fdl::DampingForce<1, 2>>(
-        boundary_quadrature, disk_damping_constant));
-      penalty_parts.emplace_back(boundary_tria, penalty_fe, std::move(penalty_forces));
+      penalty_forces.emplace_back(
+        std::make_unique<fdl::DampingForce<1, 2>>(boundary_quadrature,
+                                                  disk_damping_constant));
+      penalty_parts.emplace_back(boundary_tria,
+                                 penalty_fe,
+                                 std::move(penalty_forces));
       tria.copy_triangulation(beam);
     }
   else
     {
-      GridGenerator::merge_triangulations(pair.first, pair.second, tria, 1e-10, true, true);
+      GridGenerator::merge_triangulations(
+        pair.first, pair.second, tria, 1e-10, true, true);
       tria.set_manifold(0, PolarManifold<2>(cylinder_center));
 
-      while (GridTools::maximal_cell_diameter(tria) > beam_fe_degree * target_element_size)
+      while (GridTools::maximal_cell_diameter(tria) >
+             beam_fe_degree * target_element_size)
         tria.refine_global(1);
       // TODO: material-id dependent damping is not yet implemented
       // std::vector<types::material_id> disk_mids({0u});
@@ -247,11 +256,10 @@ main(int argc, char *argv[])
         quadrature1, disk_spring_constant, penalty_ids));
     }
   parts.emplace_back(tria, fe, std::move(beam_forces));
-  
+
   tbox::Pointer<fdl::IFEDMethod<2>> ib_method_ops =
     new fdl::IFEDMethod<2>("IFEDMethod",
-                           app_initializer->getComponentDatabase(
-                             "IFEDMethod"),
+                           app_initializer->getComponentDatabase("IFEDMethod"),
                            std::move(penalty_parts),
                            std::move(parts));
   tbox::Pointer<IBAMR::IBHierarchyIntegrator> time_integrator =
@@ -261,9 +269,9 @@ main(int argc, char *argv[])
       ib_method_ops,
       navier_stokes_integrator);
   tbox::Pointer<geom::CartesianGridGeometry<NDIM>> grid_geometry =
-    new geom::CartesianGridGeometry<NDIM>(
-      "CartesianGeometry",
-      app_initializer->getComponentDatabase("CartesianGeometry"));
+    new geom::CartesianGridGeometry<NDIM>("CartesianGeometry",
+                                          app_initializer->getComponentDatabase(
+                                            "CartesianGeometry"));
   tbox::Pointer<hier::PatchHierarchy<NDIM>> patch_hierarchy =
     new hier::PatchHierarchy<NDIM>("PatchHierarchy", grid_geometry);
   tbox::Pointer<mesh::StandardTagAndInitialize<NDIM>> error_detector =
@@ -334,8 +342,7 @@ main(int argc, char *argv[])
             app_initializer->getComponentDatabase(bc_coefs_db_name),
             grid_geometry);
         }
-      navier_stokes_integrator->registerPhysicalBoundaryConditions(
-        u_bc_coefs);
+      navier_stokes_integrator->registerPhysicalBoundaryConditions(u_bc_coefs);
     }
 
   // Create Eulerian body force function specification objects.
@@ -379,10 +386,10 @@ main(int argc, char *argv[])
                                            loop_time);
         }
 
-      if (ib_method_ops->n_penalty_parts() > 0)
+      if (ib_method_ops->n_surface_parts() > 0)
         {
-          const auto &part = ib_method_ops->get_penalty_part(0);
-          DataOut<1, 2>  data_out;
+          const auto   &part = ib_method_ops->get_surface_part(0);
+          DataOut<1, 2> data_out;
           data_out.attach_dof_handler(part.get_dof_handler());
           data_out.add_data_vector(part.get_velocity(), "U");
 
@@ -416,10 +423,8 @@ main(int argc, char *argv[])
   // Open streams to save lift and drag coefficients.
   if (tbox::SAMRAI_MPI::getRank() == 0)
     {
-      drag_stream.open("C_D.curve",
-                       std::ios_base::out | std::ios_base::trunc);
-      lift_stream.open("C_L.curve",
-                       std::ios_base::out | std::ios_base::trunc);
+      drag_stream.open("C_D.curve", std::ios_base::out | std::ios_base::trunc);
+      lift_stream.open("C_L.curve", std::ios_base::out | std::ios_base::trunc);
       A_x_posn_stream.open("A_x.curve",
                            std::ios_base::out | std::ios_base::trunc);
       A_y_posn_stream.open("A_y.curve",
@@ -468,13 +473,13 @@ main(int argc, char *argv[])
             }
 
 
-          if (ib_method_ops->n_penalty_parts() > 0)
+          if (ib_method_ops->n_surface_parts() > 0)
             {
-              const auto &part = ib_method_ops->get_penalty_part(0);
-              DataOut<1, 2>  data_out;
+              const auto   &part = ib_method_ops->get_surface_part(0);
+              DataOut<1, 2> data_out;
               data_out.attach_dof_handler(part.get_dof_handler());
               data_out.add_data_vector(part.get_velocity(), "U");
-   
+
               MappingFEField<1, 2, LinearAlgebra::distributed::Vector<double>>
                 position_mapping(part.get_dof_handler(), part.get_position());
               data_out.build_patches(position_mapping);

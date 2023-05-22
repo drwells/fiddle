@@ -332,8 +332,8 @@ main(int argc, char *argv[])
         material_db->getDouble("band_spring_force_coefficient"),
         *band_dof_handler,
         MappingQ<2>(1),
-        {types::boundary_id(2), types::boundary_id(3)},
-        Functions::IdentityFunction<2>()));
+        Functions::IdentityFunction<2>(),
+        {types::boundary_id(2), types::boundary_id(3)}));
       band_forces.emplace_back(new fdl::DampingForce<2>(
         body_force_quad, material_db->getDouble("band_damping_coefficient")));
       band_forces.emplace_back(

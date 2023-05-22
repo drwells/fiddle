@@ -81,6 +81,10 @@ namespace fdl
       remote_point_evaluation;
   };
 
+
+  // --------------------------- inline functions --------------------------- //
+
+
   template <int n_components, int dim, int spacedim>
   const std::vector<Point<spacedim>> &
   PointValues<n_components, dim, spacedim>::get_evaluation_points() const

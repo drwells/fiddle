@@ -140,12 +140,11 @@ namespace fdl
   };
 
 
-  //
-  // inline functions
-  //
+  // --------------------------- inline functions --------------------------- //
+
 
   template <typename T>
-  Scatter<T>::Scatter(Scatter<T> &&t)
+  inline Scatter<T>::Scatter(Scatter<T> &&t)
   {
     partitioner.swap(t.partitioner);
     std::swap(n_overlap_dofs, t.n_overlap_dofs);
@@ -157,7 +156,7 @@ namespace fdl
   }
 
   template <typename T>
-  Scatter<T> &
+  inline Scatter<T> &
   Scatter<T>::operator=(Scatter<T> &&t)
   {
     partitioner.swap(t.partitioner);

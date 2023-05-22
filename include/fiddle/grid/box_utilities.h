@@ -82,6 +82,7 @@ namespace fdl
   box_to_bbox(const hier::Box<spacedim>                           &box,
               const tbox::Pointer<hier::BasePatchLevel<spacedim>> &patch_level);
 
+
   // --------------------------- inline functions --------------------------- //
 
 

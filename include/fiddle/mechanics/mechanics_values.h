@@ -354,6 +354,10 @@ namespace fdl
     std::vector<double> scratch_velocity_values;
   };
 
+
+  // --------------------------- inline functions --------------------------- //
+
+
   template <int dim, int spacedim, typename VectorType>
   inline const FEValuesBase<dim, spacedim> &
   MechanicsValues<dim, spacedim, VectorType>::get_fe_values() const

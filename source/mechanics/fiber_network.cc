@@ -39,19 +39,6 @@ namespace fdl
         this->fibers(i, j) = fibers[j][i];
   }
 
-  template <int dim, int spacedim>
-  ArrayView<const Tensor<1, spacedim>>
-  FiberNetwork<dim, spacedim>::get_fibers(
-    const typename Triangulation<dim, spacedim>::active_cell_iterator &cell)
-    const
-  {
-    // calculate the correct vector entry
-    auto cell_index =
-      cell->global_active_cell_index() - local_processor_min_cell_index;
-
-    return make_array_view(fibers, cell_index, 0, fibers.size(1));
-  }
-
   template class FiberNetwork<NDIM - 1, NDIM>;
   template class FiberNetwork<NDIM, NDIM>;
 } // namespace fdl

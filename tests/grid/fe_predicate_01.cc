@@ -1,3 +1,4 @@
+#include <fiddle/grid/box_utilities.h>
 #include <fiddle/grid/intersection_predicate.h>
 #include <fiddle/grid/overlap_tria.h>
 

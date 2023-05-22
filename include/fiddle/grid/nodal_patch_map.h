@@ -90,11 +90,10 @@ namespace fdl
     // extra ghost cell fraction) that patch.
     std::vector<IndexSet> patch_dof_indices;
   };
-} // namespace fdl
 
-namespace fdl
-{
-  // ---------------------------- inline functions -----------------------------
+
+  // --------------------------- inline functions --------------------------- //
+
 
   template <int dim, int spacedim>
   std::size_t

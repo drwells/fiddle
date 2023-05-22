@@ -361,7 +361,9 @@ namespace fdl
     std::vector<std::unique_ptr<ActiveStrain<dim, spacedim>>> active_strains;
   };
 
-  // ----------------------------- inline functions ----------------------------
+
+  // --------------------------- inline functions --------------------------- //
+
 
   // Functions for getting basic objects owned by the Part
 

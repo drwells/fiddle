@@ -1,5 +1,6 @@
 #include <fiddle/base/exceptions.h>
 
+#include <fiddle/grid/box_utilities.h>
 #include <fiddle/grid/grid_utilities.h>
 
 #include <fiddle/interaction/elemental_interaction.h>

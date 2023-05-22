@@ -3,10 +3,6 @@
 
 #include <fiddle/base/config.h>
 
-#include <fiddle/base/exceptions.h>
-
-#include <fiddle/grid/box_utilities.h>
-
 #include <deal.II/base/bounding_box.h>
 
 #include <deal.II/grid/tria.h>
@@ -49,20 +45,11 @@ namespace fdl
   class TriaIntersectionPredicate : public IntersectionPredicate<dim, spacedim>
   {
   public:
-    TriaIntersectionPredicate(const std::vector<BoundingBox<spacedim>> &bboxes)
-      : patch_boxes(bboxes)
-    {}
+    TriaIntersectionPredicate(const std::vector<BoundingBox<spacedim>> &bboxes);
 
     virtual bool
     operator()(const typename Triangulation<dim, spacedim>::cell_iterator &cell)
-      const override
-    {
-      const auto cell_bbox = cell->bounding_box();
-      for (const auto &bbox : patch_boxes)
-        if (intersects(cell_bbox, bbox))
-          return true;
-      return false;
-    }
+      const override;
 
     const std::vector<BoundingBox<spacedim>> patch_boxes;
   };
@@ -83,52 +70,11 @@ namespace fdl
     BoxIntersectionPredicate(
       const std::vector<BoundingBox<spacedim, float>>      &a_cell_bboxes,
       const std::vector<BoundingBox<spacedim>>             &p_bboxes,
-      const parallel::shared::Triangulation<dim, spacedim> &tria)
-      : tria(&tria)
-      , active_cell_bboxes(a_cell_bboxes)
-      , patch_bboxes(p_bboxes)
-    {}
+      const parallel::shared::Triangulation<dim, spacedim> &tria);
 
     virtual bool
     operator()(const typename Triangulation<dim, spacedim>::cell_iterator &cell)
-      const override
-    {
-      Assert(&cell->get_triangulation() == tria,
-             ExcMessage("only valid for inputs constructed from the originally "
-                        "provided Triangulation"));
-      // If the cell is active check its bbox:
-      if (cell->is_active())
-        {
-          const auto &cell_bbox = active_cell_bboxes[cell->active_cell_index()];
-          for (const auto &bbox : patch_bboxes)
-            if (intersects(cell_bbox, bbox))
-              return true;
-          return false;
-        }
-      // Otherwise see if it has a descendant that intersects:
-      else if (cell->has_children())
-        {
-          const auto n_children             = cell->n_children();
-          bool       has_intersecting_child = false;
-          for (unsigned int child_n = 0; child_n < n_children; ++child_n)
-            {
-              const bool child_intersects = (*this)(cell->child(child_n));
-              if (child_intersects)
-                {
-                  has_intersecting_child = true;
-                  break;
-                }
-            }
-          return has_intersecting_child;
-        }
-      else
-        {
-          Assert(false, ExcNotImplemented());
-        }
-
-      Assert(false, ExcFDLInternalError());
-      return false;
-    }
+      const override;
 
     const SmartPointer<const Triangulation<dim, spacedim>> tria;
     const std::vector<BoundingBox<spacedim, float>>        active_cell_bboxes;
