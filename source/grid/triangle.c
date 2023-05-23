@@ -14589,6 +14589,7 @@ char **argv;
     apex(triangleloop, p3);
     if (b->order == 1) {
 #ifdef TRILIBRARY
+      (void)elementnumber;
       tlist[vertexindex++] = vertexmark(p1);
       tlist[vertexindex++] = vertexmark(p2);
       tlist[vertexindex++] = vertexmark(p3);
@@ -15119,6 +15120,7 @@ char **argv;
           org(triangleloop, torg);
           dest(triangleloop, tdest);
 #ifdef TRILIBRARY
+          (void)vedgenumber;
           /* Copy an infinite ray.  Index of one endpoint, and -1. */
           elist[coordindex] = p1;
           normlist[coordindex++] = tdest[1] - torg[1];
