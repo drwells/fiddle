@@ -757,9 +757,9 @@ namespace fdl
   // fields
   template <int dim, int spacedim, typename value_type>
   void
-  compute_values_generic(const FEValues<dim, spacedim> &fe_values,
-                         const Vector<double>           fe_solution,
-                         std::vector<value_type>       &values)
+  compute_values_generic(const FEValues<dim, spacedim> &/*fe_values*/,
+                         const Vector<double>           /*fe_solution*/,
+                         std::vector<value_type>       &/*values*/)
   {
     Assert(false, ExcNotImplemented());
   }

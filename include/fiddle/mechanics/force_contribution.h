@@ -40,6 +40,11 @@ namespace fdl
       , face_quadrature(quad)
     {}
 
+    /**
+     * Destructor
+     */
+    virtual ~ForceContribution() = default;
+
     const Quadrature<dim> &
     get_cell_quadrature() const
     {
