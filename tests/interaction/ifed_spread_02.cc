@@ -51,7 +51,7 @@ public:
   {}
 
   virtual bool
-  is_volume_force() const
+  is_volume_force() const override
   {
     return true;
   }
@@ -72,7 +72,7 @@ public:
   virtual void
   setup_force(const double /*time*/,
               const LinearAlgebra::distributed::Vector<double> &position,
-              const LinearAlgebra::distributed::Vector<double> & /*velocity*/)
+              const LinearAlgebra::distributed::Vector<double> & /*velocity*/) override
   {
     // position is just the identity function
     sines.reinit(position);
@@ -89,7 +89,7 @@ public:
     const fdl::MechanicsValues<dim, spacedim> &m_values,
     const typename Triangulation<dim, spacedim>::active_cell_iterator
       & /*cell*/,
-    ArrayView<Tensor<1, spacedim, double>> &forces) const
+    ArrayView<Tensor<1, spacedim, double>> &forces) const override
   {
     const auto &fe_values = m_values.get_fe_values();
     auto       &extractor = fe_values[FEValuesExtractors::Vector(0)];
