@@ -40,6 +40,11 @@ namespace fdl
     }
 
     /**
+     * Default virtual destructor.
+     */
+    virtual ~ActiveStrain() = default;
+
+    /**
      * Do any time-dependent initialization of the strain.
      */
     virtual void
