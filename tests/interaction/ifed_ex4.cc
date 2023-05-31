@@ -1,5 +1,7 @@
 #include <fiddle/interaction/ifed_method.h>
 
+#include <fiddle/postprocess/surface_meter.h>
+
 #include <deal.II/base/quadrature_lib.h>
 
 #include <deal.II/distributed/shared_tria.h>
@@ -18,12 +20,14 @@
 #include <ibamr/INSStaggeredHierarchyIntegrator.h>
 
 #include <ibtk/AppInitializer.h>
+#include <ibtk/HierarchyGhostCellInterpolation.h>
 #include <ibtk/IBTKInit.h>
 #include <ibtk/IBTK_MPI.h>
 #include <ibtk/muParserRobinBcCoefs.h>
 
 #include <BergerRigoutsos.h>
 #include <CartesianGridGeometry.h>
+#include <HierarchyDataOpsManager.h>
 #include <LoadBalancer.h>
 #include <StandardTagAndInitialize.h>
 
@@ -298,6 +302,29 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
                          std::ios_base::out | std::ios_base::trunc);
     }
 
+  std::unique_ptr<fdl::SurfaceMeter<NDIM>> surface_meter_1;
+  std::unique_ptr<fdl::SurfaceMeter<NDIM>> surface_meter_2;
+  if (test_db->getBoolWithDefault("test_meters", false))
+    {
+      AssertThrow(spacedim == 2, fdl::ExcFDLNotImplemented());
+      const double                 L = input_db->getDouble("L");
+      std::vector<Point<spacedim>> points_1;
+      points_1.emplace_back(0.75 * L, 0.0);
+      points_1.emplace_back(L, 0.25 * L);
+      std::vector<Point<spacedim>> points_2;
+      points_2.emplace_back(0.875 * L, 0.0);
+      points_2.emplace_back(L, 0.125 * L);
+      std::vector<Tensor<spacedim>> velocities;
+      surface_meter_1 =
+        std::make_unique<fdl::SurfaceMeter<NDIM>>(points_1,
+                                                  velocities,
+                                                  patch_hierarchy);
+      surface_meter_2 =
+        std::make_unique<fdl::SurfaceMeter<NDIM>>(points_2,
+                                                  velocities,
+                                                  patch_hierarchy);
+    }
+
   // Main time step loop.
   double loop_time_end = time_integrator->getEndTime();
   double dt            = 0.0;
@@ -384,6 +411,85 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
             volume_stream << loop_time << " " << volume << std::endl;
           }
       }
+
+      if (test_db->getBoolWithDefault("test_meters", false) &&
+          iteration_num % 10 == 0)
+        {
+          surface_meter_1->reinit();
+          surface_meter_2->reinit();
+
+          // This is not a good way to actually compute things - we should set
+          // up a new variable with the correct ghost width to enable us to
+          // use better kernels than PIECEWISE_CONSTANT. This approach
+          // suffices for testing that we can do very basic meter stuff.
+
+          auto *    var_db = hier::VariableDatabase<spacedim>::getDatabase();
+          const int u_current_idx = var_db->mapVariableAndContextToIndex(
+            navier_stokes_integrator->getVelocityVariable(),
+            navier_stokes_integrator->getCurrentContext());
+          const int u_scratch_idx = var_db->mapVariableAndContextToIndex(
+            navier_stokes_integrator->getVelocityVariable(),
+            navier_stokes_integrator->getScratchContext());
+
+          const int coarsest_ln = 0;
+          const int finest_ln   = patch_hierarchy->getFinestLevelNumber();
+          for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+            {
+              tbox::Pointer<hier::PatchLevel<spacedim>> level =
+                patch_hierarchy->getPatchLevel(ln);
+              level->allocatePatchData(u_scratch_idx, loop_time);
+            }
+          tbox::Pointer<math::HierarchyDataOpsReal<spacedim, double>>
+            hier_sc_data_ops =
+              math::HierarchyDataOpsManager<spacedim>::getManager()
+                ->getOperationsDouble(
+                  navier_stokes_integrator->getVelocityVariable(),
+                  patch_hierarchy,
+                  true);
+          hier_sc_data_ops->copyData(u_scratch_idx, u_current_idx, true);
+
+          // fill ghost cells for velocity
+          using ITC = IBTK::HierarchyGhostCellInterpolation::
+            InterpolationTransactionComponent;
+          std::vector<ITC> u_transaction_comp(1);
+          u_transaction_comp[0] = ITC(u_scratch_idx,
+                                      "CONSERVATIVE_LINEAR_REFINE",
+                                      /*use_cf_bdry_interpolation*/ false,
+                                      "CONSERVATIVE_COARSEN",
+                                      "LINEAR");
+
+          IBTK::HierarchyGhostCellInterpolation u_hier_bdry_fill;
+          u_hier_bdry_fill.initializeOperatorState(u_transaction_comp,
+                                                   patch_hierarchy);
+          u_hier_bdry_fill.fillData(loop_time);
+
+
+          tbox::pout << "number of meter 1 cells = "
+                     << surface_meter_1->get_triangulation().n_active_cells()
+                     << std::endl;
+          tbox::pout << "number of meter 2 cells = "
+                     << surface_meter_2->get_triangulation().n_active_cells()
+                     << std::endl;
+          tbox::pout << "meter 1 centroid = " << surface_meter_1->get_centroid()
+                     << std::endl;
+          tbox::pout << "meter 2 centroid = " << surface_meter_2->get_centroid()
+                     << std::endl;
+          tbox::pout << "meter 1 flux = "
+                     << surface_meter_1->compute_flux(u_scratch_idx,
+                                                      "PIECEWISE_CONSTANT")
+                     << std::endl;
+          tbox::pout << "meter 2 flux = "
+                     << surface_meter_2->compute_flux(u_scratch_idx,
+                                                      "PIECEWISE_CONSTANT")
+                     << std::endl;
+
+          for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
+            {
+              tbox::Pointer<hier::PatchLevel<spacedim>> level =
+                patch_hierarchy->getPatchLevel(ln);
+              level->deallocatePatchData(u_scratch_idx);
+            }
+        }
     }
 
   if (test_db->getBoolWithDefault("log_ends_of_fe_vectors", false))
