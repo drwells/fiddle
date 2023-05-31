@@ -76,6 +76,7 @@ namespace fdl
   std::pair<SAMRAIPatchType, SAMRAIFieldType>
   extract_types(const tbox::Pointer<hier::PatchData<spacedim>> &p)
   {
+    Assert(p, ExcMessage("The given pointer should not be null at this point."));
     if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, int>>(p))
       return {SAMRAIPatchType::Edge, SAMRAIFieldType::Int};
     if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, float>>(p))
