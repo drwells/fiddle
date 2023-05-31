@@ -171,6 +171,7 @@ namespace fdl
       point_values->evaluate(velocity);
 
     reinit_tria(boundary_points, false);
+    reinit_interaction();
     reinit_mean_velocity(velocity_values);
   }
 
@@ -180,17 +181,30 @@ namespace fdl
     const std::vector<Point<spacedim>>     &boundary_points,
     const std::vector<Tensor<1, spacedim>> &velocity_values)
   {
-    Assert(!uses_codim_zero_mesh(),
-           ExcMessage("This function may only be called when the SurfaceMeter "
-                      "is set up without an underlying codimension zero "
-                      "Triangulation."));
+    AssertThrow(!uses_codim_zero_mesh(),
+                ExcMessage("This function may only be called when the "
+                           "SurfaceMeter is set up without an underlying "
+                           "codimension zero Triangulation."));
 #if NDIM == 2
     reinit_tria(boundary_points, true);
 #else
     reinit_tria(boundary_points, false);
 #endif
+    reinit_interaction();
     reinit_mean_velocity(velocity_values);
   }
+
+  template <int dim, int spacedim>
+  void
+  SurfaceMeter<dim, spacedim>::reinit()
+  {
+    AssertThrow(!uses_codim_zero_mesh(),
+                ExcMessage("This function may only be called when the "
+                           "SurfaceMeter is set up without an underlying "
+                           "codimension zero Triangulation."));
+    reinit_interaction();
+  }
+
 
   template <int dim, int spacedim>
   void
@@ -232,14 +246,6 @@ namespace fdl
     scalar_dof_handler.distribute_dofs(*scalar_fe);
     vector_dof_handler.reinit(meter_tria);
     vector_dof_handler.distribute_dofs(*vector_fe);
-
-    // As the meter mesh is in absolute coordinates we can use a normal
-    // mapping here
-    const auto local_bboxes =
-      compute_cell_bboxes<dim - 1, spacedim, float>(vector_dof_handler,
-                                                    *meter_mapping);
-    const auto all_bboxes =
-      collect_all_active_cell_bboxes(meter_tria, local_bboxes);
 
     // Set up partitioners:
     const MPI_Comm comm = meter_tria.get_communicator();
@@ -341,6 +347,19 @@ namespace fdl
                                                              ref_centroid);
       }
     centroid = Utilities::MPI::broadcast(comm, centroid, result[1]);
+  }
+
+  template <int dim, int spacedim>
+  void
+  SurfaceMeter<dim, spacedim>::reinit_interaction()
+  {
+    // As the meter mesh is in absolute coordinates we can use a normal
+    // mapping here
+    const auto local_bboxes =
+      compute_cell_bboxes<dim - 1, spacedim, float>(vector_dof_handler,
+                                                    *meter_mapping);
+    const auto all_bboxes =
+      collect_all_active_cell_bboxes(meter_tria, local_bboxes);
 
     // 1e-6 is an arbitrary nonzero number which ensures that points on the
     // boundaries between patches end up in both (for the purposes of

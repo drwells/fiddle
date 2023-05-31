@@ -128,6 +128,16 @@ namespace fdl
            const std::vector<Tensor<1, spacedim>> &velocity);
 
     /**
+     * Alternative reinitialization function which only updates the internal
+     * data structures to account for the PatchHierarchy being regridded.
+     *
+     * @note This function is only implemented for the uses_codim_zero_mesh()
+     * == false case and will throw an exception otherwise.
+     */
+    void
+    reinit();
+
+    /**
      * Return a reference to the meter Triangulation. This triangulation is
      * not in reference coordinates: instead its absolute position is
      * determined by the position vector specified to the constructor or
@@ -230,6 +240,14 @@ namespace fdl
     void
     reinit_tria(const std::vector<Point<spacedim>> &boundary_points,
                 const bool place_additional_boundary_vertices);
+
+    /**
+     * Reinitialize the NodalInteraction object.
+     *
+     * @note This function should typically be called after reinit_tria().
+     */
+    void
+    reinit_interaction();
 
     void
     reinit_mean_velocity(
