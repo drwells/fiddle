@@ -314,7 +314,7 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
       std::vector<Point<spacedim>> points_2;
       points_2.emplace_back(0.875 * L, 0.0);
       points_2.emplace_back(L, 0.125 * L);
-      std::vector<Tensor<spacedim>> velocities;
+      std::vector<Tensor<1, spacedim>> velocities;
       surface_meter_1 =
         std::make_unique<fdl::SurfaceMeter<NDIM>>(points_1,
                                                   velocities,
