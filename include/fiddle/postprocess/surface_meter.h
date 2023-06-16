@@ -109,6 +109,13 @@ namespace fdl
     uses_codim_zero_mesh() const;
 
     /**
+     * Return whether or not all vertices of the Triangulation are actually
+     * inside the domain defined by the PatchHierarchy.
+     */
+    bool
+    compute_vertices_inside_domain() const;
+
+    /**
      * Reinitialize the meter mesh to have its coordinates specified by @p
      * position and velocity by @p velocity.
      *

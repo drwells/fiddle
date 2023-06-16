@@ -20,6 +20,8 @@
 #include <deal.II/numerics/vector_tools_interpolate.h>
 #include <deal.II/numerics/vector_tools_mean_value.h>
 
+#include <ibtk/IndexUtilities.h>
+
 #include <CartesianPatchGeometry.h>
 #include <tbox/InputManager.h>
 
@@ -150,6 +152,35 @@ namespace fdl
   SurfaceMeter<dim, spacedim>::uses_codim_zero_mesh() const
   {
     return position_dof_handler != nullptr;
+  }
+
+  template <int dim, int spacedim>
+  bool
+  SurfaceMeter<dim, spacedim>::compute_vertices_inside_domain() const
+  {
+    tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy =
+      this->patch_hierarchy;
+    Assert(patch_hierarchy, ExcFDLInternalError());
+    tbox::Pointer<geom::CartesianGridGeometry<spacedim>> geom =
+      patch_hierarchy->getGridGeometry();
+    Assert(geom, ExcFDLInternalError());
+    tbox::Pointer<hier::PatchLevel<spacedim>> patch_level =
+      patch_hierarchy->getPatchLevel(0);
+    Assert(patch_level, ExcFDLInternalError());
+
+    bool vertices_inside_domain = true;
+    for (const auto &vertex : get_triangulation().get_vertices())
+      {
+        const auto index =
+          IBTK::IndexUtilities::getCellIndex(vertex,
+                                             geom,
+                                             hier::IntVector<spacedim>(1));
+        vertices_inside_domain =
+          vertices_inside_domain &&
+          patch_level->getPhysicalDomain().contains(index);
+      }
+
+    return vertices_inside_domain;
   }
 
   template <int dim, int spacedim>
