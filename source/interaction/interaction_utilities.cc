@@ -98,6 +98,8 @@ namespace fdl
     std::vector<tbox::Pointer<pdat::CellData<spacedim, Scalar>>> tag_data;
     for (const auto &patch : patches)
       {
+        Assert(patch->checkAllocated(tag_index),
+               ExcMessage("unallocated tag patch index"));
         Assert(patch->getPatchData(tag_index),
                ExcMessage("should be a pointer here"));
         tag_data.push_back(patch->getPatchData(tag_index));
@@ -234,6 +236,8 @@ namespace fdl
     for (unsigned int patch_n = 0; patch_n < patch_map.size(); ++patch_n)
       {
         auto patch = patch_map.get_patch(patch_n);
+        Assert(patch->checkAllocated(qp_data_idx),
+               ExcMessage("unallocated tag patch index"));
         tbox::Pointer<pdat::CellData<spacedim, Scalar>> qp_data =
           patch->getPatchData(qp_data_idx);
         Assert(qp_data, ExcMessage("Type mismatch"));
@@ -336,6 +340,8 @@ namespace fdl
           nodal_patch_map[patch_n];
         const IndexSet                                 &dofs  = p.first;
         tbox::Pointer<hier::Patch<spacedim>>           &patch = p.second;
+        Assert(patch->checkAllocated(node_count_data_idx),
+               ExcMessage("unallocated node count patch index"));
         tbox::Pointer<pdat::CellData<spacedim, Scalar>> node_count_data =
           patch->getPatchData(node_count_data_idx);
         Assert(node_count_data, ExcMessage("Type mismatch"));
@@ -461,8 +467,10 @@ namespace fdl
     std::vector<types::global_dof_index> dof_indices(fe.dofs_per_cell);
     for (unsigned int patch_n = 0; patch_n < patch_map.size(); ++patch_n)
       {
-        auto                      patch      = patch_map.get_patch(patch_n);
         tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_idx);
+        auto patch = patch_map.get_patch(patch_n);
+        Assert(patch->checkAllocated(data_idx),
+               ExcMessage("unallocated data patch index"));
         check_depth<spacedim>(patch_data, fe.n_components());
 
         auto       iter = patch_map.begin(patch_n, dof_handler);
@@ -666,6 +674,8 @@ namespace fdl
           patch_map[patch_n];
         const IndexSet                       &dofs  = p.first;
         tbox::Pointer<hier::Patch<spacedim>> &patch = p.second;
+        Assert(patch->checkAllocated(data_idx),
+               ExcMessage("unallocated data patch index"));
         tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_idx);
         Assert(patch_data, ExcMessage("Type mismatch"));
         check_depth<spacedim>(patch_data, n_components);
@@ -823,8 +833,10 @@ namespace fdl
 
     for (unsigned int patch_n = 0; patch_n < patch_map.size(); ++patch_n)
       {
-        auto                      patch      = patch_map.get_patch(patch_n);
         tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_idx);
+        auto patch = patch_map.get_patch(patch_n);
+        Assert(patch->checkAllocated(data_idx),
+               ExcMessage("unallocated data patch index"));
         Assert(patch_data, ExcMessage("Type mismatch"));
         check_depth<spacedim>(patch_data, fe.n_components());
 
@@ -1035,6 +1047,8 @@ namespace fdl
         const IndexSet                       &dofs  = p.first;
         tbox::Pointer<hier::Patch<spacedim>> &patch = p.second;
         tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_idx);
+        Assert(patch->checkAllocated(data_idx),
+               ExcMessage("unallocated data patch index"));
         Assert(patch_data, ExcMessage("Type mismatch"));
         check_depth<spacedim>(patch_data, n_components);
 
