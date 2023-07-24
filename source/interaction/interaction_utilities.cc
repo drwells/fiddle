@@ -204,7 +204,7 @@ namespace fdl
   template <int dim, int spacedim, typename Scalar>
   void
   count_quadrature_points_internal(
-    const int                           qp_data_idx,
+    const int                           qp_data_index,
     PatchMap<dim, spacedim>            &patch_map,
     const Mapping<dim, spacedim>       &position_mapping,
     const std::vector<unsigned char>   &quadrature_indices,
@@ -236,10 +236,10 @@ namespace fdl
     for (unsigned int patch_n = 0; patch_n < patch_map.size(); ++patch_n)
       {
         auto patch = patch_map.get_patch(patch_n);
-        Assert(patch->checkAllocated(qp_data_idx),
+        Assert(patch->checkAllocated(qp_data_index),
                ExcMessage("unallocated tag patch index"));
         tbox::Pointer<pdat::CellData<spacedim, Scalar>> qp_data =
-          patch->getPatchData(qp_data_idx);
+          patch->getPatchData(qp_data_index);
         Assert(qp_data, ExcMessage("Type mismatch"));
         Assert(qp_data->getDepth() == 1, ExcMessage("depth should be 1"));
         const hier::Box<spacedim> &patch_box = patch->getBox();
@@ -276,7 +276,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  count_quadrature_points(const int                         qp_data_idx,
+  count_quadrature_points(const int                         qp_data_index,
                           PatchMap<dim, spacedim>          &patch_map,
                           const Mapping<dim, spacedim>     &position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
@@ -294,29 +294,29 @@ namespace fdl
           patch_map.get_patch(0);
 
         const tbox::Pointer<pdat::CellData<spacedim, int>> int_data =
-          patch->getPatchData(qp_data_idx);
+          patch->getPatchData(qp_data_index);
         const tbox::Pointer<pdat::CellData<spacedim, float>> float_data =
-          patch->getPatchData(qp_data_idx);
+          patch->getPatchData(qp_data_index);
         const tbox::Pointer<pdat::CellData<spacedim, double>> double_data =
-          patch->getPatchData(qp_data_idx);
+          patch->getPatchData(qp_data_index);
 
         if (int_data)
           count_quadrature_points_internal<dim, spacedim, int>(
-            qp_data_idx,
+            qp_data_index,
             patch_map,
             position_mapping,
             quadrature_indices,
             quadratures);
         else if (float_data)
           count_quadrature_points_internal<dim, spacedim, float>(
-            qp_data_idx,
+            qp_data_index,
             patch_map,
             position_mapping,
             quadrature_indices,
             quadratures);
         else if (double_data)
           count_quadrature_points_internal<dim, spacedim, double>(
-            qp_data_idx,
+            qp_data_index,
             patch_map,
             position_mapping,
             quadrature_indices,
@@ -330,7 +330,7 @@ namespace fdl
 
   template <int dim, int spacedim, typename Scalar>
   void
-  count_nodes_internal(const int                     node_count_data_idx,
+  count_nodes_internal(const int                     node_count_data_index,
                        NodalPatchMap<dim, spacedim> &nodal_patch_map,
                        const Vector<double>         &position)
   {
@@ -340,10 +340,10 @@ namespace fdl
           nodal_patch_map[patch_n];
         const IndexSet                                 &dofs  = p.first;
         tbox::Pointer<hier::Patch<spacedim>>           &patch = p.second;
-        Assert(patch->checkAllocated(node_count_data_idx),
+        Assert(patch->checkAllocated(node_count_data_index),
                ExcMessage("unallocated node count patch index"));
         tbox::Pointer<pdat::CellData<spacedim, Scalar>> node_count_data =
-          patch->getPatchData(node_count_data_idx);
+          patch->getPatchData(node_count_data_index);
         Assert(node_count_data, ExcMessage("Type mismatch"));
         check_depth<spacedim>(node_count_data, 1);
         const hier::Box<spacedim> &patch_box = patch->getBox();
@@ -380,7 +380,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  count_nodes(const int                     node_count_data_idx,
+  count_nodes(const int                     node_count_data_index,
               NodalPatchMap<dim, spacedim> &nodal_patch_map,
               const Vector<double>         &position)
   {
@@ -396,22 +396,22 @@ namespace fdl
           nodal_patch_map[0].second;
 
         const tbox::Pointer<pdat::CellData<spacedim, int>> int_data =
-          patch->getPatchData(node_count_data_idx);
+          patch->getPatchData(node_count_data_index);
         const tbox::Pointer<pdat::CellData<spacedim, float>> float_data =
-          patch->getPatchData(node_count_data_idx);
+          patch->getPatchData(node_count_data_index);
         const tbox::Pointer<pdat::CellData<spacedim, double>> double_data =
-          patch->getPatchData(node_count_data_idx);
+          patch->getPatchData(node_count_data_index);
 
         if (int_data)
-          count_nodes_internal<dim, spacedim, int>(node_count_data_idx,
+          count_nodes_internal<dim, spacedim, int>(node_count_data_index,
                                                    nodal_patch_map,
                                                    position);
         else if (float_data)
-          count_nodes_internal<dim, spacedim, float>(node_count_data_idx,
+          count_nodes_internal<dim, spacedim, float>(node_count_data_index,
                                                      nodal_patch_map,
                                                      position);
         else if (double_data)
-          count_nodes_internal<dim, spacedim, double>(node_count_data_idx,
+          count_nodes_internal<dim, spacedim, double>(node_count_data_index,
                                                       nodal_patch_map,
                                                       position);
         else
@@ -425,7 +425,7 @@ namespace fdl
   void
   compute_projection_rhs_internal(
     const std::string                  &kernel_name,
-    const int                           data_idx,
+    const int                           data_index,
     const PatchMap<dim, spacedim>      &patch_map,
     const Mapping<dim, spacedim>       &position_mapping,
     const std::vector<unsigned char>   &quadrature_indices,
@@ -467,10 +467,10 @@ namespace fdl
     std::vector<types::global_dof_index> dof_indices(fe.dofs_per_cell);
     for (unsigned int patch_n = 0; patch_n < patch_map.size(); ++patch_n)
       {
-        tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_idx);
         auto patch = patch_map.get_patch(patch_n);
-        Assert(patch->checkAllocated(data_idx),
+        Assert(patch->checkAllocated(data_index),
                ExcMessage("unallocated data patch index"));
+        tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_index);
         check_depth<spacedim>(patch_data, fe.n_components());
 
         auto       iter = patch_map.begin(patch_n, dof_handler);
@@ -576,7 +576,7 @@ namespace fdl
   template <int dim, int spacedim>
   void
   compute_projection_rhs(const std::string                  &kernel_name,
-                         const int                           data_idx,
+                         const int                           data_index,
                          const PatchMap<dim, spacedim>      &patch_map,
                          const Mapping<dim, spacedim>       &position_mapping,
                          const std::vector<unsigned char>   &quadrature_indices,
@@ -585,12 +585,12 @@ namespace fdl
                          const Mapping<dim, spacedim>       &mapping,
                          Vector<double>                     &rhs)
   {
-#define ARGUMENTS                                                         \
-  kernel_name, data_idx, patch_map, position_mapping, quadrature_indices, \
+#define ARGUMENTS                                                           \
+  kernel_name, data_index, patch_map, position_mapping, quadrature_indices, \
     quadratures, dof_handler, mapping, rhs
     if (patch_map.size() != 0)
       {
-        auto patch_data = patch_map.get_patch(0)->getPatchData(data_idx);
+        auto patch_data = patch_map.get_patch(0)->getPatchData(data_index);
         auto pair       = extract_types(patch_data);
 
         AssertThrow(pair.second == SAMRAIFieldType::Double,
@@ -633,7 +633,7 @@ namespace fdl
   void
   compute_nodal_interpolation_internal(
     const std::string                  &kernel_name,
-    const int                           data_idx,
+    const int                           data_index,
     const NodalPatchMap<dim, spacedim> &patch_map,
     const Vector<double>               &position,
     Vector<double>                     &interpolated_values)
@@ -674,9 +674,9 @@ namespace fdl
           patch_map[patch_n];
         const IndexSet                       &dofs  = p.first;
         tbox::Pointer<hier::Patch<spacedim>> &patch = p.second;
-        Assert(patch->checkAllocated(data_idx),
+        Assert(patch->checkAllocated(data_index),
                ExcMessage("unallocated data patch index"));
-        tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_idx);
+        tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_index);
         Assert(patch_data, ExcMessage("Type mismatch"));
         check_depth<spacedim>(patch_data, n_components);
 
@@ -714,16 +714,16 @@ namespace fdl
   template <int dim, int spacedim>
   void
   compute_nodal_interpolation(const std::string                  &kernel_name,
-                              const int                           data_idx,
+                              const int                           data_index,
                               const NodalPatchMap<dim, spacedim> &patch_map,
                               const Vector<double>               &position,
                               Vector<double> &interpolated_values)
   {
 #define ARGUMENTS \
-  kernel_name, data_idx, patch_map, position, interpolated_values
+  kernel_name, data_index, patch_map, position, interpolated_values
     if (patch_map.size() != 0)
       {
-        auto patch_data = patch_map[0].second->getPatchData(data_idx);
+        auto patch_data = patch_map[0].second->getPatchData(data_index);
         auto pair       = extract_types(patch_data);
 
         AssertThrow(pair.second == SAMRAIFieldType::Double,
@@ -799,7 +799,7 @@ namespace fdl
   template <int dim, int spacedim, typename value_type, typename patch_type>
   void
   compute_spread_internal(const std::string                &kernel_name,
-                          const int                         data_idx,
+                          const int                         data_index,
                           PatchMap<dim, spacedim>          &patch_map,
                           const Mapping<dim, spacedim>     &position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
@@ -833,10 +833,10 @@ namespace fdl
 
     for (unsigned int patch_n = 0; patch_n < patch_map.size(); ++patch_n)
       {
-        tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_idx);
         auto patch = patch_map.get_patch(patch_n);
-        Assert(patch->checkAllocated(data_idx),
+        Assert(patch->checkAllocated(data_index),
                ExcMessage("unallocated data patch index"));
+        tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_index);
         Assert(patch_data, ExcMessage("Type mismatch"));
         check_depth<spacedim>(patch_data, fe.n_components());
 
@@ -912,7 +912,7 @@ namespace fdl
   template <int dim, int spacedim>
   void
   compute_spread(const std::string                  &kernel_name,
-                 const int                           data_idx,
+                 const int                           data_index,
                  PatchMap<dim, spacedim>            &patch_map,
                  const Mapping<dim, spacedim>       &position_mapping,
                  const std::vector<unsigned char>   &quadrature_indices,
@@ -921,12 +921,12 @@ namespace fdl
                  const Mapping<dim, spacedim>       &mapping,
                  const Vector<double>               &solution)
   {
-#define ARGUMENTS                                                         \
-  kernel_name, data_idx, patch_map, position_mapping, quadrature_indices, \
+#define ARGUMENTS                                                           \
+  kernel_name, data_index, patch_map, position_mapping, quadrature_indices, \
     quadratures, dof_handler, mapping, solution
     if (patch_map.size() != 0)
       {
-        auto patch_data = patch_map.get_patch(0)->getPatchData(data_idx);
+        auto patch_data = patch_map.get_patch(0)->getPatchData(data_index);
         auto pair       = extract_types(patch_data);
 
         AssertThrow(pair.second == SAMRAIFieldType::Double,
@@ -1016,7 +1016,7 @@ namespace fdl
   template <int dim, int spacedim, typename patch_type>
   void
   compute_nodal_spread_internal(const std::string            &kernel_name,
-                                const int                     data_idx,
+                                const int                     data_index,
                                 NodalPatchMap<dim, spacedim> &patch_map,
                                 const Vector<double>         &position,
                                 const Vector<double>         &spread_values)
@@ -1046,9 +1046,9 @@ namespace fdl
           patch_map[patch_n];
         const IndexSet                       &dofs  = p.first;
         tbox::Pointer<hier::Patch<spacedim>> &patch = p.second;
-        tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_idx);
-        Assert(patch->checkAllocated(data_idx),
+        Assert(patch->checkAllocated(data_index),
                ExcMessage("unallocated data patch index"));
+        tbox::Pointer<patch_type> patch_data = patch->getPatchData(data_index);
         Assert(patch_data, ExcMessage("Type mismatch"));
         check_depth<spacedim>(patch_data, n_components);
 
@@ -1086,15 +1086,15 @@ namespace fdl
   template <int dim, int spacedim>
   void
   compute_nodal_spread(const std::string            &kernel_name,
-                       const int                     data_idx,
+                       const int                     data_index,
                        NodalPatchMap<dim, spacedim> &patch_map,
                        const Vector<double>         &position,
                        const Vector<double>         &spread_values)
   {
-#define ARGUMENTS kernel_name, data_idx, patch_map, position, spread_values
+#define ARGUMENTS kernel_name, data_index, patch_map, position, spread_values
     if (patch_map.size() != 0)
       {
-        auto patch_data = patch_map[0].second->getPatchData(data_idx);
+        auto patch_data = patch_map[0].second->getPatchData(data_index);
         auto pair       = extract_types(patch_data);
 
         AssertThrow(pair.second == SAMRAIFieldType::Double,
@@ -1147,32 +1147,32 @@ namespace fdl
             SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> patch_level);
 
   template void
-  count_quadrature_points(const int                         qp_data_idx,
+  count_quadrature_points(const int                         qp_data_index,
                           PatchMap<NDIM - 1, NDIM>         &patch_map,
                           const Mapping<NDIM - 1, NDIM>    &position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
                           const std::vector<Quadrature<NDIM - 1>> &quadratures);
 
   template void
-  count_quadrature_points(const int                         qp_data_idx,
+  count_quadrature_points(const int                         qp_data_index,
                           PatchMap<NDIM, NDIM>             &patch_map,
                           const Mapping<NDIM, NDIM>        &position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
                           const std::vector<Quadrature<NDIM>> &quadratures);
 
   template void
-  count_nodes(const int                      node_count_data_idx,
+  count_nodes(const int                      node_count_data_index,
               NodalPatchMap<NDIM - 1, NDIM> &nodal_patch_map,
               const Vector<double>          &position);
 
   template void
-  count_nodes(const int                  node_count_data_idx,
+  count_nodes(const int                  node_count_data_index,
               NodalPatchMap<NDIM, NDIM> &nodal_patch_map,
               const Vector<double>      &position);
 
   template void
   compute_projection_rhs(const std::string                &kernel_name,
-                         const int                         data_idx,
+                         const int                         data_index,
                          const PatchMap<NDIM - 1, NDIM>   &patch_map,
                          const Mapping<NDIM - 1, NDIM>    &position_mapping,
                          const std::vector<unsigned char> &quadrature_indices,
@@ -1183,7 +1183,7 @@ namespace fdl
 
   template void
   compute_projection_rhs(const std::string                &kernel_name,
-                         const int                         data_idx,
+                         const int                         data_index,
                          const PatchMap<NDIM>             &patch_map,
                          const Mapping<NDIM>              &position_mapping,
                          const std::vector<unsigned char> &quadrature_indices,
@@ -1194,7 +1194,7 @@ namespace fdl
 
   template void
   compute_nodal_interpolation(const std::string                   &kernel_name,
-                              const int                            data_idx,
+                              const int                            data_index,
                               const NodalPatchMap<NDIM - 1, NDIM> &patch_map,
                               const Vector<double>                &position,
                               Vector<double> &interpolated_values);
@@ -1202,14 +1202,14 @@ namespace fdl
 
   template void
   compute_nodal_interpolation(const std::string               &kernel_name,
-                              const int                        data_idx,
+                              const int                        data_index,
                               const NodalPatchMap<NDIM, NDIM> &patch_map,
                               const Vector<double>            &position,
                               Vector<double> &interpolated_values);
 
   template void
   compute_spread(const std::string                       &kernel_name,
-                 const int                                data_idx,
+                 const int                                data_index,
                  PatchMap<NDIM - 1, NDIM>                &patch_map,
                  const Mapping<NDIM - 1, NDIM>           &position_mapping,
                  const std::vector<unsigned char>        &quadrature_indices,
@@ -1220,7 +1220,7 @@ namespace fdl
 
   template void
   compute_spread(const std::string                   &kernel_name,
-                 const int                            data_idx,
+                 const int                            data_index,
                  PatchMap<NDIM, NDIM>                &patch_map,
                  const Mapping<NDIM, NDIM>           &position_mapping,
                  const std::vector<unsigned char>    &quadrature_indices,
@@ -1231,7 +1231,7 @@ namespace fdl
 
   template void
   compute_nodal_spread(const std::string             &kernel_name,
-                       const int                      data_idx,
+                       const int                      data_index,
                        NodalPatchMap<NDIM - 1, NDIM> &patch_map,
                        const Vector<double>          &position,
                        const Vector<double>          &spread_values);
@@ -1239,7 +1239,7 @@ namespace fdl
 
   template void
   compute_nodal_spread(const std::string         &kernel_name,
-                       const int                  data_idx,
+                       const int                  data_index,
                        NodalPatchMap<NDIM, NDIM> &patch_map,
                        const Vector<double>      &position,
                        const Vector<double>      &spread_values);
