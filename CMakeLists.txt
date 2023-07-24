@@ -32,6 +32,55 @@ ENDIF()
 FIND_PACKAGE(IBAMR 0.12.0 REQUIRED HINTS ${IBAMR_ROOT} $ENV{IBAMR_ROOT})
 
 #
+# Check that both IBAMR and deal.II use the same copies of common dependencies
+#
+FUNCTION(CHECK_DEPENDENCY dependency subdirectory dealii_interface_name
+    ibamr_root_directory filename)
+  MESSAGE(STATUS "")
+  MESSAGE(STATUS
+"Checking that IBAMR and deal.II use the same version of ${dependency}")
+  GET_TARGET_PROPERTY(_dealii_include_directories
+    "dealii::interface_${dealii_interface_name}"
+    INTERFACE_INCLUDE_DIRECTORIES)
+
+  # HINTS/PATHS doesn't work with semicolon-separated lists so do that here
+  SET(_old_cmake_include_path ${CMAKE_INCLUDE_PATH})
+  SET(CMAKE_INCLUDE_PATH ${_dealii_include_directories})
+  FIND_FILE(_dealii_${dependency}_file "${filename}"
+    PATH_SUFFIXES "${subdirectory}"
+    REQUIRED)
+  SET(CMAKE_INCLUDE_PATH ${_old_cmake_include_path})
+
+  # Work around an IBAMR bug in which dependencies are not explicitly exported
+  # when they are in system locations
+  IF(NOT "${ibamr_root_directory}" STREQUAL "")
+    SET(CMAKE_INCLUDE_PATH "${ibamr_root_directory}/include;${ibamr_root_directory}")
+  ENDIF()
+  FIND_FILE(_ibamr_${dependency}_file "${filename}"
+    PATH_SUFFIXES "${subdirectory}"
+    REQUIRED)
+
+  MESSAGE(STATUS "")
+  MESSAGE(STATUS "  deal.II ${dependency} file: ${_dealii_${dependency}_file}")
+  MESSAGE(STATUS "  IBAMR   ${dependency} file: ${_ibamr_${dependency}_file}")
+
+  IF(NOT "${_dealii_${dependency}_file}" STREQUAL "${_ibamr_${dependency}_file}")
+    MESSAGE(FATAL_ERROR
+      "The version of ${dependency} used by deal.II has headers in             \
+${_dealii_include_directories} whereas the version of boost used by IBAMR      \
+has headers in ${ibamr_root_directory}. Fiddle requires that both IBAMR and    \
+deal.II use the same externally-installed copy of ${dependency}.")
+  ENDIF()
+  SET(CMAKE_INCLUDE_PATH ${_old_cmake_include_path})
+ENDFUNCTION()
+
+CHECK_DEPENDENCY(Boost "boost" boost "${Boost_ROOT}" version.hpp)
+CHECK_DEPENDENCY(MPI "" mpi "${MPI_HOME}" mpi.h)
+
+# TODO: verify that we use the same copy of PETSc in both cases. IBAMR does not
+# presently export any information about PETSc so this cannot yet be done.
+
+#
 # set up the library:
 #
 SET(FIDDLE_DIMENSIONS "2" "3")
