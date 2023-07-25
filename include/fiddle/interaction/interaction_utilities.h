@@ -42,7 +42,7 @@ namespace fdl
   /**
    * Add the number of quadrature points.
    *
-   * @param[in] qp_data_idx the SAMRAI patch data index - the values in the
+   * @param[in] qp_data_index the SAMRAI patch data index - the values in the
    * cells will be set to the number of quadrature points intersecting that
    * cell. The corresponding variable should be cell-centered, have a depth of
    * 1, and have either int, float, or double type.
@@ -66,7 +66,7 @@ namespace fdl
    */
   template <int dim, int spacedim = dim>
   void
-  count_quadrature_points(const int                         qp_data_idx,
+  count_quadrature_points(const int                         qp_data_index,
                           PatchMap<dim, spacedim>          &patch_map,
                           const Mapping<dim, spacedim>     &position_mapping,
                           const std::vector<unsigned char> &quadrature_indices,
@@ -75,7 +75,7 @@ namespace fdl
   /**
    * Count the number of nodes in each patch.
    *
-   * @param[in] node_count_data_idx Data index into which we will add the number
+   * @param[in] node_count_data_index Data index into which we will add the number
    * of nodes in each cell.
    *
    * @param[in] nodal_patch_map Mapping between patches and DoFs.
@@ -84,7 +84,7 @@ namespace fdl
    */
   template <int dim, int spacedim>
   void
-  count_nodes(const int                     node_count_data_idx,
+  count_nodes(const int                     node_count_data_index,
               NodalPatchMap<dim, spacedim> &nodal_patch_map,
               const Vector<double>         &position);
 
@@ -92,7 +92,7 @@ namespace fdl
    * Compute the right-hand side used to project the velocity from Eulerian to
    * Lagrangian representation.
    *
-   * @param[in] data_idx the SAMRAI patch data index we are interpolating. The
+   * @param[in] data_index the SAMRAI patch data index we are interpolating. The
    * depth of the variable must match the number of components of the finite
    * element.
    *
@@ -124,7 +124,7 @@ namespace fdl
   template <int dim, int spacedim = dim>
   void
   compute_projection_rhs(const std::string                  &kernel_name,
-                         const int                           data_idx,
+                         const int                           data_index,
                          const PatchMap<dim, spacedim>      &patch_map,
                          const Mapping<dim, spacedim>       &position_mapping,
                          const std::vector<unsigned char>   &quadrature_indices,
@@ -136,7 +136,7 @@ namespace fdl
   /**
    * Interpolate Eulerian data at specified Lagrangian points.
    *
-   * @param[in] data_idx the SAMRAI patch data index we are interpolating. The
+   * @param[in] data_index the SAMRAI patch data index we are interpolating. The
    * depth of the variable must match the number of components of the Lagrangian
    * data (which is implicitly specified by the length of @p interpolated_values).
    *
@@ -159,16 +159,16 @@ namespace fdl
   template <int dim, int spacedim>
   void
   compute_nodal_interpolation(const std::string                  &kernel_name,
-                              const int                           data_idx,
+                              const int                           data_index,
                               const NodalPatchMap<dim, spacedim> &patch_map,
                               const Vector<double>               &position,
                               Vector<double> &interpolated_values);
 
   /**
-   * Compute (by adding into the patch index @p data_idx) the forces on the
+   * Compute (by adding into the patch index @p data_index) the forces on the
    * Eulerian grid corresponding to the Lagrangian field F.
    *
-   * @param[in] data_idx the SAMRAI patch data index into which we are
+   * @param[in] data_index the SAMRAI patch data index into which we are
    * spreading. The depth of the variable must match the number of components of
    * the finite element.
    *
@@ -197,7 +197,7 @@ namespace fdl
   template <int dim, int spacedim>
   void
   compute_spread(const std::string                  &kernel_name,
-                 const int                           data_idx,
+                 const int                           data_index,
                  PatchMap<dim, spacedim>            &patch_map,
                  const Mapping<dim, spacedim>       &position_mapping,
                  const std::vector<unsigned char>   &quadrature_indices,
@@ -209,7 +209,7 @@ namespace fdl
   /**
    * Spread Lagrangian data at specified Lagrangian points.
    *
-   * @param[in] data_idx the SAMRAI patch data index into which we spread. The
+   * @param[in] data_index the SAMRAI patch data index into which we spread. The
    * depth of the variable must match the number of components of the Lagrangian
    * data (which is implicitly specified by the length of @p spread_values).
    *
@@ -232,7 +232,7 @@ namespace fdl
   template <int dim, int spacedim>
   void
   compute_nodal_spread(const std::string            &kernel_name,
-                       const int                     data_idx,
+                       const int                     data_index,
                        NodalPatchMap<dim, spacedim> &patch_map,
                        const Vector<double>         &position,
                        const Vector<double>         &spread_values);
