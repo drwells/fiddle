@@ -94,6 +94,13 @@ namespace fdl
       const LinearAlgebra::distributed::Vector<double> &velocity);
 
     /**
+     * Alternate constructor which copies a pre-existing surface Triangulation.
+     */
+    SurfaceMeter(
+      const Triangulation<dim - 1, spacedim>           &tria,
+      tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy);
+
+    /**
      * Alternate constructor which uses purely nodal data instead of finite
      * element fields.
      */
@@ -247,6 +254,11 @@ namespace fdl
     void
     reinit_tria(const std::vector<Point<spacedim>> &boundary_points,
                 const bool place_additional_boundary_vertices);
+
+    /**
+     * Reinitialize all the FE data structures, including vectors and mappings.
+     */
+    void reinit_dofs();
 
     /**
      * Reinitialize the NodalInteraction object.

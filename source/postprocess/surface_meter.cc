@@ -10,11 +10,13 @@
 #include <deal.II/dofs/dof_tools.h>
 
 #include <deal.II/fe/fe_nothing.h>
+#include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_simplex_p.h>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/fe_values.h>
 
 #include <deal.II/grid/filtered_iterator.h>
+#include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
 
 #include <deal.II/numerics/vector_tools_interpolate.h>
@@ -101,6 +103,32 @@ namespace fdl
         tria.copy_triangulation(serial_tria);
       }
 #endif
+
+      template <int spacedim>
+      double
+      compute_min_cell_width(
+        const tbox::Pointer<hier::BasePatchHierarchy<spacedim>>
+          &patch_hierarchy)
+      {
+        double dx = std::numeric_limits<double>::max();
+        const tbox::Pointer<hier::PatchLevel<spacedim>> level =
+          patch_hierarchy->getPatchLevel(
+            patch_hierarchy->getFinestLevelNumber());
+        Assert(level, ExcFDLInternalError());
+        for (typename hier::PatchLevel<spacedim>::Iterator p(level); p; p++)
+          {
+            const tbox::Pointer<hier::Patch<spacedim>> patch =
+              level->getPatch(p());
+            const tbox::Pointer<geom::CartesianPatchGeometry<spacedim>> pgeom =
+              patch->getPatchGeometry();
+            dx = std::min(dx,
+                          *std::min_element(pgeom->getDx(),
+                                            pgeom->getDx() + spacedim));
+          }
+        dx = Utilities::MPI::min(dx, tbox::SAMRAI_MPI::getCommunicator());
+        Assert(dx != std::numeric_limits<double>::max(), ExcFDLInternalError());
+        return dx;
+      }
     } // namespace
   }   // namespace internal
 
@@ -129,6 +157,31 @@ namespace fdl
     // TODO: assert congruity between position_dof_handler.get_communicator()
     // and SAMRAI_MPI::getCommunicator()
     reinit(position, velocity);
+  }
+
+  template <int dim, int spacedim>
+  SurfaceMeter<dim, spacedim>::SurfaceMeter(
+    const Triangulation<dim - 1, spacedim>           &tria,
+    tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy)
+    : patch_hierarchy(patch_hierarchy)
+    , meter_tria(tbox::SAMRAI_MPI::getCommunicator(),
+                 Triangulation<dim - 1, spacedim>::MeshSmoothing::none,
+                 true)
+  {
+    if (tria.all_reference_cells_are_simplex())
+      scalar_fe = std::make_unique<FE_SimplexP<dim - 1, spacedim>>(1);
+    else if (tria.all_reference_cells_are_hyper_cube())
+      scalar_fe = std::make_unique<FE_Q<dim - 1, spacedim>>(1);
+    else
+      AssertThrow(false,
+                  ExcMessage("mixed meshes are not yet supported here."));
+
+    vector_fe =
+      std::make_unique<FESystem<dim - 1, spacedim>>(*scalar_fe, spacedim);
+    AssertThrow(!tria.has_hanging_nodes(), ExcFDLNotImplemented());
+    GridGenerator::flatten_triangulation(tria, meter_tria);
+    reinit_dofs();
+    reinit_interaction();
   }
 
   template <int dim, int spacedim>
@@ -202,6 +255,7 @@ namespace fdl
       point_values->evaluate(velocity);
 
     reinit_tria(boundary_points, false);
+    reinit_dofs();
     reinit_interaction();
     reinit_mean_velocity(velocity_values);
   }
@@ -221,6 +275,7 @@ namespace fdl
 #else
     reinit_tria(boundary_points, false);
 #endif
+    reinit_dofs();
     reinit_interaction();
     reinit_mean_velocity(velocity_values);
   }
@@ -243,22 +298,8 @@ namespace fdl
     const std::vector<Point<spacedim>> &boundary_points,
     const bool                          place_additional_boundary_vertices)
   {
-    double dx_0 = std::numeric_limits<double>::max();
-    tbox::Pointer<hier::PatchLevel<spacedim>> level =
-      patch_hierarchy->getPatchLevel(patch_hierarchy->getFinestLevelNumber());
-    Assert(level, ExcFDLInternalError());
-    for (typename hier::PatchLevel<spacedim>::Iterator p(level); p; p++)
-      {
-        tbox::Pointer<hier::Patch<spacedim>> patch = level->getPatch(p());
-        const tbox::Pointer<geom::CartesianPatchGeometry<spacedim>> pgeom =
-          patch->getPatchGeometry();
-        dx_0 = std::min(dx_0,
-                        *std::min_element(pgeom->getDx(),
-                                          pgeom->getDx() + spacedim));
-      }
-    dx_0 = Utilities::MPI::min(dx_0, tbox::SAMRAI_MPI::getCommunicator());
-    Assert(dx_0 != std::numeric_limits<double>::max(), ExcFDLInternalError());
-    const double target_element_area = std::pow(dx_0, dim - 1);
+    const double dx = internal::compute_min_cell_width(patch_hierarchy);
+    const double target_element_area = std::pow(dx, dim - 1);
 
     meter_tria.clear();
     Triangle::AdditionalData additional_data;
@@ -266,12 +307,20 @@ namespace fdl
     additional_data.place_additional_boundary_vertices =
       place_additional_boundary_vertices;
     internal::setup_meter_tria(boundary_points, meter_tria, additional_data);
+  }
 
+  template <int dim, int spacedim>
+  void
+  SurfaceMeter<dim, spacedim>::reinit_dofs()
+  {
     meter_mapping = meter_tria.get_reference_cells()[0]
                       .template get_default_mapping<dim - 1, spacedim>(
                         scalar_fe->tensor_degree());
-    meter_quadrature =
-      QWitherdenVincentSimplex<dim - 1>(scalar_fe->tensor_degree() + 1);
+    if (meter_tria.all_reference_cells_are_simplex())
+      meter_quadrature =
+        QWitherdenVincentSimplex<dim - 1>(scalar_fe->tensor_degree() + 1);
+    else
+      meter_quadrature = QGauss<dim - 1>(scalar_fe->tensor_degree() + 1);
 
     scalar_dof_handler.reinit(meter_tria);
     scalar_dof_handler.distribute_dofs(*scalar_fe);
@@ -326,8 +375,9 @@ namespace fdl
               Point<dim - 1>>
       centroid_pair;
     // Step 2
-    double tolerance  = 1e-14;
-    bool   found_cell = false;
+    double       tolerance  = 1e-14;
+    bool         found_cell = false;
+    const double dx         = internal::compute_min_cell_width(patch_hierarchy);
     do
       {
         centroid_pair = GridTools::find_active_cell_around_point(get_mapping(),
@@ -346,7 +396,7 @@ namespace fdl
         found_cell =
           Utilities::MPI::sum(int(centroid_pair.first != meter_tria.end()),
                               comm) != 0;
-    } while (!found_cell && tolerance < dx_0);
+    } while (!found_cell && tolerance < dx);
     AssertThrow(found_cell, ExcFDLInternalError());
 
     // Step 3
