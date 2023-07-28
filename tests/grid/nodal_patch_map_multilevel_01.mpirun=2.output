@@ -5,15 +5,9 @@ Patch Upper = 0 0
 Patch Level = 0
 Patch Lower = -2 0
 Patch Upper = 0 2
-Patch Level = 0
-Patch Lower = 0 -2
-Patch Upper = 2 0
-Patch Level = 0
-Patch Lower = 0 0
-Patch Upper = 2 2
 Patch Level = 1
 Patch Lower = 0 0
-Patch Upper = 2 2
+Patch Upper = 1 2
 
 NodalPatchMap
 Patch Level = 0
@@ -26,6 +20,26 @@ Patch Lower = -2 0
 Patch Upper = 0 2
 indices = {[8,9], [12,13], [20,21], [28,29], [34,35], [42,43], [60,61], [76,77], [82,83], [86,91], [108,113], [118,119], [130,131], [150,153], [158,159], [170,173]}
 
+Patch Level = 1
+Patch Lower = 0 0
+Patch Upper = 1 2
+indices = {[10,11], [14,15], [30,33], [36,39], [44,49], [68,69], [80,81], [84,85], [92,97], [116,117], [120,125], [128,129], [132,137], [160,161], [164,165], [168,169], [174,177]}
+
+all indices = {[0,1], [4,5], [8,15], [18,21], [28,39], [42,51], [54,61], [68,71], [74,77], [80,97], [102,103], [106,113], [116,125], [128,139], [142,143], [146,155], [158,161], [164,165], [168,177]}
+
+vector size = 178
+rank = 1
+Patch Level = 0
+Patch Lower = 0 -2
+Patch Upper = 2 0
+Patch Level = 0
+Patch Lower = 0 0
+Patch Upper = 2 2
+Patch Level = 1
+Patch Lower = 1 0
+Patch Upper = 2 2
+
+NodalPatchMap
 Patch Level = 0
 Patch Lower = 0 -2
 Patch Upper = 2 0
@@ -37,10 +51,10 @@ Patch Upper = 2 2
 indices = {}
 
 Patch Level = 1
-Patch Lower = 0 0
+Patch Lower = 1 0
 Patch Upper = 2 2
-indices = {[10,11], [14,15], [24,25], [30,33], [36,39], [44,49], [68,69], [80,81], [84,85], [92,97], [116,117], [120,125], [128,129], [132,137], [160,161], [164,165], [168,169], [174,177]}
+indices = {[24,25]}
 
-all indices = {[0,177]}
+all indices = {[2,3], [6,7], [16,17], [22,27], [40,41], [52,53], [62,67], [72,73], [78,79], [98,101], [104,105], [114,115], [126,127], [140,141], [144,145], [156,157], [162,163], [166,167]}
 
 vector size = 178
