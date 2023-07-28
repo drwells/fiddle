@@ -66,26 +66,32 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                                       {},
                                                       false,
                                                       partitioner);
-  GridGenerator::hyper_ball(tria);
+  // fudge the center a little so that things are not exactly on axes
+  Point<spacedim> center;
+  for (unsigned int d = 0; d < spacedim; ++d)
+    center[d] = 0.01;
+  GridGenerator::hyper_ball(tria, center);
   tria.refine_global(2);
-  {
-    std::ofstream out("grid.vtu");
-    GridOut().write_vtu(tria, out);
-  }
+  if (rank == 0)
+    {
+      std::ofstream out("grid.vtu");
+      GridOut().write_vtu(tria, out);
+    }
 
   // setup SAMRAI stuff (its always the same):
   auto tuple           = setup_hierarchy<spacedim>(app_initializer);
   auto patch_hierarchy = std::get<0>(tuple);
 
   // setup Lagrangian data:
-  const std::size_t n_nodes = tria.n_vertices() * spacedim;
-  Vector<double>    nodal_coordinates(n_nodes * spacedim);
-  for (std::size_t node_n = 0; node_n < n_nodes; ++node_n)
+  const std::size_t n_vertices = tria.n_vertices();
+  Vector<double>    nodal_coordinates(n_vertices * spacedim);
+  for (std::size_t node_n = 0; node_n < n_vertices; ++node_n)
     for (unsigned int d = 0; d < spacedim; ++d)
       nodal_coordinates[node_n * spacedim + d] = tria.get_vertices()[node_n][d];
 
   // Now set up fiddle things for the test:
-  std::ostringstream                                out;
+  std::ostringstream out;
+  out << "rank = " << rank << std::endl;
   std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches;
   std::vector<std::vector<BoundingBox<spacedim>>>   bboxes;
   for (int ln = 0; ln <= patch_hierarchy->getFinestLevelNumber(); ++ln)
@@ -147,17 +153,10 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                                     nodal_coordinates);
 
   // write SAMRAI data:
-  {
-    app_initializer->getVisItDataWriter()->writePlotData(patch_hierarchy,
-                                                         0,
-                                                         0.0);
-  }
+  app_initializer->getVisItDataWriter()->writePlotData(patch_hierarchy, 0, 0.0);
 
+  // print out test indices
   {
-    const int ln = patch_hierarchy->getFinestLevelNumber();
-    tbox::Pointer<hier::PatchLevel<spacedim>> level =
-      patch_hierarchy->getPatchLevel(ln);
-
     out << std::endl << "NodalPatchMap" << std::endl;
     IndexSet all_indices(nodal_coordinates.size());
     for (std::size_t i = 0; i < nodal_patch_map.size(); ++i)
@@ -187,9 +186,10 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
         const BoundingBox<spacedim> bbox(std::make_pair(lower, upper));
         for (const auto &index : pair.first)
           {
-            const Point<spacedim> &vertex =
-              tria.get_vertices()[index / spacedim];
-            AssertThrow(bbox.point_inside(vertex), fdl::ExcFDLInternalError());
+            // We set up an identity mapping, so the support point for each dof
+            // is just its vertex
+            const Point<spacedim> node = tria.get_vertices()[index / spacedim];
+            AssertThrow(bbox.point_inside(node), fdl::ExcFDLInternalError());
           }
 
         all_indices.add_indices(pair.first);

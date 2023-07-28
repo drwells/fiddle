@@ -44,7 +44,16 @@ namespace fdl
      * Constructor. Associates DoFs to patches from provided coordinates.
      *
      * Here @p nodal_coordinates contains the (x, y, z) positions of nodes in
-     * the order described in the general class documentation.
+     * the order described in the general class documentation. This should be an
+     * FE position vector or, more generally, just the positions of support
+     * points. In particular, if a finite element field has multiple components
+     * with equal support points (e.g., FESystem<2>(FE_Q<2>(1), 2)) then those
+     * support points should not be duplicated in @p nodal_coordinates.
+     *
+     * Put another way: this class assumes that @p nodal_coordinates is the
+     * coefficient vector of an FE field representing the position of a
+     * structure. If this vector has N entries, then the IndexSet objects set up
+     * by this class will enumerate dofs in the range [0, N - 1].
      *
      * The hier::Patch objects in @p patches may come from multiple patch
      * levels. If a node is present on multiple levels then it will be assigned
