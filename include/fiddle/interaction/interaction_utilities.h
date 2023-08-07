@@ -2,6 +2,7 @@
 #define included_fiddle_interaction_interaction_utilities_h
 
 #include <fiddle/base/config.h>
+#include <deal.II/fe/mapping_q.h>
 
 #include <deal.II/base/bounding_box.h>
 #include <deal.II/base/quadrature.h>
@@ -259,6 +260,32 @@ namespace fdl
                        NodalPatchMap<dim, spacedim> &patch_map,
                        const Vector<double>         &position,
                        const Vector<double>         &spread_values);
+
+
+  /**
+   * Intersec line with edge .
+   * WARNING: This code is specialized to the case in which q is a unit vector
+ aligned with the coordinate axes.
+   */
+  bool
+  intersect_line_with_edge(std::vector<std::pair<double, Point<1>> >& t_vals,
+                           const DoFHandler<1, 2>::active_cell_iterator elem,
+                           const dealii::MappingQ<1, 2> &mapping,
+                           dealii::Point<2> r,
+                           dealii::Tensor<1,2> q,
+                           const double tol = 0.0);
+  /**
+ * Intersec line with edge .
+ * WARNING: This code is specialized to the case in which q is a unit vector
+aligned with the coordinate axes.
+ */
+  bool
+  intersect_line_with_face(std::vector<std::pair<double, Point<2>> >& t_vals,
+                           const typename DoFHandler<2, 3>::active_cell_iterator elem,
+                           const dealii::MappingQ<2, 3> &mapping,
+                           dealii::Point<3> r,
+                           dealii::Tensor<1,3> q,
+                           const double tol=0);
 
 
 } // namespace fdl

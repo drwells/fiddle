@@ -10,6 +10,7 @@
 
 #include <deal.II/fe/fe_nothing.h>
 #include <deal.II/fe/fe_values.h>
+#include <deal.II/fe/mapping_q.h>
 
 #include <deal.II/numerics/rtree.h>
 
@@ -1134,6 +1135,387 @@ namespace fdl
       }
 #undef ARGUMENTS
   }
+  bool
+  intersect_line_with_edge(std::vector<std::pair<double, Point<1>> >& t_vals,
+                           const DoFHandler<1, 2>::active_cell_iterator elem,
+                           const dealii::MappingQ<1, 2> &mapping,
+                           dealii::Point<2> r,
+                           dealii::Tensor<1,2> q,
+                           const double tol)
+  {
+    bool is_interior_intersection = false;
+    t_vals.resize(0);
+    elem->get_triangulation().get_manifold(1);
+    int d_intersection_refinement =5;
+    switch (mapping.get_degree())
+      {
+        case 1:
+          {
+            // Linear interpolation:
+            //
+            //    0.5*(1-u)*p0 + 0.5*(1+u)*p1 = r + t*q
+            //
+            // Factor the interpolation formula:
+            //
+            //    0.5*(p1-p0)*u+0.5*(p1+p0) = r + t*q
+            //
+            // Solve for u:
+            //
+            //    a*u + b = 0
+            //
+            // with:
+            //
+            //    a = 0.5*(-p0+p1)
+            //    b = 0.5*(p0+p1) - r
+            const dealii::Point p0 = elem->vertex(0);
+            const dealii::Point p1 = elem->vertex(1);
+            double a, b;
+            if (q[0] != 0.0)
+              {
+                a = 0.5 * (p1(1) - p0(1));
+                b = 0.5 * (p1(1) + p0(1)) - r(1);
+              }
+            else
+              {
+                a = 0.5 * (p1(0) - p0(0));
+                b = 0.5 * (p1(0) + p0(0)) - r(0);
+              }
+            const double u = -b / a;
+
+            // Look for intersections within the element interior.
+            if (u >= -1.0 - tol && u <= 1.0 + tol)
+              {
+                is_interior_intersection = (u >= -1.0 && u <= 1.0);
+                double t;
+                if (std::abs(q[0]) >= std::abs(q[1]))
+                  {
+                    const double p = p0(0) * 0.5 * (1.0 - u) + p1(0) * 0.5 * (1.0 + u);
+                    t = (p - r(0)) / q[0];
+                  }
+                else
+                  {
+                    const double p = p0(1) * 0.5 * (1.0 - u) + p1(1) * 0.5 * (1.0 + u);
+                    t = (p - r(1)) / q[1];
+                  }
+                std::cout << "line parameter t:"<<t<< std::endl;
+                t_vals.push_back(std::make_pair(t, Point<1>(u)));
+              }
+            break;
+          }
+        default:
+          {
+            auto intersect_line_with_Q2_edge = [&](std::vector<std::pair<double, Point<1>> >& t_vals,
+                                                   const dealii::Point<2> p0,
+                                                   const dealii::Point<2> p1,
+                                                   const dealii::Point<2> p2,
+                                                   const dealii::Point<2> r,
+                                                   const dealii::Tensor<1,2> q,
+                                                   const double tol){
+
+              double a, b, c;
+
+              if (q[0] != 0.0)
+                {
+                  a = (0.5 * p0(1) + 0.5 * p1(1) - p2(1));
+                  b = 0.5 * (p1(1) - p0(1));
+                  c = p2(1) - r(1);
+                }
+              else
+                {
+                  a = (0.5 * p0(0) + 0.5 * p1(0) - p2(0));
+                  b = 0.5 * (p1(0) - p0(0));
+                  c = p2(0) - r(0);
+                }
+              const double disc = b * b - 4.0 * a * c;
+              std::vector<double> u_vals;
+              if (disc > 0.0)
+                {
+                  const double q = -0.5 * (b + (b > 0.0 ? 1.0 : -1.0) * std::sqrt(disc));
+                  const double u0 = q / a;
+                  u_vals.push_back(u0);
+                  const double q1= -0.5 * (b + (b > 0.0 ? -1.0 : 1.0) * std::sqrt(disc));
+                  //const double u1 = q1 / a;
+                  const double u1 = c / q;
+                  if (std::abs(u0 - u1) > std::numeric_limits<double>::epsilon())
+                    {
+                      u_vals.push_back(u1);
+                    }
+                }
+
+              // Look for intersections within the element interior.
+              for (const auto& u : u_vals)
+                {
+                  if (u >= -1.0 - tol && u <= 1.0 + tol)
+                    {
+                      is_interior_intersection = (u >= -1.0 && u <= 1.0);
+                      double t;
+                      if (std::abs(q[0]) >= std::abs(q[1]))
+                        {
+                          const double p = 0.5 * u * (u - 1.0) * p0(0) + 0.5 * u * (u + 1.0) * p1(0) + (1.0 - u * u) * p2(0);
+                          t = (p - r(0)) / q[0];
+                        }
+                      else
+                        {
+                          const double p = 0.5 * u * (u - 1.0) * p0(1) + 0.5 * u * (u + 1.0) * p1(1) + (1.0 - u * u) * p2(1);
+                          t = (p - r(1)) / q[1];
+                        }
+                      t_vals.push_back(std::make_pair(t, Point<1>(u)));
+                      std::cout << "line parameter t:"<<t<< std::endl;
+
+                    }
+                }
+            };
+            if(mapping.get_degree()==2){
+                const dealii::Point<2> p0 = mapping.transform_unit_to_real_cell(elem, Point<1>(0.0));
+                const dealii::Point<2> p1 = mapping.transform_unit_to_real_cell(elem,Point<1>(1));
+                const dealii::Point<2> p2 = mapping.transform_unit_to_real_cell(elem,Point<1>(0.5));
+                intersect_line_with_Q2_edge ( t_vals,p0,p1, p2, r, q,tol);}
+            else{
+                for (unsigned int j = 0; j <(pow(2,d_intersection_refinement)); ++j){
+                    const dealii::Point<2> p0 = mapping.transform_unit_to_real_cell(elem, Point<1>(1.0/(pow(2,d_intersection_refinement))*j));
+                    const dealii::Point<2> p1 = mapping.transform_unit_to_real_cell(elem,Point<1>(1.0/(pow(2,d_intersection_refinement))*(j+1)));
+                    const dealii::Point<2> p2 = mapping.transform_unit_to_real_cell(elem,Point<1>(1.0/(pow(2,d_intersection_refinement))*(j+0.5)));
+                    intersect_line_with_Q2_edge ( t_vals,p0,p1, p2, r, q,tol);}
+              }
+
+          }
+      }
+
+    return is_interior_intersection;
+  } // intersect_line_with_edge
+
+  //WARNING: This code is specialized to the case in which q is a unit vector
+  //aligned with the coordinate axes.
+  bool
+  intersect_line_with_face(std::vector<std::pair<double, Point<2>> >& t_vals,
+                           const typename DoFHandler<2, 3>::active_cell_iterator elem,
+                           const dealii::MappingQ<2, 3> &mapping,
+                           dealii::Point<3> r,
+                           dealii::Tensor<1,3> q,
+                           const double tol)
+  {
+    bool is_interior_intersection = false;
+    t_vals.resize(0);
+    elem->get_triangulation().get_manifold(1);
+    int d_intersection_refinement =5;
+    switch (mapping.get_degree())
+      {
+        case 1:
+          {
+            const dealii::Point p00 = elem->vertex(0);
+            const dealii::Point p10 = elem->vertex(1);
+            const dealii::Point p01 = elem->vertex(2);
+            const dealii::Point p11 = elem->vertex(3);
+
+            const dealii::Tensor<1,3> a = p11 - p10 - p01 + p00;
+            const dealii::Tensor<1,3> b = p10 - p00;
+            const dealii::Tensor<1,3> c = p01 - p00;
+            const dealii::Tensor<1,3> d = p00;
+
+            double A1, A2, B1, B2, C1, C2, D1, D2;
+            if (q[0] != 0.0)
+              {
+                A1 = a[1];
+                A2 = a[2];
+                B1 = b[1];
+                B2 = b[2];
+                C1 = c[1];
+                C2 = c[2];
+                D1 = d[1] - r(1);
+                D2 = d[2] - r(2);
+              }
+            else if (q[1] != 0.0)
+              {
+                A1 = a[0];
+                A2 = a[2];
+                B1 = b[0];
+                B2 = b[2];
+                C1 = c[0];
+                C2 = c[2];
+                D1 = d[0] - r(0);
+                D2 = d[2] - r(2);
+              }
+            else
+              {
+                A1 = a[0];
+                A2 = a[1];
+                B1 = b[0];
+                B2 = b[1];
+                C1 = c[0];
+                C2 = c[1];
+                D1 = d[0] - r(0);
+                D2 = d[1] - r(1);
+              }
+
+            // (A2*C1 - A1*C2) v^2 + (A2*D1 - A1*D2 + B2*C1 - B1*C2) v + (B2*D1 - B1*D2) = 0
+            std::vector<double> v_vals;
+            {
+              const double a = A2 * C1 - A1 * C2;
+              const double b = A2 * D1 - A1 * D2 + B2 * C1 - B1 * C2;
+              const double c = B2 * D1 - B1 * D2;
+              const double disc = b * b - 4.0 * a * c;
+              if (disc > 0.0)
+                {
+                  const double q = -0.5 * (b + (b > 0.0 ? 1.0 : -1.0) * std::sqrt(disc));
+                  const double v0 = q / a;
+                  v_vals.push_back(v0);
+                  const double v1 = c / q;
+                  if (std::abs(v0 - v1) > std::numeric_limits<double>::epsilon())
+                    {
+                      v_vals.push_back(v1);
+                    }
+                }
+            }
+
+            for (const auto& v : v_vals)
+              {
+                if (v >= 0.0 - tol && v <= 1.0 + tol)
+                  {
+                    double u;
+                    const double a = v * A2 + B2;
+                    const double b = v * (A2 - A1) + B2 - B1;
+                    if (std::abs(b) >= std::abs(a))
+                      {
+                        u = (v * (C1 - C2) + D1 - D2) / b;
+                      }
+                    else
+                      {
+                        u = (-v * C2 - D2) / a;
+                      }
+
+                    if (u >= 0.0 - tol && u <= 1.0 + tol)
+                      {
+                        is_interior_intersection = (u >= 0.0 && u <= 1.0 && v >= 0.0 && v <= 0.0);
+                        double t;
+                        if (std::abs(q[0]) >= std::abs(q[1]) && std::abs(q[0]) >= std::abs(q[2]))
+                          {
+                            const double p = p00(0) * (1.0 - u) * (1.0 - v) + p01(0) * (1.0 - u) * v +
+                                             p10(0) * u * (1.0 - v) + p11(0) * u * v;
+                            t = (p - r(0)) / q[0];
+                          }
+                        else if (std::abs(q[1]) >= std::abs(q[2]))
+                          {
+                            const double p = p00(1) * (1.0 - u) * (1.0 - v) + p01(1) * (1.0 - u) * v +
+                                             p10(1) * u * (1.0 - v) + p11(1) * u * v;
+                            t = (p - r(1)) / q[1];
+                          }
+                        else
+                          {
+                            const double p = p00(2) * (1.0 - u) * (1.0 - v) + p01(2) * (1.0 - u) * v +
+                                             p10(2) * u * (1.0 - v) + p11(2) * u * v;
+                            t = (p - r(2)) / q[2];
+                          }
+                        t_vals.push_back(std::make_pair(t, Point<2>(2.0 * u - 1.0, 2.0 * v - 1.0)));
+                        std::cout << "line parameter t:"<<t<< std::endl;
+                      }
+                  }
+              }
+            break;
+          }
+        default:
+          {
+            auto intersect_line_with_triangle = [&](std::vector<std::pair<double, Point<2>> >& t_vals,
+                                                    const dealii::Point<3> p0,
+                                                    const dealii::Point<3> p1,
+                                                    const dealii::Point<3> p2,
+                                                    const dealii::Point<3> r,
+                                                    const dealii::Tensor<1,3> q,
+                                                    const double tol)
+            {
+              dealii::Point<3> p = r;
+              dealii::Tensor<1,3>  d = q;
+
+              // Linear interpolation:
+              //
+              //    (1-u-v)*p0 + u*p1 + v*p2 = p + t*d
+              //
+              // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+              const dealii::Tensor<1,3>  e1 = p1 - p0;
+              const dealii::Tensor<1,3>  e2 = p2 - p0;
+              const dealii::Tensor<1,3>  h = cross_product_3d(d, e2);
+              double a = e1 * h;
+              if (std::abs(a) > std::numeric_limits<double>::epsilon())
+                {
+                  double f = 1.0 / a;
+                  const Tensor<1,3>  s = p - p0;
+                  double u = f * (s * h);
+                  if (u >= -tol && u <= 1.0 + tol)
+                    {
+                      const Tensor<1,3>  q= cross_product_3d(s,e1);
+                      double v = f * (d * q);
+                      if (v >= tol && (u + v) <= 1.0 + tol)
+                        {
+                          double t = f * (e2 * q);
+                          t_vals.push_back(std::make_pair(t, Point<2>(u, v)));
+                          std::cout << "line parameter t:"<<t<< std::endl;
+                        }
+                    }
+                }
+            };
+            for (unsigned int i = 0; i < pow(2,d_intersection_refinement-1); ++i)
+              {
+                //buttom side
+                for (unsigned int j = 0; j <(pow(2,d_intersection_refinement-1)-i); ++j){
+                    //buttom side coordinate
+                    Point<2> buttom_left(0.5*i/(pow(2,d_intersection_refinement-1))+j/pow(2,d_intersection_refinement-1),0.5*i/(pow(2,d_intersection_refinement-1)));
+                    Point<2> buttom_right(0.5*i/(pow(2,d_intersection_refinement-1))+(j+1)/pow(2,d_intersection_refinement-1),0.5*i/(pow(2,d_intersection_refinement-1)));
+                    Point<2> top_center(0.5*i/(pow(2,d_intersection_refinement-1))+(j+0.5)/pow(2,d_intersection_refinement-1),0.5*(i+1)/(pow(2,d_intersection_refinement-1)));
+                    //buttom side triangle
+                    intersect_line_with_triangle(t_vals,mapping.transform_unit_to_real_cell(elem,buttom_left),
+                                                 mapping.transform_unit_to_real_cell(elem,buttom_right),
+                                                 mapping.transform_unit_to_real_cell(elem,top_center),
+                                                 r,q,tol);
+                    // right side triangle
+                    intersect_line_with_triangle(t_vals,mapping.transform_unit_to_real_cell(elem,Point<2>(1-buttom_left(1),buttom_left(0)) ),
+                                                 mapping.transform_unit_to_real_cell(elem,Point<2>(1-buttom_right(1),buttom_right(0))),
+                                                 mapping.transform_unit_to_real_cell(elem,Point<2>(1-top_center(1),top_center(0))),
+                                                 r,q,tol);
+                    // top side triangle
+                    intersect_line_with_triangle(t_vals,mapping.transform_unit_to_real_cell(elem,Point<2>(buttom_left(0),1-buttom_left(1)) ),
+                                                 mapping.transform_unit_to_real_cell(elem,Point<2>(buttom_right(0),1-buttom_right(1))),
+                                                 mapping.transform_unit_to_real_cell(elem,Point<2>(top_center(0),1-top_center(1))),
+                                                 r,q,tol);
+                    // left side triangle
+                    intersect_line_with_triangle(t_vals,mapping.transform_unit_to_real_cell(elem,Point<2>(buttom_left(1),buttom_left(0)) ),
+                                                 mapping.transform_unit_to_real_cell(elem,Point<2>(buttom_right(1),buttom_right(0))),
+                                                 mapping.transform_unit_to_real_cell(elem,Point<2>(top_center(1),top_center(0))),
+                                                 r,q,tol);
+
+                  }
+                for (unsigned int j = 0; j <(pow(2,d_intersection_refinement-1)-i-1); ++j){
+                    Point<2> buttom_left(0.5*(i+1)/(pow(2,d_intersection_refinement-1))+(j+1)/pow(2,d_intersection_refinement-1),0.5*(i+1)/(pow(2,d_intersection_refinement-1)));
+                    Point<2> buttom_right(0.5*i/(pow(2,d_intersection_refinement-1))+(j+1)/pow(2,d_intersection_refinement-1),0.5*i/(pow(2,d_intersection_refinement-1)));
+                    Point<2> top_center(0.5*i/(pow(2,d_intersection_refinement-1))+(j+0.5)/pow(2,d_intersection_refinement-1),0.5*(i+1)/(pow(2,d_intersection_refinement-1)));
+
+                    //buttom side triangle
+                    intersect_line_with_triangle(t_vals,mapping.transform_unit_to_real_cell(elem,buttom_left),
+                                                 mapping.transform_unit_to_real_cell(elem,buttom_right),
+                                                 mapping.transform_unit_to_real_cell(elem,top_center),
+                                                 r,q,tol);
+                    // right side triangle
+                    intersect_line_with_triangle(t_vals,mapping.transform_unit_to_real_cell(elem,Point<2>(1-buttom_left(1),buttom_left(0)) ),
+                                                 mapping.transform_unit_to_real_cell(elem,Point<2>(1-buttom_right(1),buttom_right(0))),
+                                                 mapping.transform_unit_to_real_cell(elem,Point<2>(1-top_center(1),top_center(0))),
+                                                 r,q,tol);
+                    // top side triangle
+                    intersect_line_with_triangle(t_vals,mapping.transform_unit_to_real_cell(elem,Point<2>(buttom_left(0),1-buttom_left(1)) ),
+                                                 mapping.transform_unit_to_real_cell(elem,Point<2>(buttom_right(0),1-buttom_right(1))),
+                                                 mapping.transform_unit_to_real_cell(elem,Point<2>(top_center(0),1-top_center(1))),
+                                                 r,q,tol);
+                    // left side triangle
+                    intersect_line_with_triangle(t_vals,mapping.transform_unit_to_real_cell(elem,Point<2>(buttom_left(1),buttom_left(0)) ),
+                                                 mapping.transform_unit_to_real_cell(elem,Point<2>(buttom_right(1),buttom_right(0))),
+                                                 mapping.transform_unit_to_real_cell(elem,Point<2>(top_center(1),top_center(0))),
+                                                 r,q,tol);
+                  }
+              }
+
+          }
+
+      }
+    return is_interior_intersection;
+  } // intersect_line_with_face
+
 
 
   // instantiations

@@ -1,0 +1,512 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="CMakePresetLoader">{
+  &quot;useNewFormat&quot;: true
+}</component>
+  <component name="CMakeReloadState">
+    <option name="reloaded" value="true" />
+  </component>
+  <component name="CMakeRunConfigurationManager">
+    <generated />
+  </component>
+  <component name="CMakeSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" ENABLED="true" GENERATION_DIR="$PROJECT_DIR$/../debug_build" CONFIG_NAME="Debug" GENERATION_OPTIONS="-DDEAL_II_ROOT=/home/qi/sfw/dealii/build \       -DIBAMR_ROOT=/home/qi/sfw/IBAMR/build \       -DCMAKE_BUILD_TYPE=Debug \       -DCMAKE_CXX_FLAGS=&quot;-g -DDEBUG -Wall -Wextra -Wpedantic -fopenmp&quot;" />
+    </configurations>
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="09591576-2e7b-45d2-a8c1-112b41244f02" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectApplicationVersion">
+    <option name="ide" value="CLion" />
+    <option name="majorVersion" value="2023" />
+    <option name="minorVersion" value="2" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 6
+}</component>
+  <component name="ProjectId" id="2TL6mlFobJB8AoBtK5VfvVJJZWu" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "cf.advertisement.text.overridden": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "IIM",
+    "last_opened_file_path": "/home/qi/sfw/dealii/build",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.lookFeel",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RunManager">
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="band" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="band" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="band">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="examples" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="examples" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="fiddle2d" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="fiddle2d" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="fiddle3d" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="fiddle3d" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-base" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-base" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-base_base64" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-base_base64" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-base_base64">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-base_copy_database" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-base_copy_database" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-base_copy_database">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-base_hello" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-base_hello" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-base_hello">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-base_initial_guess" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-base_initial_guess" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-base_initial_guess">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-base_nonintersecting_sphere_01_2d" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-base_nonintersecting_sphere_01_2d" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-base_nonintersecting_sphere_01_2d">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-base_nonintersecting_sphere_01_3d" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-base_nonintersecting_sphere_01_3d" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-base_nonintersecting_sphere_01_3d">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-base_qgauss_family_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-base_qgauss_family_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-base_qgauss_family_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-base_qgauss_family_02" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-base_qgauss_family_02" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-base_qgauss_family_02">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-base_qwv_family_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-base_qwv_family_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-base_qwv_family_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_box_to_bbox" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_box_to_bbox" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_box_to_bbox">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_centroid_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_centroid_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_centroid_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_collect_bboxes_01_2d" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_collect_bboxes_01_2d" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_collect_bboxes_01_2d">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_collect_bboxes_01_3d" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_collect_bboxes_01_3d" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_collect_bboxes_01_3d">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_collect_edge_lengths_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_collect_edge_lengths_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_collect_edge_lengths_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_edge_lengths_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_edge_lengths_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_edge_lengths_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_edge_lengths_02" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_edge_lengths_02" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_edge_lengths_02">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_fe_predicate_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_fe_predicate_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_fe_predicate_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_grid_predicate_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_grid_predicate_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_grid_predicate_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_line_face_intersection" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="true" REDIRECT_INPUT_PATH="$PROJECT_DIR$/../debug_build/tests/grid/patch_map_01.txt" ELEVATE="true" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$/../debug_build/tests/grid" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Project" TARGET_NAME="tests-grid_line_face_intersection" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Project" RUN_TARGET_NAME="tests-grid_line_face_intersection">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_line_face_intersection" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="true" REDIRECT_INPUT_PATH="$PROJECT_DIR$/../debug_build/tests/grid/patch_map_01.txt" ELEVATE="true" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$/../debug_build/tests/grid" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_line_face_intersection" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_line_face_intersection">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_nodal_patch_map_multilevel_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_nodal_patch_map_multilevel_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_nodal_patch_map_multilevel_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_nonoverlapping_boxes_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_nonoverlapping_boxes_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_nonoverlapping_boxes_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_overlap_tria_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_overlap_tria_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_overlap_tria_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_patch_map_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_patch_map_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_patch_map_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_patch_map_02" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_patch_map_02" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_patch_map_02">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_surface_tria_01_2d" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_surface_tria_01_2d" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_surface_tria_01_2d">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_tag_cells_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_tag_cells_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_tag_cells_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_count_nodes_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_count_nodes_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_count_nodes_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_count_quadrature_points_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_count_quadrature_points_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_count_quadrature_points_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_dlm_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_dlm_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_dlm_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_elemental_interpolate_01_2d" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_elemental_interpolate_01_2d" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_elemental_interpolate_01_2d">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_ifed_ex4_2d" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_ifed_ex4_2d" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_ifed_ex4_2d">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_ifed_ex4_simplex_2d" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_ifed_ex4_simplex_2d" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_ifed_ex4_simplex_2d">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_ifed_interpolate_01_2d" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_ifed_interpolate_01_2d" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_ifed_interpolate_01_2d">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_ifed_spread_01_2d" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_ifed_spread_01_2d" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_ifed_spread_01_2d">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_ifed_spread_02_2d" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_ifed_spread_02_2d" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_ifed_spread_02_2d">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_ifed_tag_2d" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_ifed_tag_2d" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_ifed_tag_2d">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_ifed_tag_3d" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_ifed_tag_3d" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_ifed_tag_3d">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_interaction_base_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_interaction_base_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_interaction_base_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_interpolate_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_interpolate_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_interpolate_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_interpolate_02" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_interpolate_02" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_interpolate_02">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_nodal_interpolate_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_nodal_interpolate_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_nodal_interpolate_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_nodal_interpolate_02" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_nodal_interpolate_02" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_nodal_interpolate_02">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_nodal_spread_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_nodal_spread_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_nodal_spread_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-interaction_spread_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-interaction_spread_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-interaction_spread_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_body_force_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_body_force_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_body_force_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_compute_load_vector_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_compute_load_vector_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_compute_load_vector_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_fiber_network_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_fiber_network_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_fiber_network_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_force_boundary_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_force_boundary_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_force_boundary_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_force_boundary_02" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_force_boundary_02" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_force_boundary_02">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_force_volumetric_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_force_volumetric_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_force_volumetric_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_force_volumetric_02" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_force_volumetric_02" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_force_volumetric_02">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_me_values_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_me_values_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_me_values_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_me_values_02" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_me_values_02" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_me_values_02">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_me_values_03" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_me_values_03" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_me_values_03">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_pk1_holzapfel_ogden_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_pk1_holzapfel_ogden_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_pk1_holzapfel_ogden_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_pk1_volumetric_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_pk1_volumetric_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_pk1_volumetric_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_pk1_volumetric_02" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_pk1_volumetric_02" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_pk1_volumetric_02">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_pk1_volumetric_03" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_pk1_volumetric_03" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_pk1_volumetric_03">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_pk1_volumetric_04" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_pk1_volumetric_04" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_pk1_volumetric_04">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_pk1_volumetric_05" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_pk1_volumetric_05" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_pk1_volumetric_05">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_serialize_part_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_serialize_part_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_serialize_part_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-mechanics_spring_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-mechanics_spring_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-mechanics_spring_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-postprocess" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-postprocess" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-postprocess_meter_mesh_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-postprocess_meter_mesh_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-postprocess_meter_mesh_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-postprocess_meter_mesh_02" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-postprocess_meter_mesh_02" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-postprocess_meter_mesh_02">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-postprocess_meter_mesh_03" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-postprocess_meter_mesh_03" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-postprocess_meter_mesh_03">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-postprocess_point_values_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-postprocess_point_values_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-postprocess_point_values_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-postprocess_vertices_inside_domain" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-postprocess_vertices_inside_domain" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-postprocess_vertices_inside_domain">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-transfer" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-transfer" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-transfer_scatter_01" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-transfer_scatter_01" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-transfer_scatter_01">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="turek-hron" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="turek-hron" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="turek-hron">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="09591576-2e7b-45d2-a8c1-112b41244f02" name="Changes" comment="" />
+      <created>1690810175729</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1690810175729</updated>
+      <workItem from="1690810177193" duration="18326000" />
+      <workItem from="1690895751214" duration="32305000" />
+      <workItem from="1691069069933" duration="15475000" />
+      <workItem from="1691108882739" duration="23293000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VCPKGProject">
+    <isAutomaticEditVcpkgJson value="false" />
+    <isAutomaticCheckingOnLaunch value="false" />
+    <isAutomaticFoundErrors value="true" />
+    <isAutomaticFoundErrors value="true" />
+  </component>
+</project>
