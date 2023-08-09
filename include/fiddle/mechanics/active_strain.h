@@ -30,14 +30,7 @@ namespace fdl
     /**
      * Constructor.
      */
-    ActiveStrain(const std::vector<types::material_id> &material_ids)
-      : material_ids(material_ids)
-    {
-      std::sort(this->material_ids.begin(), this->material_ids.end());
-      this->material_ids.erase(std::unique(this->material_ids.begin(),
-                                           this->material_ids.end()),
-                               this->material_ids.end());
-    }
+    ActiveStrain(const std::vector<types::material_id> &material_ids);
 
     /**
      * Default virtual destructor.
@@ -48,20 +41,14 @@ namespace fdl
      * Do any time-dependent initialization of the strain.
      */
     virtual void
-    setup_strain(const double time)
-    {
-      (void)time;
-    }
+    setup_strain(const double time);
 
     /**
      * Matching function to setup_strain(), which may deallocate memory or
      * perform other cleanup actions.
      */
     virtual void
-    finish_strain(const double time)
-    {
-      (void)time;
-    }
+    finish_strain(const double time);
 
     /**
      * Push the deformation gradients forward by the formula
@@ -74,7 +61,7 @@ namespace fdl
     virtual void
     push_deformation_gradient_forward(
       const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
-      const ArrayView<Tensor<2, spacedim, Number>> &FF,
+      const ArrayView<Tensor<2, spacedim, Number>>                      &FF,
       ArrayView<Tensor<2, spacedim, Number>> &push_forward_FF) const = 0;
 
     /**
@@ -90,20 +77,52 @@ namespace fdl
     pull_stress_back(
       const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
       const ArrayView<Tensor<2, spacedim, Number>> &push_forward_stress,
-      ArrayView<Tensor<2, spacedim, Number>> &stress) const = 0;
+      ArrayView<Tensor<2, spacedim, Number>>       &stress) const = 0;
 
     /**
      * Return the material ids over which the present object is defined.
      */
     const std::vector<types::material_id> &
-    get_material_ids() const
-    {
-      return material_ids;
-    }
+    get_material_ids() const;
 
   private:
     std::vector<types::material_id> material_ids;
   };
+
+  // --------------------------- inline functions --------------------------- //
+
+  template <int dim, int spacedim, typename Number>
+  ActiveStrain<dim, spacedim, Number>::ActiveStrain(
+    const std::vector<types::material_id> &material_ids)
+    : material_ids(material_ids)
+  {
+    std::sort(this->material_ids.begin(), this->material_ids.end());
+    this->material_ids.erase(std::unique(this->material_ids.begin(),
+                                         this->material_ids.end()),
+                             this->material_ids.end());
+  }
+
+  template <int dim, int spacedim, typename Number>
+  void
+  ActiveStrain<dim, spacedim, Number>::setup_strain(const double time)
+  {
+    (void)time;
+  }
+
+  template <int dim, int spacedim, typename Number>
+  void
+  ActiveStrain<dim, spacedim, Number>::finish_strain(const double time)
+  {
+    (void)time;
+  }
+
+  template <int dim, int spacedim, typename Number>
+  const std::vector<types::material_id> &
+  ActiveStrain<dim, spacedim, Number>::get_material_ids() const
+  {
+    return material_ids;
+  }
+
 } // namespace fdl
 
 #endif
