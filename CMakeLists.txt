@@ -1,6 +1,10 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.15.0)
 
-SET(FIDDLE_VERSION 0.0.1)
+SET(FDL_VERSION_MAJOR 1)
+SET(FDL_VERSION_MINOR 0)
+SET(FDL_VERSION_PATCH 0)
+
+SET(FIDDLE_VERSION "${FDL_VERSION_MAJOR}.${FDL_VERSION_MINOR}.${FDL_VERSION_PATCH}")
 PROJECT(FIDDLE
   DESCRIPTION "Four-chambered heart + IBAMR + deal.II"
   VERSION ${FIDDLE_VERSION}
@@ -77,6 +81,12 @@ SET(FIDDLE_SRC
 # Always compile triangle as C++
 SET_SOURCE_FILES_PROPERTIES(${FIDDLE_SRC} PROPERTIES LANGUAGE CXX)
 
+# set up the configuration header:
+CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/config.h.in
+  ${CMAKE_BINARY_DIR}/include/fiddle/base/config.h)
+INSTALL(FILES ${CMAKE_BINARY_DIR}/include/fiddle/base/config.h
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/fiddle/base/)
+
 # like IBAMR, we compile in 2D and 3D but only install the headers once.
 ADD_LIBRARY(FIDDLEHeaders INTERFACE)
 TARGET_INCLUDE_DIRECTORIES(
@@ -122,7 +132,10 @@ FOREACH(_d ${FIDDLE_DIMENSIONS})
   TARGET_SOURCES(${_lib} PRIVATE ${FIDDLE_SRC})
 
   TARGET_LINK_LIBRARIES(${_lib} PUBLIC FIDDLEHeaders)
-  # if we want to write a config header it should be added as a dependency here
+
+  TARGET_INCLUDE_DIRECTORIES(${_lib} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include/>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/>)
 
   # Check for the new version
   IF("${DEAL_II_INCLUDE_DIRS}" STREQUAL "")

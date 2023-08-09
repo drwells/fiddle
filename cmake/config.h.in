@@ -1,6 +1,21 @@
 #ifndef included_fiddle_config_h
 #define included_fiddle_config_h
 
+#define FDL_VERSION_MAJOR @FDL_VERSION_MAJOR@
+#define FDL_VERSION_MINOR @FDL_VERSION_MINOR@
+#define FDL_VERSION_PATCH @FDL_VERSION_PATCH@
+
+/**
+ * Macro function returning true if the used version of fiddle is greater than
+ * or equal to the specified version number.
+ */
+#define FDL_VERSION_GTE(major,minor,patch) \
+ ((FDL_VERSION_MAJOR * 10000 + \
+    FDL_VERSION_MINOR * 100 + \
+     FDL_VERSION_PATCH) \
+    >=  \
+    (major)*10000 + (minor)*100 + (patch))
+
 #define FDL_DISABLE_EXTRA_DIAGNOSTICS                                    \
   _Pragma("GCC diagnostic push")                                   /*!*/ \
     _Pragma("GCC diagnostic ignored \"-Wunknown-pragmas\"")        /*!*/ \
