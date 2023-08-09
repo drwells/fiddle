@@ -4,6 +4,7 @@
 #include <fiddle/interaction/interaction_utilities.h>
 
 #include <deal.II/base/exceptions.h>
+#include <deal.II/base/mpi.h>
 
 #include <ibtk/AppInitializer.h>
 #include <ibtk/CartSideDoubleSpecializedLinearRefine.h>

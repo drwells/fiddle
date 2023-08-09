@@ -1,8 +1,12 @@
 #include <fiddle/base/samrai_utilities.h>
 
+#include <tbox/Database.h>
 #include <tbox/InputManager.h>
+#include <tbox/SAMRAIManager.h>
 
 #include <fstream>
+
+#include <mpi.h>
 
 int
 main(int argc, char **argv)

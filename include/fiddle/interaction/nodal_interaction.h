@@ -3,30 +3,49 @@
 
 #include <fiddle/base/config.h>
 
-#include <fiddle/base/quadrature_family.h>
-
 #include <fiddle/grid/nodal_patch_map.h>
-#include <fiddle/grid/overlap_tria.h>
 
 #include <fiddle/interaction/interaction_base.h>
 
-#include <fiddle/transfer/scatter.h>
-
 #include <deal.II/base/bounding_box.h>
-#include <deal.II/base/quadrature.h>
-
-#include <deal.II/distributed/shared_tria.h>
 
 #include <deal.II/dofs/dof_handler.h>
 
-#include <deal.II/fe/mapping.h>
-
 #include <deal.II/lac/vector.h>
-
-#include <BasePatchHierarchy.h>
 
 #include <memory>
 #include <vector>
+
+// forward declarations
+namespace dealii
+{
+  template <int, int>
+  class Mapping;
+
+  namespace parallel
+  {
+    namespace shared
+    {
+      template <int, int>
+      class Triangulation;
+    }
+  } // namespace parallel
+} // namespace dealii
+
+namespace SAMRAI
+{
+  namespace hier
+  {
+    template <int>
+    class BasePatchHierarchy;
+  }
+
+  namespace tbox
+  {
+    template <typename>
+    class Pointer;
+  }
+} // namespace SAMRAI
 
 namespace fdl
 {

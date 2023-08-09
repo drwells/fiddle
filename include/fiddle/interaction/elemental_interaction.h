@@ -5,25 +5,46 @@
 
 #include <fiddle/base/quadrature_family.h>
 
-#include <fiddle/interaction/interaction_base.h>
+#include <fiddle/grid/patch_map.h>
 
-#include <fiddle/transfer/scatter.h>
+#include <fiddle/interaction/interaction_base.h>
 
 #include <deal.II/base/bounding_box.h>
 #include <deal.II/base/quadrature.h>
 
-#include <deal.II/distributed/shared_tria.h>
-
-#include <deal.II/dofs/dof_handler.h>
-
-#include <deal.II/fe/mapping.h>
-
-#include <deal.II/lac/vector.h>
-
-#include <BasePatchHierarchy.h>
-
 #include <memory>
+#include <utility>
 #include <vector>
+
+// forward declarations
+namespace dealii
+{
+  namespace parallel
+  {
+    namespace shared
+    {
+      template <int, int>
+      class Triangulation;
+    }
+  } // namespace parallel
+} // namespace dealii
+
+namespace SAMRAI
+{
+  namespace hier
+  {
+    template <int>
+    class BasePatchHierarchy;
+  } // namespace hier
+
+  namespace tbox
+  {
+    template <typename>
+    class Pointer;
+    class Database;
+  } // namespace tbox
+} // namespace SAMRAI
+
 
 namespace fdl
 {

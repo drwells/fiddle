@@ -4,7 +4,6 @@
 #include <fiddle/base/config.h>
 
 #include <fiddle/grid/overlap_tria.h>
-#include <fiddle/grid/patch_map.h>
 
 #include <fiddle/transfer/scatter.h>
 
@@ -19,11 +18,12 @@
 #include <deal.II/lac/vector.h>
 
 #include <BasePatchHierarchy.h>
-#include <PatchLevel.h>
 
 #include <memory>
 #include <utility>
 #include <vector>
+
+#include <mpi.h>
 
 namespace fdl
 {

@@ -1,3 +1,5 @@
+#include <deal.II/distributed/shared_tria.h>
+
 #include <fiddle/base/exceptions.h>
 
 #include <fiddle/grid/box_utilities.h>

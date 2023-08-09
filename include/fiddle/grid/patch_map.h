@@ -7,7 +7,9 @@
 
 #include <deal.II/dofs/dof_handler.h>
 
+FDL_DISABLE_EXTRA_DIAGNOSTICS
 #include <Patch.h>
+FDL_ENABLE_EXTRA_DIAGNOSTICS
 
 #include <iterator>
 

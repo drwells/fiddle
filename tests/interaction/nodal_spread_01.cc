@@ -1,17 +1,15 @@
 #include <fiddle/base/exceptions.h>
 
 #include <fiddle/grid/box_utilities.h>
-#include <fiddle/grid/overlap_tria.h>
-#include <fiddle/grid/patch_map.h>
+#include <fiddle/grid/nodal_patch_map.h>
 
 #include <fiddle/interaction/interaction_utilities.h>
-
-#include <fiddle/transfer/overlap_partitioning_tools.h>
-#include <fiddle/transfer/scatter.h>
 
 #include <deal.II/base/function_parser.h>
 #include <deal.II/base/mpi.h>
 #include <deal.II/base/quadrature_lib.h>
+
+#include <deal.II/distributed/shared_tria.h>
 
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_renumbering.h>
@@ -21,7 +19,6 @@
 #include <deal.II/fe/mapping_q.h>
 
 #include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/tria.h>
 
 #include <deal.II/lac/vector.h>
 

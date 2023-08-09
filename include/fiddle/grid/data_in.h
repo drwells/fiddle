@@ -3,11 +3,16 @@
 
 #include <fiddle/base/config.h>
 
-#include <deal.II/dofs/dof_handler.h>
-
-#include <deal.II/grid/tria.h>
-
 #include <string>
+
+// forward declarations
+namespace dealii
+{
+  template <int, int>
+  class Triangulation;
+  template <int, int>
+  class DoFHandler;
+} // namespace dealii
 
 namespace fdl
 {

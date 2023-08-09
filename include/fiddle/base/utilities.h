@@ -5,9 +5,7 @@
 
 #include <deal.II/base/point.h>
 
-#include <algorithm>
 #include <string>
-#include <utility>
 #include <vector>
 
 namespace fdl
