@@ -6,13 +6,18 @@
 #include <fiddle/mechanics/active_strain.h>
 #include <fiddle/mechanics/force_contribution.h>
 
-#include <deal.II/dofs/dof_handler.h>
-
-#include <deal.II/fe/mapping.h>
-
 #include <deal.II/lac/la_parallel_vector.h>
 
 #include <vector>
+
+// forward declarations
+namespace dealii
+{
+  template <int, int>
+  class DoFHandler;
+  template <int, int>
+  class Mapping;
+} // namespace dealii
 
 namespace fdl
 {

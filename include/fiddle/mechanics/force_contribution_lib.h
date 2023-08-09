@@ -234,8 +234,8 @@ namespace fdl
     /**
      * Constructor.
      */
-    DampingForce(const Quadrature<dim> &quad,
-                 const double damping_constant,
+    DampingForce(const Quadrature<dim>                 &quad,
+                 const double                           damping_constant,
                  const std::vector<types::material_id> &material_ids = {});
 
     /**
@@ -252,8 +252,7 @@ namespace fdl
     compute_volume_force(
       const double                          time,
       const MechanicsValues<dim, spacedim> &m_values,
-      const typename Triangulation<dim, spacedim>::active_cell_iterator
-        & cell,
+      const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
       ArrayView<Tensor<1, spacedim, Number>> &forces) const override;
 
 
@@ -617,56 +616,39 @@ namespace fdl
     std::vector<types::material_id> material_ids;
   };
 
-  //
-  // Inline helper functions for fiber reinforced material models
-  //
-
-  /*
+  /**
    * I4_i for one quadrature point
    */
   template <int spacedim, typename Number = double>
-  inline double
+  double
   I4_i(const SymmetricTensor<2, spacedim, Number> CC,
-       const Tensor<1, spacedim, Number>          fiber_i)
-  {
-    return (CC * fiber_i) * fiber_i;
-  }
+       const Tensor<1, spacedim, Number>          fiber_i);
 
-  /*
+  /**
    * dI4_i_dFF for one quadrature point
    */
   template <int spacedim, typename Number = double>
-  inline Tensor<2, spacedim, Number>
+  Tensor<2, spacedim, Number>
   dI4_i_dFF(const Tensor<2, spacedim, Number> FF,
-            const Tensor<1, spacedim, Number> fiber_i)
-  {
-    return 2.0 * outer_product(FF * fiber_i, fiber_i);
-  }
+            const Tensor<1, spacedim, Number> fiber_i);
 
-  /*
+  /**
    * I8_ij for one quadrature point
    */
   template <int spacedim, typename Number = double>
-  inline double
+  double
   I8_ij(const SymmetricTensor<2, spacedim, Number> CC,
         const Tensor<1, spacedim, Number>          fiber_i,
-        const Tensor<1, spacedim, Number>          fiber_j)
-  {
-    return (CC * fiber_j) * fiber_i;
-  }
+        const Tensor<1, spacedim, Number>          fiber_j);
 
-  /*
+  /**
    * dI8_ij_dFF for one quadrature point
    */
   template <int spacedim, typename Number = double>
-  inline Tensor<2, spacedim, Number>
+  Tensor<2, spacedim, Number>
   dI8_ij_dFF(const Tensor<2, spacedim, Number> FF,
              const Tensor<1, spacedim, Number> fiber_i,
-             const Tensor<1, spacedim, Number> fiber_j)
-  {
-    return outer_product(FF * fiber_j, fiber_i) +
-           outer_product(FF * fiber_i, fiber_j);
-  }
+             const Tensor<1, spacedim, Number> fiber_j);
 
   /**
    * Modified Holzapfel-Ogden material model.
@@ -741,7 +723,42 @@ namespace fdl
     std::vector<types::material_id> material_ids;
   };
 
+  // --------------------------- inline functions --------------------------- //
 
+  template <int spacedim, typename Number>
+  inline double
+  I4_i(const SymmetricTensor<2, spacedim, Number> CC,
+       const Tensor<1, spacedim, Number>          fiber_i)
+  {
+    return (CC * fiber_i) * fiber_i;
+  }
+
+  template <int spacedim, typename Number>
+  inline Tensor<2, spacedim, Number>
+  dI4_i_dFF(const Tensor<2, spacedim, Number> FF,
+            const Tensor<1, spacedim, Number> fiber_i)
+  {
+    return 2.0 * outer_product(FF * fiber_i, fiber_i);
+  }
+
+  template <int spacedim, typename Number>
+  inline double
+  I8_ij(const SymmetricTensor<2, spacedim, Number> CC,
+        const Tensor<1, spacedim, Number>          fiber_i,
+        const Tensor<1, spacedim, Number>          fiber_j)
+  {
+    return (CC * fiber_j) * fiber_i;
+  }
+
+  template <int spacedim, typename Number>
+  inline Tensor<2, spacedim, Number>
+  dI8_ij_dFF(const Tensor<2, spacedim, Number> FF,
+             const Tensor<1, spacedim, Number> fiber_i,
+             const Tensor<1, spacedim, Number> fiber_j)
+  {
+    return outer_product(FF * fiber_j, fiber_i) +
+           outer_product(FF * fiber_i, fiber_j);
+  }
 } // namespace fdl
 
 #endif

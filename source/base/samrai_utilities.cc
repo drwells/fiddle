@@ -2,6 +2,8 @@
 #include <fiddle/base/samrai_utilities.h>
 #include <fiddle/base/utilities.h>
 
+FDL_DISABLE_EXTRA_DIAGNOSTICS
+#include <BasePatchLevel.h>
 #include <CellData.h>
 #include <CellVariable.h>
 #include <EdgeData.h>
@@ -13,8 +15,15 @@
 #include <HierarchySideDataOpsReal.h>
 #include <NodeData.h>
 #include <NodeVariable.h>
+#include <PatchData.h>
+#include <PatchHierarchy.h>
+#include <PatchLevel.h>
 #include <SideData.h>
 #include <SideVariable.h>
+#include <Variable.h>
+#include <tbox/Database.h>
+#include <tbox/MemoryDatabase.h>
+FDL_ENABLE_EXTRA_DIAGNOSTICS
 
 namespace fdl
 {
@@ -76,7 +85,8 @@ namespace fdl
   std::pair<SAMRAIPatchType, SAMRAIFieldType>
   extract_types(const tbox::Pointer<hier::PatchData<spacedim>> &p)
   {
-    Assert(p, ExcMessage("The given pointer should not be null at this point."));
+    Assert(p,
+           ExcMessage("The given pointer should not be null at this point."));
     if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, int>>(p))
       return {SAMRAIPatchType::Edge, SAMRAIFieldType::Int};
     if (auto p2 = tbox::Pointer<pdat::EdgeData<spacedim, float>>(p))

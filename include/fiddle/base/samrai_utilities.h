@@ -3,20 +3,44 @@
 
 #include <fiddle/base/config.h>
 
-FDL_DISABLE_EXTRA_DIAGNOSTICS
-#include <BasePatchLevel.h>
-#include <HierarchyDataOpsReal.h>
-#include <PatchData.h>
-#include <PatchHierarchy.h>
-#include <PatchLevel.h>
-#include <Variable.h>
-
-#include <tbox/Database.h>
-#include <tbox/MemoryDatabase.h>
-FDL_ENABLE_EXTRA_DIAGNOSTICS
-
+#include <string>
 #include <utility>
 #include <vector>
+
+// forward declarations
+namespace SAMRAI
+{
+  namespace hier
+  {
+    template <int>
+    class BasePatchLevel;
+    template <int>
+    class Patch;
+    template <int>
+    class PatchData;
+    template <int>
+    class PatchLevel;
+    template <int>
+    class PatchHierarchy;
+    template <int>
+    class Variable;
+  } // namespace hier
+
+  namespace math
+  {
+    template <int, typename>
+    class HierarchyDataOpsReal;
+  }
+
+  namespace tbox
+  {
+    class Database;
+    class MemoryDatabase;
+
+    template <typename>
+    class Pointer;
+  } // namespace tbox
+} // namespace SAMRAI
 
 // Collect the various hacks needed to work around common problems in SAMRAI.
 

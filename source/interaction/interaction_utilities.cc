@@ -1,6 +1,8 @@
 #include <fiddle/base/samrai_utilities.h>
 
 #include <fiddle/grid/box_utilities.h>
+#include <fiddle/grid/patch_map.h>
+#include <fiddle/grid/nodal_patch_map.h>
 
 #include <fiddle/interaction/interaction_utilities.h>
 
@@ -77,9 +79,9 @@ namespace fdl
   template <int spacedim, typename Number, typename Scalar>
   void
   tag_cells_internal(
-    const std::vector<BoundingBox<spacedim, Number>>         &bboxes,
-    const int                                                 tag_index,
-    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<spacedim>> patch_level)
+    const std::vector<BoundingBox<spacedim, Number>>          &bboxes,
+    const int                                                  tag_index,
+    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<spacedim>> &patch_level)
   {
     // extract what we need for getCellIndex:
     const hier::IntVector<spacedim> ratio = patch_level->getRatio();
@@ -151,9 +153,9 @@ namespace fdl
   template <int spacedim, typename Number>
   void
   tag_cells(
-    const std::vector<BoundingBox<spacedim, Number>>         &bboxes,
-    const int                                                 tag_index,
-    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<spacedim>> patch_level)
+    const std::vector<BoundingBox<spacedim, Number>>          &bboxes,
+    const int                                                  tag_index,
+    SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<spacedim>> &patch_level)
   {
     // SAMRAI doesn't offer a way to dispatch on data type so we have to do it
     // ourselves
@@ -1137,14 +1139,14 @@ namespace fdl
   // instantiations
 
   template void
-  tag_cells(const std::vector<BoundingBox<NDIM, float>>          &bboxes,
-            const int                                             tag_index,
-            SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> patch_level);
+  tag_cells(const std::vector<BoundingBox<NDIM, float>>           &bboxes,
+            const int                                              tag_index,
+            SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> &patch_level);
 
   template void
-  tag_cells(const std::vector<BoundingBox<NDIM, double>>         &bboxes,
-            const int                                             tag_index,
-            SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> patch_level);
+  tag_cells(const std::vector<BoundingBox<NDIM, double>>          &bboxes,
+            const int                                              tag_index,
+            SAMRAI::tbox::Pointer<SAMRAI::hier::PatchLevel<NDIM>> &patch_level);
 
   template void
   count_quadrature_points(const int                         qp_data_index,

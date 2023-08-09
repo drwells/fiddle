@@ -4,16 +4,29 @@
 #include <fiddle/base/config.h>
 
 #include <deal.II/base/point.h>
-#include <deal.II/base/quadrature.h>
-
-#include <deal.II/distributed/shared_tria.h>
-
-#include <deal.II/fe/mapping.h>
-
-#include <deal.II/grid/tria.h>
 
 #include <utility>
 #include <vector>
+
+// forward declarations
+namespace dealii
+{
+  template <int, int>
+  class Triangulation;
+  template <int, int>
+  class Mapping;
+  template <int>
+  class Quadrature;
+
+  namespace parallel
+  {
+    namespace shared
+    {
+      template <int, int>
+      class Triangulation;
+    }
+  } // namespace parallel
+} // namespace dealii
 
 namespace fdl
 {
@@ -48,8 +61,7 @@ namespace fdl
    */
   template <int spacedim>
   std::pair<std::vector<unsigned int>, std::vector<Point<spacedim>>>
-  extract_nodeset(const std::string &filename,
-                  const int          nodeset_id);
+  extract_nodeset(const std::string &filename, const int nodeset_id);
 
   /**
    * Compute the centroid of a surface defined by the boundary ids in @p
@@ -57,8 +69,8 @@ namespace fdl
    */
   template <int dim>
   Point<dim>
-  compute_centroid(const Mapping<dim>                    &mapping,
-                   const Triangulation<dim>              &tria,
+  compute_centroid(const Mapping<dim, dim>               &mapping,
+                   const Triangulation<dim, dim>         &tria,
                    const std::vector<types::boundary_id> &boundary_ids);
 } // namespace fdl
 

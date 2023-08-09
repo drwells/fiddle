@@ -5,20 +5,47 @@
 
 FDL_DISABLE_EXTRA_DIAGNOSTICS
 #include <deal.II/base/bounding_box.h>
-
-#include <deal.II/distributed/shared_tria.h>
-FDL_ENABLE_EXTRA_DIAGNOSTICS
-
-#include <deal.II/dofs/dof_handler.h>
-
-#include <deal.II/fe/mapping.h>
-
-FDL_DISABLE_EXTRA_DIAGNOSTICS
-#include <BasePatchLevel.h>
-#include <Patch.h>
 FDL_ENABLE_EXTRA_DIAGNOSTICS
 
 #include <vector>
+
+// forward declarations
+namespace dealii
+{
+  template <int, int>
+  class Mapping;
+  template <int, int>
+  class DoFHandler;
+
+  namespace parallel
+  {
+    namespace shared
+    {
+      template <int, int>
+      class Triangulation;
+    }
+  } // namespace parallel
+} // namespace dealii
+
+namespace SAMRAI
+{
+  namespace hier
+  {
+    template <int>
+    class BasePatchLevel;
+    template <int>
+    class Box;
+    template <int>
+    class Patch;
+  } // namespace hier
+
+  namespace tbox
+  {
+    template <typename>
+    class Pointer;
+  }
+} // namespace SAMRAI
+
 
 namespace fdl
 {

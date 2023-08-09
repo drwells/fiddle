@@ -3,22 +3,45 @@
 
 #include <fiddle/base/config.h>
 
-#include <fiddle/grid/nodal_patch_map.h>
-#include <fiddle/grid/patch_map.h>
-
 #include <deal.II/base/bounding_box.h>
 #include <deal.II/base/quadrature.h>
 
-#include <deal.II/dofs/dof_handler.h>
-
-#include <deal.II/fe/mapping.h>
-
-#include <deal.II/lac/vector.h>
-
-#include <PatchLevel.h>
-
 #include <memory>
 #include <vector>
+
+// forward declarations
+namespace fdl
+{
+  template <int, int>
+  class NodalPatchMap;
+  template <int, int>
+  class PatchMap;
+} // namespace fdl
+
+namespace dealii
+{
+  template <int, int>
+  class DoFHandler;
+  template <int, int>
+  class Mapping;
+  template <typename>
+  class Vector;
+} // namespace dealii
+
+namespace SAMRAI
+{
+  namespace hier
+  {
+    template <int>
+    class PatchLevel;
+  }
+
+  namespace tbox
+  {
+    template <typename>
+    class Pointer;
+  }
+} // namespace SAMRAI
 
 // This file contains the functions that do all the actual interaction work -
 // these are typically called by InteractionBase and its descendants and not
@@ -37,7 +60,7 @@ namespace fdl
   void
   tag_cells(const std::vector<BoundingBox<spacedim, Number>> &bboxes,
             const int                                         tag_index,
-            tbox::Pointer<hier::PatchLevel<spacedim>>         patch_level);
+            tbox::Pointer<hier::PatchLevel<spacedim>>        &patch_level);
 
   /**
    * Add the number of quadrature points.
@@ -75,8 +98,8 @@ namespace fdl
   /**
    * Count the number of nodes in each patch.
    *
-   * @param[in] node_count_data_index Data index into which we will add the number
-   * of nodes in each cell.
+   * @param[in] node_count_data_index Data index into which we will add the
+   * number of nodes in each cell.
    *
    * @param[in] nodal_patch_map Mapping between patches and DoFs.
    *

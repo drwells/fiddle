@@ -46,7 +46,7 @@ namespace fdl
 
   private:
     const SmartPointer<const Triangulation<dim, spacedim>> tria;
-    dealii::Table<2, dealii::Tensor<1, spacedim>>          fibers;
+    Table<2, Tensor<1, spacedim>>                          fibers;
     types::global_cell_index local_processor_min_cell_index;
   };
 

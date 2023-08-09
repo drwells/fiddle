@@ -7,6 +7,8 @@
 
 #include <deal.II/base/multithread_info.h>
 
+#include <deal.II/distributed/shared_tria.h>
+
 #include <deal.II/fe/mapping_fe_field.h>
 
 #include <ibamr/ibamr_utilities.h>
