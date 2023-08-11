@@ -234,6 +234,13 @@ namespace fdl
     compute_flux(const int data_idx, const std::string &kernel_name) const;
 
     /**
+     * Compute the mean normal vector. This is useful for checking the
+     * orientation of the mesh.
+     */
+    virtual Tensor<1, spacedim>
+    compute_mean_normal_vector() const;
+
+    /**
      * Interpolate the value of some scalar field at the centroid.
      */
     virtual double
@@ -267,7 +274,8 @@ namespace fdl
     /**
      * Reinitialize all the FE data structures, including vectors and mappings.
      */
-    void reinit_dofs();
+    void
+    reinit_dofs();
 
     /**
      * Reinitialize the NodalInteraction object.

@@ -619,6 +619,32 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
+  Tensor<1, spacedim>
+  SurfaceMeter<dim, spacedim>::compute_mean_normal_vector() const
+  {
+    const auto                 &fe = get_vector_dof_handler().get_fe();
+    FEValues<dim - 1, spacedim> fe_values(get_mapping(),
+                                          fe,
+                                          meter_quadrature,
+                                          update_normal_vectors |
+                                            update_values | update_JxW_values);
+
+    Tensor<1, spacedim> mean_normal;
+    for (const auto &cell : get_vector_dof_handler().active_cell_iterators() |
+                              IteratorFilters::LocallyOwnedCell())
+      {
+        fe_values.reinit(cell);
+        for (unsigned int q = 0; q < meter_quadrature.size(); ++q)
+          mean_normal += fe_values.normal_vector(q) * fe_values.JxW(q);
+      }
+
+    mean_normal =
+      Utilities::MPI::sum(mean_normal, meter_tria.get_communicator());
+    mean_normal /= mean_normal.norm();
+    return mean_normal;
+  }
+
+  template <int dim, int spacedim>
   double
   SurfaceMeter<dim, spacedim>::compute_centroid_value(
     const int          data_idx,

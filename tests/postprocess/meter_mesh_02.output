@@ -11,5 +11,6 @@ computed mean velocity = -0.36567 0.0630565 0.0595543
 computed flux = -0.00554962
    meter flux = -0.00555945
    meter normal = -0.00618519 -0.00403823 0.999973
+   meter normal = -0.00618519 -0.00403823 0.999973
 
 global error in mean velocity = 6.39292e-15

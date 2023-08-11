@@ -247,7 +247,9 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     const auto   flux_pair  = meter_mesh.compute_flux(f_idx, "BSPLINE_3");
     const double meter_flux = flux_pair.first;
     const Tensor<1, spacedim> meter_normal = flux_pair.second;
-    const double              meter_centroid_g =
+    const Tensor<1, spacedim> other_meter_normal =
+      meter_mesh.compute_mean_normal_vector();
+    const double meter_centroid_g =
       meter_mesh.compute_centroid_value(g_idx, "BSPLINE_3");
     if (rank == 0)
       output << "number of hull points = " << bounding_disk_points.size()
@@ -268,6 +270,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
              << "computed flux = " << flux << std::endl
              << "   meter flux = " << meter_flux << std::endl
              << "   meter normal = " << meter_normal << std::endl
+             << "   meter normal = " << other_meter_normal << std::endl
              << std::endl
              << "global error in mean velocity = "
              << (mean_velocity - meter_mesh.get_mean_velocity()).norm()
