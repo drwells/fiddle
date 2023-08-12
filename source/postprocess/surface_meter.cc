@@ -577,9 +577,10 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
-  double
-  SurfaceMeter<dim, spacedim>::compute_flux(const int          data_idx,
-                                            const std::string &kernel_name)
+  std::pair<double, Tensor<1, spacedim>>
+  SurfaceMeter<dim, spacedim>::compute_flux(
+    const int          data_idx,
+    const std::string &kernel_name) const
   {
     const auto interpolated_data =
       interpolate_vector_field(data_idx, kernel_name);
@@ -594,6 +595,7 @@ namespace fdl
     std::vector<types::global_dof_index> cell_dofs(fe.dofs_per_cell);
     std::vector<Tensor<1, spacedim>>     cell_values(meter_quadrature.size());
     double                               flux = 0.0;
+    Tensor<1, spacedim>                  mean_normal;
     for (const auto &cell : get_vector_dof_handler().active_cell_iterators() |
                               IteratorFilters::LocallyOwnedCell())
       {
@@ -602,11 +604,44 @@ namespace fdl
         fe_values[FEValuesExtractors::Vector(0)].get_function_values(
           interpolated_data, cell_values);
         for (unsigned int q = 0; q < meter_quadrature.size(); ++q)
-          flux +=
-            cell_values[q] * fe_values.normal_vector(q) * fe_values.JxW(q);
+          {
+            flux +=
+              cell_values[q] * fe_values.normal_vector(q) * fe_values.JxW(q);
+            mean_normal += fe_values.normal_vector(q) * fe_values.JxW(q);
+          }
       }
 
-    return Utilities::MPI::sum(flux, meter_tria.get_communicator());
+    flux = Utilities::MPI::sum(flux, meter_tria.get_communicator());
+    mean_normal =
+      Utilities::MPI::sum(mean_normal, meter_tria.get_communicator());
+    mean_normal /= mean_normal.norm();
+    return std::make_pair(flux, mean_normal);
+  }
+
+  template <int dim, int spacedim>
+  Tensor<1, spacedim>
+  SurfaceMeter<dim, spacedim>::compute_mean_normal_vector() const
+  {
+    const auto                 &fe = get_vector_dof_handler().get_fe();
+    FEValues<dim - 1, spacedim> fe_values(get_mapping(),
+                                          fe,
+                                          meter_quadrature,
+                                          update_normal_vectors |
+                                            update_values | update_JxW_values);
+
+    Tensor<1, spacedim> mean_normal;
+    for (const auto &cell : get_vector_dof_handler().active_cell_iterators() |
+                              IteratorFilters::LocallyOwnedCell())
+      {
+        fe_values.reinit(cell);
+        for (unsigned int q = 0; q < meter_quadrature.size(); ++q)
+          mean_normal += fe_values.normal_vector(q) * fe_values.JxW(q);
+      }
+
+    mean_normal =
+      Utilities::MPI::sum(mean_normal, meter_tria.get_communicator());
+    mean_normal /= mean_normal.norm();
+    return mean_normal;
   }
 
   template <int dim, int spacedim>

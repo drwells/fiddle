@@ -18,6 +18,7 @@
 #include <deal.II/lac/la_parallel_vector.h>
 
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace fdl
@@ -219,10 +220,25 @@ namespace fdl
     compute_mean_value(const int data_idx, const std::string &kernel_name);
 
     /**
-     * Compute the flux of some quantity through the meter mesh.
+     * Compute both the flux and the flux of some quantity through the meter
+     * mesh and the mean normal vector of the mesh.
+     *
+     * @note The normal vector's sign depends on the orientation of the
+     * Triangulation - see the deal.II glossary entry on "Direction flags" for
+     * more information. This value is well-defined but might have the wrong
+     * sign for your application. For example, if a meter is at a boundary and
+     * you want to measure outflow, then you should check that the normal vector
+     * points out of the domain.
      */
-    virtual double
-    compute_flux(const int data_idx, const std::string &kernel_name);
+    virtual std::pair<double, Tensor<1, spacedim>>
+    compute_flux(const int data_idx, const std::string &kernel_name) const;
+
+    /**
+     * Compute the mean normal vector. This is useful for checking the
+     * orientation of the mesh.
+     */
+    virtual Tensor<1, spacedim>
+    compute_mean_normal_vector() const;
 
     /**
      * Interpolate the value of some scalar field at the centroid.
@@ -258,7 +274,8 @@ namespace fdl
     /**
      * Reinitialize all the FE data structures, including vectors and mappings.
      */
-    void reinit_dofs();
+    void
+    reinit_dofs();
 
     /**
      * Reinitialize the NodalInteraction object.

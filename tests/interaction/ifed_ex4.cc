@@ -423,7 +423,7 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
           // use better kernels than PIECEWISE_CONSTANT. This approach
           // suffices for testing that we can do very basic meter stuff.
 
-          auto *    var_db = hier::VariableDatabase<spacedim>::getDatabase();
+          auto     *var_db = hier::VariableDatabase<spacedim>::getDatabase();
           const int u_current_idx = var_db->mapVariableAndContextToIndex(
             navier_stokes_integrator->getVelocityVariable(),
             navier_stokes_integrator->getCurrentContext());
@@ -475,12 +475,14 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
           tbox::pout << "meter 2 centroid = " << surface_meter_2->get_centroid()
                      << std::endl;
           tbox::pout << "meter 1 flux = "
-                     << surface_meter_1->compute_flux(u_scratch_idx,
-                                                      "PIECEWISE_CONSTANT")
+                     << surface_meter_1
+                          ->compute_flux(u_scratch_idx, "PIECEWISE_CONSTANT")
+                          .first
                      << std::endl;
           tbox::pout << "meter 2 flux = "
-                     << surface_meter_2->compute_flux(u_scratch_idx,
-                                                      "PIECEWISE_CONSTANT")
+                     << surface_meter_2
+                          ->compute_flux(u_scratch_idx, "PIECEWISE_CONSTANT")
+                          .first
                      << std::endl;
 
           for (int ln = coarsest_ln; ln <= finest_ln; ++ln)
