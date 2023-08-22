@@ -36,14 +36,14 @@ jobs:
         with:
           # this is the new default location (specified by XDG_CACHE_HOME)
           path: ~/.cache/ccache
-          key: ${{ runner.os }}-build-archlinux-cmake-${{ github.run_number }}
+          key: build-archlinux-${{ github.run_number }}
           restore-keys: |
-            ${{ runner.os }}-build-archlinux-${{ env.key1 }}
-            ${{ runner.os }}-build-archlinux-${{ env.key2 }}
-            ${{ runner.os }}-build-archlinux-${{ env.key3 }}
-            ${{ runner.os }}-build-archlinux-${{ env.key4 }}
-            ${{ runner.os }}-build-archlinux-${{ env.key5 }}
-            ${{ runner.os }}-build-archlinux-
+            build-archlinux-${{ env.key1 }}
+            build-archlinux-${{ env.key2 }}
+            build-archlinux-${{ env.key3 }}
+            build-archlinux-${{ env.key4 }}
+            build-archlinux-${{ env.key5 }}
+            build-archlinux-
       - name: Configure
         id: configure
         run: |
