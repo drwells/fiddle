@@ -51,7 +51,6 @@ namespace fdl
            const Triangulation<dim, spacedim> &tria,
            const std::vector<BoundingBox<spacedim, Number>> &cell_bboxes);
 
-
     /**
      * Return the number of patches.
      */
@@ -130,12 +129,7 @@ namespace fdl
       iterator(const std::ptrdiff_t             index,
                const DoFHandler<dim, spacedim> &dof_handler,
                const std::vector<IndexSet>     &patch_level_cells,
-               const std::vector<std::size_t>  &patch_cummulative_n_cells)
-        : dh(&dof_handler)
-        , level_cells(&patch_level_cells)
-        , cummulative_n_cells(&patch_cummulative_n_cells)
-        , index(index)
-      {}
+               const std::vector<std::size_t>  &patch_cummulative_n_cells);
 
       const DoFHandler<dim, spacedim> *dh;
 
@@ -156,42 +150,16 @@ namespace fdl
      * processor 1.
      */
     tbox::Pointer<hier::Patch<spacedim>> &
-    get_patch(const std::size_t patch_n)
-    {
-      AssertIndexRange(patch_n, size());
-      return patches[patch_n];
-    }
+    get_patch(const std::size_t patch_n);
 
     const tbox::Pointer<hier::Patch<spacedim>> &
-    get_patch(const std::size_t patch_n) const
-    {
-      AssertIndexRange(patch_n, size());
-      return patches[patch_n];
-    }
+    get_patch(const std::size_t patch_n) const;
 
     iterator
-    begin(const std::size_t patch_n, const DoFHandler<dim, spacedim> &dh) const
-    {
-      AssertIndexRange(patch_n, size());
-      Assert(&dh.get_triangulation() == &*tria,
-             ExcMessage("must use same Triangulation"));
-      return iterator(0,
-                      dh,
-                      patch_level_cells[patch_n],
-                      cummulative_n_cells[patch_n]);
-    }
+    begin(const std::size_t patch_n, const DoFHandler<dim, spacedim> &dh) const;
 
     iterator
-    end(const std::size_t patch_n, const DoFHandler<dim, spacedim> &dh) const
-    {
-      AssertIndexRange(patch_n, size());
-      Assert(&dh.get_triangulation() == &*tria,
-             ExcMessage("must use same Triangulation"));
-      return iterator(cummulative_n_cells[patch_n].back(),
-                      dh,
-                      patch_level_cells[patch_n],
-                      cummulative_n_cells[patch_n]);
-    }
+    end(const std::size_t patch_n, const DoFHandler<dim, spacedim> &dh) const;
 
   protected:
     SmartPointer<const Triangulation<dim, spacedim>> tria;
@@ -226,6 +194,72 @@ namespace fdl
   PatchMap<dim, spacedim>::size() const
   {
     return patches.size();
+  }
+
+
+
+  template <int dim, int spacedim>
+  PatchMap<dim, spacedim>::iterator::iterator(
+    const std::ptrdiff_t             index,
+    const DoFHandler<dim, spacedim> &dof_handler,
+    const std::vector<IndexSet>     &patch_level_cells,
+    const std::vector<std::size_t>  &patch_cummulative_n_cells)
+    : dh(&dof_handler)
+    , level_cells(&patch_level_cells)
+    , cummulative_n_cells(&patch_cummulative_n_cells)
+    , index(index)
+  {}
+
+
+
+  template <int dim, int spacedim>
+  tbox::Pointer<hier::Patch<spacedim>> &
+  PatchMap<dim, spacedim>::get_patch(const std::size_t patch_n)
+  {
+    AssertIndexRange(patch_n, size());
+    return patches[patch_n];
+  }
+
+
+
+  template <int dim, int spacedim>
+  const tbox::Pointer<hier::Patch<spacedim>> &
+  PatchMap<dim, spacedim>::get_patch(const std::size_t patch_n) const
+  {
+    AssertIndexRange(patch_n, size());
+    return patches[patch_n];
+  }
+
+
+
+  template <int dim, int spacedim>
+  typename PatchMap<dim, spacedim>::iterator
+  PatchMap<dim, spacedim>::begin(const std::size_t                patch_n,
+                                 const DoFHandler<dim, spacedim> &dh) const
+  {
+    AssertIndexRange(patch_n, size());
+    Assert(&dh.get_triangulation() == &*tria,
+           ExcMessage("must use same Triangulation"));
+    return iterator(0,
+                    dh,
+                    patch_level_cells[patch_n],
+                    cummulative_n_cells[patch_n]);
+  }
+
+
+
+  template <int dim, int spacedim>
+  typename PatchMap<dim, spacedim>::iterator
+  PatchMap<dim, spacedim>::end(const std::size_t                patch_n,
+                               const DoFHandler<dim, spacedim> &dh) const
+  {
+    AssertIndexRange(patch_n, size());
+    Assert(&dh.get_triangulation() == &*tria,
+           ExcMessage("must use same Triangulation"));
+    return iterator(cummulative_n_cells[patch_n].back(),
+                    dh,
+                    patch_level_cells[patch_n],
+                    cummulative_n_cells[patch_n]);
   }
 
 
