@@ -1,0 +1,33 @@
+index = 0
+  Cell lower = (0,0)
+  Cell upper = (1,0)
+  Side lower = (0,0) axis = 0
+  Side upper = (1,0) axis = 0
+  axis = 0
+  cell convex = 0
+  side convex = 0.5
+  point = 1.125 1.125
+  computed side lower =     1 1.125
+  computed side upper =  1.25 1.125
+index = 1
+  Cell lower = (0,0)
+  Cell upper = (0,1)
+  Side lower = (0,0) axis = 1
+  Side upper = (0,1) axis = 1
+  axis = 1
+  cell convex = 0.25
+  side convex = 0.75
+  point = 1.125 1.1875
+  computed side lower = 1.125     1
+  computed side upper = 1.125  1.25
+index = 2
+  Cell lower = (1,0)
+  Cell upper = (2,0)
+  Side lower = (2,0) axis = 0
+  Side upper = (3,0) axis = 0
+  axis = 0
+  cell convex = 1
+  side convex = 0.5
+  point = 1.625 1.125
+  computed side lower =   1.5 1.125
+  computed side upper =  1.75 1.125
