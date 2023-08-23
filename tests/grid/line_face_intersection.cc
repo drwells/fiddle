@@ -55,12 +55,12 @@ int main(int argc, char **argv)
    for (const auto &cell : tria.active_cell_iterators())
      cell_bboxes.push_back(cell->bounding_box());
    // Set up the relevant fiddle class:
-   dealii::Point<3> r(0.9999,0.000001, 0.000010);
+   dealii::Point<3> r(0.902618, 0.0, 0.00287049);
    dealii::Tensor<1,3> q;
    q[0]=0;
    q[1]=1;
    q[2]=0;
-   const MappingQ<2, 3> mapping(7);
+   const MappingQ<2, 3> mapping(4);
 
    std::vector<std::pair<double, Point<2>> > t_vals;
    // now do the actual test
@@ -71,5 +71,5 @@ int main(int argc, char **argv)
      {
        bool z=fdl::intersect_line_with_face(t_vals,cell,mapping,r,q,-0.000);
      }
-return 1;
+return 0;
 }

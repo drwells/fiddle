@@ -270,10 +270,18 @@ namespace fdl
   bool
   intersect_line_with_edge(std::vector<std::pair<double, Point<1>> >& t_vals,
                            const DoFHandler<1, 2>::active_cell_iterator elem,
-                           const dealii::MappingQ<1, 2> &mapping,
+                           const dealii::Mapping<1, 2> &mapping,
                            dealii::Point<2> r,
-                           dealii::Tensor<1,2> q,
-                           const double tol = 0.0);
+                           const dealii::Tensor<1,2> q,
+                           const double tol =0);
+    template <int dim, int spacedim>
+    bool
+    if_line_intersect_with_triangle(const std::vector<Point<spacedim> >& real_points, dealii::Point<spacedim>& r,
+                                    const dealii::Tensor<1,spacedim> q);
+    template <int dim, int spacedim>
+    bool
+    if_line_intersect_with_box(std::vector<Point<spacedim> >& real_points, dealii::Point<spacedim> r,
+                             dealii::Tensor<1,spacedim> q);
   /**
  * Intersec line with edge .
  * WARNING: This code is specialized to the case in which q is a unit vector
@@ -282,10 +290,21 @@ aligned with the coordinate axes.
   bool
   intersect_line_with_face(std::vector<std::pair<double, Point<2>> >& t_vals,
                            const typename DoFHandler<2, 3>::active_cell_iterator elem,
-                           const dealii::MappingQ<2, 3> &mapping,
+                           const dealii::Mapping<2, 3> &mapping,
                            dealii::Point<3> r,
-                           dealii::Tensor<1,3> q,
-                           const double tol=0);
+                           const dealii::Tensor<1,3> q,
+                           const double tol = 0);
+
+  void
+  intersect_line_with_flat_triangle(std::vector<std::pair<double, Point<2>> >& t_vals,
+                                      const typename DoFHandler<2, 3>::active_cell_iterator elem,
+                                      const dealii::Mapping<2, 3> &mapping,
+                                      const dealii::Point<2> ref_p0,
+                                      const dealii::Point<2> ref_p1,
+                                      const dealii::Point<2> ref_p2,
+                                      dealii::Point<3> r,
+                                      const dealii::Tensor<1,3> q,
+                                      const double tol=0);
 
 
 } // namespace fdl

@@ -94,6 +94,7 @@ SET(FIDDLE_SRC
   source/interaction/dlm_method.cc
   source/interaction/elemental_interaction.cc
   source/interaction/ifed_method.cc
+  source/interaction/IIMethod.cpp
   source/interaction/ifed_method_base.cc
   source/interaction/interaction_base.cc
   source/interaction/interaction_utilities.cc

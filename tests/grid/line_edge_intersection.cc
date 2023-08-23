@@ -58,7 +58,7 @@ int main(int argc, char **argv)
       for (const auto &cell : tria.active_cell_iterators())
         cell_bboxes.push_back(cell->bounding_box());
       // Set up the relevant fiddle class:
-      dealii::Point<2> r(0.999,0.0);
+      dealii::Point<2> r(0.9999999,0.0);
       dealii::Tensor<1,2> q;
       q[0]=0;
       q[1]=1;
@@ -71,7 +71,6 @@ int main(int argc, char **argv)
       dof_handler.distribute_dofs(fe);
       for (const auto &cell : dof_handler.active_cell_iterators())
         {
-          fdl::intersect_line_with_edge(t_vals,cell,mapping,r,q,-0.000);
+          bool z=fdl::intersect_line_with_edge(t_vals,cell,mapping,r,q,-0.000);
         }
-      return 1;
 }

@@ -10,7 +10,89 @@
     <option name="reloaded" value="true" />
   </component>
   <component name="CMakeRunConfigurationManager">
-    <generated />
+    <generated>
+      <config projectName="FIDDLE" targetName="tests-transfer_scatter_01" />
+      <config projectName="FIDDLE" targetName="tests-postprocess_meter_mesh_02" />
+      <config projectName="FIDDLE" targetName="tests-postprocess_meter_mesh_03" />
+      <config projectName="FIDDLE" targetName="tests-postprocess_meter_mesh_01" />
+      <config projectName="FIDDLE" targetName="tests-grid_surface_tria_01_2d" />
+      <config projectName="FIDDLE" targetName="tests-grid_centroid_01" />
+      <config projectName="FIDDLE" targetName="turek-hron" />
+      <config projectName="FIDDLE" targetName="fiddle2d" />
+      <config projectName="FIDDLE" targetName="tests-grid_collect_edge_lengths_01" />
+      <config projectName="FIDDLE" targetName="tests-grid_edge_lengths_02" />
+      <config projectName="FIDDLE" targetName="tests-grid_edge_lengths_01" />
+      <config projectName="FIDDLE" targetName="tests-interaction_nodal_interpolate_01" />
+      <config projectName="FIDDLE" targetName="tests-interaction_nodal_interpolate_02" />
+      <config projectName="FIDDLE" targetName="tests" />
+      <config projectName="FIDDLE" targetName="tests-base_qwv_family_01" />
+      <config projectName="FIDDLE" targetName="tests-grid_line_edge_intersection" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_serialize_part_01" />
+      <config projectName="FIDDLE" targetName="tests-grid_line_face_intersection" />
+      <config projectName="FIDDLE" targetName="tests-interaction_elemental_interpolate_01_2d" />
+      <config projectName="FIDDLE" targetName="tests-base_nonintersecting_sphere_01_3d" />
+      <config projectName="FIDDLE" targetName="tests-interaction_ifed_ex4_2d" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_body_force_01" />
+      <config projectName="FIDDLE" targetName="tests-grid_fe_predicate_01" />
+      <config projectName="FIDDLE" targetName="tests-interaction_ifed_interpolate_01_2d" />
+      <config projectName="FIDDLE" targetName="tests-interaction_ifed_ex4_simplex_2d" />
+      <config projectName="FIDDLE" targetName="tests-base_base64" />
+      <config projectName="FIDDLE" targetName="tests-postprocess" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_spring_01" />
+      <config projectName="FIDDLE" targetName="tests-interaction_interpolate_01" />
+      <config projectName="FIDDLE" targetName="tests-interaction_interpolate_02" />
+      <config projectName="FIDDLE" targetName="tests-interaction_spread_01" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_force_volumetric_02" />
+      <config projectName="FIDDLE" targetName="tests-grid_box_to_bbox" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_force_volumetric_01" />
+      <config projectName="FIDDLE" targetName="tests-transfer" />
+      <config projectName="FIDDLE" targetName="tests-grid" />
+      <config projectName="FIDDLE" targetName="tests-grid_collect_bboxes_01_3d" />
+      <config projectName="FIDDLE" targetName="tests-interaction_ifed_tag_3d" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_me_values_02" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_me_values_03" />
+      <config projectName="FIDDLE" targetName="tests-interaction_count_quadrature_points_01" />
+      <config projectName="FIDDLE" targetName="tests-base_nonintersecting_sphere_01_2d" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_pk1_volumetric_03" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_pk1_volumetric_02" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_pk1_volumetric_01" />
+      <config projectName="FIDDLE" targetName="tests-base_hello" />
+      <config projectName="FIDDLE" targetName="tests-base_qgauss_family_01" />
+      <config projectName="FIDDLE" targetName="tests-base" />
+      <config projectName="FIDDLE" targetName="tests-base_qgauss_family_02" />
+      <config projectName="FIDDLE" targetName="tests-grid_grid_predicate_01" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_me_values_01" />
+      <config projectName="FIDDLE" targetName="tests-interaction" />
+      <config projectName="FIDDLE" targetName="tests-mechanics" />
+      <config projectName="FIDDLE" targetName="tests-base_copy_database" />
+      <config projectName="FIDDLE" targetName="tests-postprocess_vertices_inside_domain" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_compute_load_vector_01" />
+      <config projectName="FIDDLE" targetName="tests-grid_collect_bboxes_01_2d" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_pk1_volumetric_05" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_pk1_volumetric_04" />
+      <config projectName="FIDDLE" targetName="tests-grid_nonoverlapping_boxes_01" />
+      <config projectName="FIDDLE" targetName="tests-interaction_ifed_spread_02_2d" />
+      <config projectName="FIDDLE" targetName="tests-grid_overlap_tria_01" />
+      <config projectName="FIDDLE" targetName="tests-interaction_ifed_tag_2d" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_fiber_network_01" />
+      <config projectName="FIDDLE" targetName="tests-base_initial_guess" />
+      <config projectName="FIDDLE" targetName="band" />
+      <config projectName="FIDDLE" targetName="tests-interaction_dlm_01" />
+      <config projectName="FIDDLE" targetName="examples" />
+      <config projectName="FIDDLE" targetName="tests-postprocess_point_values_01" />
+      <config projectName="FIDDLE" targetName="tests-grid_patch_map_01" />
+      <config projectName="FIDDLE" targetName="tests-grid_patch_map_02" />
+      <config projectName="FIDDLE" targetName="tests-interaction_nodal_spread_01" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_force_boundary_02" />
+      <config projectName="FIDDLE" targetName="fiddle3d" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_force_boundary_01" />
+      <config projectName="FIDDLE" targetName="tests-interaction_interaction_base_01" />
+      <config projectName="FIDDLE" targetName="tests-mechanics_pk1_holzapfel_ogden_01" />
+      <config projectName="FIDDLE" targetName="tests-grid_nodal_patch_map_multilevel_01" />
+      <config projectName="FIDDLE" targetName="tests-grid_tag_cells_01" />
+      <config projectName="FIDDLE" targetName="tests-interaction_count_nodes_01" />
+      <config projectName="FIDDLE" targetName="tests-interaction_ifed_spread_01_2d" />
+    </generated>
   </component>
   <component name="CMakeSettings">
     <configurations>
@@ -19,7 +101,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="09591576-2e7b-45d2-a8c1-112b41244f02" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/fiddle/interaction/interaction_utilities.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/fiddle/interaction/interaction_utilities.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/source/interaction/interaction_utilities.cc" beforeDir="false" afterPath="$PROJECT_DIR$/source/interaction/interaction_utilities.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/grid/line_edge_intersection.cc" beforeDir="false" afterPath="$PROJECT_DIR$/tests/grid/line_edge_intersection.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/grid/line_face_intersection.cc" beforeDir="false" afterPath="$PROJECT_DIR$/tests/grid/line_face_intersection.cc" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,32 +141,33 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.cidr.known.project.marker": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "cf.advertisement.text.overridden": "true",
-    "cf.first.check.clang-format": "false",
-    "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "IIM",
-    "last_opened_file_path": "/home/qi/sfw/dealii/build",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.lookFeel",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;cf.advertisement.text.has.clang-format&quot;: &quot;true&quot;,
+    &quot;cf.advertisement.text.overridden&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;IIM&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/qi/sfw/fiddle/build&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;CMakeSettings&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
-  <component name="RunManager">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
-      </method>
-    </configuration>
+}</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/source/interaction" />
+    </key>
+  </component>
+  <component name="RunManager" selected="CMake Application.tests-grid_line_face_intersection">
     <configuration name="band" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="band" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="band">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -199,7 +288,12 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="tests-grid_line_face_intersection" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="true" REDIRECT_INPUT_PATH="$PROJECT_DIR$/../debug_build/tests/grid/patch_map_01.txt" ELEVATE="true" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$/../debug_build/tests/grid" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Project" TARGET_NAME="tests-grid_line_face_intersection" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Project" RUN_TARGET_NAME="tests-grid_line_face_intersection">
+    <configuration name="tests-grid_line_edge_intersection" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_line_edge_intersection" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_line_edge_intersection">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests-grid_line_face_intersection" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="true" REDIRECT_INPUT_PATH="$PROJECT_DIR$/../debug_build/tests/grid/patch_map_01.txt" ELEVATE="true" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$/../debug_build/tests/grid" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="tests-grid_line_face_intersection" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="tests-grid_line_face_intersection">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -484,6 +578,89 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
+    <list>
+      <item itemvalue="CMake Application.band" />
+      <item itemvalue="CMake Application.examples" />
+      <item itemvalue="CMake Application.fiddle2d" />
+      <item itemvalue="CMake Application.fiddle3d" />
+      <item itemvalue="CMake Application.tests" />
+      <item itemvalue="CMake Application.tests-base" />
+      <item itemvalue="CMake Application.tests-base_base64" />
+      <item itemvalue="CMake Application.tests-base_copy_database" />
+      <item itemvalue="CMake Application.tests-base_hello" />
+      <item itemvalue="CMake Application.tests-base_initial_guess" />
+      <item itemvalue="CMake Application.tests-base_nonintersecting_sphere_01_2d" />
+      <item itemvalue="CMake Application.tests-base_nonintersecting_sphere_01_3d" />
+      <item itemvalue="CMake Application.tests-base_qgauss_family_01" />
+      <item itemvalue="CMake Application.tests-base_qgauss_family_02" />
+      <item itemvalue="CMake Application.tests-base_qwv_family_01" />
+      <item itemvalue="CMake Application.tests-grid" />
+      <item itemvalue="CMake Application.tests-grid_box_to_bbox" />
+      <item itemvalue="CMake Application.tests-grid_centroid_01" />
+      <item itemvalue="CMake Application.tests-grid_collect_bboxes_01_2d" />
+      <item itemvalue="CMake Application.tests-grid_collect_bboxes_01_3d" />
+      <item itemvalue="CMake Application.tests-grid_collect_edge_lengths_01" />
+      <item itemvalue="CMake Application.tests-grid_edge_lengths_01" />
+      <item itemvalue="CMake Application.tests-grid_edge_lengths_02" />
+      <item itemvalue="CMake Application.tests-grid_fe_predicate_01" />
+      <item itemvalue="CMake Application.tests-grid_grid_predicate_01" />
+      <item itemvalue="CMake Application.tests-grid_line_edge_intersection" />
+      <item itemvalue="CMake Application.tests-grid_line_face_intersection" />
+      <item itemvalue="CMake Application.tests-grid_nodal_patch_map_multilevel_01" />
+      <item itemvalue="CMake Application.tests-grid_nonoverlapping_boxes_01" />
+      <item itemvalue="CMake Application.tests-grid_overlap_tria_01" />
+      <item itemvalue="CMake Application.tests-grid_patch_map_01" />
+      <item itemvalue="CMake Application.tests-grid_patch_map_02" />
+      <item itemvalue="CMake Application.tests-grid_surface_tria_01_2d" />
+      <item itemvalue="CMake Application.tests-grid_tag_cells_01" />
+      <item itemvalue="CMake Application.tests-interaction" />
+      <item itemvalue="CMake Application.tests-interaction_count_nodes_01" />
+      <item itemvalue="CMake Application.tests-interaction_count_quadrature_points_01" />
+      <item itemvalue="CMake Application.tests-interaction_dlm_01" />
+      <item itemvalue="CMake Application.tests-interaction_elemental_interpolate_01_2d" />
+      <item itemvalue="CMake Application.tests-interaction_ifed_ex4_2d" />
+      <item itemvalue="CMake Application.tests-interaction_ifed_ex4_simplex_2d" />
+      <item itemvalue="CMake Application.tests-interaction_ifed_interpolate_01_2d" />
+      <item itemvalue="CMake Application.tests-interaction_ifed_spread_01_2d" />
+      <item itemvalue="CMake Application.tests-interaction_ifed_spread_02_2d" />
+      <item itemvalue="CMake Application.tests-interaction_ifed_tag_2d" />
+      <item itemvalue="CMake Application.tests-interaction_ifed_tag_3d" />
+      <item itemvalue="CMake Application.tests-interaction_interaction_base_01" />
+      <item itemvalue="CMake Application.tests-interaction_interpolate_01" />
+      <item itemvalue="CMake Application.tests-interaction_interpolate_02" />
+      <item itemvalue="CMake Application.tests-interaction_nodal_interpolate_01" />
+      <item itemvalue="CMake Application.tests-interaction_nodal_interpolate_02" />
+      <item itemvalue="CMake Application.tests-interaction_nodal_spread_01" />
+      <item itemvalue="CMake Application.tests-interaction_spread_01" />
+      <item itemvalue="CMake Application.tests-mechanics" />
+      <item itemvalue="CMake Application.tests-mechanics_body_force_01" />
+      <item itemvalue="CMake Application.tests-mechanics_compute_load_vector_01" />
+      <item itemvalue="CMake Application.tests-mechanics_fiber_network_01" />
+      <item itemvalue="CMake Application.tests-mechanics_force_boundary_01" />
+      <item itemvalue="CMake Application.tests-mechanics_force_boundary_02" />
+      <item itemvalue="CMake Application.tests-mechanics_force_volumetric_01" />
+      <item itemvalue="CMake Application.tests-mechanics_force_volumetric_02" />
+      <item itemvalue="CMake Application.tests-mechanics_me_values_01" />
+      <item itemvalue="CMake Application.tests-mechanics_me_values_02" />
+      <item itemvalue="CMake Application.tests-mechanics_me_values_03" />
+      <item itemvalue="CMake Application.tests-mechanics_pk1_holzapfel_ogden_01" />
+      <item itemvalue="CMake Application.tests-mechanics_pk1_volumetric_01" />
+      <item itemvalue="CMake Application.tests-mechanics_pk1_volumetric_02" />
+      <item itemvalue="CMake Application.tests-mechanics_pk1_volumetric_03" />
+      <item itemvalue="CMake Application.tests-mechanics_pk1_volumetric_04" />
+      <item itemvalue="CMake Application.tests-mechanics_pk1_volumetric_05" />
+      <item itemvalue="CMake Application.tests-mechanics_serialize_part_01" />
+      <item itemvalue="CMake Application.tests-mechanics_spring_01" />
+      <item itemvalue="CMake Application.tests-postprocess" />
+      <item itemvalue="CMake Application.tests-postprocess_meter_mesh_01" />
+      <item itemvalue="CMake Application.tests-postprocess_meter_mesh_02" />
+      <item itemvalue="CMake Application.tests-postprocess_meter_mesh_03" />
+      <item itemvalue="CMake Application.tests-postprocess_point_values_01" />
+      <item itemvalue="CMake Application.tests-postprocess_vertices_inside_domain" />
+      <item itemvalue="CMake Application.tests-transfer" />
+      <item itemvalue="CMake Application.tests-transfer_scatter_01" />
+      <item itemvalue="CMake Application.turek-hron" />
+    </list>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
@@ -496,7 +673,15 @@
       <workItem from="1690810177193" duration="18326000" />
       <workItem from="1690895751214" duration="32305000" />
       <workItem from="1691069069933" duration="15475000" />
-      <workItem from="1691108882739" duration="23293000" />
+      <workItem from="1691108882739" duration="23947000" />
+      <workItem from="1691451242128" duration="18000" />
+      <workItem from="1691451260920" duration="692000" />
+      <workItem from="1691591099103" duration="37043000" />
+      <workItem from="1691852137176" duration="4296000" />
+      <workItem from="1692017253045" duration="16045000" />
+      <workItem from="1692119086971" duration="3276000" />
+      <workItem from="1692192129275" duration="27547000" />
+      <workItem from="1692622041733" duration="17004000" />
     </task>
     <servers />
   </component>
