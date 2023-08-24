@@ -51,6 +51,7 @@ int main(int argc, char **argv)
    GridGenerator::hyper_sphere(tria,Point< 3 >(0,0,0), 1 );
    tria.refine_global(3);
 
+
    std::vector<BoundingBox<3>> cell_bboxes;
    for (const auto &cell : tria.active_cell_iterators())
      cell_bboxes.push_back(cell->bounding_box());
@@ -69,7 +70,9 @@ int main(int argc, char **argv)
    dof_handler.distribute_dofs(fe);
    for (const auto &cell : dof_handler.active_cell_iterators())
      {
+       std::cout<<"mesh size:"<<cell->diameter()<<std::endl;
        bool z=fdl::intersect_line_with_face(t_vals,cell,mapping,r,q,-0.000);
      }
+
 return 0;
 }

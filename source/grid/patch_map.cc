@@ -18,6 +18,7 @@ namespace fdl
   {
     reinit(patches, extra_ghost_cell_fraction, tria, cell_bboxes);
   }
+
   template <int dim, int spacedim>
   template <typename Number>
   void
@@ -111,7 +112,5 @@ namespace fdl
     const double,
     const Triangulation<NDIM, NDIM> &,
     const std::vector<BoundingBox<NDIM, double>> &cell_bboxes);
-
-
 
 } // namespace fdl

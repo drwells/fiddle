@@ -1191,10 +1191,7 @@ namespace fdl
         {
             r[plane_axis[0]]+= abs(det_v1v2) * pow(10,power);
             r[plane_axis[1]]+= abs(det_v1v2) * pow(10,power);
-            std::cout << "modified r?:"<<r<< std::endl;
         }
-        std::cout << "within the triangle?:"<<(a>=0 && b>=0 && a+b<=1)<< std::endl;
-        std::cout << "p0:"<<real_points[0]<<"p1:"<<real_points[1]<< "p2:"<<real_points[2]<<std::endl;
         return (a>=0 && b>=0 && a+b<=1);
     }
   bool
@@ -1355,6 +1352,12 @@ namespace fdl
 
     return is_interior_intersection;
   } // intersect_line_with_edge
+  /*
+   *    Linear interpolation:
+
+           (1-u-v)*p0 + u*p1 + v*p2 = p + t*d
+
+   */
   void intersect_line_with_flat_triangle(std::vector<std::pair<double, Point<2>> >& t_vals,
                                     const typename DoFHandler<2, 3>::active_cell_iterator elem,
                                     const dealii::Mapping<2, 3> &mapping,
@@ -1390,11 +1393,14 @@ namespace fdl
                     const Tensor<1, 3> s = p - p0;
                     double u = f * (s * h);
                     if (u >= -tol && u <= 1.0 + tol) {
-                        const Tensor<1, 3> q = cross_product_3d(s, e1);
-                        double v = f * (d * q);
+                        const Tensor<1, 3> cr = cross_product_3d(s, e1);
+                        double v = f * (d * cr);
                         if (v >= tol && (u + v) <= 1.0 + tol) {
-                            double t = f * (e2 * q);
+                            double t = f * (e2 * cr);
+                            // Transfer (u,v) to Maping cell reference cell coordinate
                             t_vals.push_back(std::make_pair(t, Point<2>((1-u-v)*ref_p0 + u*ref_p1 + v*ref_p2)));
+                            std::cout<<"the difference vector between geometry and stencil intersctions:"<<(r+q*t-mapping.transform_unit_to_real_cell(elem,Point<2>((1-u-v)*ref_p0 + u*ref_p1 + v*ref_p2)))<< std::endl;
+
                         }
                     }
                 }
@@ -1416,7 +1422,7 @@ namespace fdl
     bool triangle_is_flat = false;
     t_vals.resize(0);
     elem->get_triangulation().get_manifold(1);
-    int d_intersection_refinement =7;
+    int d_intersection_refinement =2;
     switch (mapping.get_vertices(elem).size())
       {
         case 4:
@@ -1570,28 +1576,28 @@ namespace fdl
                           }
                           for (unsigned int j = 0; j <(pow(2,d_intersection_refinement-1)-i-1); ++j){
                               Point<2> buttom_left(0.5*i*h+(j+1.5)*h,0.5*(i+1)*h);
-                              Point<2> buttom_right(0.5*i*h+(j+1)*h,0.5*i*h);
-                              Point<2> top_center(0.5*i*h+(j+0.5)*h,0.5*(i+1)*h);
+                              Point<2> buttom_mid(0.5 * i * h + (j + 1) * h, 0.5 * i * h);
+                              Point<2> top_left(0.5 * i * h + (j + 0.5) * h, 0.5 * (i + 1) * h);
 
                               //buttom side triangle
-                              intersect_line_with_flat_triangle(t_vals,elem,mapping,buttom_left,
-                                                           buttom_right,
-                                                           top_center,
-                                                           r,q,tol);
+                              intersect_line_with_flat_triangle(t_vals, elem, mapping, buttom_left,
+                                                                buttom_mid,
+                                                                top_left,
+                                                                r, q, tol);
                               // right side triangle
                               intersect_line_with_flat_triangle(t_vals,elem,mapping,Point<2>(1-buttom_left(1),buttom_left(0) ),
-                                                           Point<2>(1-buttom_right(1),buttom_right(0)),
-                                                           Point<2>(1-top_center(1),top_center(0)),
+                                                           Point<2>(1 - buttom_mid(1), buttom_mid(0)),
+                                                           Point<2>(1 - top_left(1), top_left(0)),
                                                            r,q,tol);
                               // top side triangle
                               intersect_line_with_flat_triangle(t_vals,elem,mapping,Point<2>(buttom_left(0),1-buttom_left(1) ),
-                                                           Point<2>(buttom_right(0),1-buttom_right(1)),
-                                                           Point<2>(top_center(0),1-top_center(1)),
+                                                           Point<2>(buttom_mid(0), 1 - buttom_mid(1)),
+                                                           Point<2>(top_left(0), 1 - top_left(1)),
                                                            r,q,tol);
                               // left side triangle
                               intersect_line_with_flat_triangle(t_vals,elem,mapping,Point<2>(buttom_left(1),buttom_left(0) ),
-                                                           Point<2>(buttom_right(1),buttom_right(0)),
-                                                           Point<2>(top_center(1),top_center(0)),
+                                                           Point<2>(buttom_mid(1), buttom_mid(0)),
+                                                           Point<2>(top_left(1), top_left(0)),
                                                            r,q,tol);
                           }
                       }

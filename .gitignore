@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 *vtu
 *eps
 CMakeCache.txt
@@ -9,3 +10,15 @@ Makefile
 
 scripts/programs/*
 build*/
+=======
+# ignore ALL .log files
+*.log
+*.iml
+*.xml
+tests/grid/line_edge_intersection.cc
+tests/grid/line_face_intersection.cc
+source/interaction/IIMethod.cpp
+include/fiddle/interaction/IIMethod.h
+# ignore ALL files in ANY directory named temp
+temp/ 
+>>>>>>> cc78188 (hide config file)

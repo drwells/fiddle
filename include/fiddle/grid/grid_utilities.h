@@ -7,8 +7,6 @@
 <<<<<<< HEAD
 =======
 #include <deal.II/base/quadrature.h>
-#include <deal.II/dofs/dof_handler.h>
-#include <deal.II/fe/mapping_q.h>
 #include <deal.II/distributed/shared_tria.h>
 
 #include <deal.II/fe/mapping.h>
@@ -83,8 +81,6 @@ namespace fdl
   compute_centroid(const Mapping<dim, dim>               &mapping,
                    const Triangulation<dim, dim>         &tria,
                    const std::vector<types::boundary_id> &boundary_ids);
-
-
 } // namespace fdl
 
 #endif
