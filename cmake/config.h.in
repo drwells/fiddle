@@ -5,6 +5,8 @@
 #define FDL_VERSION_MINOR @FDL_VERSION_MINOR@
 #define FDL_VERSION_PATCH @FDL_VERSION_PATCH@
 
+#cmakedefine FDL_ENABLE_TIMER_BARRIERS
+
 /**
  * Macro function returning true if the used version of fiddle is greater than
  * or equal to the specified version number.

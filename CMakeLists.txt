@@ -17,6 +17,11 @@ INCLUDE(GNUInstallDirs)
 # Do we want dynamic or static linking?
 OPTION(BUILD_SHARED_LIBS "Whether or not to build shared libraries." ON)
 
+# Do we want additional barriers to make timers more accurate?
+OPTION(FDL_ENABLE_TIMER_BARRIERS
+  "Whether or not to add barriers before running top-level timers to improve their accuracy."
+  ON)
+
 # configure RPATH:
 SET(CMAKE_MACOSX_RPATH 1)
 SET(CMAKE_BUILD_RPATH "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
