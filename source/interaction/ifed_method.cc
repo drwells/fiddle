@@ -40,12 +40,19 @@ namespace
 {
   using namespace SAMRAI;
   static tbox::Timer *t_interpolate_velocity;
+  static tbox::Timer *t_interpolate_velocity_start_barrier;
   static tbox::Timer *t_interpolate_velocity_rhs;
   static tbox::Timer *t_interpolate_velocity_solve;
+  static tbox::Timer *t_interpolate_velocity_solve_start_barrier;
   static tbox::Timer *t_compute_lagrangian_force;
+  static tbox::Timer *t_compute_lagrangian_force_start_barrier;
+  static tbox::Timer *t_compute_lagrangian_force_position_ghost_update;
+  static tbox::Timer *t_compute_lagrangian_force_setup_force_and_strain;
   static tbox::Timer *t_compute_lagrangian_force_pk1;
+  static tbox::Timer *t_compute_lagrangian_force_compress_vector;
   static tbox::Timer *t_compute_lagrangian_force_solve;
   static tbox::Timer *t_spread_force;
+  static tbox::Timer *t_spread_force_start_barrier;
   static tbox::Timer *t_compute_lagrangian_fluid_source;
   static tbox::Timer *t_spread_fluid_source;
   static tbox::Timer *t_add_workload_estimate;
@@ -215,17 +222,31 @@ namespace fdl
 
     t_interpolate_velocity =
       set_timer("fdl::IFEDMethod::interpolateVelocity()");
+    t_interpolate_velocity_start_barrier =
+      set_timer("fdl::IFEDMethod::interpolateVelocity()[start_barrier]");
     t_interpolate_velocity_rhs =
       set_timer("fdl::IFEDMethod::interpolateVelocity()[rhs]");
     t_interpolate_velocity_solve =
       set_timer("fdl::IFEDMethod::interpolateVelocity()[solve]");
+    t_interpolate_velocity_solve_start_barrier =
+      set_timer("fdl::IFEDMethod::interpolateVelocity()[solve_start_barrier]");
     t_compute_lagrangian_force =
       set_timer("fdl::IFEDMethod::computeLagrangianForce()");
+    t_compute_lagrangian_force_start_barrier =
+      set_timer("fdl::IFEDMethod::computeLagrangianForce()[start_barrier]");
+    t_compute_lagrangian_force_position_ghost_update = set_timer(
+      "fdl::IFEDMethod::computeLagrangianForce()[position_ghost_update]");
+    t_compute_lagrangian_force_setup_force_and_strain = set_timer(
+      "fdl::IFEDMethod::computeLagrangianForce()[setup_force_and_strain]");
     t_compute_lagrangian_force_pk1 =
       set_timer("fdl::IFEDMethod::computeLagrangianForce()[pk1]");
+    t_compute_lagrangian_force_compress_vector =
+      set_timer("fdl::IFEDMethod::computeLagrangianForce()[compress_vector]");
     t_compute_lagrangian_force_solve =
       set_timer("fdl::IFEDMethod::computeLagrangianForce()[solve]");
     t_spread_force = set_timer("fdl::IFEDMethod::spreadForce()");
+    t_spread_force_start_barrier =
+      set_timer("fdl::IFEDMethod::spreadForce()[start_barrier]");
     t_compute_lagrangian_fluid_source =
       set_timer("fdl::IFEDMethod::computeLagrangianFluidSource()");
     t_spread_fluid_source = set_timer("fdl::IFEDMethod::spreadFluidSource()");
@@ -287,6 +308,14 @@ namespace fdl
           &u_ghost_fill_scheds,
     double data_time)
   {
+#ifdef FDL_ENABLE_TIMER_BARRIERS
+    {
+      IBAMR_TIMER_START(t_interpolate_velocity_start_barrier);
+      const int ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
+      AssertThrowMPI(ierr);
+      IBAMR_TIMER_STOP(t_interpolate_velocity_start_barrier);
+    }
+#endif
     IBAMR_TIMER_START(t_interpolate_velocity);
     (void)u_synch_scheds;
     (void)u_ghost_fill_scheds;
@@ -401,11 +430,17 @@ namespace fdl
     accumulate_finish(interactions, transactions);
     accumulate_finish(surface_interactions, surface_transactions);
 
+    IBAMR_TIMER_STOP(t_interpolate_velocity_rhs);
     // We cannot start the linear solve without first finishing this, so use a
     // barrier to keep the timers accurate
-    ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
-    AssertThrowMPI(ierr);
-    IBAMR_TIMER_STOP(t_interpolate_velocity_rhs);
+#ifdef FDL_ENABLE_TIMER_BARRIERS
+    {
+      IBAMR_TIMER_START(t_interpolate_velocity_solve_start_barrier)
+      ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
+      AssertThrowMPI(ierr);
+      IBAMR_TIMER_STOP(t_interpolate_velocity_solve_start_barrier)
+    }
+#endif
 
     // Project:
     IBAMR_TIMER_START(t_interpolate_velocity_solve);
@@ -484,6 +519,14 @@ namespace fdl
       & /*f_prolongation_scheds*/,
     double data_time)
   {
+#ifdef FDL_ENABLE_TIMER_BARRIERS
+    {
+      IBAMR_TIMER_START(t_spread_force_start_barrier);
+      const int ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
+      AssertThrowMPI(ierr);
+      IBAMR_TIMER_STOP(t_spread_force_start_barrier);
+    }
+#endif
     IBAMR_TIMER_START(t_spread_force);
     const int level_number = this->patch_hierarchy->getFinestLevelNumber();
 
@@ -652,6 +695,14 @@ namespace fdl
   void
   IFEDMethod<dim, spacedim>::computeLagrangianForce(double data_time)
   {
+#ifdef FDL_ENABLE_TIMER_BARRIERS
+    {
+      IBAMR_TIMER_START(t_compute_lagrangian_force_start_barrier);
+      const int ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
+      AssertThrowMPI(ierr);
+      IBAMR_TIMER_STOP(t_compute_lagrangian_force_start_barrier);
+    }
+#endif
     IBAMR_TIMER_START(t_compute_lagrangian_force);
 
     unsigned int channel = 0;
@@ -661,10 +712,12 @@ namespace fdl
       // Unlike velocity interpolation and force spreading we actually need
       // the ghost values in the native partitioning, so make sure they are
       // available
+      IBAMR_TIMER_START(t_compute_lagrangian_force_position_ghost_update);
       for (unsigned int i = 0; i < collection.size(); ++i)
         vectors.get_position(i, data_time).update_ghost_values_start(channel++);
       for (unsigned int i = 0; i < collection.size(); ++i)
         vectors.get_position(i, data_time).update_ghost_values_finish();
+      IBAMR_TIMER_STOP(t_compute_lagrangian_force_position_ghost_update);
 
       for (unsigned int i = 0; i < collection.size(); ++i)
         {
@@ -679,10 +732,12 @@ namespace fdl
           // IBFEMethod does this too. This is always equal to the part's
           // current velocity and, by convention, has up-to-date ghost values.
           const auto &velocity = part.get_velocity();
+          IBAMR_TIMER_START(t_compute_lagrangian_force_setup_force_and_strain);
           for (auto &force : part.get_force_contributions())
             force->setup_force(data_time, position, velocity);
           for (auto &active_strain : part.get_active_strains())
             active_strain->setup_strain(data_time);
+          IBAMR_TIMER_STOP(t_compute_lagrangian_force_setup_force_and_strain);
 
           IBAMR_TIMER_START(t_compute_lagrangian_force_pk1);
           compute_load_vector(part.get_dof_handler(),
@@ -707,6 +762,7 @@ namespace fdl
             surface_part_forces,
             surface_part_right_hand_sides);
 
+    IBAMR_TIMER_START(t_compute_lagrangian_force_compress_vector);
     // Allow compression to overlap:
     auto do_compress = [](auto &vectors)
     {
@@ -717,6 +773,7 @@ namespace fdl
     };
     do_compress(part_right_hand_sides);
     do_compress(surface_part_right_hand_sides);
+    IBAMR_TIMER_STOP(t_compute_lagrangian_force_compress_vector);
 
     // And do the actual solve:
     auto do_solve = [&](const auto &collection,

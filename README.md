@@ -41,15 +41,21 @@ You can either use fiddle in-place or run `make install` to use it as a
 dependency. As usual, you will need to specify `CMAKE_INSTALL_PREFIX` to install
 to a non-default location (e.g., inside your home directory).
 
+fiddle uses IBAMR's timer infrastructure. To achieve more accurate timings,
+fiddle optionally (by default this is enabled) turns on MPI barriers between
+sections to explicitly measure the amount of time spent waiting on something
+else to finish. This is a compile-time option provided to CMake with
+`-DFDL_ENABLE_TIMER_BARRIERS=ON` (default) or `-DFDL_ENABLE_TIMER_BARRIERS=OFF`.
+
 # Project Goals
 
-- (WIP) Scalable implementations of all fundamental IFED algorithms.
+- Scalable implementations of all fundamental IFED algorithms.
 - Simple to understand internal classes which can be composed in a variety of
   ways for different applications.
 - `fdl::IFEDMethod` is a complete implementation of an `IBAMR::IBStrategy`
   object which performs either elemental or nodal coupling between a
   Lagrangian hyperelastic solid and Eulerian grid.
-- (WIP) lots of useful utilities, like meter meshes.
+- lots of useful utilities, like meter meshes.
 - (WIP) examples.
 
 # Style Guide
