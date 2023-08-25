@@ -14,6 +14,10 @@ PROJECT(FIDDLE
 INCLUDE(CMakePackageConfigHelpers)
 INCLUDE(GNUInstallDirs)
 
+#
+# Options for configuring fiddle itself
+#
+
 # Do we want dynamic or static linking?
 OPTION(BUILD_SHARED_LIBS "Whether or not to build shared libraries." ON)
 
@@ -21,6 +25,13 @@ OPTION(BUILD_SHARED_LIBS "Whether or not to build shared libraries." ON)
 OPTION(FDL_ENABLE_TIMER_BARRIERS
   "Whether or not to add barriers before running top-level timers to improve their accuracy."
   ON)
+
+OPTION(FDL_IGNORE_DEPENDENCY_FLAGS
+"Whether or not to unset all flags set by CMake and deal.II (but not IBAMR's \
+NDIM definition) and solely rely on CMAKE_CXX_FLAGS. Defaults to OFF. This \
+option is useful if you want very precise control over which flags are actually \
+used by CMake to compile fiddle - in most cases the flags set by deal.II are \
+correct." OFF)
 
 # configure RPATH:
 SET(CMAKE_MACOSX_RPATH 1)
@@ -39,6 +50,23 @@ IF(NOT ${DEAL_II_WITH_MPI})
 ENDIF()
 
 FIND_PACKAGE(IBAMR 0.11.0 REQUIRED HINTS ${IBAMR_ROOT} $ENV{IBAMR_ROOT})
+
+#
+# Modify CMake and dependencies if requested:
+#
+IF(${FDL_IGNORE_DEPENDENCY_FLAGS})
+  MESSAGE(STATUS "Clearing deal.II targets' flags")
+  FOREACH(_suffix "" "_debug" "_release")
+    IF(TARGET "dealii::dealii${_suffix}")
+      SET_TARGET_PROPERTIES("dealii::dealii${_suffix}"
+        PROPERTIES
+        INTERFACE_COMPILE_OPTIONS ""
+        INTERFACE_COMPILE_DEFINITIONS "")
+    ENDIF()
+  ENDFOREACH()
+  SET(CMAKE_CXX_FLAGS_DEBUG "")
+  SET(CMAKE_CXX_FLAGS_RELEASE "")
+ENDIF()
 
 #
 # set up the library:
@@ -142,37 +170,12 @@ FOREACH(_d ${FIDDLE_DIMENSIONS})
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include/>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/>)
 
-  # Check for the new version
-  IF("${DEAL_II_INCLUDE_DIRS}" STREQUAL "")
-    SET(_use_dealii_targets TRUE)
-  ELSE()
-    SET(_use_dealii_targets FALSE)
-  ENDIF()
-
   # add some flags to get triangle compiling
   TARGET_COMPILE_OPTIONS(${_lib} PRIVATE -DANSI_DECLARATORS)
   TARGET_COMPILE_OPTIONS(${_lib} PRIVATE -DTRILIBRARY)
 
-  IF("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR "${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
-    IF(${_use_dealii_targets})
-      TARGET_LINK_LIBRARIES(${_lib} PUBLIC dealii::dealii_debug)
-    ELSE()
-      TARGET_LINK_LIBRARIES(${_lib} PUBLIC ${DEAL_II_LIBRARIES_DEBUG})
-    ENDIF()
-  ELSEIF("${CMAKE_BUILD_TYPE}" STREQUAL "RELEASE" OR "${CMAKE_BUILD_TYPE}" STREQUAL "Release")
-    IF(${_use_dealii_targets})
-      TARGET_LINK_LIBRARIES(${_lib} PUBLIC dealii::dealii_release)
-    ELSE()
-      TARGET_LINK_LIBRARIES(${_lib} PUBLIC ${DEAL_II_LIBRARIES_RELEASE})
-    ENDIF()
-  ELSE()
-    MESSAGE(FATAL_ERROR "CMAKE_BUILD_TYPE should be DEBUG or RELEASE")
-  ENDIF()
-
-  IF(NOT $(_use_dealii_targets))
-    TARGET_INCLUDE_DIRECTORIES(${_lib} PUBLIC ${DEAL_II_INCLUDE_DIRS})
-  ENDIF()
-
+  # and dependencies
+  TARGET_LINK_LIBRARIES(${_lib} PUBLIC dealii::dealii)
   TARGET_LINK_LIBRARIES(${_lib} PUBLIC "IBAMR::IBAMR${_d}d")
 
   INSTALL(TARGETS ${_lib} EXPORT FIDDLETargets COMPONENT library)

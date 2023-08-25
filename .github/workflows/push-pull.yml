@@ -49,24 +49,29 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release                                                      \
-                -DDEAL_II_ROOT=/deal.II/                                                        \
-                -DCMAKE_CXX_COMPILER_LAUNCHER=/usr/bin/ccache                                   \
-                -DIBAMR_ROOT=/ibamr/                                                            \
-                -DCMAKE_CXX_FLAGS="-O2 -Wall -Wextra -Wpedantic -Werror -fopenmp -fuse-ld=mold" \
+          # The docker image sets -DDEBUG as a compile flag when compiling deal.II. Compilation
+          # flags aren't exported, just definitions set by deal.II itself. Hence we need to add
+          # it again here. Also assume full manual control over the flags set by deal.II in
+          # fiddle to ensure NDEBUG is not set.
+          cmake -DCMAKE_BUILD_TYPE=Release                                                              \
+                -DDEAL_II_ROOT=/deal.II/                                                                \
+                -DFDL_IGNORE_DEPENDENCY_FLAGS=ON                                                        \
+                -DCMAKE_CXX_COMPILER_LAUNCHER=/usr/bin/ccache                                           \
+                -DIBAMR_ROOT=/ibamr/                                                                    \
+                -DCMAKE_CXX_FLAGS="-O1 -DDEBUG -Wall -Wextra -Wpedantic -Werror -fopenmp -fuse-ld=mold" \
                 ../
           ccache --show-stats
       - name: Compile library
         id: compile-library
         run: |
           cd build
-          make -j2
+          make VERBOSE=1 -j4
           ccache --show-stats
       - name: Compile tests
         id: compile-tests
         run: |
           cd build
-          make -j2 tests
+          make -j4 tests
           ccache --show-stats
       - name: Run tests
         id: run-tests
