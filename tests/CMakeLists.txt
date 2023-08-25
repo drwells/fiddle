@@ -95,6 +95,7 @@ SETUP(grid grid_predicate_01.cc fiddle2d)
 SETUP(grid nonoverlapping_boxes_01.cc fiddle2d)
 SETUP(grid nodal_patch_map_multilevel_01.cc fiddle2d)
 SETUP(grid overlap_tria_01.cc fiddle2d)
+SETUP(grid patch_intersection_map_01.cc fiddle2d)
 SETUP(grid patch_map_01.cc fiddle2d)
 SETUP(grid patch_map_02.cc fiddle2d)
 
