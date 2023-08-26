@@ -303,15 +303,13 @@ namespace fdl
         update_flags |= update_JxW_values;
         if (std::any_of(current_forces.begin(),
                         current_forces.end(),
-                        [](const ForceContribution<dim, spacedim> *fc) {
-                          return fc->is_volume_force();
-                        }))
+                        [](const ForceContribution<dim, spacedim> *fc)
+                        { return fc->is_volume_force(); }))
           update_flags |= update_values;
         if (std::any_of(current_forces.begin(),
                         current_forces.end(),
-                        [](const ForceContribution<dim, spacedim> *fc) {
-                          return fc->is_stress();
-                        }))
+                        [](const ForceContribution<dim, spacedim> *fc)
+                        { return fc->is_stress(); }))
           update_flags |= update_gradients;
 
         const FiniteElement<dim, spacedim> &fe = dof_handler.get_fe();
@@ -343,7 +341,8 @@ namespace fdl
               {
                 cell->get_dof_indices(cell_dofs);
                 fe_values.reinit(cell);
-                if (active_strains.size() > 0 && cell->material_id() != current_id)
+                if (active_strains.size() > 0 &&
+                    cell->material_id() != current_id)
                   {
                     current_id = cell->material_id();
                     current_as = as_map[current_id];
@@ -399,8 +398,7 @@ namespace fdl
 
                 if (touched_stress && current_as)
                   {
-                    auto view =
-                      make_array_view(pull_accumulated_stresses_back);
+                    auto view = make_array_view(pull_accumulated_stresses_back);
                     current_as->pull_stress_back(
                       cell, make_array_view(accumulated_stresses), view);
                   }

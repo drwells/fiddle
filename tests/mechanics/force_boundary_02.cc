@@ -32,12 +32,12 @@ using namespace dealii;
 
 template <int dim, int spacedim = dim, typename Number = double>
 void
-print_force(fdl::ForceContribution<dim, spacedim, Number> &   boundary_force,
-            const DoFHandler<dim, spacedim> &                 dof_handler,
+print_force(fdl::ForceContribution<dim, spacedim, Number>    &boundary_force,
+            const DoFHandler<dim, spacedim>                  &dof_handler,
             const double                                      time,
             const LinearAlgebra::distributed::Vector<double> &position,
             const LinearAlgebra::distributed::Vector<double> &velocity,
-            std::ostream &                                    output)
+            std::ostream                                     &output)
 {
   boundary_force.setup_force(time, position, velocity);
 
@@ -49,8 +49,8 @@ print_force(fdl::ForceContribution<dim, spacedim, Number> &   boundary_force,
     mapping,
     dof_handler.get_fe(),
     boundary_force.get_face_quadrature(),
-    fdl::compute_flag_dependencies(face_me_flags)
-    | boundary_force.get_update_flags());
+    fdl::compute_flag_dependencies(face_me_flags) |
+      boundary_force.get_update_flags());
   fdl::MechanicsValues<dim, spacedim> m_values(fe_face_values,
                                                position,
                                                velocity,
@@ -196,12 +196,13 @@ main(int argc, char **argv)
   output << "\n\n";
 
   {
-    fdl::OrthogonalSpringDashpotForce<2> boundary_force(face_quadrature,
-                                                        spring_constant,
-                                                        damping_constant,
-                                                        dof_handler,
-                                                        position,
-                                                        {numbers::invalid_boundary_id});
+    fdl::OrthogonalSpringDashpotForce<2> boundary_force(
+      face_quadrature,
+      spring_constant,
+      damping_constant,
+      dof_handler,
+      position,
+      {numbers::invalid_boundary_id});
     boundary_force.set_reference_position(reference);
     output << "test 4:\ndisplace (2, 2), spring constant = " << spring_constant
            << "\n"

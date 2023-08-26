@@ -180,7 +180,8 @@ test(const bool use_simplex)
        ++n_refinements)
     {
       const auto mesh_partitioner =
-        parallel::shared::Triangulation<dim, spacedim>::Settings::partition_zorder;
+        parallel::shared::Triangulation<dim,
+                                        spacedim>::Settings::partition_zorder;
       parallel::shared::Triangulation<dim, spacedim> tria(comm,
                                                           {},
                                                           false,

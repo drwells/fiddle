@@ -310,7 +310,7 @@ namespace fdl
   typename PatchMap<dim, spacedim>::iterator
   PatchMap<dim, spacedim>::iterator::operator++(int)
   {
-    auto  copy = *this;
+    auto copy = *this;
     this->operator+=(1);
     return copy;
   }
@@ -350,7 +350,7 @@ namespace fdl
   typename PatchMap<dim, spacedim>::iterator
   PatchMap<dim, spacedim>::iterator::operator--(int)
   {
-    auto  copy = *this;
+    auto copy = *this;
     this->operator-=(1);
     return copy;
   }

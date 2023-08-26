@@ -21,9 +21,8 @@ namespace fdl
 
   template <int dim>
   unsigned char
-  SingleQuadrature<dim>::get_index(
-    const double /*eulerian_length*/,
-    const double /*lagrangian_length*/) const
+  SingleQuadrature<dim>::get_index(const double /*eulerian_length*/,
+                                   const double /*lagrangian_length*/) const
   {
     std::size_t n_points_1D = 1;
     while (std::pow(n_points_1D, dim) < single_quad.size())

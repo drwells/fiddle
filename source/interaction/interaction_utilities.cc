@@ -1,8 +1,8 @@
 #include <fiddle/base/samrai_utilities.h>
 
 #include <fiddle/grid/box_utilities.h>
-#include <fiddle/grid/patch_map.h>
 #include <fiddle/grid/nodal_patch_map.h>
+#include <fiddle/grid/patch_map.h>
 
 #include <fiddle/interaction/interaction_utilities.h>
 
@@ -340,8 +340,8 @@ namespace fdl
       {
         std::pair<const IndexSet &, tbox::Pointer<hier::Patch<spacedim>>> p =
           nodal_patch_map[patch_n];
-        const IndexSet                                 &dofs  = p.first;
-        tbox::Pointer<hier::Patch<spacedim>>           &patch = p.second;
+        const IndexSet                       &dofs  = p.first;
+        tbox::Pointer<hier::Patch<spacedim>> &patch = p.second;
         Assert(patch->checkAllocated(node_count_data_index),
                ExcMessage("unallocated node count patch index"));
         tbox::Pointer<pdat::CellData<spacedim, Scalar>> node_count_data =
@@ -769,9 +769,9 @@ namespace fdl
   // fields
   template <int dim, int spacedim, typename value_type>
   void
-  compute_values_generic(const FEValues<dim, spacedim> &/*fe_values*/,
-                         const Vector<double>           /*fe_solution*/,
-                         std::vector<value_type>       &/*values*/)
+  compute_values_generic(const FEValues<dim, spacedim> & /*fe_values*/,
+                         const Vector<double> /*fe_solution*/,
+                         std::vector<value_type> & /*values*/)
   {
     Assert(false, ExcNotImplemented());
   }

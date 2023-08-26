@@ -270,7 +270,8 @@ main(int argc, char *argv[])
     auto         fe_db = input_db->getDatabase("FiniteElementModel");
     const double target_element_size =
       fe_db->getDouble("MFAC") * input_db->getDouble("DX") * std::sqrt(2);
-    auto refine_tria = [&](Triangulation<2> &tria) {
+    auto refine_tria = [&](Triangulation<2> &tria)
+    {
       while (GridTools::maximal_cell_diameter(tria) > target_element_size)
         tria.refine_global(1);
     };
@@ -515,7 +516,8 @@ main(int argc, char *argv[])
     int    iteration_num = time_integrator->getIntegratorStep();
     double loop_time     = time_integrator->getIntegratorTime();
 
-    auto write_fe_output = [&]() {
+    auto write_fe_output = [&]()
+    {
       for (unsigned int part_n = 0; part_n < ib_method_ops->n_parts(); ++part_n)
         {
           const auto           &part = ib_method_ops->get_part(part_n);

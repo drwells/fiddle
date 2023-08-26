@@ -65,9 +65,9 @@ namespace fdl
     , force_contributions(std::move(force_contributions))
     , active_strains(std::move(active_strains))
   {
-      for (const auto &f : this->force_contributions)
-        AssertThrow(f != nullptr,
-                    ExcMessage("The force contributions must not be nullptr"));
+    for (const auto &f : this->force_contributions)
+      AssertThrow(f != nullptr,
+                  ExcMessage("The force contributions must not be nullptr"));
 
     if (this->active_strains.size() > 0)
       {
@@ -78,7 +78,7 @@ namespace fdl
             Assert(as != nullptr,
                    ExcMessage("The active strains must not be nullptr"));
             for (const types::material_id mid : as->get_material_ids())
-            counts[mid] += 1;
+              counts[mid] += 1;
           }
 
         for (const auto &pair : counts)
@@ -94,8 +94,8 @@ namespace fdl
         for (const auto &f : this->force_contributions)
           if (!f->is_stress())
             AssertThrow(
-              !(resolve_flag_dependencies(f->get_mechanics_update_flags())
-                & update_FF),
+              !(resolve_flag_dependencies(f->get_mechanics_update_flags()) &
+                update_FF),
               ExcMessage("Using quantities dependent on the deformation "
                          "gradient in a body force is not supported with "
                          "active strains."));

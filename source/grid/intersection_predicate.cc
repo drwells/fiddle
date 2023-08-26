@@ -1,9 +1,9 @@
-#include <deal.II/distributed/shared_tria.h>
-
 #include <fiddle/base/exceptions.h>
 
 #include <fiddle/grid/box_utilities.h>
 #include <fiddle/grid/intersection_predicate.h>
+
+#include <deal.II/distributed/shared_tria.h>
 
 namespace fdl
 {

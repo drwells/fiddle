@@ -27,8 +27,8 @@ main(int argc, char **argv)
 {
   using namespace dealii;
 
-  Utilities::MPI::MPI_InitFinalize   mpi_initialization(argc, argv, 1);
-  const auto partitioner =
+  Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
+  const auto                       partitioner =
     parallel::shared::Triangulation<2>::Settings::partition_zorder;
   parallel::shared::Triangulation<2> shared_tria(MPI_COMM_WORLD,
                                                  {},

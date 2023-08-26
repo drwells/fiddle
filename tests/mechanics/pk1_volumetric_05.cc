@@ -152,30 +152,31 @@ public:
   virtual void
   push_deformation_gradient_forward(
     const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
-    const ArrayView<Tensor<2, spacedim, Number>> &FF,
+    const ArrayView<Tensor<2, spacedim, Number>>                      &FF,
     ArrayView<Tensor<2, spacedim, Number>> &push_forward_FF) const override
-    {
-      AssertThrow(cell->material_id() == this->get_material_ids()[0],
-                  fdl::ExcFDLInternalError());
-      AssertThrow(FF.size() == push_forward_FF.size(),
-                  fdl::ExcFDLInternalError());
-      for (unsigned int i = 0; i < FF.size(); ++i)
-        push_forward_FF[i] = FF[i] * std::max(1u, cell->material_id() + 1);
-    }
+  {
+    AssertThrow(cell->material_id() == this->get_material_ids()[0],
+                fdl::ExcFDLInternalError());
+    AssertThrow(FF.size() == push_forward_FF.size(),
+                fdl::ExcFDLInternalError());
+    for (unsigned int i = 0; i < FF.size(); ++i)
+      push_forward_FF[i] = FF[i] * std::max(1u, cell->material_id() + 1);
+  }
 
   virtual void
   pull_stress_back(
     const typename Triangulation<dim, spacedim>::active_cell_iterator &cell,
     const ArrayView<Tensor<2, spacedim, Number>> &push_forward_stress,
-    ArrayView<Tensor<2, spacedim, Number>> &stress) const override
-    {
-      AssertThrow(cell->material_id() == this->get_material_ids()[0],
-                  fdl::ExcFDLInternalError());
-      AssertThrow(push_forward_stress.size() == stress.size(),
-                  fdl::ExcFDLInternalError());
-      for (unsigned int i = 0; i < stress.size(); ++i)
-        stress[i] = push_forward_stress[i] / std::pow(double(std::max(1u, cell->material_id() + 1)), 2);
-    }
+    ArrayView<Tensor<2, spacedim, Number>>       &stress) const override
+  {
+    AssertThrow(cell->material_id() == this->get_material_ids()[0],
+                fdl::ExcFDLInternalError());
+    AssertThrow(push_forward_stress.size() == stress.size(),
+                fdl::ExcFDLInternalError());
+    for (unsigned int i = 0; i < stress.size(); ++i)
+      stress[i] = push_forward_stress[i] /
+                  std::pow(double(std::max(1u, cell->material_id() + 1)), 2);
+  }
 };
 
 template <int dim, int spacedim = dim>
@@ -201,7 +202,8 @@ test(const bool use_simplex)
        ++n_refinements)
     {
       const auto mesh_partitioner =
-        parallel::shared::Triangulation<dim, spacedim>::Settings::partition_zorder;
+        parallel::shared::Triangulation<dim,
+                                        spacedim>::Settings::partition_zorder;
       parallel::shared::Triangulation<dim, spacedim> tria(comm,
                                                           {},
                                                           false,

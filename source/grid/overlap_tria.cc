@@ -92,7 +92,8 @@ namespace fdl
                 cells.push_back(std::move(cell_data));
 
                 // set up subcell data:
-                auto extract_subcell = [](const auto &iter, auto &cell_data) {
+                auto extract_subcell = [](const auto &iter, auto &cell_data)
+                {
                   cell_data.vertices.clear();
                   for (const auto &index : iter->vertex_indices())
                     cell_data.vertices.push_back(iter->vertex_index(index));
