@@ -38,20 +38,22 @@ public:
 
   virtual void
   push_deformation_gradient_forward(
-    const typename Triangulation<dim, spacedim>::active_cell_iterator &/*cell*/,
+    const typename Triangulation<dim, spacedim>::active_cell_iterator
+      & /*cell*/,
     const ArrayView<Tensor<2, spacedim>> &FF,
-    ArrayView<Tensor<2, spacedim>> &push_forward_FF) const override
+    ArrayView<Tensor<2, spacedim>>       &push_forward_FF) const override
   {
     std::copy(FF.begin(), FF.end(), push_forward_FF.begin());
     for (auto &FF_E : push_forward_FF)
-        FF_E *= 2.0;
+      FF_E *= 2.0;
   }
 
   virtual void
   pull_stress_back(
-    const typename Triangulation<dim, spacedim>::active_cell_iterator &/*cell*/,
+    const typename Triangulation<dim, spacedim>::active_cell_iterator
+      & /*cell*/,
     const ArrayView<Tensor<2, spacedim>> &push_forward_stress,
-    ArrayView<Tensor<2, spacedim>> &stress) const override
+    ArrayView<Tensor<2, spacedim>>       &stress) const override
   {
     std::copy(push_forward_stress.begin(),
               push_forward_stress.end(),
@@ -90,12 +92,12 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
                                       quadrature,
                                       update_values | update_gradients);
 
-    fdl::MechanicsValues<dim, spacedim> mechanics_values(fe_values,
-                                                         part.get_position(),
-                                                         part.get_velocity(),
-                                                         fdl::update_FF |
-                                                         fdl::update_det_FF |
-                                                         fdl::update_modified_first_invariant_dFF);
+    fdl::MechanicsValues<dim, spacedim> mechanics_values(
+      fe_values,
+      part.get_position(),
+      part.get_velocity(),
+      fdl::update_FF | fdl::update_det_FF |
+        fdl::update_modified_first_invariant_dFF);
     Strain<dim, spacedim> active_strain;
 
     std::ofstream out("output");
@@ -113,7 +115,8 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
           out << FF << '\n';
 
         out << "dI1bar_dFF:\n";
-        for (const Tensor<2, spacedim> &dI1bar_dFF : mechanics_values.get_modified_first_invariant_dFF())
+        for (const Tensor<2, spacedim> &dI1bar_dFF :
+             mechanics_values.get_modified_first_invariant_dFF())
           out << dI1bar_dFF << '\n';
       }
 

@@ -21,9 +21,8 @@ namespace fdl
 
     // Speed up the bounding check by only examining points whose x coordinate
     // is near that of the sphere
-    auto x_less = [](const Point<spacedim> &a, const Point<spacedim> &b) {
-      return a[0] < b[0];
-    };
+    auto x_less = [](const Point<spacedim> &a, const Point<spacedim> &b)
+    { return a[0] < b[0]; };
 
     std::vector<Point<spacedim>> points_copy(points);
     std::sort(points_copy.begin(), points_copy.end(), x_less);
@@ -34,7 +33,8 @@ namespace fdl
     auto sphere_contains_nontangent_point =
       [&](const Point<spacedim> &center,
           const unsigned int    &tangent_point_n,
-          const double           diameter) -> bool {
+          const double           diameter) -> bool
+    {
       const double magnitude =
         std::max(center.norm(), points[tangent_point_n].norm());
 
@@ -142,18 +142,12 @@ namespace fdl
   // instantiations
   //
 
-  template
-  std::pair<Point<1>, double>
-  compute_largest_nonintersecting_sphere(
-    const std::vector<Point<1>> &);
+  template std::pair<Point<1>, double>
+  compute_largest_nonintersecting_sphere(const std::vector<Point<1>> &);
 
-  template
-  std::pair<Point<2>, double>
-  compute_largest_nonintersecting_sphere(
-    const std::vector<Point<2>> &);
+  template std::pair<Point<2>, double>
+  compute_largest_nonintersecting_sphere(const std::vector<Point<2>> &);
 
-  template
-  std::pair<Point<3>, double>
-  compute_largest_nonintersecting_sphere(
-    const std::vector<Point<3>> &);
+  template std::pair<Point<3>, double>
+  compute_largest_nonintersecting_sphere(const std::vector<Point<3>> &);
 } // namespace fdl

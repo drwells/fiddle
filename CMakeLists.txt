@@ -183,3 +183,12 @@ ENDFOREACH()
 
 ADD_SUBDIRECTORY(tests)
 ADD_SUBDIRECTORY(examples)
+
+#
+# Provide "indent" target for indenting all headers and source files
+#
+add_custom_target(indent
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMAND ./scripts/indent-all
+  COMMENT "Indenting all fiddle files"
+  )

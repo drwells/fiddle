@@ -41,8 +41,8 @@ namespace fdl
     template <int spacedim>
     std::vector<float>
     compute_longest_edge_lengths(const Triangulation<1, spacedim> &tria,
-                                 const Mapping<1, spacedim> &mapping,
-                                 const Quadrature<1> &quadrature)
+                                 const Mapping<1, spacedim>       &mapping,
+                                 const Quadrature<1>              &quadrature)
     {
       std::vector<float> result;
       Assert(tria.get_reference_cells().size() == 1, ExcNotImplemented());
@@ -404,7 +404,7 @@ namespace fdl
                                   update_JxW_values | update_quadrature_points);
 
     Tensor<1, dim> local_centroid;
-    double local_volume = 0.0;
+    double         local_volume = 0.0;
 #ifdef DEBUG
     std::size_t local_n_faces = 0;
 #endif

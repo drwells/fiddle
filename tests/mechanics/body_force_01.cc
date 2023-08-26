@@ -36,7 +36,8 @@ FDL_ENABLE_EXTRA_DIAGNOSTICS
 
 #include "../tests.h"
 
-// Print values for a few different forces - simple enough that we won't bother with MMS
+// Print values for a few different forces - simple enough that we won't bother
+// with MMS
 
 using namespace dealii;
 using namespace SAMRAI;
@@ -159,9 +160,7 @@ main()
   {
     std::vector<types::material_id> materials;
     materials.push_back(1u);
-    fdl::DampingForce<dim, spacedim> f1(quadrature,
-                                        10.0,
-                                        materials);
+    fdl::DampingForce<dim, spacedim> f1(quadrature, 10.0, materials);
 
     output << "DampingForce" << std::endl;
     test(mapping, quadrature, dof_handler, f1, position, velocity, output);
@@ -171,9 +170,7 @@ main()
     std::vector<types::material_id> materials;
     materials.push_back(1u);
     materials.push_back(42u);
-    fdl::SpringForce<dim, spacedim> f1(quadrature,
-                                       10.0,
-                                       materials);
+    fdl::SpringForce<dim, spacedim> f1(quadrature, 10.0, materials);
 
     output << "SpringForce" << std::endl;
     test(mapping, quadrature, dof_handler, f1, position, velocity, output);

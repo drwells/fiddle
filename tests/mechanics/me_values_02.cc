@@ -123,8 +123,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
               {
                 case fdl::update_log_det_FF:
                   out << "log(det(FF)):\n";
-                  for (const double &l :
-                       mechanics_values.get_log_det_FF())
+                  for (const double &l : mechanics_values.get_log_det_FF())
                     {
                       if (std::isnan(l))
                         out << "NaN\n";

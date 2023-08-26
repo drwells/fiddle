@@ -52,7 +52,8 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
     test_db->getBoolWithDefault("use_artificial_cells", false),
     partitioner);
   const auto partitioner2 =
-    parallel::shared::Triangulation<dim - 1, spacedim>::Settings::partition_zorder;
+    parallel::shared::Triangulation<dim - 1,
+                                    spacedim>::Settings::partition_zorder;
   parallel::shared::Triangulation<dim - 1, spacedim> boundary_tria(
     mpi_comm,
     {},

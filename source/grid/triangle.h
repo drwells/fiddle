@@ -1,3 +1,5 @@
+// clang-format off
+
 /*****************************************************************************/
 /*                                                                           */
 /*  (triangle.h)                                                             */
@@ -287,3 +289,5 @@ void trifree(void *memptr);
 void triangulate();
 void trifree();
 #endif /* not ANSI_DECLARATORS */
+
+// clang-format on

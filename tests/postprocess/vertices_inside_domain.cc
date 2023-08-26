@@ -63,14 +63,11 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     convex_hull.emplace_back(0.5, 0.0);
 
     std::vector<Tensor<1, 2>> velocities(convex_hull.size());
-    fdl::SurfaceMeter<2> meter_mesh(convex_hull,
-                                    velocities,
-                                    patch_hierarchy);
+    fdl::SurfaceMeter<2> meter_mesh(convex_hull, velocities, patch_hierarchy);
 
     const bool inside_domain = meter_mesh.compute_vertices_inside_domain();
     if (rank == 0)
-      out << "meter has all points inside the domain = "
-          << inside_domain
+      out << "meter has all points inside the domain = " << inside_domain
           << '\n';
   }
 
@@ -81,14 +78,11 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     convex_hull.emplace_back(0.5, 1.0);
 
     std::vector<Tensor<1, 2>> velocities(convex_hull.size());
-    fdl::SurfaceMeter<2> meter_mesh(convex_hull,
-                                    velocities,
-                                    patch_hierarchy);
+    fdl::SurfaceMeter<2> meter_mesh(convex_hull, velocities, patch_hierarchy);
 
     const bool inside_domain = meter_mesh.compute_vertices_inside_domain();
     if (rank == 0)
-      out << "meter has all points inside the domain = "
-          << inside_domain
+      out << "meter has all points inside the domain = " << inside_domain
           << '\n';
   }
 
@@ -99,14 +93,11 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     convex_hull.emplace_back(1.0, 0.75);
 
     std::vector<Tensor<1, 2>> velocities(convex_hull.size());
-    fdl::SurfaceMeter<2> meter_mesh(convex_hull,
-                                    velocities,
-                                    patch_hierarchy);
+    fdl::SurfaceMeter<2> meter_mesh(convex_hull, velocities, patch_hierarchy);
 
     const bool inside_domain = meter_mesh.compute_vertices_inside_domain();
     if (rank == 0)
-      out << "meter has all points inside the domain = "
-          << inside_domain
+      out << "meter has all points inside the domain = " << inside_domain
           << '\n';
   }
 
@@ -117,14 +108,11 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     convex_hull.emplace_back(0.75, 0.75);
 
     std::vector<Tensor<1, 2>> velocities(convex_hull.size());
-    fdl::SurfaceMeter<2> meter_mesh(convex_hull,
-                                    velocities,
-                                    patch_hierarchy);
+    fdl::SurfaceMeter<2> meter_mesh(convex_hull, velocities, patch_hierarchy);
 
     const bool inside_domain = meter_mesh.compute_vertices_inside_domain();
     if (rank == 0)
-      out << "meter has all points inside the domain = "
-          << inside_domain
+      out << "meter has all points inside the domain = " << inside_domain
           << '\n';
   }
 
@@ -135,14 +123,11 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     convex_hull.emplace_back(1.75, 1.75);
 
     std::vector<Tensor<1, 2>> velocities(convex_hull.size());
-    fdl::SurfaceMeter<2> meter_mesh(convex_hull,
-                                    velocities,
-                                    patch_hierarchy);
+    fdl::SurfaceMeter<2> meter_mesh(convex_hull, velocities, patch_hierarchy);
 
     const bool inside_domain = meter_mesh.compute_vertices_inside_domain();
     if (rank == 0)
-      out << "meter has all points inside the domain = "
-          << inside_domain
+      out << "meter has all points inside the domain = " << inside_domain
           << '\n';
   }
 }

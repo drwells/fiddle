@@ -70,9 +70,10 @@ public:
 
 
   virtual void
-  setup_force(const double /*time*/,
-              const LinearAlgebra::distributed::Vector<double> &position,
-              const LinearAlgebra::distributed::Vector<double> & /*velocity*/) override
+  setup_force(
+    const double /*time*/,
+    const LinearAlgebra::distributed::Vector<double> &position,
+    const LinearAlgebra::distributed::Vector<double> & /*velocity*/) override
   {
     // position is just the identity function
     sines.reinit(position);
@@ -169,7 +170,7 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   const double dx = input_db->getDouble("DX");
   const double ds = input_db->getDouble("MFAC") * dx;
   const double L  = input_db->getDouble("L");
-  const auto partitioner =
+  const auto   partitioner =
     parallel::shared::Triangulation<dim, spacedim>::Settings::partition_zorder;
   parallel::shared::Triangulation<dim, spacedim> tria(
     mpi_comm,

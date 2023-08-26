@@ -23,8 +23,6 @@
 #include <utility>
 #include <vector>
 
-#include <mpi.h>
-
 namespace fdl
 {
   using namespace dealii;
@@ -54,8 +52,7 @@ namespace fdl
      * scatters is load balanced but individual scatters are not. Hence it is
      * more efficient to wait for all scatters simultaneously than individually.
      */
-    virtual
-    std::vector<MPI_Request>
+    virtual std::vector<MPI_Request>
     delegate_outstanding_requests();
   };
 
@@ -142,8 +139,7 @@ namespace fdl
     /// Operation of the current transaction. Used for consistency checking.
     Operation operation;
 
-    virtual
-    std::vector<MPI_Request>
+    virtual std::vector<MPI_Request>
     delegate_outstanding_requests() override;
   };
 
@@ -187,8 +183,7 @@ namespace fdl
     /// Next state. Used for consistency checking.
     State next_state;
 
-    virtual
-    std::vector<MPI_Request>
+    virtual std::vector<MPI_Request>
     delegate_outstanding_requests() override;
   };
 

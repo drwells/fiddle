@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# Based on deal.II's indent-all script and licensed under the LGPL
+
+#
+#   ./contrib/utilities/indent-all
+# from the top-level directory of the source tree, or via
+#   make indent
+# from a build directory.
+#
+
+if [ ! -f scripts/indent-all ]; then
+  echo "*** This script must be run from the top-level directory of fiddle."
+  exit 1
+fi
+
+if [ ! -f scripts/indent_common.sh ]; then
+  echo "*** This script requires scripts/indent_common.sh."
+  exit 1
+fi
+
+source scripts/indent_common.sh
+
+#
+# Run sanity checks:
+#
+
+checks
+
+#
+# Process all source and header files:
+#
+
+process "tests include source examples" ".*\.(cc|h)" format_file
+process "source" ".*\.inst.in" format_inst
+
+#
+# Fix permissions and convert to unix line ending if necessary:
+#
+
+process "tests include source examples cmake" \
+  ".*\.(cc|h|inst.in|output.*|cmake)" fix_permissions
+
+process "tests include source examples cmake" \
+  ".*\.(cc|h|inst.in|cmake)" dos_to_unix
+
+#
+# Removing trailing whitespace
+#
+
+process "tests include source examples cmake" \
+  ".*\.(cc|h|html|dox|txt)" remove_trailing_whitespace
+
+#
+# Ensure only a single newline at end of files
+#
+
+process "tests include source examples cmake" \
+  ".*\.(cc|h|html|dox|txt)" ensure_single_trailing_newline

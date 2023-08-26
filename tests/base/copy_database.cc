@@ -4,9 +4,9 @@
 #include <tbox/InputManager.h>
 #include <tbox/SAMRAIManager.h>
 
-#include <fstream>
-
 #include <mpi.h>
+
+#include <fstream>
 
 int
 main(int argc, char **argv)

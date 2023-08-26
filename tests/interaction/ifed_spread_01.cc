@@ -118,7 +118,7 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   const double dx = input_db->getDouble("DX");
   const double ds = input_db->getDouble("MFAC") * dx;
   const double L  = input_db->getDouble("L");
-  const auto partitioner =
+  const auto   partitioner =
     parallel::shared::Triangulation<dim, spacedim>::Settings::partition_zorder;
   parallel::shared::Triangulation<dim, spacedim> tria(
     mpi_comm,
