@@ -564,7 +564,7 @@ namespace fdl
   double
   SurfaceMeter<dim, spacedim>::compute_mean_value(
     const int          data_idx,
-    const std::string &kernel_name)
+    const std::string &kernel_name) const
   {
     const auto interpolated_data =
       interpolate_scalar_field(data_idx, kernel_name);

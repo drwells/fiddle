@@ -217,7 +217,8 @@ namespace fdl
      * update ghost data.
      */
     virtual double
-    compute_mean_value(const int data_idx, const std::string &kernel_name);
+    compute_mean_value(const int          data_idx,
+                       const std::string &kernel_name) const;
 
     /**
      * Compute both the flux and the flux of some quantity through the meter
