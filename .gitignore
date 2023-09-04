@@ -5,3 +5,7 @@ CMakeFiles/
 cmake_install.cmake
 ./fiddle
 Makefile
+.dir-locals.el
+
+scripts/programs/*
+build*/
