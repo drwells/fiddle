@@ -297,6 +297,17 @@ namespace fdl
       const std::vector<Tensor<1, spacedim>> &velocity_values);
 
     /**
+     * Internal reinitialization function which updates all data structures to
+     * account for possible meter movement. Call the other protected reinit_*()
+     * functions in the right order.
+     */
+    void
+    internal_reinit(const bool                              reinit_tria,
+                    const std::vector<Point<spacedim>>     &boundary_points,
+                    const std::vector<Tensor<1, spacedim>> &velocity_values,
+                    const bool place_additional_boundary_vertices);
+
+    /**
      * Original Mapping.
      */
     SmartPointer<const Mapping<dim, spacedim>> mapping;
