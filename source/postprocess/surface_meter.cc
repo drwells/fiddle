@@ -107,8 +107,7 @@ namespace fdl
       template <int spacedim>
       double
       compute_min_cell_width(
-        const tbox::Pointer<hier::BasePatchHierarchy<spacedim>>
-          &patch_hierarchy)
+        const tbox::Pointer<hier::PatchHierarchy<spacedim>> &patch_hierarchy)
       {
         double dx = std::numeric_limits<double>::max();
         const tbox::Pointer<hier::PatchLevel<spacedim>> level =
@@ -137,7 +136,7 @@ namespace fdl
     const Mapping<dim, spacedim>                     &mapping,
     const DoFHandler<dim, spacedim>                  &position_dof_handler,
     const std::vector<Point<spacedim>>               &boundary_points,
-    tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
+    tbox::Pointer<hier::PatchHierarchy<spacedim>>     patch_hierarchy,
     const LinearAlgebra::distributed::Vector<double> &position,
     const LinearAlgebra::distributed::Vector<double> &velocity)
     : mapping(&mapping)
@@ -161,8 +160,8 @@ namespace fdl
 
   template <int dim, int spacedim>
   SurfaceMeter<dim, spacedim>::SurfaceMeter(
-    const Triangulation<dim - 1, spacedim>           &tria,
-    tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy)
+    const Triangulation<dim - 1, spacedim>       &tria,
+    tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy)
     : patch_hierarchy(patch_hierarchy)
     , meter_tria(tbox::SAMRAI_MPI::getCommunicator(),
                  Triangulation<dim - 1, spacedim>::MeshSmoothing::none,
@@ -186,9 +185,9 @@ namespace fdl
 
   template <int dim, int spacedim>
   SurfaceMeter<dim, spacedim>::SurfaceMeter(
-    const std::vector<Point<spacedim>>               &boundary_points,
-    const std::vector<Tensor<1, spacedim>>           &velocity,
-    tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy)
+    const std::vector<Point<spacedim>>           &boundary_points,
+    const std::vector<Tensor<1, spacedim>>       &velocity,
+    tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy)
     : patch_hierarchy(patch_hierarchy)
     , meter_tria(tbox::SAMRAI_MPI::getCommunicator(),
                  Triangulation<dim - 1, spacedim>::MeshSmoothing::none,
@@ -211,9 +210,6 @@ namespace fdl
   bool
   SurfaceMeter<dim, spacedim>::compute_vertices_inside_domain() const
   {
-    tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy =
-      this->patch_hierarchy;
-    Assert(patch_hierarchy, ExcFDLInternalError());
     tbox::Pointer<geom::CartesianGridGeometry<spacedim>> geom =
       patch_hierarchy->getGridGeometry();
     Assert(geom, ExcFDLInternalError());

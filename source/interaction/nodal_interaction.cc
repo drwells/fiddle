@@ -13,6 +13,7 @@
 #include <deal.II/fe/mapping_fe_field.h>
 
 #include <CartesianPatchGeometry.h>
+#include <PatchHierarchy.h>
 
 #include <cmath>
 #include <numeric>
@@ -63,7 +64,7 @@ namespace fdl
     const tbox::Pointer<tbox::Database>                  &input_db,
     const parallel::shared::Triangulation<dim, spacedim> &native_tria,
     const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
-    tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
+    tbox::Pointer<hier::PatchHierarchy<spacedim>>         patch_hierarchy,
     const std::pair<int, int>                            &level_numbers,
     const DoFHandler<dim, spacedim>                      &position_dof_handler,
     const LinearAlgebra::distributed::Vector<double>     &position)
@@ -84,7 +85,7 @@ namespace fdl
     const parallel::shared::Triangulation<dim, spacedim> & /*native_tria*/,
     const std::vector<BoundingBox<spacedim, float>> & /*active_cell_bboxes*/,
     const std::vector<float> & /*active_cell_lengths*/,
-    tbox::Pointer<hier::BasePatchHierarchy<spacedim>> /*patch_hierarchy*/,
+    tbox::Pointer<hier::PatchHierarchy<spacedim>> /*patch_hierarchy*/,
     const std::pair<int, int> & /*level_numbers*/)
   {
     AssertThrow(false,
@@ -100,7 +101,7 @@ namespace fdl
     const tbox::Pointer<tbox::Database>                  &input_db,
     const parallel::shared::Triangulation<dim, spacedim> &native_tria,
     const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
-    tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
+    tbox::Pointer<hier::PatchHierarchy<spacedim>>         patch_hierarchy,
     const std::pair<int, int>                            &level_numbers,
     const DoFHandler<dim, spacedim>                      &position_dof_handler,
     const LinearAlgebra::distributed::Vector<double>     &position)
