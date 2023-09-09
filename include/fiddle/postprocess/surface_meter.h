@@ -5,6 +5,7 @@
 
 #include <fiddle/interaction/nodal_interaction.h>
 
+#include <fiddle/postprocess/meter_base.h>
 #include <fiddle/postprocess/point_values.h>
 
 #include <deal.II/base/point.h>
@@ -71,7 +72,7 @@ namespace fdl
    * std::nexttoward().
    */
   template <int dim, int spacedim = dim>
-  class SurfaceMeter
+  class SurfaceMeter : public MeterBase<dim - 1, spacedim>
   {
   public:
     /**
@@ -125,13 +126,6 @@ namespace fdl
     uses_codim_zero_mesh() const;
 
     /**
-     * Return whether or not all vertices of the Triangulation are actually
-     * inside the domain defined by the PatchHierarchy.
-     */
-    bool
-    compute_vertices_inside_domain() const;
-
-    /**
      * Reinitialize the meter mesh to have its coordinates specified by @p
      * position and velocity by @p velocity.
      *
@@ -159,15 +153,6 @@ namespace fdl
      */
     void
     reinit();
-
-    /**
-     * Return a reference to the meter Triangulation. This triangulation is
-     * not in reference coordinates: instead its absolute position is
-     * determined by the position vector specified to the constructor or
-     * reinit().
-     */
-    const Triangulation<dim - 1, spacedim> &
-    get_triangulation() const;
 
     /**
      * Return a reference to the Mapping used on the meter mesh.
@@ -337,19 +322,9 @@ namespace fdl
     Quadrature<dim - 1> meter_quadrature;
 
     /**
-     * Cartesian-grid data.
-     */
-    tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy;
-
-    /**
      * PointValues object for computing the mesh's position.
      */
     std::unique_ptr<PointValues<spacedim, dim, spacedim>> point_values;
-
-    /**
-     * Meter Triangulation.
-     */
-    parallel::shared::Triangulation<dim - 1, spacedim> meter_tria;
 
     /**
      * Positions of the mesh DoFs - always the identity function after
@@ -431,13 +406,6 @@ namespace fdl
   SurfaceMeter<dim, spacedim>::get_mapping() const
   {
     return *meter_mapping;
-  }
-
-  template <int dim, int spacedim>
-  inline const Triangulation<dim - 1, spacedim> &
-  SurfaceMeter<dim, spacedim>::get_triangulation() const
-  {
-    return meter_tria;
   }
 
   template <int dim, int spacedim>

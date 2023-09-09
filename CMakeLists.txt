@@ -106,9 +106,9 @@ SET(FIDDLE_SRC
   source/mechanics/part_vectors.cc
   source/mechanics/fiber_network.cc
 
+  source/postprocess/meter_base.cc
   source/postprocess/point_values.cc
   source/postprocess/surface_meter.cc
-
 
   source/transfer/overlap_partitioning_tools.cc
   source/transfer/scatter.cc
