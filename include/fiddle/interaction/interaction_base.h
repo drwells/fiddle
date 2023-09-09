@@ -17,11 +17,20 @@
 
 #include <deal.II/lac/vector.h>
 
-#include <BasePatchHierarchy.h>
+#include <tbox/Pointer.h>
 
 #include <memory>
 #include <utility>
 #include <vector>
+
+namespace SAMRAI
+{
+  namespace hier
+  {
+    template <int>
+    class PatchHierarchy;
+  }
+} // namespace SAMRAI
 
 namespace fdl
 {
@@ -257,7 +266,7 @@ namespace fdl
       const parallel::shared::Triangulation<dim, spacedim> &native_tria,
       const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
       const std::vector<float>                             &active_cell_lengths,
-      tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
+      tbox::Pointer<hier::PatchHierarchy<spacedim>>         patch_hierarchy,
       const std::pair<int, int>                            &level_numbers);
 
     /**
@@ -268,8 +277,8 @@ namespace fdl
            const parallel::shared::Triangulation<dim, spacedim> &native_tria,
            const std::vector<BoundingBox<spacedim, float>> &active_cell_bboxes,
            const std::vector<float>                        &active_cell_lengths,
-           tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
-           const std::pair<int, int>                        &level_number);
+           tbox::Pointer<hier::PatchHierarchy<spacedim>>    patch_hierarchy,
+           const std::pair<int, int>                       &level_number);
 
     /**
      * Destructor.
@@ -500,7 +509,7 @@ namespace fdl
     /**
      * Pointer to the patch hierarchy.
      */
-    tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy;
+    tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy;
 
     /**
      * Number of the patch level we interact with.

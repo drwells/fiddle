@@ -67,8 +67,8 @@ namespace fdl
     const parallel::shared::Triangulation<dim, spacedim> &n_tria,
     const std::vector<BoundingBox<spacedim, float>> &global_active_cell_bboxes,
     const std::vector<float>                        &global_active_cell_lengths,
-    tbox::Pointer<hier::BasePatchHierarchy<spacedim>> p_hierarchy,
-    const std::pair<int, int>                        &l_numbers)
+    tbox::Pointer<hier::PatchHierarchy<spacedim>>    p_hierarchy,
+    const std::pair<int, int>                       &l_numbers)
     : communicator(MPI_COMM_NULL)
     , native_tria(&n_tria)
     , patch_hierarchy(p_hierarchy)
@@ -91,8 +91,8 @@ namespace fdl
     const parallel::shared::Triangulation<dim, spacedim> &n_tria,
     const std::vector<BoundingBox<spacedim, float>> &global_active_cell_bboxes,
     const std::vector<float> & /*global_active_cell_lengths*/,
-    tbox::Pointer<hier::BasePatchHierarchy<spacedim>> p_hierarchy,
-    const std::pair<int, int>                        &l_numbers)
+    tbox::Pointer<hier::PatchHierarchy<spacedim>> p_hierarchy,
+    const std::pair<int, int>                    &l_numbers)
   {
     // We don't need to create a communicator unless its the first time we are
     // here or if we, for some reason, get reinitialized with a totally new

@@ -34,7 +34,7 @@ namespace SAMRAI
   namespace hier
   {
     template <int>
-    class BasePatchHierarchy;
+    class PatchHierarchy;
   } // namespace hier
 
   namespace tbox
@@ -70,7 +70,7 @@ namespace fdl
       const parallel::shared::Triangulation<dim, spacedim> &native_tria,
       const std::vector<BoundingBox<spacedim, float>>      &active_cell_bboxes,
       const std::vector<float>                             &active_cell_lengths,
-      tbox::Pointer<hier::BasePatchHierarchy<spacedim>>     patch_hierarchy,
+      tbox::Pointer<hier::PatchHierarchy<spacedim>>         patch_hierarchy,
       const std::pair<int, int>                            &level_numbers,
       const unsigned int                                    min_n_points_1D,
       const double                                          point_density,
@@ -85,7 +85,7 @@ namespace fdl
            const parallel::shared::Triangulation<dim, spacedim> &native_tria,
            const std::vector<BoundingBox<spacedim, float>> &active_cell_bboxes,
            const std::vector<float>                        &active_cell_lengths,
-           tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
+           tbox::Pointer<hier::PatchHierarchy<spacedim>>    patch_hierarchy,
            const std::pair<int, int> &level_numbers) override;
 
     /**

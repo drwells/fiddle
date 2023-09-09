@@ -1,5 +1,5 @@
-#ifndef included_fiddle_postprocess_meter_mesh_h
-#define included_fiddle_postprocess_meter_mesh_h
+#ifndef included_fiddle_postprocess_surface_meter_h
+#define included_fiddle_postprocess_surface_meter_h
 
 #include <fiddle/base/config.h>
 
@@ -17,9 +17,20 @@
 
 #include <deal.II/lac/la_parallel_vector.h>
 
+#include <tbox/Pointer.h>
+
 #include <memory>
 #include <utility>
 #include <vector>
+
+namespace SAMRAI
+{
+  namespace hier
+  {
+    template <int>
+    class PatchHierarchy;
+  }
+} // namespace SAMRAI
 
 namespace fdl
 {
@@ -86,29 +97,26 @@ namespace fdl
      * triangulations - i.e., the exact meter Triangulation may depend on the
      * number of processors.
      */
-    SurfaceMeter(
-      const Mapping<dim, spacedim>                     &mapping,
-      const DoFHandler<dim, spacedim>                  &position_dof_handler,
-      const std::vector<Point<spacedim>>               &boundary_points,
-      tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy,
-      const LinearAlgebra::distributed::Vector<double> &position,
-      const LinearAlgebra::distributed::Vector<double> &velocity);
+    SurfaceMeter(const Mapping<dim, spacedim>       &mapping,
+                 const DoFHandler<dim, spacedim>    &position_dof_handler,
+                 const std::vector<Point<spacedim>> &boundary_points,
+                 tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy,
+                 const LinearAlgebra::distributed::Vector<double> &position,
+                 const LinearAlgebra::distributed::Vector<double> &velocity);
 
     /**
      * Alternate constructor which copies a pre-existing surface Triangulation.
      */
-    SurfaceMeter(
-      const Triangulation<dim - 1, spacedim>           &tria,
-      tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy);
+    SurfaceMeter(const Triangulation<dim - 1, spacedim>       &tria,
+                 tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy);
 
     /**
      * Alternate constructor which uses purely nodal data instead of finite
      * element fields.
      */
-    SurfaceMeter(
-      const std::vector<Point<spacedim>>               &boundary_points,
-      const std::vector<Tensor<1, spacedim>>           &velocity,
-      tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy);
+    SurfaceMeter(const std::vector<Point<spacedim>>           &boundary_points,
+                 const std::vector<Tensor<1, spacedim>>       &velocity,
+                 tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy);
 
     /**
      * Whether or not the SurfaceMeter was set up with a codimension zero mesh.
@@ -314,7 +322,7 @@ namespace fdl
     /**
      * Cartesian-grid data.
      */
-    tbox::Pointer<hier::BasePatchHierarchy<spacedim>> patch_hierarchy;
+    tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy;
 
     /**
      * PointValues object for computing the mesh's position.
