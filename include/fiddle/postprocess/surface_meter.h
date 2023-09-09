@@ -287,6 +287,12 @@ namespace fdl
     reinit_dofs();
 
     /**
+     * Reinitialize centroid data.
+     */
+    void
+    reinit_centroid();
+
+    /**
      * Reinitialize the NodalInteraction object.
      *
      * @note This function should typically be called after reinit_tria().
@@ -297,6 +303,17 @@ namespace fdl
     void
     reinit_mean_velocity(
       const std::vector<Tensor<1, spacedim>> &velocity_values);
+
+    /**
+     * Internal reinitialization function which updates all data structures to
+     * account for possible meter movement. Call the other protected reinit_*()
+     * functions in the right order.
+     */
+    void
+    internal_reinit(const bool                              reinit_tria,
+                    const std::vector<Point<spacedim>>     &boundary_points,
+                    const std::vector<Tensor<1, spacedim>> &velocity_values,
+                    const bool place_additional_boundary_vertices);
 
     /**
      * Original Mapping.

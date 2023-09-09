@@ -179,8 +179,7 @@ namespace fdl
       std::make_unique<FESystem<dim - 1, spacedim>>(*scalar_fe, spacedim);
     AssertThrow(!tria.has_hanging_nodes(), ExcFDLNotImplemented());
     GridGenerator::flatten_triangulation(tria, meter_tria);
-    reinit_dofs();
-    reinit_interaction();
+    internal_reinit(false, {}, {}, false);
   }
 
   template <int dim, int spacedim>
@@ -250,10 +249,7 @@ namespace fdl
     const std::vector<Tensor<1, spacedim>> velocity_values =
       point_values->evaluate(velocity);
 
-    reinit_tria(boundary_points, false);
-    reinit_dofs();
-    reinit_interaction();
-    reinit_mean_velocity(velocity_values);
+    internal_reinit(true, boundary_points, velocity_values, false);
   }
 
   template <int dim, int spacedim>
@@ -266,14 +262,7 @@ namespace fdl
                 ExcMessage("This function may only be called when the "
                            "SurfaceMeter is set up without an underlying "
                            "codimension zero Triangulation."));
-#if NDIM == 2
-    reinit_tria(boundary_points, true);
-#else
-    reinit_tria(boundary_points, false);
-#endif
-    reinit_dofs();
-    reinit_interaction();
-    reinit_mean_velocity(velocity_values);
+    internal_reinit(true, boundary_points, velocity_values, spacedim != 3);
   }
 
   template <int dim, int spacedim>
@@ -284,6 +273,7 @@ namespace fdl
                 ExcMessage("This function may only be called when the "
                            "SurfaceMeter is set up without an underlying "
                            "codimension zero Triangulation."));
+    // special case: nothing can move so skip all but one reinit function
     reinit_interaction();
   }
 
@@ -325,7 +315,6 @@ namespace fdl
 
     // Set up partitioners:
     const MPI_Comm comm = meter_tria.get_communicator();
-    const int      rank = Utilities::MPI::this_mpi_process(comm);
     {
       IndexSet vector_locally_relevant_dofs;
       DoFTools::extract_locally_relevant_dofs(vector_dof_handler,
@@ -348,7 +337,12 @@ namespace fdl
                              Functions::IdentityFunction<spacedim>(),
                              identity_position);
     identity_position.update_ghost_values();
+  }
 
+  template <int dim, int spacedim>
+  void
+  SurfaceMeter<dim, spacedim>::reinit_centroid()
+  {
     // Since we have codim-1 meshes, the centroid (computed with the integral
     // formula) may not actually exist in the mesh. Find an equivalent point on
     // the mesh by
@@ -358,6 +352,8 @@ namespace fdl
     // 3. If there are multiple cells, canonicalize by picking the one with the
     //    lowest index.
     // 4. Broadcast the result.
+    const MPI_Comm comm = meter_tria.get_communicator();
+    const int      rank = Utilities::MPI::this_mpi_process(comm);
 
     // Step 1
     Point<spacedim> a_centroid;
@@ -458,9 +454,31 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
+  SurfaceMeter<dim, spacedim>::internal_reinit(
+    const bool                              reinit_tria,
+    const std::vector<Point<spacedim>>     &boundary_points,
+    const std::vector<Tensor<1, spacedim>> &velocity_values,
+    const bool                              place_additional_boundary_vertices)
+  {
+    if (reinit_tria)
+      this->reinit_tria(boundary_points, place_additional_boundary_vertices);
+    reinit_dofs();
+    reinit_centroid();
+    reinit_interaction();
+    reinit_mean_velocity(velocity_values);
+  }
+
+  template <int dim, int spacedim>
+  void
   SurfaceMeter<dim, spacedim>::reinit_mean_velocity(
     const std::vector<Tensor<1, spacedim>> &velocity_values)
   {
+    if (velocity_values.size() == 0)
+      {
+        mean_velocity = 0.0;
+        return;
+      }
+
     if (dim == 2)
       {
         // Average the velocities (there should only be two anyway).
