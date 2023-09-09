@@ -279,6 +279,12 @@ namespace fdl
     reinit_dofs();
 
     /**
+     * Reinitialize centroid data.
+     */
+    void
+    reinit_centroid();
+
+    /**
      * Reinitialize the NodalInteraction object.
      *
      * @note This function should typically be called after reinit_tria().

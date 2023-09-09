@@ -181,6 +181,7 @@ namespace fdl
     AssertThrow(!tria.has_hanging_nodes(), ExcFDLNotImplemented());
     GridGenerator::flatten_triangulation(tria, meter_tria);
     reinit_dofs();
+    reinit_centroid();
     reinit_interaction();
   }
 
@@ -256,6 +257,7 @@ namespace fdl
 
     reinit_tria(boundary_points, false);
     reinit_dofs();
+    reinit_centroid();
     reinit_interaction();
     reinit_mean_velocity(velocity_values);
   }
@@ -276,6 +278,7 @@ namespace fdl
     reinit_tria(boundary_points, false);
 #endif
     reinit_dofs();
+    reinit_centroid();
     reinit_interaction();
     reinit_mean_velocity(velocity_values);
   }
@@ -329,7 +332,6 @@ namespace fdl
 
     // Set up partitioners:
     const MPI_Comm comm = meter_tria.get_communicator();
-    const int      rank = Utilities::MPI::this_mpi_process(comm);
     {
       IndexSet vector_locally_relevant_dofs;
       DoFTools::extract_locally_relevant_dofs(vector_dof_handler,
@@ -352,7 +354,12 @@ namespace fdl
                              Functions::IdentityFunction<spacedim>(),
                              identity_position);
     identity_position.update_ghost_values();
+  }
 
+  template <int dim, int spacedim>
+  void
+  SurfaceMeter<dim, spacedim>::reinit_centroid()
+  {
     // Since we have codim-1 meshes, the centroid (computed with the integral
     // formula) may not actually exist in the mesh. Find an equivalent point on
     // the mesh by
@@ -362,6 +369,8 @@ namespace fdl
     // 3. If there are multiple cells, canonicalize by picking the one with the
     //    lowest index.
     // 4. Broadcast the result.
+    const MPI_Comm comm = meter_tria.get_communicator();
+    const int      rank = Utilities::MPI::this_mpi_process(comm);
 
     // Step 1
     Point<spacedim> a_centroid;
