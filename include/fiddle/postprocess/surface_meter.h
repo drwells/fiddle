@@ -155,24 +155,6 @@ namespace fdl
     reinit();
 
     /**
-     * Return a reference to the Mapping used on the meter mesh.
-     */
-    const Mapping<dim - 1, spacedim> &
-    get_mapping() const;
-
-    /**
-     * Return a reference to the DoFHandler for scalar fields.
-     */
-    const DoFHandler<dim - 1, spacedim> &
-    get_scalar_dof_handler() const;
-
-    /**
-     * Return a reference to the DoFHandler for vector fields.
-     */
-    const DoFHandler<dim - 1, spacedim> &
-    get_vector_dof_handler() const;
-
-    /**
      * Interpolate a scalar-valued quantity.
      */
     virtual LinearAlgebra::distributed::Vector<double>
@@ -266,12 +248,6 @@ namespace fdl
                 const bool place_additional_boundary_vertices);
 
     /**
-     * Reinitialize all the FE data structures, including vectors and mappings.
-     */
-    void
-    reinit_dofs();
-
-    /**
      * Reinitialize centroid data.
      */
     void
@@ -311,26 +287,9 @@ namespace fdl
     SmartPointer<const DoFHandler<dim, spacedim>> position_dof_handler;
 
     /**
-     * Mapping on the meter Triangulation.
-     */
-    std::unique_ptr<Mapping<dim - 1, spacedim>> meter_mapping;
-
-    /**
-     * Quadrature to use on the meter mesh. Has degree $2 * scalar_fe.degree +
-     * 1$.
-     */
-    Quadrature<dim - 1> meter_quadrature;
-
-    /**
      * PointValues object for computing the mesh's position.
      */
     std::unique_ptr<PointValues<spacedim, dim, spacedim>> point_values;
-
-    /**
-     * Positions of the mesh DoFs - always the identity function after
-     * reinitalization.
-     */
-    LinearAlgebra::distributed::Vector<double> identity_position;
 
     /**
      * Mean meter velocity.
@@ -354,30 +313,6 @@ namespace fdl
       centroid_cell;
 
     /**
-     * Scalar FiniteElement used on meter_tria
-     */
-    std::unique_ptr<FiniteElement<dim - 1, spacedim>> scalar_fe;
-
-    /**
-     * Vector FiniteElement used on meter_tria
-     */
-    std::unique_ptr<FiniteElement<dim - 1, spacedim>> vector_fe;
-
-    /**
-     * DoFHandler for scalar quantities defined on meter_tria.
-     */
-    DoFHandler<dim - 1, spacedim> scalar_dof_handler;
-
-    /**
-     * DoFHandler for vector-valued quantities defined on meter_tria.
-     */
-    DoFHandler<dim - 1, spacedim> vector_dof_handler;
-
-    std::shared_ptr<Utilities::MPI::Partitioner> vector_partitioner;
-
-    std::shared_ptr<Utilities::MPI::Partitioner> scalar_partitioner;
-
-    /**
      * Interaction object.
      */
     std::unique_ptr<NodalInteraction<dim - 1, spacedim>> nodal_interaction;
@@ -399,27 +334,6 @@ namespace fdl
   SurfaceMeter<dim, spacedim>::get_mean_velocity() const
   {
     return mean_velocity;
-  }
-
-  template <int dim, int spacedim>
-  inline const Mapping<dim - 1, spacedim> &
-  SurfaceMeter<dim, spacedim>::get_mapping() const
-  {
-    return *meter_mapping;
-  }
-
-  template <int dim, int spacedim>
-  inline const DoFHandler<dim - 1, spacedim> &
-  SurfaceMeter<dim, spacedim>::get_scalar_dof_handler() const
-  {
-    return scalar_dof_handler;
-  }
-
-  template <int dim, int spacedim>
-  inline const DoFHandler<dim - 1, spacedim> &
-  SurfaceMeter<dim, spacedim>::get_vector_dof_handler() const
-  {
-    return vector_dof_handler;
   }
 } // namespace fdl
 

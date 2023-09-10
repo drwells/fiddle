@@ -146,9 +146,6 @@ namespace fdl
         mapping,
         position_dof_handler,
         boundary_points))
-    , scalar_fe(std::make_unique<FE_SimplexP<dim - 1, spacedim>>(1))
-    , vector_fe(
-        std::make_unique<FESystem<dim - 1, spacedim>>(*scalar_fe, spacedim))
   {
     // TODO: assert congruity between position_dof_handler.get_communicator()
     // and SAMRAI_MPI::getCommunicator()
@@ -159,20 +156,8 @@ namespace fdl
   SurfaceMeter<dim, spacedim>::SurfaceMeter(
     const Triangulation<dim - 1, spacedim>       &tria,
     tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy)
-    : MeterBase<dim - 1, spacedim>(patch_hierarchy)
+    : MeterBase<dim - 1, spacedim>(tria, patch_hierarchy)
   {
-    if (tria.all_reference_cells_are_simplex())
-      scalar_fe = std::make_unique<FE_SimplexP<dim - 1, spacedim>>(1);
-    else if (tria.all_reference_cells_are_hyper_cube())
-      scalar_fe = std::make_unique<FE_Q<dim - 1, spacedim>>(1);
-    else
-      AssertThrow(false,
-                  ExcMessage("mixed meshes are not yet supported here."));
-
-    vector_fe =
-      std::make_unique<FESystem<dim - 1, spacedim>>(*scalar_fe, spacedim);
-    AssertThrow(!tria.has_hanging_nodes(), ExcFDLNotImplemented());
-    GridGenerator::flatten_triangulation(tria, this->meter_tria);
     internal_reinit(false, {}, {}, false);
   }
 
@@ -182,9 +167,6 @@ namespace fdl
     const std::vector<Tensor<1, spacedim>>       &velocity,
     tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy)
     : MeterBase<dim - 1, spacedim>(patch_hierarchy)
-    , scalar_fe(std::make_unique<FE_SimplexP<dim - 1, spacedim>>(1))
-    , vector_fe(
-        std::make_unique<FESystem<dim - 1, spacedim>>(*scalar_fe, spacedim))
   {
     reinit(boundary_points, velocity);
   }
@@ -264,50 +246,6 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  SurfaceMeter<dim, spacedim>::reinit_dofs()
-  {
-    meter_mapping = this->meter_tria.get_reference_cells()[0]
-                      .template get_default_mapping<dim - 1, spacedim>(
-                        scalar_fe->tensor_degree());
-    if (this->meter_tria.all_reference_cells_are_simplex())
-      meter_quadrature =
-        QWitherdenVincentSimplex<dim - 1>(scalar_fe->tensor_degree() + 1);
-    else
-      meter_quadrature = QGauss<dim - 1>(scalar_fe->tensor_degree() + 1);
-
-    scalar_dof_handler.reinit(this->meter_tria);
-    scalar_dof_handler.distribute_dofs(*scalar_fe);
-    vector_dof_handler.reinit(this->meter_tria);
-    vector_dof_handler.distribute_dofs(*vector_fe);
-
-    // Set up partitioners:
-    const MPI_Comm comm = this->meter_tria.get_communicator();
-    {
-      IndexSet vector_locally_relevant_dofs;
-      DoFTools::extract_locally_relevant_dofs(vector_dof_handler,
-                                              vector_locally_relevant_dofs);
-      vector_partitioner = std::make_shared<Utilities::MPI::Partitioner>(
-        vector_dof_handler.locally_owned_dofs(),
-        vector_locally_relevant_dofs,
-        comm);
-
-      IndexSet scalar_locally_relevant_dofs;
-      DoFTools::extract_locally_relevant_dofs(scalar_dof_handler,
-                                              scalar_locally_relevant_dofs);
-      scalar_partitioner = std::make_shared<Utilities::MPI::Partitioner>(
-        scalar_dof_handler.locally_owned_dofs(),
-        scalar_locally_relevant_dofs,
-        comm);
-    }
-    identity_position.reinit(vector_partitioner);
-    VectorTools::interpolate(vector_dof_handler,
-                             Functions::IdentityFunction<spacedim>(),
-                             identity_position);
-    identity_position.update_ghost_values();
-  }
-
-  template <int dim, int spacedim>
-  void
   SurfaceMeter<dim, spacedim>::reinit_centroid()
   {
     // Since we have codim-1 meshes, the centroid (computed with the integral
@@ -325,11 +263,12 @@ namespace fdl
     // Step 1
     Point<spacedim> a_centroid;
     for (unsigned int d = 0; d < spacedim; ++d)
-      a_centroid[d] = VectorTools::compute_mean_value(get_mapping(),
-                                                      get_vector_dof_handler(),
-                                                      meter_quadrature,
-                                                      identity_position,
-                                                      d);
+      a_centroid[d] =
+        VectorTools::compute_mean_value(this->get_mapping(),
+                                        this->get_vector_dof_handler(),
+                                        this->meter_quadrature,
+                                        this->identity_position,
+                                        d);
     std::pair<typename Triangulation<dim - 1, spacedim>::active_cell_iterator,
               Point<dim - 1>>
       centroid_pair;
@@ -340,7 +279,7 @@ namespace fdl
     do
       {
         centroid_pair =
-          GridTools::find_active_cell_around_point(get_mapping(),
+          GridTools::find_active_cell_around_point(this->get_mapping(),
                                                    this->meter_tria,
                                                    a_centroid);
         // Ignore ghost cells
@@ -384,8 +323,9 @@ namespace fdl
                ExcFDLInternalError());
         Assert(result[1] == rank, ExcFDLInternalError());
         Assert(centroid_pair.first == centroid_cell, ExcFDLInternalError());
-        centroid = get_mapping().transform_unit_to_real_cell(centroid_cell,
-                                                             ref_centroid);
+        centroid =
+          this->get_mapping().transform_unit_to_real_cell(centroid_cell,
+                                                          ref_centroid);
       }
     centroid = Utilities::MPI::broadcast(comm, centroid, result[1]);
   }
@@ -396,9 +336,8 @@ namespace fdl
   {
     // As the meter mesh is in absolute coordinates we can use a normal
     // mapping here
-    const auto local_bboxes =
-      compute_cell_bboxes<dim - 1, spacedim, float>(vector_dof_handler,
-                                                    *meter_mapping);
+    const auto local_bboxes = compute_cell_bboxes<dim - 1, spacedim, float>(
+      this->get_vector_dof_handler(), this->get_mapping());
     const auto all_bboxes =
       collect_all_active_cell_bboxes(this->meter_tria, local_bboxes);
 
@@ -415,9 +354,9 @@ namespace fdl
       all_bboxes,
       this->patch_hierarchy,
       std::make_pair(0, this->patch_hierarchy->getFinestLevelNumber()),
-      vector_dof_handler,
-      identity_position);
-    nodal_interaction->add_dof_handler(scalar_dof_handler);
+      this->get_vector_dof_handler(),
+      this->identity_position);
+    nodal_interaction->add_dof_handler(this->get_scalar_dof_handler());
   }
 
   template <int dim, int spacedim>
@@ -430,7 +369,7 @@ namespace fdl
   {
     if (reinit_tria)
       this->reinit_tria(boundary_points, place_additional_boundary_vertices);
-    reinit_dofs();
+    this->reinit_dofs();
     reinit_centroid();
     reinit_interaction();
     reinit_mean_velocity(velocity_values);
@@ -468,7 +407,7 @@ namespace fdl
         Quadrature<dim - 2>           face_quadrature(points, weights);
         FE_Nothing<dim - 1, spacedim> fe_nothing(
           this->meter_tria.get_reference_cells()[0]);
-        FEFaceValues<dim - 1, spacedim> face_values(get_mapping(),
+        FEFaceValues<dim - 1, spacedim> face_values(this->get_mapping(),
                                                     fe_nothing,
                                                     face_quadrature,
                                                     update_JxW_values);
@@ -509,13 +448,13 @@ namespace fdl
     const std::string &kernel_name) const
   {
     LinearAlgebra::distributed::Vector<double> interpolated_data(
-      scalar_partitioner);
+      this->scalar_partitioner);
     nodal_interaction->interpolate(kernel_name,
                                    data_idx,
-                                   vector_dof_handler,
-                                   identity_position,
-                                   scalar_dof_handler,
-                                   *meter_mapping,
+                                   this->get_vector_dof_handler(),
+                                   this->identity_position,
+                                   this->get_scalar_dof_handler(),
+                                   this->get_mapping(),
                                    interpolated_data);
     interpolated_data.update_ghost_values();
 
@@ -529,13 +468,13 @@ namespace fdl
     const std::string &kernel_name) const
   {
     LinearAlgebra::distributed::Vector<double> interpolated_data(
-      vector_partitioner);
+      this->vector_partitioner);
     nodal_interaction->interpolate(kernel_name,
                                    data_idx,
-                                   vector_dof_handler,
-                                   identity_position,
-                                   vector_dof_handler,
-                                   *meter_mapping,
+                                   this->get_vector_dof_handler(),
+                                   this->identity_position,
+                                   this->get_vector_dof_handler(),
+                                   this->get_mapping(),
                                    interpolated_data);
     interpolated_data.update_ghost_values();
 
@@ -551,9 +490,9 @@ namespace fdl
     const auto interpolated_data =
       interpolate_scalar_field(data_idx, kernel_name);
 
-    return VectorTools::compute_mean_value(get_mapping(),
-                                           get_scalar_dof_handler(),
-                                           meter_quadrature,
+    return VectorTools::compute_mean_value(this->get_mapping(),
+                                           this->get_scalar_dof_handler(),
+                                           this->meter_quadrature,
                                            interpolated_data,
                                            0);
   }
@@ -567,25 +506,26 @@ namespace fdl
     const auto interpolated_data =
       interpolate_vector_field(data_idx, kernel_name);
 
-    const auto                 &fe = get_vector_dof_handler().get_fe();
-    FEValues<dim - 1, spacedim> fe_values(get_mapping(),
+    const auto                 &fe = this->get_vector_dof_handler().get_fe();
+    FEValues<dim - 1, spacedim> fe_values(this->get_mapping(),
                                           fe,
-                                          meter_quadrature,
+                                          this->meter_quadrature,
                                           update_normal_vectors |
                                             update_values | update_JxW_values);
 
     std::vector<types::global_dof_index> cell_dofs(fe.dofs_per_cell);
-    std::vector<Tensor<1, spacedim>>     cell_values(meter_quadrature.size());
-    double                               flux = 0.0;
-    Tensor<1, spacedim>                  mean_normal;
-    for (const auto &cell : get_vector_dof_handler().active_cell_iterators() |
-                              IteratorFilters::LocallyOwnedCell())
+    std::vector<Tensor<1, spacedim>> cell_values(this->meter_quadrature.size());
+    double                           flux = 0.0;
+    Tensor<1, spacedim>              mean_normal;
+    for (const auto &cell :
+         this->get_vector_dof_handler().active_cell_iterators() |
+           IteratorFilters::LocallyOwnedCell())
       {
         cell->get_dof_indices(cell_dofs);
         fe_values.reinit(cell);
         fe_values[FEValuesExtractors::Vector(0)].get_function_values(
           interpolated_data, cell_values);
-        for (unsigned int q = 0; q < meter_quadrature.size(); ++q)
+        for (unsigned int q = 0; q < this->meter_quadrature.size(); ++q)
           {
             flux +=
               cell_values[q] * fe_values.normal_vector(q) * fe_values.JxW(q);
@@ -604,19 +544,20 @@ namespace fdl
   Tensor<1, spacedim>
   SurfaceMeter<dim, spacedim>::compute_mean_normal_vector() const
   {
-    const auto                 &fe = get_vector_dof_handler().get_fe();
-    FEValues<dim - 1, spacedim> fe_values(get_mapping(),
+    const auto                 &fe = this->get_vector_dof_handler().get_fe();
+    FEValues<dim - 1, spacedim> fe_values(this->get_mapping(),
                                           fe,
-                                          meter_quadrature,
+                                          this->meter_quadrature,
                                           update_normal_vectors |
                                             update_values | update_JxW_values);
 
     Tensor<1, spacedim> mean_normal;
-    for (const auto &cell : get_vector_dof_handler().active_cell_iterators() |
-                              IteratorFilters::LocallyOwnedCell())
+    for (const auto &cell :
+         this->get_vector_dof_handler().active_cell_iterators() |
+           IteratorFilters::LocallyOwnedCell())
       {
         fe_values.reinit(cell);
-        for (unsigned int q = 0; q < meter_quadrature.size(); ++q)
+        for (unsigned int q = 0; q < this->meter_quadrature.size(); ++q)
           mean_normal += fe_values.normal_vector(q) * fe_values.JxW(q);
       }
 
@@ -642,9 +583,9 @@ namespace fdl
     if (centroid_cell->is_locally_owned())
       {
         Quadrature<dim - 1> centroid_quad(ref_centroid);
-        const auto         &fe = get_scalar_dof_handler().get_fe();
+        const auto         &fe = this->get_scalar_dof_handler().get_fe();
 
-        FEValues<dim - 1, spacedim> fe_values(get_mapping(),
+        FEValues<dim - 1, spacedim> fe_values(this->get_mapping(),
                                               fe,
                                               centroid_quad,
                                               update_values);
@@ -654,7 +595,7 @@ namespace fdl
             &this->meter_tria,
             centroid_cell->level(),
             centroid_cell->index(),
-            &get_scalar_dof_handler());
+            &this->get_scalar_dof_handler());
         std::vector<types::global_dof_index> cell_dofs(fe.dofs_per_cell);
         cell->get_dof_indices(cell_dofs);
         for (unsigned int i = 0; i < fe.dofs_per_cell; ++i)
