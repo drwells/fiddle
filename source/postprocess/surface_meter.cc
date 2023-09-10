@@ -25,7 +25,6 @@
 #include <ibtk/IndexUtilities.h>
 
 #include <CartesianPatchGeometry.h>
-#include <tbox/InputManager.h>
 
 #include <cmath>
 #include <limits>
@@ -221,7 +220,7 @@ namespace fdl
                            "SurfaceMeter is set up without an underlying "
                            "codimension zero Triangulation."));
     // special case: nothing can move so skip all but one reinit function
-    reinit_interaction();
+    this->reinit_interaction();
   }
 
 
@@ -332,35 +331,6 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  SurfaceMeter<dim, spacedim>::reinit_interaction()
-  {
-    // As the meter mesh is in absolute coordinates we can use a normal
-    // mapping here
-    const auto local_bboxes = compute_cell_bboxes<dim - 1, spacedim, float>(
-      this->get_vector_dof_handler(), this->get_mapping());
-    const auto all_bboxes =
-      collect_all_active_cell_bboxes(this->meter_tria, local_bboxes);
-
-    // 1e-6 is an arbitrary nonzero number which ensures that points on the
-    // boundaries between patches end up in both (for the purposes of
-    // computing interpolations) but minimizes the amount of work resulting
-    // from double-counting. I suspect that any number larger than 1e-10 would
-    // suffice.
-    tbox::Pointer<tbox::Database> db = new tbox::InputDatabase("meter_mesh_db");
-    db->putDouble("ghost_cell_fraction", 1e-6);
-    nodal_interaction = std::make_unique<NodalInteraction<dim - 1, spacedim>>(
-      db,
-      this->meter_tria,
-      all_bboxes,
-      this->patch_hierarchy,
-      std::make_pair(0, this->patch_hierarchy->getFinestLevelNumber()),
-      this->get_vector_dof_handler(),
-      this->identity_position);
-    nodal_interaction->add_dof_handler(this->get_scalar_dof_handler());
-  }
-
-  template <int dim, int spacedim>
-  void
   SurfaceMeter<dim, spacedim>::internal_reinit(
     const bool                              reinit_tria,
     const std::vector<Point<spacedim>>     &boundary_points,
@@ -371,7 +341,7 @@ namespace fdl
       this->reinit_tria(boundary_points, place_additional_boundary_vertices);
     this->reinit_dofs();
     reinit_centroid();
-    reinit_interaction();
+    this->reinit_interaction();
     reinit_mean_velocity(velocity_values);
   }
 
@@ -449,13 +419,13 @@ namespace fdl
   {
     LinearAlgebra::distributed::Vector<double> interpolated_data(
       this->scalar_partitioner);
-    nodal_interaction->interpolate(kernel_name,
-                                   data_idx,
-                                   this->get_vector_dof_handler(),
-                                   this->identity_position,
-                                   this->get_scalar_dof_handler(),
-                                   this->get_mapping(),
-                                   interpolated_data);
+    this->nodal_interaction->interpolate(kernel_name,
+                                         data_idx,
+                                         this->get_vector_dof_handler(),
+                                         this->identity_position,
+                                         this->get_scalar_dof_handler(),
+                                         this->get_mapping(),
+                                         interpolated_data);
     interpolated_data.update_ghost_values();
 
     return interpolated_data;
@@ -469,13 +439,13 @@ namespace fdl
   {
     LinearAlgebra::distributed::Vector<double> interpolated_data(
       this->vector_partitioner);
-    nodal_interaction->interpolate(kernel_name,
-                                   data_idx,
-                                   this->get_vector_dof_handler(),
-                                   this->identity_position,
-                                   this->get_vector_dof_handler(),
-                                   this->get_mapping(),
-                                   interpolated_data);
+    this->nodal_interaction->interpolate(kernel_name,
+                                         data_idx,
+                                         this->get_vector_dof_handler(),
+                                         this->identity_position,
+                                         this->get_vector_dof_handler(),
+                                         this->get_mapping(),
+                                         interpolated_data);
     interpolated_data.update_ghost_values();
 
     return interpolated_data;

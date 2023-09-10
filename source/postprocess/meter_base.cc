@@ -25,7 +25,7 @@
 #include <ibtk/IndexUtilities.h>
 
 #include <CartesianPatchGeometry.h>
-#include <PatchGeometry.h>
+#include <tbox/InputManager.h>
 
 #include <cmath>
 #include <limits>
@@ -40,8 +40,7 @@ namespace fdl
                  Triangulation<dim, spacedim>::MeshSmoothing::none,
                  true)
     , scalar_fe(std::make_unique<FE_SimplexP<dim, spacedim>>(1))
-    , vector_fe(
-        std::make_unique<FESystem<dim, spacedim>>(*scalar_fe, spacedim))
+    , vector_fe(std::make_unique<FESystem<dim, spacedim>>(*scalar_fe, spacedim))
   {}
 
   template <int dim, int spacedim>
@@ -65,6 +64,36 @@ namespace fdl
                   ExcMessage("mixed meshes are not yet supported here."));
 
     vector_fe = std::make_unique<FESystem<dim, spacedim>>(*scalar_fe, spacedim);
+  }
+
+  template <int dim, int spacedim>
+  void
+  MeterBase<dim, spacedim>::reinit_interaction()
+  {
+    // As the meter mesh is in absolute coordinates we can use a normal
+    // mapping here
+    const auto local_bboxes =
+      compute_cell_bboxes<dim, spacedim, float>(get_vector_dof_handler(),
+                                                get_mapping());
+    const auto all_bboxes =
+      collect_all_active_cell_bboxes(meter_tria, local_bboxes);
+
+    // 1e-6 is an arbitrary nonzero number which ensures that points on the
+    // boundaries between patches end up in both (for the purposes of
+    // computing interpolations) but minimizes the amount of work resulting
+    // from double-counting. I suspect that any number larger than 1e-10 would
+    // suffice.
+    tbox::Pointer<tbox::Database> db = new tbox::InputDatabase("meter_mesh_db");
+    db->putDouble("ghost_cell_fraction", 1e-6);
+    nodal_interaction = std::make_unique<NodalInteraction<dim, spacedim>>(
+      db,
+      meter_tria,
+      all_bboxes,
+      patch_hierarchy,
+      std::make_pair(0, patch_hierarchy->getFinestLevelNumber()),
+      get_vector_dof_handler(),
+      identity_position);
+    nodal_interaction->add_dof_handler(get_scalar_dof_handler());
   }
 
   template <int dim, int spacedim>

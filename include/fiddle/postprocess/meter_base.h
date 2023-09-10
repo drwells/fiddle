@@ -109,6 +109,14 @@ namespace fdl
     reinit_dofs();
 
     /**
+     * Reinitialize the NodalInteraction object.
+     *
+     * @note This function should typically be called after reinit_tria().
+     */
+    void
+    reinit_interaction();
+
+    /**
      * Cartesian-grid data.
      */
     tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy;
@@ -158,6 +166,11 @@ namespace fdl
      * reinitalization.
      */
     LinearAlgebra::distributed::Vector<double> identity_position;
+
+    /**
+     * Interaction object.
+     */
+    std::unique_ptr<NodalInteraction<dim, spacedim>> nodal_interaction;
   };
 
 

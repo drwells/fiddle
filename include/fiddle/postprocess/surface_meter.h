@@ -3,8 +3,6 @@
 
 #include <fiddle/base/config.h>
 
-#include <fiddle/interaction/nodal_interaction.h>
-
 #include <fiddle/postprocess/meter_base.h>
 #include <fiddle/postprocess/point_values.h>
 
@@ -253,14 +251,6 @@ namespace fdl
     void
     reinit_centroid();
 
-    /**
-     * Reinitialize the NodalInteraction object.
-     *
-     * @note This function should typically be called after reinit_tria().
-     */
-    void
-    reinit_interaction();
-
     void
     reinit_mean_velocity(
       const std::vector<Tensor<1, spacedim>> &velocity_values);
@@ -311,11 +301,6 @@ namespace fdl
      */
     typename Triangulation<dim - 1, spacedim>::active_cell_iterator
       centroid_cell;
-
-    /**
-     * Interaction object.
-     */
-    std::unique_ptr<NodalInteraction<dim - 1, spacedim>> nodal_interaction;
   };
 
 
