@@ -93,6 +93,17 @@ namespace fdl
      */
 
     /**
+     * Compute the mean value of some scalar-valued quantity.
+     *
+     * @param[in] data_idx Some data index corresponding to data on the
+     * Cartesian grid. This class will copy the data into a scratch index and
+     * update ghost data.
+     */
+    virtual double
+    compute_mean_value(const int          data_idx,
+                       const std::string &kernel_name) const;
+
+    /**
      * Interpolate a scalar-valued quantity.
      */
     virtual LinearAlgebra::distributed::Vector<double>

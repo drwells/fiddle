@@ -412,22 +412,6 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
-  double
-  SurfaceMeter<dim, spacedim>::compute_mean_value(
-    const int          data_idx,
-    const std::string &kernel_name) const
-  {
-    const auto interpolated_data =
-      this->interpolate_scalar_field(data_idx, kernel_name);
-
-    return VectorTools::compute_mean_value(this->get_mapping(),
-                                           this->get_scalar_dof_handler(),
-                                           this->meter_quadrature,
-                                           interpolated_data,
-                                           0);
-  }
-
-  template <int dim, int spacedim>
   std::pair<double, Tensor<1, spacedim>>
   SurfaceMeter<dim, spacedim>::compute_flux(
     const int          data_idx,

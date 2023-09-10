@@ -141,6 +141,22 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
+  double
+  MeterBase<dim, spacedim>::compute_mean_value(
+    const int          data_idx,
+    const std::string &kernel_name) const
+  {
+    const auto interpolated_data =
+      interpolate_scalar_field(data_idx, kernel_name);
+
+    return VectorTools::compute_mean_value(get_mapping(),
+                                           get_scalar_dof_handler(),
+                                           meter_quadrature,
+                                           interpolated_data,
+                                           0);
+  }
+
+  template <int dim, int spacedim>
   LinearAlgebra::distributed::Vector<double>
   MeterBase<dim, spacedim>::interpolate_scalar_field(
     const int          data_idx,
