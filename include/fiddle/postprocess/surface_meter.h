@@ -206,6 +206,14 @@ namespace fdl
     reinit_tria(const std::vector<Point<spacedim>> &boundary_points,
                 const bool place_additional_boundary_vertices);
 
+    /**
+     * Reinitialize the mean velocity of the meter itself from values of the
+     * velocity specified at the boundary nodes. This function assumes that the
+     * first [0, N - 1] nodes are on the boundary.
+     *
+     * @note In the sequence of reinitialization this should typically be called
+     * last since it requires the Triangulation and FE data to first be set up.
+     */
     void
     reinit_mean_velocity(
       const std::vector<Tensor<1, spacedim>> &velocity_values);

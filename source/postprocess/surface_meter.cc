@@ -253,9 +253,7 @@ namespace fdl
   {
     if (reinit_tria)
       this->reinit_tria(boundary_points, place_additional_boundary_vertices);
-    this->reinit_dofs();
-    this->reinit_centroid();
-    this->reinit_interaction();
+    MeterBase<dim - 1, spacedim>::internal_reinit();
     reinit_mean_velocity(velocity_values);
   }
 

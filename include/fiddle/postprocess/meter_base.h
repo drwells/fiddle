@@ -162,6 +162,17 @@ namespace fdl
     reinit_interaction();
 
     /**
+     * Helper function which calls the previous three functions in the correct
+     * order (dofs, centroid, then interaction).
+     *
+     * Since inheriting classes set up meter_tria in a variety of different
+     * ways, they should typically set up that object themselves first and then
+     * call this function afterwards to manage the rest of the meter's state.
+     */
+    void
+    internal_reinit();
+
+    /**
      * Meter centroid.
      */
     Point<spacedim> centroid;

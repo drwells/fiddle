@@ -257,6 +257,15 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
+  void
+  MeterBase<dim, spacedim>::internal_reinit()
+  {
+    reinit_dofs();
+    reinit_centroid();
+    reinit_interaction();
+  }
+
+  template <int dim, int spacedim>
   double
   MeterBase<dim, spacedim>::compute_centroid_value(
     const int          data_idx,
