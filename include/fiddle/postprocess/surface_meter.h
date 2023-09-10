@@ -189,20 +189,6 @@ namespace fdl
     virtual Tensor<1, spacedim>
     compute_mean_normal_vector() const;
 
-    /**
-     * Interpolate the value of some scalar field at the centroid.
-     */
-    virtual double
-    compute_centroid_value(const int          data_idx,
-                           const std::string &kernel_name) const;
-
-    /**
-     * Return the centroid of the meter mesh. This point may not be inside the
-     * mesh.
-     */
-    virtual Point<spacedim>
-    get_centroid() const;
-
   protected:
     /**
      * Reinitialize the stored Triangulation.
@@ -219,12 +205,6 @@ namespace fdl
     void
     reinit_tria(const std::vector<Point<spacedim>> &boundary_points,
                 const bool place_additional_boundary_vertices);
-
-    /**
-     * Reinitialize centroid data.
-     */
-    void
-    reinit_centroid();
 
     void
     reinit_mean_velocity(
@@ -260,34 +240,10 @@ namespace fdl
      * Mean meter velocity.
      */
     Tensor<1, spacedim> mean_velocity;
-
-    /**
-     * Meter centroid.
-     */
-    Point<spacedim> centroid;
-
-    /**
-     * Meter centroid, in reference cell coordinates.
-     */
-    Point<dim - 1> ref_centroid;
-
-    /**
-     * Cell containing the centroid.
-     */
-    typename Triangulation<dim - 1, spacedim>::active_cell_iterator
-      centroid_cell;
   };
 
 
   // --------------------------- inline functions --------------------------- //
-
-
-  template <int dim, int spacedim>
-  Point<spacedim>
-  SurfaceMeter<dim, spacedim>::get_centroid() const
-  {
-    return centroid;
-  }
 
   template <int dim, int spacedim>
   Tensor<1, spacedim>

@@ -245,92 +245,6 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  SurfaceMeter<dim, spacedim>::reinit_centroid()
-  {
-    // Since we have codim-1 meshes, the centroid (computed with the integral
-    // formula) may not actually exist in the mesh. Find an equivalent point on
-    // the mesh by
-    // 1. Compute the analytic centroid.
-    // 2. Find the cell closest to the analytic centroid. Increase the numerical
-    //    tolerance until we find at least one cell.
-    // 3. If there are multiple cells, canonicalize by picking the one with the
-    //    lowest index.
-    // 4. Broadcast the result.
-    const MPI_Comm comm = this->meter_tria.get_communicator();
-    const int      rank = Utilities::MPI::this_mpi_process(comm);
-
-    // Step 1
-    Point<spacedim> a_centroid;
-    for (unsigned int d = 0; d < spacedim; ++d)
-      a_centroid[d] =
-        VectorTools::compute_mean_value(this->get_mapping(),
-                                        this->get_vector_dof_handler(),
-                                        this->meter_quadrature,
-                                        this->identity_position,
-                                        d);
-    std::pair<typename Triangulation<dim - 1, spacedim>::active_cell_iterator,
-              Point<dim - 1>>
-      centroid_pair;
-    // Step 2
-    double       tolerance  = 1e-14;
-    bool         found_cell = false;
-    const double dx = internal::compute_min_cell_width(this->patch_hierarchy);
-    do
-      {
-        centroid_pair =
-          GridTools::find_active_cell_around_point(this->get_mapping(),
-                                                   this->meter_tria,
-                                                   a_centroid);
-        // Ignore ghost cells
-        if (centroid_pair.first != this->meter_tria.end() &&
-            !centroid_pair.first->is_locally_owned())
-          {
-            Assert(centroid_pair.first->is_ghost(), ExcFDLInternalError());
-            centroid_pair.first = this->meter_tria.end();
-          }
-
-        tolerance *= 2.0;
-        // quit if at least one processor found the cell
-        found_cell = Utilities::MPI::sum(int(centroid_pair.first !=
-                                             this->meter_tria.end()),
-                                         comm) != 0;
-    } while (!found_cell && tolerance < dx);
-    AssertThrow(found_cell, ExcFDLInternalError());
-
-    // Step 3
-    int index_rank[2]{std::numeric_limits<int>::max(), rank};
-    if (centroid_pair.first != this->meter_tria.end())
-      {
-        AssertThrow(centroid_pair.first->level() == 0, ExcFDLNotImplemented());
-        index_rank[0] = centroid_pair.first->index();
-      }
-    int result[2]{std::numeric_limits<int>::max(),
-                  std::numeric_limits<int>::max()};
-    int ierr =
-      MPI_Allreduce(&index_rank, &result, 1, MPI_2INT, MPI_MINLOC, comm);
-    AssertThrowMPI(ierr);
-    Assert(result[0] != std::numeric_limits<int>::max(), ExcFDLInternalError());
-    ref_centroid =
-      Utilities::MPI::broadcast(comm, centroid_pair.second, result[1]);
-
-    // Step 4
-    centroid_cell = TriaActiveIterator<CellAccessor<dim - 1, spacedim>>(
-      &this->meter_tria, 0, result[0], nullptr);
-    if (centroid_cell->is_locally_owned())
-      {
-        Assert(int(centroid_cell->subdomain_id()) == rank,
-               ExcFDLInternalError());
-        Assert(result[1] == rank, ExcFDLInternalError());
-        Assert(centroid_pair.first == centroid_cell, ExcFDLInternalError());
-        centroid =
-          this->get_mapping().transform_unit_to_real_cell(centroid_cell,
-                                                          ref_centroid);
-      }
-    centroid = Utilities::MPI::broadcast(comm, centroid, result[1]);
-  }
-
-  template <int dim, int spacedim>
-  void
   SurfaceMeter<dim, spacedim>::internal_reinit(
     const bool                              reinit_tria,
     const std::vector<Point<spacedim>>     &boundary_points,
@@ -340,7 +254,7 @@ namespace fdl
     if (reinit_tria)
       this->reinit_tria(boundary_points, place_additional_boundary_vertices);
     this->reinit_dofs();
-    reinit_centroid();
+    this->reinit_centroid();
     this->reinit_interaction();
     reinit_mean_velocity(velocity_values);
   }
@@ -479,51 +393,6 @@ namespace fdl
       Utilities::MPI::sum(mean_normal, this->meter_tria.get_communicator());
     mean_normal /= mean_normal.norm();
     return mean_normal;
-  }
-
-  template <int dim, int spacedim>
-  double
-  SurfaceMeter<dim, spacedim>::compute_centroid_value(
-    const int          data_idx,
-    const std::string &kernel_name) const
-  {
-    // TODO: this is pretty wasteful but we don't have infrastructure set up to
-    // do single point evaluations right now - ultimately this will be added to
-    // IBAMR.
-    const auto interpolated_data =
-      this->interpolate_scalar_field(data_idx, kernel_name);
-
-    double value = 0.0;
-    if (centroid_cell->is_locally_owned())
-      {
-        Quadrature<dim - 1> centroid_quad(ref_centroid);
-        const auto         &fe = this->get_scalar_dof_handler().get_fe();
-
-        FEValues<dim - 1, spacedim> fe_values(this->get_mapping(),
-                                              fe,
-                                              centroid_quad,
-                                              update_values);
-        fe_values.reinit(centroid_cell);
-        const auto cell =
-          typename DoFHandler<dim - 1, spacedim>::active_cell_iterator(
-            &this->meter_tria,
-            centroid_cell->level(),
-            centroid_cell->index(),
-            &this->get_scalar_dof_handler());
-        std::vector<types::global_dof_index> cell_dofs(fe.dofs_per_cell);
-        cell->get_dof_indices(cell_dofs);
-        for (unsigned int i = 0; i < fe.dofs_per_cell; ++i)
-          value +=
-            fe_values.shape_value(i, 0) * interpolated_data[cell_dofs[i]];
-      }
-
-    const int owning_rank =
-      this->meter_tria
-        .get_true_subdomain_ids_of_cells()[centroid_cell->active_cell_index()];
-    value = Utilities::MPI::broadcast(this->meter_tria.get_communicator(),
-                                      value,
-                                      owning_rank);
-    return value;
   }
 
   template class SurfaceMeter<NDIM, NDIM>;

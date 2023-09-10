@@ -86,11 +86,25 @@ namespace fdl
     const DoFHandler<dim, spacedim> &
     get_vector_dof_handler() const;
 
+    /**
+     * Return the centroid of the meter mesh. This point may not be inside the
+     * mesh.
+     */
+    virtual Point<spacedim>
+    get_centroid() const;
+
     /** @} */
 
     /* @name FSI
      * @{
      */
+
+    /**
+     * Interpolate the value of some scalar field at the centroid.
+     */
+    virtual double
+    compute_centroid_value(const int          data_idx,
+                           const std::string &kernel_name) const;
 
     /**
      * Compute the mean value of some scalar-valued quantity.
@@ -134,12 +148,33 @@ namespace fdl
     reinit_dofs();
 
     /**
+     * Reinitialize centroid data.
+     */
+    void
+    reinit_centroid();
+
+    /**
      * Reinitialize the NodalInteraction object.
      *
      * @note This function should typically be called after reinit_tria().
      */
     void
     reinit_interaction();
+
+    /**
+     * Meter centroid.
+     */
+    Point<spacedim> centroid;
+
+    /**
+     * Meter centroid, in reference cell coordinates.
+     */
+    Point<dim> ref_centroid;
+
+    /**
+     * Cell containing the centroid.
+     */
+    typename Triangulation<dim, spacedim>::active_cell_iterator centroid_cell;
 
     /**
      * Cartesian-grid data.
@@ -228,6 +263,13 @@ namespace fdl
   MeterBase<dim, spacedim>::get_vector_dof_handler() const
   {
     return vector_dof_handler;
+  }
+
+  template <int dim, int spacedim>
+  Point<spacedim>
+  MeterBase<dim, spacedim>::get_centroid() const
+  {
+    return centroid;
   }
 } // namespace fdl
 

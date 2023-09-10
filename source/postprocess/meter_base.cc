@@ -32,6 +32,37 @@
 
 namespace fdl
 {
+  namespace internal
+  {
+    namespace
+    {
+      template <int spacedim>
+      double
+      compute_min_cell_width(
+        const tbox::Pointer<hier::PatchHierarchy<spacedim>> &patch_hierarchy)
+      {
+        double dx = std::numeric_limits<double>::max();
+        const tbox::Pointer<hier::PatchLevel<spacedim>> level =
+          patch_hierarchy->getPatchLevel(
+            patch_hierarchy->getFinestLevelNumber());
+        Assert(level, ExcFDLInternalError());
+        for (typename hier::PatchLevel<spacedim>::Iterator p(level); p; p++)
+          {
+            const tbox::Pointer<hier::Patch<spacedim>> patch =
+              level->getPatch(p());
+            const tbox::Pointer<geom::CartesianPatchGeometry<spacedim>> pgeom =
+              patch->getPatchGeometry();
+            dx = std::min(dx,
+                          *std::min_element(pgeom->getDx(),
+                                            pgeom->getDx() + spacedim));
+          }
+        dx = Utilities::MPI::min(dx, tbox::SAMRAI_MPI::getCommunicator());
+        Assert(dx != std::numeric_limits<double>::max(), ExcFDLInternalError());
+        return dx;
+      }
+    } // namespace
+  }   // namespace internal
+
   template <int dim, int spacedim>
   MeterBase<dim, spacedim>::MeterBase(
     tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy)
@@ -64,36 +95,6 @@ namespace fdl
                   ExcMessage("mixed meshes are not yet supported here."));
 
     vector_fe = std::make_unique<FESystem<dim, spacedim>>(*scalar_fe, spacedim);
-  }
-
-  template <int dim, int spacedim>
-  void
-  MeterBase<dim, spacedim>::reinit_interaction()
-  {
-    // As the meter mesh is in absolute coordinates we can use a normal
-    // mapping here
-    const auto local_bboxes =
-      compute_cell_bboxes<dim, spacedim, float>(get_vector_dof_handler(),
-                                                get_mapping());
-    const auto all_bboxes =
-      collect_all_active_cell_bboxes(meter_tria, local_bboxes);
-
-    // 1e-6 is an arbitrary nonzero number which ensures that points on the
-    // boundaries between patches end up in both (for the purposes of
-    // computing interpolations) but minimizes the amount of work resulting
-    // from double-counting. I suspect that any number larger than 1e-10 would
-    // suffice.
-    tbox::Pointer<tbox::Database> db = new tbox::InputDatabase("meter_mesh_db");
-    db->putDouble("ghost_cell_fraction", 1e-6);
-    nodal_interaction = std::make_unique<NodalInteraction<dim, spacedim>>(
-      db,
-      meter_tria,
-      all_bboxes,
-      patch_hierarchy,
-      std::make_pair(0, patch_hierarchy->getFinestLevelNumber()),
-      get_vector_dof_handler(),
-      identity_position);
-    nodal_interaction->add_dof_handler(get_scalar_dof_handler());
   }
 
   template <int dim, int spacedim>
@@ -138,6 +139,166 @@ namespace fdl
                              Functions::IdentityFunction<spacedim>(),
                              identity_position);
     identity_position.update_ghost_values();
+  }
+
+  template <int dim, int spacedim>
+  void
+  MeterBase<dim, spacedim>::reinit_centroid()
+  {
+    // Since we support codim-1 meshes, the centroid (computed with the integral
+    // formula) may not actually exist in the mesh. Find an equivalent point on
+    // the mesh by
+    // 1. Compute the analytic centroid.
+    // 2. Find the cell closest to the analytic centroid. Increase the numerical
+    //    tolerance until we find at least one cell.
+    // 3. If there are multiple cells, canonicalize by picking the one with the
+    //    lowest index.
+    // 4. Broadcast the result.
+    const MPI_Comm comm = get_triangulation().get_communicator();
+    const int      rank = Utilities::MPI::this_mpi_process(comm);
+
+    // Step 1
+    Point<spacedim> a_centroid;
+    for (unsigned int d = 0; d < spacedim; ++d)
+      a_centroid[d] = VectorTools::compute_mean_value(get_mapping(),
+                                                      get_vector_dof_handler(),
+                                                      meter_quadrature,
+                                                      identity_position,
+                                                      d);
+    std::pair<typename Triangulation<dim, spacedim>::active_cell_iterator,
+              Point<dim>>
+      centroid_pair;
+    // Step 2
+    double       tolerance  = 1e-14;
+    bool         found_cell = false;
+    const double dx         = internal::compute_min_cell_width(patch_hierarchy);
+    do
+      {
+        centroid_pair = GridTools::find_active_cell_around_point(get_mapping(),
+                                                                 meter_tria,
+                                                                 a_centroid);
+        // Ignore ghost cells
+        if (centroid_pair.first != meter_tria.end() &&
+            !centroid_pair.first->is_locally_owned())
+          {
+            Assert(centroid_pair.first->is_ghost(), ExcFDLInternalError());
+            centroid_pair.first = meter_tria.end();
+          }
+
+        tolerance *= 2.0;
+        // quit if at least one processor found the cell
+        found_cell =
+          Utilities::MPI::sum(int(centroid_pair.first != meter_tria.end()),
+                              comm) != 0;
+    } while (!found_cell && tolerance < dx);
+    AssertThrow(found_cell, ExcFDLInternalError());
+
+    // Step 3
+    int index_rank[2]{std::numeric_limits<int>::max(), rank};
+    if (centroid_pair.first != meter_tria.end())
+      {
+        AssertThrow(centroid_pair.first->level() == 0, ExcFDLNotImplemented());
+        index_rank[0] = centroid_pair.first->index();
+      }
+    int result[2]{std::numeric_limits<int>::max(),
+                  std::numeric_limits<int>::max()};
+    int ierr =
+      MPI_Allreduce(&index_rank, &result, 1, MPI_2INT, MPI_MINLOC, comm);
+    AssertThrowMPI(ierr);
+    Assert(result[0] != std::numeric_limits<int>::max(), ExcFDLInternalError());
+    ref_centroid =
+      Utilities::MPI::broadcast(comm, centroid_pair.second, result[1]);
+
+    // Step 4
+    centroid_cell = TriaActiveIterator<CellAccessor<dim, spacedim>>(&meter_tria,
+                                                                    0,
+                                                                    result[0],
+                                                                    nullptr);
+    if (centroid_cell->is_locally_owned())
+      {
+        Assert(int(centroid_cell->subdomain_id()) == rank,
+               ExcFDLInternalError());
+        Assert(result[1] == rank, ExcFDLInternalError());
+        Assert(centroid_pair.first == centroid_cell, ExcFDLInternalError());
+        centroid = get_mapping().transform_unit_to_real_cell(centroid_cell,
+                                                             ref_centroid);
+      }
+    centroid = Utilities::MPI::broadcast(comm, centroid, result[1]);
+  }
+
+  template <int dim, int spacedim>
+  void
+  MeterBase<dim, spacedim>::reinit_interaction()
+  {
+    // As the meter mesh is in absolute coordinates we can use a normal
+    // mapping here
+    const auto local_bboxes =
+      compute_cell_bboxes<dim, spacedim, float>(get_vector_dof_handler(),
+                                                get_mapping());
+    const auto all_bboxes =
+      collect_all_active_cell_bboxes(meter_tria, local_bboxes);
+
+    // 1e-6 is an arbitrary nonzero number which ensures that points on the
+    // boundaries between patches end up in both (for the purposes of
+    // computing interpolations) but minimizes the amount of work resulting
+    // from double-counting. I suspect that any number larger than 1e-10 would
+    // suffice.
+    tbox::Pointer<tbox::Database> db = new tbox::InputDatabase("meter_mesh_db");
+    db->putDouble("ghost_cell_fraction", 1e-6);
+    nodal_interaction = std::make_unique<NodalInteraction<dim, spacedim>>(
+      db,
+      meter_tria,
+      all_bboxes,
+      patch_hierarchy,
+      std::make_pair(0, patch_hierarchy->getFinestLevelNumber()),
+      get_vector_dof_handler(),
+      identity_position);
+    nodal_interaction->add_dof_handler(get_scalar_dof_handler());
+  }
+
+  template <int dim, int spacedim>
+  double
+  MeterBase<dim, spacedim>::compute_centroid_value(
+    const int          data_idx,
+    const std::string &kernel_name) const
+  {
+    // TODO: this is pretty wasteful but we don't have infrastructure set up to
+    // do single point evaluations right now - ultimately this will be added to
+    // IBAMR.
+    const auto interpolated_data =
+      interpolate_scalar_field(data_idx, kernel_name);
+
+    double value = 0.0;
+    if (centroid_cell->is_locally_owned())
+      {
+        Quadrature<dim> centroid_quad(ref_centroid);
+        const auto     &fe = get_scalar_dof_handler().get_fe();
+
+        FEValues<dim, spacedim> fe_values(get_mapping(),
+                                          fe,
+                                          centroid_quad,
+                                          update_values);
+        fe_values.reinit(centroid_cell);
+        const auto cell =
+          typename DoFHandler<dim, spacedim>::active_cell_iterator(
+            &meter_tria,
+            centroid_cell->level(),
+            centroid_cell->index(),
+            &get_scalar_dof_handler());
+        std::vector<types::global_dof_index> cell_dofs(fe.dofs_per_cell);
+        cell->get_dof_indices(cell_dofs);
+        for (unsigned int i = 0; i < fe.dofs_per_cell; ++i)
+          value +=
+            fe_values.shape_value(i, 0) * interpolated_data[cell_dofs[i]];
+      }
+
+    const int owning_rank =
+      meter_tria
+        .get_true_subdomain_ids_of_cells()[centroid_cell->active_cell_index()];
+    value = Utilities::MPI::broadcast(meter_tria.get_communicator(),
+                                      value,
+                                      owning_rank);
+    return value;
   }
 
   template <int dim, int spacedim>
