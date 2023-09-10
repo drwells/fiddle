@@ -3,8 +3,7 @@
 
 #include <fiddle/base/config.h>
 
-#include <fiddle/interaction/nodal_interaction.h>
-
+#include <fiddle/postprocess/meter_base.h>
 #include <fiddle/postprocess/point_values.h>
 
 #include <deal.II/base/point.h>
@@ -71,7 +70,7 @@ namespace fdl
    * std::nexttoward().
    */
   template <int dim, int spacedim = dim>
-  class SurfaceMeter
+  class SurfaceMeter : public MeterBase<dim - 1, spacedim>
   {
   public:
     /**
@@ -125,13 +124,6 @@ namespace fdl
     uses_codim_zero_mesh() const;
 
     /**
-     * Return whether or not all vertices of the Triangulation are actually
-     * inside the domain defined by the PatchHierarchy.
-     */
-    bool
-    compute_vertices_inside_domain() const;
-
-    /**
      * Reinitialize the meter mesh to have its coordinates specified by @p
      * position and velocity by @p velocity.
      *
@@ -161,47 +153,6 @@ namespace fdl
     reinit();
 
     /**
-     * Return a reference to the meter Triangulation. This triangulation is
-     * not in reference coordinates: instead its absolute position is
-     * determined by the position vector specified to the constructor or
-     * reinit().
-     */
-    const Triangulation<dim - 1, spacedim> &
-    get_triangulation() const;
-
-    /**
-     * Return a reference to the Mapping used on the meter mesh.
-     */
-    const Mapping<dim - 1, spacedim> &
-    get_mapping() const;
-
-    /**
-     * Return a reference to the DoFHandler for scalar fields.
-     */
-    const DoFHandler<dim - 1, spacedim> &
-    get_scalar_dof_handler() const;
-
-    /**
-     * Return a reference to the DoFHandler for vector fields.
-     */
-    const DoFHandler<dim - 1, spacedim> &
-    get_vector_dof_handler() const;
-
-    /**
-     * Interpolate a scalar-valued quantity.
-     */
-    virtual LinearAlgebra::distributed::Vector<double>
-    interpolate_scalar_field(const int          data_idx,
-                             const std::string &kernel_name) const;
-
-    /**
-     * Interpolate a vector-valued quantity.
-     */
-    virtual LinearAlgebra::distributed::Vector<double>
-    interpolate_vector_field(const int          data_idx,
-                             const std::string &kernel_name) const;
-
-    /**
      * Return the mean velocity of the meter itself computed from the inputs
      * to the ctor or reinit() functions.
      *
@@ -216,17 +167,6 @@ namespace fdl
      */
     virtual Tensor<1, spacedim>
     get_mean_velocity() const;
-
-    /**
-     * Compute the mean value of some scalar-valued quantity.
-     *
-     * @param[in] data_idx Some data index corresponding to data on the
-     * Cartesian grid. This class will copy the data into a scratch index and
-     * update ghost data.
-     */
-    virtual double
-    compute_mean_value(const int          data_idx,
-                       const std::string &kernel_name) const;
 
     /**
      * Compute both the flux and the flux of some quantity through the meter
@@ -249,20 +189,6 @@ namespace fdl
     virtual Tensor<1, spacedim>
     compute_mean_normal_vector() const;
 
-    /**
-     * Interpolate the value of some scalar field at the centroid.
-     */
-    virtual double
-    compute_centroid_value(const int          data_idx,
-                           const std::string &kernel_name) const;
-
-    /**
-     * Return the centroid of the meter mesh. This point may not be inside the
-     * mesh.
-     */
-    virtual Point<spacedim>
-    get_centroid() const;
-
   protected:
     /**
      * Reinitialize the stored Triangulation.
@@ -281,25 +207,13 @@ namespace fdl
                 const bool place_additional_boundary_vertices);
 
     /**
-     * Reinitialize all the FE data structures, including vectors and mappings.
-     */
-    void
-    reinit_dofs();
-
-    /**
-     * Reinitialize centroid data.
-     */
-    void
-    reinit_centroid();
-
-    /**
-     * Reinitialize the NodalInteraction object.
+     * Reinitialize the mean velocity of the meter itself from values of the
+     * velocity specified at the boundary nodes. This function assumes that the
+     * first [0, N - 1] nodes are on the boundary.
      *
-     * @note This function should typically be called after reinit_tria().
+     * @note In the sequence of reinitialization this should typically be called
+     * last since it requires the Triangulation and FE data to first be set up.
      */
-    void
-    reinit_interaction();
-
     void
     reinit_mean_velocity(
       const std::vector<Tensor<1, spacedim>> &velocity_values);
@@ -326,132 +240,24 @@ namespace fdl
     SmartPointer<const DoFHandler<dim, spacedim>> position_dof_handler;
 
     /**
-     * Mapping on the meter Triangulation.
-     */
-    std::unique_ptr<Mapping<dim - 1, spacedim>> meter_mapping;
-
-    /**
-     * Quadrature to use on the meter mesh. Has degree $2 * scalar_fe.degree +
-     * 1$.
-     */
-    Quadrature<dim - 1> meter_quadrature;
-
-    /**
-     * Cartesian-grid data.
-     */
-    tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy;
-
-    /**
      * PointValues object for computing the mesh's position.
      */
     std::unique_ptr<PointValues<spacedim, dim, spacedim>> point_values;
 
     /**
-     * Meter Triangulation.
-     */
-    parallel::shared::Triangulation<dim - 1, spacedim> meter_tria;
-
-    /**
-     * Positions of the mesh DoFs - always the identity function after
-     * reinitalization.
-     */
-    LinearAlgebra::distributed::Vector<double> identity_position;
-
-    /**
      * Mean meter velocity.
      */
     Tensor<1, spacedim> mean_velocity;
-
-    /**
-     * Meter centroid.
-     */
-    Point<spacedim> centroid;
-
-    /**
-     * Meter centroid, in reference cell coordinates.
-     */
-    Point<dim - 1> ref_centroid;
-
-    /**
-     * Cell containing the centroid.
-     */
-    typename Triangulation<dim - 1, spacedim>::active_cell_iterator
-      centroid_cell;
-
-    /**
-     * Scalar FiniteElement used on meter_tria
-     */
-    std::unique_ptr<FiniteElement<dim - 1, spacedim>> scalar_fe;
-
-    /**
-     * Vector FiniteElement used on meter_tria
-     */
-    std::unique_ptr<FiniteElement<dim - 1, spacedim>> vector_fe;
-
-    /**
-     * DoFHandler for scalar quantities defined on meter_tria.
-     */
-    DoFHandler<dim - 1, spacedim> scalar_dof_handler;
-
-    /**
-     * DoFHandler for vector-valued quantities defined on meter_tria.
-     */
-    DoFHandler<dim - 1, spacedim> vector_dof_handler;
-
-    std::shared_ptr<Utilities::MPI::Partitioner> vector_partitioner;
-
-    std::shared_ptr<Utilities::MPI::Partitioner> scalar_partitioner;
-
-    /**
-     * Interaction object.
-     */
-    std::unique_ptr<NodalInteraction<dim - 1, spacedim>> nodal_interaction;
   };
 
 
   // --------------------------- inline functions --------------------------- //
-
-
-  template <int dim, int spacedim>
-  Point<spacedim>
-  SurfaceMeter<dim, spacedim>::get_centroid() const
-  {
-    return centroid;
-  }
 
   template <int dim, int spacedim>
   Tensor<1, spacedim>
   SurfaceMeter<dim, spacedim>::get_mean_velocity() const
   {
     return mean_velocity;
-  }
-
-  template <int dim, int spacedim>
-  inline const Mapping<dim - 1, spacedim> &
-  SurfaceMeter<dim, spacedim>::get_mapping() const
-  {
-    return *meter_mapping;
-  }
-
-  template <int dim, int spacedim>
-  inline const Triangulation<dim - 1, spacedim> &
-  SurfaceMeter<dim, spacedim>::get_triangulation() const
-  {
-    return meter_tria;
-  }
-
-  template <int dim, int spacedim>
-  inline const DoFHandler<dim - 1, spacedim> &
-  SurfaceMeter<dim, spacedim>::get_scalar_dof_handler() const
-  {
-    return scalar_dof_handler;
-  }
-
-  template <int dim, int spacedim>
-  inline const DoFHandler<dim - 1, spacedim> &
-  SurfaceMeter<dim, spacedim>::get_vector_dof_handler() const
-  {
-    return vector_dof_handler;
   }
 } // namespace fdl
 
