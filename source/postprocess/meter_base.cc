@@ -97,32 +97,6 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
-  bool
-  MeterBase<dim, spacedim>::compute_vertices_inside_domain() const
-  {
-    tbox::Pointer<geom::CartesianGridGeometry<spacedim>> geom =
-      patch_hierarchy->getGridGeometry();
-    Assert(geom, ExcFDLInternalError());
-    tbox::Pointer<hier::PatchLevel<spacedim>> patch_level =
-      patch_hierarchy->getPatchLevel(0);
-    Assert(patch_level, ExcFDLInternalError());
-
-    bool vertices_inside_domain = true;
-    for (const auto &vertex : get_triangulation().get_vertices())
-      {
-        const auto index =
-          IBTK::IndexUtilities::getCellIndex(vertex,
-                                             geom,
-                                             hier::IntVector<spacedim>(1));
-        vertices_inside_domain =
-          vertices_inside_domain &&
-          patch_level->getPhysicalDomain().contains(index);
-      }
-
-    return vertices_inside_domain;
-  }
-
-  template <int dim, int spacedim>
   void
   MeterBase<dim, spacedim>::reinit_dofs()
   {
@@ -164,6 +138,72 @@ namespace fdl
                              Functions::IdentityFunction<spacedim>(),
                              identity_position);
     identity_position.update_ghost_values();
+  }
+
+  template <int dim, int spacedim>
+  LinearAlgebra::distributed::Vector<double>
+  MeterBase<dim, spacedim>::interpolate_scalar_field(
+    const int          data_idx,
+    const std::string &kernel_name) const
+  {
+    LinearAlgebra::distributed::Vector<double> interpolated_data(
+      scalar_partitioner);
+    nodal_interaction->interpolate(kernel_name,
+                                   data_idx,
+                                   get_vector_dof_handler(),
+                                   identity_position,
+                                   get_scalar_dof_handler(),
+                                   get_mapping(),
+                                   interpolated_data);
+    interpolated_data.update_ghost_values();
+
+    return interpolated_data;
+  }
+
+  template <int dim, int spacedim>
+  LinearAlgebra::distributed::Vector<double>
+  MeterBase<dim, spacedim>::interpolate_vector_field(
+    const int          data_idx,
+    const std::string &kernel_name) const
+  {
+    LinearAlgebra::distributed::Vector<double> interpolated_data(
+      vector_partitioner);
+    nodal_interaction->interpolate(kernel_name,
+                                   data_idx,
+                                   get_vector_dof_handler(),
+                                   identity_position,
+                                   get_vector_dof_handler(),
+                                   get_mapping(),
+                                   interpolated_data);
+    interpolated_data.update_ghost_values();
+
+    return interpolated_data;
+  }
+
+  template <int dim, int spacedim>
+  bool
+  MeterBase<dim, spacedim>::compute_vertices_inside_domain() const
+  {
+    tbox::Pointer<geom::CartesianGridGeometry<spacedim>> geom =
+      patch_hierarchy->getGridGeometry();
+    Assert(geom, ExcFDLInternalError());
+    tbox::Pointer<hier::PatchLevel<spacedim>> patch_level =
+      patch_hierarchy->getPatchLevel(0);
+    Assert(patch_level, ExcFDLInternalError());
+
+    bool vertices_inside_domain = true;
+    for (const auto &vertex : get_triangulation().get_vertices())
+      {
+        const auto index =
+          IBTK::IndexUtilities::getCellIndex(vertex,
+                                             geom,
+                                             hier::IntVector<spacedim>(1));
+        vertices_inside_domain =
+          vertices_inside_domain &&
+          patch_level->getPhysicalDomain().contains(index);
+      }
+
+    return vertices_inside_domain;
   }
 
   template class MeterBase<NDIM - 1, NDIM>;

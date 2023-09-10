@@ -93,6 +93,20 @@ namespace fdl
      */
 
     /**
+     * Interpolate a scalar-valued quantity.
+     */
+    virtual LinearAlgebra::distributed::Vector<double>
+    interpolate_scalar_field(const int          data_idx,
+                             const std::string &kernel_name) const;
+
+    /**
+     * Interpolate a vector-valued quantity.
+     */
+    virtual LinearAlgebra::distributed::Vector<double>
+    interpolate_vector_field(const int          data_idx,
+                             const std::string &kernel_name) const;
+
+    /**
      * Return whether or not all vertices of the Triangulation are actually
      * inside the domain defined by the PatchHierarchy.
      */

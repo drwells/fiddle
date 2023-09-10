@@ -412,53 +412,13 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
-  LinearAlgebra::distributed::Vector<double>
-  SurfaceMeter<dim, spacedim>::interpolate_scalar_field(
-    const int          data_idx,
-    const std::string &kernel_name) const
-  {
-    LinearAlgebra::distributed::Vector<double> interpolated_data(
-      this->scalar_partitioner);
-    this->nodal_interaction->interpolate(kernel_name,
-                                         data_idx,
-                                         this->get_vector_dof_handler(),
-                                         this->identity_position,
-                                         this->get_scalar_dof_handler(),
-                                         this->get_mapping(),
-                                         interpolated_data);
-    interpolated_data.update_ghost_values();
-
-    return interpolated_data;
-  }
-
-  template <int dim, int spacedim>
-  LinearAlgebra::distributed::Vector<double>
-  SurfaceMeter<dim, spacedim>::interpolate_vector_field(
-    const int          data_idx,
-    const std::string &kernel_name) const
-  {
-    LinearAlgebra::distributed::Vector<double> interpolated_data(
-      this->vector_partitioner);
-    this->nodal_interaction->interpolate(kernel_name,
-                                         data_idx,
-                                         this->get_vector_dof_handler(),
-                                         this->identity_position,
-                                         this->get_vector_dof_handler(),
-                                         this->get_mapping(),
-                                         interpolated_data);
-    interpolated_data.update_ghost_values();
-
-    return interpolated_data;
-  }
-
-  template <int dim, int spacedim>
   double
   SurfaceMeter<dim, spacedim>::compute_mean_value(
     const int          data_idx,
     const std::string &kernel_name) const
   {
     const auto interpolated_data =
-      interpolate_scalar_field(data_idx, kernel_name);
+      this->interpolate_scalar_field(data_idx, kernel_name);
 
     return VectorTools::compute_mean_value(this->get_mapping(),
                                            this->get_scalar_dof_handler(),
@@ -474,7 +434,7 @@ namespace fdl
     const std::string &kernel_name) const
   {
     const auto interpolated_data =
-      interpolate_vector_field(data_idx, kernel_name);
+      this->interpolate_vector_field(data_idx, kernel_name);
 
     const auto                 &fe = this->get_vector_dof_handler().get_fe();
     FEValues<dim - 1, spacedim> fe_values(this->get_mapping(),
@@ -547,7 +507,7 @@ namespace fdl
     // do single point evaluations right now - ultimately this will be added to
     // IBAMR.
     const auto interpolated_data =
-      interpolate_scalar_field(data_idx, kernel_name);
+      this->interpolate_scalar_field(data_idx, kernel_name);
 
     double value = 0.0;
     if (centroid_cell->is_locally_owned())

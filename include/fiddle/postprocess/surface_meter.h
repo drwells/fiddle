@@ -153,20 +153,6 @@ namespace fdl
     reinit();
 
     /**
-     * Interpolate a scalar-valued quantity.
-     */
-    virtual LinearAlgebra::distributed::Vector<double>
-    interpolate_scalar_field(const int          data_idx,
-                             const std::string &kernel_name) const;
-
-    /**
-     * Interpolate a vector-valued quantity.
-     */
-    virtual LinearAlgebra::distributed::Vector<double>
-    interpolate_vector_field(const int          data_idx,
-                             const std::string &kernel_name) const;
-
-    /**
      * Return the mean velocity of the meter itself computed from the inputs
      * to the ctor or reinit() functions.
      *
