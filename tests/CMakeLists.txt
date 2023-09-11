@@ -100,6 +100,7 @@ SETUP(grid patch_map_01.cc fiddle2d)
 SETUP(grid patch_map_02.cc fiddle2d)
 SETUP(grid line_face_intersection.cc fiddle3d)
 SETUP(grid line_edge_intersection.cc fiddle2d)
+SETUP(grid IIM_interface_intersection.cc fiddle2d)
 SETUP(grid tag_cells_01.cc fiddle2d)
 
 # interaction:

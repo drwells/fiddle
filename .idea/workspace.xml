@@ -101,13 +101,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="09591576-2e7b-45d2-a8c1-112b41244f02" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/include/fiddle/interaction/interaction_utilities.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/fiddle/interaction/interaction_utilities.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/source/interaction/interaction_utilities.cc" beforeDir="false" afterPath="$PROJECT_DIR$/source/interaction/interaction_utilities.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/grid/line_edge_intersection.cc" beforeDir="false" afterPath="$PROJECT_DIR$/tests/grid/line_edge_intersection.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/grid/line_face_intersection.cc" beforeDir="false" afterPath="$PROJECT_DIR$/tests/grid/line_face_intersection.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/source/grid/grid_utilities.cc" beforeDir="false" afterPath="$PROJECT_DIR$/source/grid/grid_utilities.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tests/CMakeLists.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -152,7 +149,7 @@
     &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
     &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;IIM&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/qi/sfw/fiddle/build&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/qi/sfw/SM_IBAMR/IBAMR&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -682,6 +679,18 @@
       <workItem from="1692119086971" duration="3276000" />
       <workItem from="1692192129275" duration="27547000" />
       <workItem from="1692622041733" duration="17004000" />
+      <workItem from="1693230085427" duration="2634000" />
+      <workItem from="1693316429770" duration="1743000" />
+      <workItem from="1693347028116" duration="599000" />
+      <workItem from="1693397082123" duration="599000" />
+      <workItem from="1693415717590" duration="599000" />
+      <workItem from="1693488065918" duration="599000" />
+      <workItem from="1693505252444" duration="599000" />
+      <workItem from="1693527498873" duration="2393000" />
+      <workItem from="1694090764947" duration="599000" />
+      <workItem from="1694111425312" duration="10000" />
+      <workItem from="1694123708229" duration="574000" />
+      <workItem from="1694362086768" duration="19000" />
     </task>
     <servers />
   </component>
@@ -693,5 +702,16 @@
     <isAutomaticCheckingOnLaunch value="false" />
     <isAutomaticFoundErrors value="true" />
     <isAutomaticFoundErrors value="true" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/include/fiddle/interaction/interaction_utilities.h</url>
+          <line>261</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

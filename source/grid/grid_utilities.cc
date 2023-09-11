@@ -443,7 +443,7 @@ namespace fdl
     centroid /= volume;
     return centroid;
   }
-  
+
   template std::vector<float>
   compute_longest_edge_lengths(const Triangulation<NDIM - 1, NDIM> &,
                                const Mapping<NDIM - 1, NDIM> &,

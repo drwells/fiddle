@@ -306,6 +306,15 @@ aligned with the coordinate axes.
                                       const dealii::Tensor<1,3> q,
                                       const double tol=0);
 
-
+  template <int dim, int spacedim, typename value_type, typename patch_type>
+  void
+  compute_interface_intersection_point(const int                         data_index,
+                                         PatchMap<dim, spacedim>          &patch_map,
+                                         const Mapping<dim, spacedim>     &position_mapping,
+                                         const std::vector<unsigned char> &quadrature_indices,
+                                         const std::vector<Quadrature<dim>> &quadratures,
+                                         const DoFHandler<dim, spacedim>    &dof_handler,
+                                         const Mapping<dim, spacedim>       &mapping,
+                                         const Vector<double>               &solution);
 } // namespace fdl
 #endif
