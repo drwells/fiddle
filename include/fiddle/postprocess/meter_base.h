@@ -55,6 +55,16 @@ namespace fdl
     MeterBase(const Triangulation<dim, spacedim>           &tria,
               tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy);
 
+    /**
+     * Destructor.
+     *
+     * @note This is not `=default`ed since this header uses forward
+     * declarations for a lot of things. It isn't clear to me if the compiler
+     * will generate the correct destructor (what if it gets inlined?) in this
+     * case, so the definition is in the source file to be safe.
+     */
+    virtual ~MeterBase();
+
     /* @name object access
      * @{
      */

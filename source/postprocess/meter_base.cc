@@ -98,6 +98,10 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
+  MeterBase<dim, spacedim>::~MeterBase()
+  {}
+
+  template <int dim, int spacedim>
   void
   MeterBase<dim, spacedim>::reinit_dofs()
   {
