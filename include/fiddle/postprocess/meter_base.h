@@ -3,11 +3,11 @@
 
 #include <fiddle/base/config.h>
 
-#include <fiddle/interaction/nodal_interaction.h>
-
 #include <deal.II/base/point.h>
 #include <deal.II/base/smartpointer.h>
 #include <deal.II/base/tensor.h>
+
+#include <deal.II/distributed/shared_tria.h>
 
 #include <deal.II/dofs/dof_handler.h>
 
@@ -19,8 +19,6 @@
 #include <tbox/Pointer.h>
 
 #include <memory>
-#include <utility>
-#include <vector>
 
 namespace SAMRAI
 {
@@ -31,6 +29,11 @@ namespace SAMRAI
   }
 } // namespace SAMRAI
 
+namespace fdl
+{
+  template <int, int>
+  class NodalInteraction;
+}
 
 namespace fdl
 {
@@ -59,9 +62,9 @@ namespace fdl
      * Destructor.
      *
      * @note This is not `=default`ed since this header uses forward
-     * declarations for a lot of things. It isn't clear to me if the compiler
-     * will generate the correct destructor (what if it gets inlined?) in this
-     * case, so the definition is in the source file to be safe.
+     * declarations for a lot of things. The full types need to be available at
+     * the point at which the destructor is defined, so so the definition is in
+     * the source file.
      */
     virtual ~MeterBase();
 

@@ -4,7 +4,6 @@
 #include <fiddle/base/config.h>
 
 #include <fiddle/postprocess/meter_base.h>
-#include <fiddle/postprocess/point_values.h>
 
 #include <deal.II/base/point.h>
 #include <deal.II/base/smartpointer.h>
@@ -30,6 +29,12 @@ namespace SAMRAI
     class PatchHierarchy;
   }
 } // namespace SAMRAI
+
+namespace fdl
+{
+  template <int, int, int>
+  class PointValues;
+}
 
 namespace fdl
 {
@@ -116,6 +121,11 @@ namespace fdl
     SurfaceMeter(const std::vector<Point<spacedim>>           &boundary_points,
                  const std::vector<Tensor<1, spacedim>>       &velocity,
                  tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy);
+
+    /**
+     * Destructor. See the note in ~MeterBase().
+     */
+    virtual ~SurfaceMeter();
 
     /**
      * Whether or not the SurfaceMeter was set up with a codimension zero mesh.
