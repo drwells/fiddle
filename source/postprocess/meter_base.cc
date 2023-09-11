@@ -3,6 +3,8 @@
 #include <fiddle/grid/box_utilities.h>
 #include <fiddle/grid/surface_tria.h>
 
+#include <fiddle/interaction/nodal_interaction.h>
+
 #include <fiddle/postprocess/meter_base.h>
 
 #include <deal.II/base/mpi.h>
@@ -96,6 +98,10 @@ namespace fdl
 
     vector_fe = std::make_unique<FESystem<dim, spacedim>>(*scalar_fe, spacedim);
   }
+
+  template <int dim, int spacedim>
+  MeterBase<dim, spacedim>::~MeterBase()
+  {}
 
   template <int dim, int spacedim>
   void

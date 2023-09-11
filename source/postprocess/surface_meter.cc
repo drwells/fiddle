@@ -1,30 +1,21 @@
 #include <fiddle/base/exceptions.h>
 
-#include <fiddle/grid/box_utilities.h>
 #include <fiddle/grid/surface_tria.h>
 
+#include <fiddle/postprocess/point_values.h>
 #include <fiddle/postprocess/surface_meter.h>
 
 #include <deal.II/base/mpi.h>
 
-#include <deal.II/dofs/dof_tools.h>
-
 #include <deal.II/fe/fe_nothing.h>
-#include <deal.II/fe/fe_q.h>
-#include <deal.II/fe/fe_simplex_p.h>
-#include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/fe_values.h>
 
 #include <deal.II/grid/filtered_iterator.h>
-#include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
 
-#include <deal.II/numerics/vector_tools_interpolate.h>
-#include <deal.II/numerics/vector_tools_mean_value.h>
-
-#include <ibtk/IndexUtilities.h>
-
 #include <CartesianPatchGeometry.h>
+#include <PatchHierarchy.h>
+#include <PatchLevel.h>
 
 #include <cmath>
 #include <limits>
@@ -169,6 +160,10 @@ namespace fdl
   {
     reinit(boundary_points, velocity);
   }
+
+  template <int dim, int spacedim>
+  SurfaceMeter<dim, spacedim>::~SurfaceMeter()
+  {}
 
   template <int dim, int spacedim>
   bool
