@@ -6,8 +6,11 @@
 #include <fiddle/base/exceptions.h>
 
 #include <deal.II/base/array_view.h>
+#include <deal.II/base/tensor.h>
 
 #include <deal.II/grid/tria.h>
+
+#include <deal.II/lac/la_parallel_vector.h>
 
 #include <algorithm>
 
@@ -41,7 +44,9 @@ namespace fdl
      * Do any time-dependent initialization of the strain.
      */
     virtual void
-    setup_strain(const double time);
+    setup_strain(const double                                      time,
+                 const LinearAlgebra::distributed::Vector<double> &position,
+                 const LinearAlgebra::distributed::Vector<double> &velocity);
 
     /**
      * Matching function to setup_strain(), which may deallocate memory or
@@ -104,9 +109,14 @@ namespace fdl
 
   template <int dim, int spacedim, typename Number>
   void
-  ActiveStrain<dim, spacedim, Number>::setup_strain(const double time)
+  ActiveStrain<dim, spacedim, Number>::setup_strain(
+    const double                                      time,
+    const LinearAlgebra::distributed::Vector<double> &position,
+    const LinearAlgebra::distributed::Vector<double> &velocity)
   {
     (void)time;
+    (void)position;
+    (void)velocity;
   }
 
   template <int dim, int spacedim, typename Number>

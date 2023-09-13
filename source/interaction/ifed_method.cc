@@ -736,7 +736,7 @@ namespace fdl
           for (auto &force : part.get_force_contributions())
             force->setup_force(data_time, position, velocity);
           for (auto &active_strain : part.get_active_strains())
-            active_strain->setup_strain(data_time);
+            active_strain->setup_strain(data_time, position, velocity);
           IBAMR_TIMER_STOP(t_compute_lagrangian_force_setup_force_and_strain);
 
           IBAMR_TIMER_START(t_compute_lagrangian_force_pk1);
