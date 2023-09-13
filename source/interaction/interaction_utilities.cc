@@ -8,6 +8,8 @@
 
 #include <fiddle/transfer/overlap_partitioning_tools.h>
 
+#include <deal.II/base/std_cxx17/optional.h>
+
 #include <deal.II/fe/fe_nothing.h>
 #include <deal.II/fe/fe_values.h>
 
@@ -1135,6 +1137,145 @@ namespace fdl
 #undef ARGUMENTS
   }
 
+  std_cxx17::optional<double>
+  intersect_line_with_edge(const std::array<Point<2>, 2> &simplex,
+                           const Point<2>                &stencil_start,
+                           const double                  &stencil_width,
+                           const unsigned int             stencil_axis)
+  {
+    AssertIndexRange(stencil_axis, 2);
+    Tensor<1, 2> q;
+    q[stencil_axis]           = 1;
+    const dealii::Point<2> p0 = simplex[0];
+    const dealii::Point<2> p1 = simplex[1];
+    double                 a, b;
+    if (q[0] != 0.0)
+      {
+        a = 0.5 * (p1(1) - p0(1));
+        b = 0.5 * (p1(1) + p0(1)) - stencil_start(1);
+      }
+    else
+      {
+        a = 0.5 * (p1(0) - p0(0));
+        b = 0.5 * (p1(0) + p0(0)) - stencil_start(0);
+      }
+    const double u = -b / a;
+    if (u >= -1.0 - pow(10, -14) && u <= 1.0 + pow(10, -14))
+      {
+        double t;
+        if (std::abs(q[0]) >= std::abs(q[1]))
+          {
+            const double p = p0(0) * 0.5 * (1.0 - u) + p1(0) * 0.5 * (1.0 + u);
+            t              = (p - stencil_start(0)) / q[0];
+          }
+        else
+          {
+            const double p = p0(1) * 0.5 * (1.0 - u) + p1(1) * 0.5 * (1.0 + u);
+            t              = (p - stencil_start(1)) / q[1];
+          }
+        const double convex_coef = t / stencil_width;
+        return std::abs(convex_coef) <= 1 ?
+                 std_cxx17::optional<double>(convex_coef) :
+                 std::nullopt;
+      }
+
+    return std::nullopt;
+  }
+
+
+  std_cxx17::optional<double>
+  intersect_line_with_flat_triangle(const std::array<Point<3>, 3> &simplex,
+                                    const Point<3>    &stencil_start,
+                                    const double      &stencil_width,
+                                    const unsigned int stencil_axis)
+  {
+    AssertIndexRange(stencil_axis, 3);
+    const dealii::Point<3> p0 = simplex[0];
+    const dealii::Point<3> p1 = simplex[1];
+    const dealii::Point<3> p2 = simplex[2];
+    Tensor<1, 3>           q;
+    q[stencil_axis] = 1;
+    double x_min, x_max, y_min, y_max;
+    x_min = std::numeric_limits<double>::max();
+    x_max = -std::numeric_limits<double>::max();
+    y_min = std::numeric_limits<double>::max();
+    y_max = -std::numeric_limits<double>::max();
+    unsigned int plane_axis[3], i = 0;
+    for (unsigned int axis = 0; axis < 3; ++axis)
+      {
+        if (q[axis] == 0)
+          {
+            plane_axis[i] = axis;
+            i++;
+          }
+      }
+    for (unsigned int nodes = 0; nodes < simplex.size(); ++nodes)
+      {
+        x_min = std::min(simplex[nodes][plane_axis[0]], x_min);
+        x_max = std::max(simplex[nodes](plane_axis[0]), x_max);
+        y_min = std::min(simplex[nodes](plane_axis[1]), y_min);
+        y_max = std::max(simplex[nodes](plane_axis[1]), y_max);
+      }
+    if (!(stencil_start[plane_axis[0]] >= x_min &&
+          stencil_start[plane_axis[0]] <= x_max &&
+          stencil_start[plane_axis[1]] <= y_max &&
+          stencil_start[plane_axis[1]] >= y_min))
+      {
+        return std::nullopt;
+      }
+    const Tensor<1, 3> e1 = p1 - p0;
+    const Tensor<1, 3> e2 = p2 - p0;
+    const Tensor<1, 3> h  = cross_product_3d(q, e2);
+    double             a  = e1 * h;
+    if (std::abs(a) > std::numeric_limits<double>::epsilon())
+      {
+        double             f = 1.0 / a;
+        const Tensor<1, 3> s = stencil_start - p0;
+        double             u = f * (s * h);
+        if (u >= 0 - std::numeric_limits<double>::epsilon() &&
+            u <= 1.0 + std::numeric_limits<double>::epsilon())
+          {
+            const Tensor<1, 3> cr = cross_product_3d(s, e1);
+            double             v  = f * (q * cr);
+            if (v > 0 - std::numeric_limits<double>::epsilon() &&
+                (u + v) <= 1.0 + std::numeric_limits<double>::epsilon())
+              {
+                double       t           = f * (e2 * cr);
+                const double convex_coef = t / stencil_width;
+
+                return abs(convex_coef) <= 1 ?
+                         std_cxx17::optional<double>(convex_coef) :
+                         std::nullopt;
+              }
+          }
+      }
+    return std::nullopt;
+  }
+
+
+  template <int spacedim>
+  std_cxx17::optional<double>
+  intersect_stencil_with_simplex(
+    const std::array<Point<spacedim + 1>, spacedim + 1> &simplex,
+    const Point<spacedim + 1>                           &stencil_start,
+    const double                                        &stencil_width,
+    const unsigned int                                   stencil_axis)
+  {
+    Assert(stencil_width > 0.0, ExcMessage("stencil width should be positive"));
+#if (NDIM == 3)
+    return intersect_line_with_flat_triangle(simplex,
+                                             stencil_start,
+                                             stencil_width,
+                                             stencil_axis);
+#endif
+#if (NDIM == 2)
+    return intersect_line_with_edge(simplex,
+                                    stencil_start,
+                                    stencil_width,
+                                    stencil_axis);
+#endif
+  }
+
 
   // instantiations
 
@@ -1245,4 +1386,11 @@ namespace fdl
                        NodalPatchMap<NDIM, NDIM> &patch_map,
                        const Vector<double>      &position,
                        const Vector<double>      &spread_values);
+
+  template std_cxx17::optional<double>
+  intersect_stencil_with_simplex<NDIM - 1>(
+    const std::array<Point<NDIM>, NDIM> &simplex,
+    const Point<NDIM>                   &stencil_start,
+    const double                        &stencil_width,
+    const unsigned int                   stencil_axis);
 } // namespace fdl

@@ -129,6 +129,9 @@ SETUP(interaction nodal_spread_01.cc fiddle2d)
 SETUP(interaction interaction_base_01.cc fiddle2d)
 SETUP(interaction nodal_interpolate_02.cc fiddle2d)
 
+SETUP(interaction line_edge_intersection.cc fiddle2d)
+SETUP(interaction line_face_intersection.cc fiddle3d)
+
 # mechanics:
 SETUP(mechanics me_values_01.cc fiddle2d)
 SETUP(mechanics me_values_02.cc fiddle2d)
