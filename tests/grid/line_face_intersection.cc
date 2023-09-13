@@ -70,9 +70,9 @@ int main(int argc, char **argv)
    dof_handler.distribute_dofs(fe);
    for (const auto &cell : dof_handler.active_cell_iterators())
      {
+       std::array<Point<3>, 3> Pts ={mapping.transform_unit_to_real_cell(cell, Point<2>(0,0)),mapping.transform_unit_to_real_cell(cell, Point<2>(0,1)),mapping.transform_unit_to_real_cell(cell, Point<2>(1,0))};
        std::cout<<"mesh size:"<<cell->diameter()<<std::endl;
-       bool z=fdl::intersect_line_with_face(t_vals,cell,mapping,r,q,-0.000);
+       fdl::intersect_line_with_element<2,3>(t_vals,Pts,r,q,-0.000);
      }
-
 return 0;
 }

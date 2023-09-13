@@ -1135,17 +1135,16 @@ namespace fdl
       }
 #undef ARGUMENTS
   }
-    template <int dim, int spacedim>
     bool
-    if_line_intersect_with_box(const std::array<Point<spacedim>, spacedim>& element_vertices, dealii::Point<spacedim>& r,
-                               dealii::Tensor<1,spacedim>& q){
+    if_line_intersect_with_box(const std::array<Point<3>, 3>& element_vertices, dealii::Point<3>& r,
+                               const dealii::Tensor<1,3>& q){
         double x_min,x_max,y_min,y_max;
         x_min = std::numeric_limits<double>::max();
         x_max = -std::numeric_limits<double>::max();
         y_min = std::numeric_limits<double>::max();
         y_max = -std::numeric_limits<double>::max();
-        unsigned int plane_axis[spacedim], i=0;
-        for(unsigned int axis=0; axis<spacedim; ++axis){
+        unsigned int plane_axis[3], i=0;
+        for(unsigned int axis=0; axis<3; ++axis){
             if (q[axis] ==0){
                 plane_axis[i]=axis;
                 i++;
@@ -1160,22 +1159,21 @@ namespace fdl
         return (r[plane_axis[0]]>=x_min && r[plane_axis[0]]<=x_max && r[plane_axis[1]]<=y_max && r[plane_axis[1]]>=y_min);
     }
 
-    template <int dim, int spacedim>
     bool
-    if_line_intersect_with_triangle(const std::array<Point<spacedim>, spacedim>& element_vetices, dealii::Point<spacedim>& r,
-                                    const dealii::Tensor<1,spacedim>& q){
+    if_line_intersect_with_triangle(const std::array<Point<3>, 3>& element_vetices, dealii::Point<3>& r,
+                                    const dealii::Tensor<1,3>& q){
         double a=0,b=0;
-        unsigned int plane_axis[spacedim], i=0;
-        for(unsigned int axis=0; axis<spacedim; ++axis){
+        unsigned int plane_axis[3], i=0;
+        for(unsigned int axis=0; axis<3; ++axis){
             if (q[axis] ==0){
                 plane_axis[i]=axis;
                 i++;
             }
         }
-        dealii::Point<spacedim> v=r;
-        dealii::Point<spacedim> v0=element_vetices[0];
-        dealii::Point<spacedim> v1=dealii::Point<spacedim>(element_vetices[1] - element_vetices[0]);
-        dealii::Point<spacedim> v2=dealii::Point<spacedim>(element_vetices[2] - element_vetices[0]);
+        dealii::Point<3> v=r;
+        dealii::Point<3> v0=element_vetices[0];
+        dealii::Point<3> v1=dealii::Point<3>(element_vetices[1] - element_vetices[0]);
+        dealii::Point<3> v2=dealii::Point<3>(element_vetices[2] - element_vetices[0]);
         double det_vv2=v[plane_axis[0]]*v2[plane_axis[1]]-v[plane_axis[1]]*v2[plane_axis[0]];
         double det_v0v2=v0[plane_axis[0]]*v2[plane_axis[1]]-v0[plane_axis[1]]*v2[plane_axis[0]];
         double det_vv1=v[plane_axis[0]]*v1[plane_axis[1]]-v[plane_axis[1]]*v1[plane_axis[0]];
@@ -1246,8 +1244,8 @@ namespace fdl
         const dealii::Point<3> p0 = element_vetices[0];
         const dealii::Point<3> p1 = element_vetices[1];
         const dealii::Point<3> p2 = element_vetices[2];
-        if (fdl::if_line_intersect_with_box<2,3>(element_vetices, r, q)) {
-            if (fdl::if_line_intersect_with_triangle<2, 3>(element_vetices, r, q)) {
+        if (fdl::if_line_intersect_with_box(element_vetices, r, q)) {
+            if (fdl::if_line_intersect_with_triangle(element_vetices, r, q)) {
                 dealii::Point<3> p = r;
                 dealii::Tensor<1,3>  d = q;
                 const dealii::Tensor<1, 3> e1 = p1 - p0;
@@ -1270,8 +1268,7 @@ namespace fdl
             }
         }
     }
-  //WARNING: This code is specialized to the case in which q is a unit vector
-  //aligned with the coordinate axes
+
   template <int dim, int spacedim>
   void
   intersect_line_with_element(std::vector<std::pair<double, Point<dim>> >& t_vals,
@@ -1281,10 +1278,12 @@ namespace fdl
                            const double tol)
   {
     t_vals.resize(0);
-    if (dim == 2)
+#if (NDIM == 3)
         intersect_line_with_flat_triangle(t_vals, element_vetices, r, q, tol);
-    if (dim == 1)
-        intersect_line_with__edge(t_vals, element_vetices, r, q, tol);
+#endif
+#if (NDIM == 2)
+        intersect_line_with_edge(t_vals, element_vetices, r, q, tol);
+#endif
   } // intersect_line_with_face
 
 
@@ -1399,4 +1398,10 @@ namespace fdl
                        const Vector<double>      &position,
                        const Vector<double>      &spread_values);
 
+  template void
+  intersect_line_with_element<NDIM-1,NDIM>(std::vector<std::pair<double, Point<NDIM - 1>> >& t_vals,
+                                std::array<Point<NDIM>, NDIM> element_vetices,
+                                dealii::Point<NDIM> r,
+                                dealii::Tensor<1,NDIM> q,
+                                const double tol);
 } // namespace fdl

@@ -62,15 +62,17 @@ int main(int argc, char **argv)
       dealii::Tensor<1,2> q;
       q[0]=0;
       q[1]=1;
-      const MappingQ<1, 2> mapping(5);
+      const MappingQ<1, 2> mapping(1);
 
       std::vector<std::pair<double, Point<1>> > t_vals;
       // now do the actual test
       FE_Nothing<1,2> fe;
       DoFHandler<1,2> dof_handler(tria);
       dof_handler.distribute_dofs(fe);
+
       for (const auto &cell : dof_handler.active_cell_iterators())
         {
-          bool z=fdl::intersect_line_with_edge(t_vals,cell,mapping,r,q,-0.000);
+            std::array<Point<2>, 2> Pts ={mapping.transform_unit_to_real_cell(cell, Point<1>(0)),mapping.transform_unit_to_real_cell(cell, Point<1>(1))};
+            fdl::intersect_line_with_element<1,2>(t_vals,Pts,r,q,-0.000);
         }
 }

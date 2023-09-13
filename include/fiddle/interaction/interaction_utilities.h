@@ -1,6 +1,5 @@
 #ifndef included_fiddle_interaction_interaction_utilities_h
 #define included_fiddle_interaction_interaction_utilities_h
-
 #include <fiddle/base/config.h>
 #include <deal.II/fe/mapping_q.h>
 
@@ -317,10 +316,9 @@ namespace fdl
    *
    * @param[in] tol a given tolerance for deciding if the intersection point is within the edge.
    */
-  template <int dim, int spacedim>
-  bool
-  if_line_intersect_with_triangle(const std::array<Point<spacedim>, spacedim>& element_vetices, dealii::Point<spacedim>& r,
-                                  const dealii::Tensor<1,spacedim>& q);
+ bool
+ if_line_intersect_with_triangle(const std::array<Point<3>, 3>& element_vetices, dealii::Point<3>& r,
+                                const dealii::Tensor<1,3>& q);
 
   /**
  * This code is used to determine if the given line would intersect with a rectangle containing the triangle
@@ -333,10 +331,9 @@ namespace fdl
  *
  * @param[in] tol a given tolerance for deciding if the intersection point is within the edge.
  */
-  template <int dim, int spacedim>
   bool
-  if_line_intersect_with_box(std::array<Point<spacedim>, spacedim>& element_vetices, dealii::Point<spacedim>& r,
-                             dealii::Tensor<1,spacedim> q);
+  if_line_intersect_with_box(const std::array<Point<3>, 3>& element_vertices, dealii::Point<3>& r,
+                             const dealii::Tensor<1,3>& q);
 /**
   * Compute intersection the point of a line with a flat triangle
   *
@@ -387,13 +384,13 @@ namespace fdl
 *
 * @note This function is only work for P1 element.
 */
-  template <int dim, int spacedim>
-  void
-  intersect_line_with_element(std::vector<std::pair<double, Point<dim>> >& t_vals,
-                                std::array<Point<spacedim>, spacedim> element_vetices,
-                                dealii::Point<spacedim> r,
-                                dealii::Tensor<1,spacedim> q,
-                                const double tol);
+ template <int dim, int spacedim>
+ void
+ intersect_line_with_element(std::vector<std::pair<double, Point<dim>> >& t_vals,
+                            std::array<Point<spacedim>, spacedim> element_vetices,
+                            dealii::Point<spacedim> r,
+                            dealii::Tensor<1,spacedim> q,
+                            const double tol=0);
 
 } // namespace fdl
 #endif
