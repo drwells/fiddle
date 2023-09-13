@@ -163,6 +163,7 @@ namespace fdl
 
   protected:
     SmartPointer<const Triangulation<dim, spacedim>> tria;
+
     std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches;
 
     // Compressed representation of cells, indexed by patch and then level
@@ -412,7 +413,6 @@ namespace fdl
              "only iterators pointing to the same container can be compared."));
     return this->index != other.index;
   }
-
 } // namespace fdl
 
 #endif

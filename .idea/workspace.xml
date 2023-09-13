@@ -100,11 +100,12 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="09591576-2e7b-45d2-a8c1-112b41244f02" name="Changes" comment="">
+    <list default="true" id="09591576-2e7b-45d2-a8c1-112b41244f02" name="Changes" comment="rebase&#10;remove all higher-order code and other unused files&#10;convert the given ones into strictly P1 functions">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/fiddle/grid/grid_utilities.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/fiddle/grid/grid_utilities.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/include/fiddle/interaction/interaction_utilities.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/fiddle/interaction/interaction_utilities.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/source/interaction/interaction_utilities.cc" beforeDir="false" afterPath="$PROJECT_DIR$/source/interaction/interaction_utilities.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/grid/line_edge_intersection.cc" beforeDir="false" afterPath="$PROJECT_DIR$/tests/grid/line_edge_intersection.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/grid/line_face_intersection.cc" beforeDir="false" afterPath="$PROJECT_DIR$/tests/grid/line_face_intersection.cc" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -164,7 +165,7 @@
       <recent name="$PROJECT_DIR$/source/interaction" />
     </key>
   </component>
-  <component name="RunManager" selected="CMake Application.fiddle3d">
+  <component name="RunManager" selected="CMake Application.tests-grid_line_face_intersection">
     <configuration name="band" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="band" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="band">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -691,8 +692,17 @@
       <workItem from="1694111425312" duration="10000" />
       <workItem from="1694123708229" duration="574000" />
       <workItem from="1694362086768" duration="19000" />
-      <workItem from="1694552873068" duration="5280000" />
+      <workItem from="1694552873068" duration="11037000" />
     </task>
+    <task id="LOCAL-00001" summary="rebase&#10;remove all higher-order code and other unused files&#10;convert the given ones into strictly P1 functions">
+      <option name="closed" value="true" />
+      <created>1694600396867</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1694600396867</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -704,13 +714,21 @@
     <isAutomaticFoundErrors value="true" />
     <isAutomaticFoundErrors value="true" />
   </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="rebase&#10;remove all higher-order code and other unused files&#10;convert the given ones into strictly P1 functions" />
+    <option name="LAST_COMMIT_MESSAGE" value="rebase&#10;remove all higher-order code and other unused files&#10;convert the given ones into strictly P1 functions" />
+  </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/include/fiddle/interaction/interaction_utilities.h</url>
-          <line>261</line>
+          <line>260</line>
           <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/source/interaction/interaction_utilities.cc</url>
+          <option name="timeStamp" value="3" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

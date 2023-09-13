@@ -42,37 +42,37 @@ using namespace SAMRAI;
 
 // Test the meter mesh code for a basic interpolation problem
 
-int main(int argc, char **argv)
-{
-  IBTK::IBTKInit ibtk_init(argc, argv, MPI_COMM_WORLD);
-  SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer =
-    new IBTK::AppInitializer(argc, argv, "multilevel_fe_01.log");
-   Triangulation<2,3> tria;
-   GridGenerator::hyper_sphere(tria,Point< 3 >(0,0,0), 1 );
-   tria.refine_global(3);
+int main(int argc, char **argv) {
+    IBTK::IBTKInit ibtk_init(argc, argv, MPI_COMM_WORLD);
+    SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer =
+            new IBTK::AppInitializer(argc, argv, "multilevel_fe_01.log");
+    Triangulation<2, 3> tria;
+    GridGenerator::hyper_sphere(tria, Point<3>(0, 0, 0), 1);
+    tria.refine_global(3);
 
 
-   std::vector<BoundingBox<3>> cell_bboxes;
-   for (const auto &cell : tria.active_cell_iterators())
-     cell_bboxes.push_back(cell->bounding_box());
-   // Set up the relevant fiddle class:
-   dealii::Point<3> r(0.902618, 0.0, 0.00287049);
-   dealii::Tensor<1,3> q;
-   q[0]=0;
-   q[1]=1;
-   q[2]=0;
-   const MappingQ<2, 3> mapping(4);
+    std::vector<BoundingBox<3>> cell_bboxes;
+    for (const auto &cell: tria.active_cell_iterators())
+        cell_bboxes.push_back(cell->bounding_box());
+    // Set up the relevant fiddle class:
+    dealii::Point<3> r(0.902618, 0.0, 0.00287049);
+    dealii::Tensor<1, 3> q;
+    q[0] = 0;
+    q[1] = 1;
+    q[2] = 0;
+    const MappingQ<2, 3> mapping(4);
 
-   std::vector<std::pair<double, Point<2>> > t_vals;
-   // now do the actual test
-   FE_Nothing<2,3> fe;
-   DoFHandler<2,3> dof_handler(tria);
-   dof_handler.distribute_dofs(fe);
-   for (const auto &cell : dof_handler.active_cell_iterators())
-     {
-       std::array<Point<3>, 3> Pts ={mapping.transform_unit_to_real_cell(cell, Point<2>(0,0)),mapping.transform_unit_to_real_cell(cell, Point<2>(0,1)),mapping.transform_unit_to_real_cell(cell, Point<2>(1,0))};
-       std::cout<<"mesh size:"<<cell->diameter()<<std::endl;
-       fdl::intersect_line_with_element<2,3>(t_vals,Pts,r,q,-0.000);
-     }
-return 0;
+    std::vector<std::pair<double, Point<2>>> t_vals;
+    // now do the actual test
+    FE_Nothing<2, 3> fe;
+    DoFHandler<2, 3> dof_handler(tria);
+    dof_handler.distribute_dofs(fe);
+    for (const auto &cell: dof_handler.active_cell_iterators()) {
+        std::array<Point<3>, 3> Pts = {mapping.transform_unit_to_real_cell(cell, Point<2>(0, 0)),
+                                       mapping.transform_unit_to_real_cell(cell, Point<2>(0, 1)),
+                                       mapping.transform_unit_to_real_cell(cell, Point<2>(1, 0))};
+        std::cout << "mesh size:" << cell->diameter() << std::endl;
+        fdl::intersect_line_with_element<2, 3>(t_vals, Pts, r, q, -0.000);
+    }
+    return 0;
 }
