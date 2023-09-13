@@ -261,60 +261,139 @@ namespace fdl
                        const Vector<double>         &position,
                        const Vector<double>         &spread_values);
 
-
   /**
-   * Intersec line with edge .
+   * Compute intersection the point of a line with an edge
+   *
    * WARNING: This code is specialized to the case in which q is a unit vector
- aligned with the coordinate axes.
+   * aligned with the coordinate axes.
+   *
+   * Linear interpolation:
+   *
+   * 0.5*(1-u)*p0 + 0.5*(1+u)*p1 = r + t*q
+   *
+   * Factor the interpolation formula:
+   *
+   * 0.5*(p1-p0)*u+0.5*(p1+p0) = r + t*q
+   *
+   * Solve for u:
+   *
+   *    a*u + b = 0
+   *
+   * with:
+   *
+   *   a = 0.5*(-p0+p1)
+   *   b = 0.5*(p0+p1) - r
+   * @param[out] t_vals The vector containing the intersection point in Eulerian coordinate
+   * and element reference coordinate.
+   *
+   * @param[in] element_vertices The array containing Eulerian location of vertices of the given element.
+   *
+   * @param[in] r The center location of the FD stencil`.
+   *
+   * @param[in] q a unit vector aligned with the coordinate axes.
+   *
+   * @param[in] tol a given tolerance for deciding if the intersection point is within the edge.
+   *
+   * @note This function is only work for P1 element.
    */
-  bool
+  void
   intersect_line_with_edge(std::vector<std::pair<double, Point<1>> >& t_vals,
-                           const DoFHandler<1, 2>::active_cell_iterator elem,
-                           const dealii::Mapping<1, 2> &mapping,
+                           std::array<Point<2>, 2> element_vertices,
                            dealii::Point<2> r,
-                           const dealii::Tensor<1,2> q,
-                           const double tol =0);
-    template <int dim, int spacedim>
-    bool
-    if_line_intersect_with_triangle(const std::vector<Point<spacedim> >& real_points, dealii::Point<spacedim>& r,
-                                    const dealii::Tensor<1,spacedim> q);
-    template <int dim, int spacedim>
-    bool
-    if_line_intersect_with_box(std::vector<Point<spacedim> >& real_points, dealii::Point<spacedim> r,
-                             dealii::Tensor<1,spacedim> q);
-  /**
- * Intersec line with edge .
- * WARNING: This code is specialized to the case in which q is a unit vector
-aligned with the coordinate axes.
- */
-  bool
-  intersect_line_with_face(std::vector<std::pair<double, Point<2>> >& t_vals,
-                           const typename DoFHandler<2, 3>::active_cell_iterator elem,
-                           const dealii::Mapping<2, 3> &mapping,
-                           dealii::Point<3> r,
-                           const dealii::Tensor<1,3> q,
-                           const double tol = 0);
+                           dealii::Tensor<1,2> q,
+                           const double tol);
 
+    /**
+   * This code is used to determine if the given line would intersect with the triangle
+   * Also perturb r if the FD stencil cutting boundary of the triangle.
+   *
+   * https://mathworld.wolfram.com/TriangleInterior.html
+   *
+   * @param[in] elements_vertices The array containing Eulerian location of vertices of the given element.
+   *
+   * @param[in] r The center location of the FD stencil`.
+   *
+   * @param[in] q a unit vector aligned with the coordinate axes.
+   *
+   * @param[in] tol a given tolerance for deciding if the intersection point is within the edge.
+   */
+  template <int dim, int spacedim>
+  bool
+  if_line_intersect_with_triangle(const std::array<Point<spacedim>, spacedim>& element_vetices, dealii::Point<spacedim>& r,
+                                  const dealii::Tensor<1,spacedim>& q);
+
+  /**
+ * This code is used to determine if the given line would intersect with a rectangle containing the triangle
+ *
+ * @param[in] elements_vertices The array containing Eulerian location of vertices of the given element.
+ *
+ * @param[in] r The center location of the FD stencil`.
+ *
+ * @param[in] q a unit vector aligned with the coordinate axes.
+ *
+ * @param[in] tol a given tolerance for deciding if the intersection point is within the edge.
+ */
+  template <int dim, int spacedim>
+  bool
+  if_line_intersect_with_box(std::array<Point<spacedim>, spacedim>& element_vetices, dealii::Point<spacedim>& r,
+                             dealii::Tensor<1,spacedim> q);
+/**
+  * Compute intersection the point of a line with a flat triangle
+  *
+  * WARNING: This code is specialized to the case in which q is a unit vector
+  * aligned with the coordinate axes.
+  *
+  * Linear interpolation:
+  *
+  * (1-u-v)*p0 + u*p1 + v*p2 = p + t*d
+  *
+  * https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+  *
+  * @param[out] t_vals The vector containing the intersection point in Eulerian coordinate
+  * and element reference coordinate.
+  *
+  * @param[in] element_vertices The array containing Eulerian location of vertices of the given element.
+  *
+  * @param[in] r The center location of the FD stencil`.
+  *
+  * @param[in] q a unit vector aligned with the coordinate axes.
+  *
+  * @param[in] tol a given tolerance for deciding if the intersection point is within the edge.
+  *
+  * @note This function is only work for P1 element.
+  */
   void
   intersect_line_with_flat_triangle(std::vector<std::pair<double, Point<2>> >& t_vals,
-                                      const typename DoFHandler<2, 3>::active_cell_iterator elem,
-                                      const dealii::Mapping<2, 3> &mapping,
-                                      const dealii::Point<2> ref_p0,
-                                      const dealii::Point<2> ref_p1,
-                                      const dealii::Point<2> ref_p2,
-                                      dealii::Point<3> r,
-                                      const dealii::Tensor<1,3> q,
-                                      const double tol=0);
-
-  template <int dim, int spacedim, typename value_type, typename patch_type>
+                                           std::array<Point<3>, 3> element_vetices,
+                                           dealii::Point<3> r,
+                                           const dealii::Tensor<1,3> q,
+                                           const double tol = 0);
+/**
+* Compute intersection the point of a line with an element.
+*
+* WARNING: This code is specialized to the case in which q is a unit vector
+* aligned with the coordinate axes.
+*
+* @param[out] t_vals The vector containing the intersection point in Eulerian coordinate
+* and element reference coordinate.
+*
+* @param[in] element_vertices The array containing Eulerian location of vertices of the given element.
+*
+* @param[in] r The center location of the FD stencil`.
+*
+* @param[in] q a unit vector aligned with the coordinate axes.
+*
+* @param[in] tol a given tolerance for deciding if the intersection point is within the edge.
+*
+* @note This function is only work for P1 element.
+*/
+  template <int dim, int spacedim>
   void
-  compute_interface_intersection_point(const int                         data_index,
-                                         PatchMap<dim, spacedim>          &patch_map,
-                                         const Mapping<dim, spacedim>     &position_mapping,
-                                         const std::vector<unsigned char> &quadrature_indices,
-                                         const std::vector<Quadrature<dim>> &quadratures,
-                                         const DoFHandler<dim, spacedim>    &dof_handler,
-                                         const Mapping<dim, spacedim>       &mapping,
-                                         const Vector<double>               &solution);
+  intersect_line_with_element(std::vector<std::pair<double, Point<dim>> >& t_vals,
+                                std::array<Point<spacedim>, spacedim> element_vetices,
+                                dealii::Point<spacedim> r,
+                                dealii::Tensor<1,spacedim> q,
+                                const double tol);
+
 } // namespace fdl
 #endif

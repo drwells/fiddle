@@ -102,9 +102,9 @@
   <component name="ChangeListManager">
     <list default="true" id="09591576-2e7b-45d2-a8c1-112b41244f02" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/fiddle/grid/grid_utilities.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/fiddle/grid/grid_utilities.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/include/fiddle/interaction/interaction_utilities.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/fiddle/interaction/interaction_utilities.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/source/grid/grid_utilities.cc" beforeDir="false" afterPath="$PROJECT_DIR$/source/grid/grid_utilities.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tests/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/source/interaction/interaction_utilities.cc" beforeDir="false" afterPath="$PROJECT_DIR$/source/interaction/interaction_utilities.cc" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -164,7 +164,7 @@
       <recent name="$PROJECT_DIR$/source/interaction" />
     </key>
   </component>
-  <component name="RunManager" selected="CMake Application.tests-grid_line_face_intersection">
+  <component name="RunManager" selected="CMake Application.fiddle3d">
     <configuration name="band" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="FIDDLE" TARGET_NAME="band" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="FIDDLE" RUN_TARGET_NAME="band">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -691,6 +691,7 @@
       <workItem from="1694111425312" duration="10000" />
       <workItem from="1694123708229" duration="574000" />
       <workItem from="1694362086768" duration="19000" />
+      <workItem from="1694552873068" duration="5280000" />
     </task>
     <servers />
   </component>
