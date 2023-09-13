@@ -6,7 +6,7 @@ cmake_install.cmake
 ./fiddle
 Makefile
 .dir-locals.el
-
+/.idea/
 scripts/programs/*
 build*/
 =======
@@ -14,10 +14,10 @@ build*/
 *.log
 *.iml
 *.xml
-tests/grid/line_edge_intersection.cc
-tests/grid/line_face_intersection.cc
-source/interaction/IIMethod.cpp
-include/fiddle/interaction/IIMethod.h
+/tests/grid/line_edge_intersection.cc
+/tests/grid/line_face_intersection.cc
+/source/interaction/IIMethod.cpp
+/include/fiddle/interaction/IIMethod.h
 # ignore ALL files in ANY directory named temp
 temp/ 
 >>>>>>> cc78188 (hide config file)
