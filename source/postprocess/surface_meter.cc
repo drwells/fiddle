@@ -1,4 +1,5 @@
 #include <fiddle/base/exceptions.h>
+#include <fiddle/base/samrai_utilities.h>
 
 #include <fiddle/grid/surface_tria.h>
 
@@ -13,9 +14,7 @@
 #include <deal.II/grid/filtered_iterator.h>
 #include <deal.II/grid/grid_tools.h>
 
-#include <CartesianPatchGeometry.h>
 #include <PatchHierarchy.h>
-#include <PatchLevel.h>
 
 #include <cmath>
 #include <limits>
@@ -93,31 +92,6 @@ namespace fdl
         tria.copy_triangulation(serial_tria);
       }
 #endif
-
-      template <int spacedim>
-      double
-      compute_min_cell_width(
-        const tbox::Pointer<hier::PatchHierarchy<spacedim>> &patch_hierarchy)
-      {
-        double dx = std::numeric_limits<double>::max();
-        const tbox::Pointer<hier::PatchLevel<spacedim>> level =
-          patch_hierarchy->getPatchLevel(
-            patch_hierarchy->getFinestLevelNumber());
-        Assert(level, ExcFDLInternalError());
-        for (typename hier::PatchLevel<spacedim>::Iterator p(level); p; p++)
-          {
-            const tbox::Pointer<hier::Patch<spacedim>> patch =
-              level->getPatch(p());
-            const tbox::Pointer<geom::CartesianPatchGeometry<spacedim>> pgeom =
-              patch->getPatchGeometry();
-            dx = std::min(dx,
-                          *std::min_element(pgeom->getDx(),
-                                            pgeom->getDx() + spacedim));
-          }
-        dx = Utilities::MPI::min(dx, tbox::SAMRAI_MPI::getCommunicator());
-        Assert(dx != std::numeric_limits<double>::max(), ExcFDLInternalError());
-        return dx;
-      }
     } // namespace
   }   // namespace internal
 
@@ -225,7 +199,7 @@ namespace fdl
     const std::vector<Point<spacedim>> &boundary_points,
     const bool                          place_additional_boundary_vertices)
   {
-    const double dx = internal::compute_min_cell_width(this->patch_hierarchy);
+    const double dx = compute_min_cell_width(this->patch_hierarchy);
     const double target_element_area = std::pow(dx, dim - 1);
 
     this->meter_tria.clear();

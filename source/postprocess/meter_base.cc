@@ -1,4 +1,5 @@
 #include <fiddle/base/exceptions.h>
+#include <fiddle/base/samrai_utilities.h>
 
 #include <fiddle/grid/box_utilities.h>
 #include <fiddle/grid/surface_tria.h>
@@ -26,7 +27,8 @@
 
 #include <ibtk/IndexUtilities.h>
 
-#include <CartesianPatchGeometry.h>
+#include <PatchLevel.h>
+#include <CartesianGridGeometry.h>
 #include <tbox/InputManager.h>
 
 #include <cmath>
@@ -34,37 +36,6 @@
 
 namespace fdl
 {
-  namespace internal
-  {
-    namespace
-    {
-      template <int spacedim>
-      double
-      compute_min_cell_width(
-        const tbox::Pointer<hier::PatchHierarchy<spacedim>> &patch_hierarchy)
-      {
-        double dx = std::numeric_limits<double>::max();
-        const tbox::Pointer<hier::PatchLevel<spacedim>> level =
-          patch_hierarchy->getPatchLevel(
-            patch_hierarchy->getFinestLevelNumber());
-        Assert(level, ExcFDLInternalError());
-        for (typename hier::PatchLevel<spacedim>::Iterator p(level); p; p++)
-          {
-            const tbox::Pointer<hier::Patch<spacedim>> patch =
-              level->getPatch(p());
-            const tbox::Pointer<geom::CartesianPatchGeometry<spacedim>> pgeom =
-              patch->getPatchGeometry();
-            dx = std::min(dx,
-                          *std::min_element(pgeom->getDx(),
-                                            pgeom->getDx() + spacedim));
-          }
-        dx = Utilities::MPI::min(dx, tbox::SAMRAI_MPI::getCommunicator());
-        Assert(dx != std::numeric_limits<double>::max(), ExcFDLInternalError());
-        return dx;
-      }
-    } // namespace
-  }   // namespace internal
-
   template <int dim, int spacedim>
   MeterBase<dim, spacedim>::MeterBase(
     tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy)
@@ -177,7 +148,7 @@ namespace fdl
     // Step 2
     double       tolerance  = 1e-14;
     bool         found_cell = false;
-    const double dx         = internal::compute_min_cell_width(patch_hierarchy);
+    const double dx         = compute_min_cell_width(patch_hierarchy);
     do
       {
         centroid_pair = GridTools::find_active_cell_around_point(get_mapping(),
