@@ -49,6 +49,14 @@ namespace fdl
   using namespace SAMRAI;
 
   /**
+   * Compute the minimum cell width across all patch levels.
+   */
+  template <int spacedim>
+  double
+  compute_min_cell_width(
+    const tbox::Pointer<hier::PatchHierarchy<spacedim>> &patch_hierarchy);
+
+  /**
    * Helper function for extracting locally owned patches from a base patch
    * level.
    */

@@ -1,4 +1,5 @@
 #include <fiddle/base/exceptions.h>
+#include <fiddle/base/samrai_utilities.h>
 
 #include <fiddle/grid/box_utilities.h>
 #include <fiddle/grid/surface_tria.h>
@@ -26,7 +27,8 @@
 
 #include <ibtk/IndexUtilities.h>
 
-#include <CartesianPatchGeometry.h>
+#include <CartesianGridGeometry.h>
+#include <PatchLevel.h>
 #include <tbox/InputManager.h>
 
 #include <cmath>
@@ -34,37 +36,6 @@
 
 namespace fdl
 {
-  namespace internal
-  {
-    namespace
-    {
-      template <int spacedim>
-      double
-      compute_min_cell_width(
-        const tbox::Pointer<hier::PatchHierarchy<spacedim>> &patch_hierarchy)
-      {
-        double dx = std::numeric_limits<double>::max();
-        const tbox::Pointer<hier::PatchLevel<spacedim>> level =
-          patch_hierarchy->getPatchLevel(
-            patch_hierarchy->getFinestLevelNumber());
-        Assert(level, ExcFDLInternalError());
-        for (typename hier::PatchLevel<spacedim>::Iterator p(level); p; p++)
-          {
-            const tbox::Pointer<hier::Patch<spacedim>> patch =
-              level->getPatch(p());
-            const tbox::Pointer<geom::CartesianPatchGeometry<spacedim>> pgeom =
-              patch->getPatchGeometry();
-            dx = std::min(dx,
-                          *std::min_element(pgeom->getDx(),
-                                            pgeom->getDx() + spacedim));
-          }
-        dx = Utilities::MPI::min(dx, tbox::SAMRAI_MPI::getCommunicator());
-        Assert(dx != std::numeric_limits<double>::max(), ExcFDLInternalError());
-        return dx;
-      }
-    } // namespace
-  }   // namespace internal
-
   template <int dim, int spacedim>
   MeterBase<dim, spacedim>::MeterBase(
     tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy)
@@ -72,8 +43,6 @@ namespace fdl
     , meter_tria(tbox::SAMRAI_MPI::getCommunicator(),
                  Triangulation<dim, spacedim>::MeshSmoothing::none,
                  true)
-    , scalar_fe(std::make_unique<FE_SimplexP<dim, spacedim>>(1))
-    , vector_fe(std::make_unique<FESystem<dim, spacedim>>(*scalar_fe, spacedim))
   {}
 
   template <int dim, int spacedim>
@@ -107,6 +76,18 @@ namespace fdl
   void
   MeterBase<dim, spacedim>::reinit_dofs()
   {
+    Assert(meter_tria.get_reference_cells().size() == 1,
+           ExcFDLNotImplemented());
+    // only set up FEs once
+    if (!scalar_fe)
+      {
+        if (meter_tria.all_reference_cells_are_simplex())
+          scalar_fe = std::make_unique<FE_SimplexP<dim, spacedim>>(1);
+        else
+          scalar_fe = std::make_unique<FE_Q<dim, spacedim>>(1);
+        vector_fe =
+          std::make_unique<FESystem<dim, spacedim>>(*scalar_fe, spacedim);
+      }
     meter_mapping = meter_tria.get_reference_cells()[0]
                       .template get_default_mapping<dim, spacedim>(
                         scalar_fe->tensor_degree());
@@ -177,12 +158,11 @@ namespace fdl
     // Step 2
     double       tolerance  = 1e-14;
     bool         found_cell = false;
-    const double dx         = internal::compute_min_cell_width(patch_hierarchy);
+    const double dx         = compute_min_cell_width(patch_hierarchy);
     do
       {
-        centroid_pair = GridTools::find_active_cell_around_point(get_mapping(),
-                                                                 meter_tria,
-                                                                 a_centroid);
+        centroid_pair = GridTools::find_active_cell_around_point(
+          get_mapping(), meter_tria, a_centroid, {}, tolerance);
         // Ignore ghost cells
         if (centroid_pair.first != meter_tria.end() &&
             !centroid_pair.first->is_locally_owned())
@@ -200,36 +180,49 @@ namespace fdl
     AssertThrow(found_cell, ExcFDLInternalError());
 
     // Step 3
-    int index_rank[2]{std::numeric_limits<int>::max(), rank};
+    //
+    // Since we need the level, index, and rank, be a little lazy and scatter
+    // them separately.
+    int local_level_rank[2]{std::numeric_limits<int>::max(), rank};
+    int local_index_rank[2]{std::numeric_limits<int>::max(), rank};
     if (centroid_pair.first != meter_tria.end())
       {
-        AssertThrow(centroid_pair.first->level() == 0, ExcFDLNotImplemented());
-        index_rank[0] = centroid_pair.first->index();
+        local_level_rank[0] = centroid_pair.first->level();
+        local_index_rank[0] = centroid_pair.first->index();
       }
-    int result[2]{std::numeric_limits<int>::max(),
-                  std::numeric_limits<int>::max()};
-    int ierr =
-      MPI_Allreduce(&index_rank, &result, 1, MPI_2INT, MPI_MINLOC, comm);
+    int level_rank[2]{std::numeric_limits<int>::max(),
+                      std::numeric_limits<int>::max()};
+    int index_rank[2]{std::numeric_limits<int>::max(),
+                      std::numeric_limits<int>::max()};
+    int ierr = MPI_Allreduce(
+      &local_level_rank, &level_rank, 1, MPI_2INT, MPI_MINLOC, comm);
     AssertThrowMPI(ierr);
-    Assert(result[0] != std::numeric_limits<int>::max(), ExcFDLInternalError());
+    ierr = MPI_Allreduce(
+      &local_index_rank, &index_rank, 1, MPI_2INT, MPI_MINLOC, comm);
+    AssertThrowMPI(ierr);
+    Assert(level_rank[0] != std::numeric_limits<int>::max(),
+           ExcFDLInternalError());
+    Assert(index_rank[0] != std::numeric_limits<int>::max(),
+           ExcFDLInternalError());
     ref_centroid =
-      Utilities::MPI::broadcast(comm, centroid_pair.second, result[1]);
+      Utilities::MPI::broadcast(comm, centroid_pair.second, index_rank[1]);
 
     // Step 4
-    centroid_cell = TriaActiveIterator<CellAccessor<dim, spacedim>>(&meter_tria,
-                                                                    0,
-                                                                    result[0],
-                                                                    nullptr);
+    centroid_cell = TriaActiveIterator<CellAccessor<dim, spacedim>>(
+      &meter_tria, level_rank[0], index_rank[0], nullptr);
+    for (unsigned int d = 0; d < spacedim; ++d)
+      centroid[d] = std::numeric_limits<double>::signaling_NaN();
     if (centroid_cell->is_locally_owned())
       {
         Assert(int(centroid_cell->subdomain_id()) == rank,
                ExcFDLInternalError());
-        Assert(result[1] == rank, ExcFDLInternalError());
+        Assert(index_rank[1] == rank, ExcFDLInternalError());
         Assert(centroid_pair.first == centroid_cell, ExcFDLInternalError());
         centroid = get_mapping().transform_unit_to_real_cell(centroid_cell,
                                                              ref_centroid);
       }
-    centroid = Utilities::MPI::broadcast(comm, centroid, result[1]);
+    centroid = Utilities::MPI::broadcast(comm, centroid, index_rank[1]);
+    Assert(!std::isnan(centroid[0]), ExcFDLInternalError());
   }
 
   template <int dim, int spacedim>

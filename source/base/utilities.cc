@@ -109,7 +109,7 @@ namespace fdl
     using iterator = base64_from_binary<transform_width<const char *, 6, 8>>;
     std::string base64{iterator(begin), iterator(end)};
     // Add padding.
-    std::array<std::string, 3> paddings{"", "==", "="};
+    std::array<std::string, 3> paddings{{"", "==", "="}};
     base64.append(paddings[(end - begin) % 3]);
 
     return base64;

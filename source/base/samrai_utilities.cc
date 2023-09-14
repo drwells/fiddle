@@ -4,6 +4,7 @@
 
 FDL_DISABLE_EXTRA_DIAGNOSTICS
 #include <BasePatchLevel.h>
+#include <CartesianPatchGeometry.h>
 #include <CellData.h>
 #include <CellVariable.h>
 #include <EdgeData.h>
@@ -25,9 +26,35 @@ FDL_DISABLE_EXTRA_DIAGNOSTICS
 #include <tbox/MemoryDatabase.h>
 FDL_ENABLE_EXTRA_DIAGNOSTICS
 
+#include <cmath>
+#include <limits>
+
 namespace fdl
 {
   using namespace SAMRAI;
+
+  template <int spacedim>
+  double
+  compute_min_cell_width(
+    const tbox::Pointer<hier::PatchHierarchy<spacedim>> &patch_hierarchy)
+  {
+    double dx = std::numeric_limits<double>::max();
+    const tbox::Pointer<hier::PatchLevel<spacedim>> level =
+      patch_hierarchy->getPatchLevel(patch_hierarchy->getFinestLevelNumber());
+    Assert(level, ExcFDLInternalError());
+    for (typename hier::PatchLevel<spacedim>::Iterator p(level); p; p++)
+      {
+        const tbox::Pointer<hier::Patch<spacedim>> patch = level->getPatch(p());
+        const tbox::Pointer<geom::CartesianPatchGeometry<spacedim>> pgeom =
+          patch->getPatchGeometry();
+        dx = std::min(dx,
+                      *std::min_element(pgeom->getDx(),
+                                        pgeom->getDx() + spacedim));
+      }
+    tbox::SAMRAI_MPI::minReduction(&dx);
+    Assert(dx != std::numeric_limits<double>::max(), ExcFDLInternalError());
+    return dx;
+  }
 
   /**
    * Another helper function since MultiblockPatchLevel and PatchLevel have
@@ -369,6 +396,9 @@ namespace fdl
   }
 
   // instantiations:
+  template double
+  compute_min_cell_width(const tbox::Pointer<hier::PatchHierarchy<NDIM>> &);
+
   template std::vector<tbox::Pointer<hier::Patch<NDIM>>>
   extract_patches(tbox::Pointer<hier::BasePatchLevel<NDIM>> patch_level);
 

@@ -158,6 +158,7 @@ SETUP(postprocess meter_mesh_01.cc fiddle2d)
 SETUP(postprocess meter_mesh_02.cc fiddle3d)
 SETUP(postprocess meter_mesh_03.cc fiddle3d)
 SETUP(postprocess vertices_inside_domain.cc fiddle2d)
+SETUP(postprocess volume_meter_01.cc fiddle2d)
 
 # transfer:
 SETUP(transfer scatter_01.cc fiddle2d)
