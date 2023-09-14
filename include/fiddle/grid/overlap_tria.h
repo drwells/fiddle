@@ -47,7 +47,7 @@ namespace fdl
       const IntersectionPredicate<dim, spacedim>           &predicate);
 
     virtual types::subdomain_id
-    locally_owned_subdomain() const;
+    locally_owned_subdomain() const override;
 
     void
     reinit(const parallel::shared::Triangulation<dim, spacedim> &shared_tria,
