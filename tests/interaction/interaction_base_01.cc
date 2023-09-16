@@ -1,6 +1,7 @@
 #include <fiddle/base/exceptions.h>
 
 #include <fiddle/grid/box_utilities.h>
+#include <fiddle/grid/intersection_predicate_lib.h>
 #include <fiddle/grid/overlap_tria.h>
 #include <fiddle/grid/patch_map.h>
 

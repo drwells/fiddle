@@ -1,7 +1,7 @@
 #include <fiddle/base/exceptions.h>
 
 #include <fiddle/grid/box_utilities.h>
-#include <fiddle/grid/intersection_predicate.h>
+#include <fiddle/grid/intersection_predicate_lib.h>
 
 #include <deal.II/distributed/shared_tria.h>
 
