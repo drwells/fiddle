@@ -1,4 +1,4 @@
-#include <fiddle/grid/intersection_predicate.h>
+#include <fiddle/grid/intersection_predicate_lib.h>
 #include <fiddle/grid/overlap_tria.h>
 
 #include <fiddle/transfer/overlap_partitioning_tools.h>

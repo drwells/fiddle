@@ -84,7 +84,7 @@ SET(FIDDLE_SRC
   source/grid/box_utilities.cc
   source/grid/data_in.cc
   source/grid/grid_utilities.cc
-  source/grid/intersection_predicate.cc
+  source/grid/intersection_predicate_lib.cc
   source/grid/nodal_patch_map.cc
   source/grid/overlap_tria.cc
   source/grid/patch_map.cc
