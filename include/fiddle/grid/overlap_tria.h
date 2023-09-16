@@ -34,6 +34,17 @@ namespace fdl
   template <int dim, int spacedim = dim>
   class OverlapTriangulation : public dealii::Triangulation<dim, spacedim>
   {
+    /**
+     * Boundary id for internal boundaries.
+     *
+     * Since an OverlapTriangulation does not store the entire coarse grid, some
+     * faces which are internal are, in the OverlapTriangulation, now on the
+     * boundary. This is the ID assigned to those faces to disambiguate from
+     * actual physical boundaries.
+     */
+    static constexpr types::boundary_id internal_boundary_id =
+      numbers::internal_face_boundary_id - 1;
+
     using active_cell_iterator =
       typename dealii::Triangulation<dim, spacedim>::active_cell_iterator;
     using cell_iterator =
