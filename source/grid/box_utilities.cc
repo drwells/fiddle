@@ -49,10 +49,25 @@ namespace fdl
         BoundingBox<spacedim, Number> bbox;
         for (unsigned int d = 0; d < spacedim; ++d)
           {
-            bbox.get_boundary_points().first[d] =
+            auto &pair = bbox.get_boundary_points();
+            pair.first[d] =
               pgeom->getXLower()[d] - extra_ghost_cell_fraction * dx[d];
-            bbox.get_boundary_points().second[d] =
+            pair.second[d] =
               pgeom->getXUpper()[d] + extra_ghost_cell_fraction * dx[d];
+
+            // SAMRAI isn't super precise here so we won't be either: in case of
+            // floats make sure we don't inadvertently make the box too small
+            // via rounding by fudging it a bit.
+            if (std::is_same<Number, float>::value)
+              for (unsigned int i = 0; i < 2; ++i)
+                {
+                  pair.first[d] =
+                    std::nexttoward(pair.first[d],
+                                    std::numeric_limits<double>::lowest());
+                  pair.second[d] =
+                    std::nexttoward(pair.second[d],
+                                    std::numeric_limits<double>::max());
+                }
           }
         patch_bboxes.emplace_back(bbox);
       }
