@@ -162,8 +162,9 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
     // not make available. Set up our own (which should be equal) here:
     const auto patches =
       fdl::extract_patches(patch_hierarchy->getPatchLevel(level_number));
-    const std::vector<BoundingBox<spacedim>> patch_bboxes =
-      fdl::compute_patch_bboxes(patches, 1.0); // 1.0 needs to not be hard-coded
+    // TODO: it would be better to not hard-code 1.0
+    const std::vector<BoundingBox<spacedim, float>> patch_bboxes =
+      fdl::compute_patch_bboxes<spacedim, float>(patches, 1.0);
     fdl::BoxIntersectionPredicate<dim, spacedim> predicate(cell_bboxes,
                                                            patch_bboxes,
                                                            native_tria);

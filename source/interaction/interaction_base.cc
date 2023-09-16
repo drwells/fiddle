@@ -145,10 +145,9 @@ namespace fdl
                        level_patches.begin(),
                        level_patches.end());
       }
-    const std::vector<BoundingBox<spacedim>> patch_bboxes =
-      compute_patch_bboxes(patches,
-                           input_db->getDoubleWithDefault("ghost_cell_fraction",
-                                                          1.0));
+    const std::vector<BoundingBox<spacedim, float>> patch_bboxes =
+      compute_patch_bboxes<spacedim, float>(
+        patches, input_db->getDoubleWithDefault("ghost_cell_fraction", 1.0));
     BoxIntersectionPredicate<dim, spacedim> predicate(global_active_cell_bboxes,
                                                       patch_bboxes,
                                                       *native_tria);

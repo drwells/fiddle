@@ -9,6 +9,8 @@
 
 #include <deal.II/grid/tria.h>
 
+#include <deal.II/numerics/rtree.h>
+
 #include <vector>
 
 namespace fdl
@@ -46,7 +48,7 @@ namespace fdl
   public:
     BoxIntersectionPredicate(
       const std::vector<BoundingBox<spacedim, float>>      &a_cell_bboxes,
-      const std::vector<BoundingBox<spacedim>>             &p_bboxes,
+      const std::vector<BoundingBox<spacedim, float>>      &patch_bboxes,
       const parallel::shared::Triangulation<dim, spacedim> &tria);
 
     virtual bool
@@ -55,7 +57,8 @@ namespace fdl
 
     const SmartPointer<const Triangulation<dim, spacedim>> tria;
     const std::vector<BoundingBox<spacedim, float>>        active_cell_bboxes;
-    const std::vector<BoundingBox<spacedim>>               patch_bboxes;
+
+    RTree<BoundingBox<spacedim, float>> patch_bbox_rtree;
   };
 } // namespace fdl
 
