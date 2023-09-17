@@ -90,9 +90,11 @@ namespace fdl
     meter_mapping = meter_tria.get_reference_cells()[0]
                       .template get_default_mapping<dim, spacedim>(
                         scalar_fe->tensor_degree());
+    // Since we have a faceted geometry with simplicies (i.e., the Jacobian on
+    // each cell is constant) we can get away with using one degree lower
     if (meter_tria.all_reference_cells_are_simplex())
       meter_quadrature =
-        QWitherdenVincentSimplex<dim>(scalar_fe->tensor_degree() + 1);
+        QWitherdenVincentSimplex<dim>(scalar_fe->tensor_degree());
     else
       meter_quadrature = QGauss<dim>(scalar_fe->tensor_degree() + 1);
 
