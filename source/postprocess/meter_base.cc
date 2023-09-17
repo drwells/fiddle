@@ -22,7 +22,6 @@
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
 
-#include <deal.II/numerics/vector_tools_interpolate.h>
 #include <deal.II/numerics/vector_tools_mean_value.h>
 
 #include <ibtk/IndexUtilities.h>
@@ -91,9 +90,11 @@ namespace fdl
     meter_mapping = meter_tria.get_reference_cells()[0]
                       .template get_default_mapping<dim, spacedim>(
                         scalar_fe->tensor_degree());
+    // Since we have a faceted geometry with simplicies (i.e., the Jacobian on
+    // each cell is constant) we can get away with using one degree lower
     if (meter_tria.all_reference_cells_are_simplex())
       meter_quadrature =
-        QWitherdenVincentSimplex<dim>(scalar_fe->tensor_degree() + 1);
+        QWitherdenVincentSimplex<dim>(scalar_fe->tensor_degree());
     else
       meter_quadrature = QGauss<dim>(scalar_fe->tensor_degree() + 1);
 
@@ -122,9 +123,19 @@ namespace fdl
         comm);
     }
     identity_position.reinit(vector_partitioner);
-    VectorTools::interpolate(vector_dof_handler,
-                             Functions::IdentityFunction<spacedim>(),
-                             identity_position);
+
+    // Directly calculate DoF locations. This is orders of magnitude faster than
+    // VectorTools::interpolate().
+    Assert(vector_fe->tensor_degree() == 1, ExcFDLNotImplemented());
+    for (const auto &cell : get_vector_dof_handler().active_cell_iterators() |
+                              IteratorFilters::LocallyOwnedCell())
+      for (unsigned int vertex_no : cell->vertex_indices())
+        {
+          const Point<spacedim> vertex = cell->vertex(vertex_no);
+          for (unsigned int d = 0; d < spacedim; ++d)
+            identity_position[cell->vertex_dof_index(vertex_no, d)] = vertex[d];
+        }
+
     identity_position.update_ghost_values();
   }
 
