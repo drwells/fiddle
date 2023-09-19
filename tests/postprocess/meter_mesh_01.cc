@@ -75,7 +75,7 @@ test(
       surface_tria.set_manifold(0, PolarManifold<dim - 1, spacedim>());
       surface_tria.set_all_manifold_ids(0);
       surface_tria.refine_global(
-        test_db->getIntegerWithDefault("n_global_refinements" + 2, 4));
+        test_db->getIntegerWithDefault("n_global_refinements", 4));
 
       meter_ptr =
         std::make_unique<fdl::SurfaceMeter<dim, spacedim>>(surface_tria,
