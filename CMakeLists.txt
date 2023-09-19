@@ -3,7 +3,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.15.0)
 # Major version of fiddle. Our convention is that X.0 is a development version
 # and X.1, X.2, etc. are release versions.
 SET(FDL_VERSION_MAJOR 2)
-SET(FDL_VERSION_MINOR 0)
+SET(FDL_VERSION_MINOR 1)
 SET(FDL_VERSION_PATCH 0)
 
 SET(FIDDLE_VERSION "${FDL_VERSION_MAJOR}.${FDL_VERSION_MINOR}.${FDL_VERSION_PATCH}")
