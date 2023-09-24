@@ -103,7 +103,7 @@ namespace fdl
     tbox::Pointer<hier::PatchHierarchy<spacedim>>     patch_hierarchy,
     const LinearAlgebra::distributed::Vector<double> &position,
     const LinearAlgebra::distributed::Vector<double> &velocity)
-    : MeterBase<dim - 1, spacedim>(patch_hierarchy)
+    : Meter<dim - 1, spacedim>(patch_hierarchy)
     , mapping(&mapping)
     , position_dof_handler(&position_dof_handler)
     , point_values(std::make_unique<PointValues<spacedim, dim, spacedim>>(
@@ -120,7 +120,7 @@ namespace fdl
   SurfaceMeter<dim, spacedim>::SurfaceMeter(
     const Triangulation<dim - 1, spacedim>       &tria,
     tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy)
-    : MeterBase<dim - 1, spacedim>(tria, patch_hierarchy)
+    : Meter<dim - 1, spacedim>(tria, patch_hierarchy)
   {
     internal_reinit(false, {}, {}, false);
   }
@@ -130,7 +130,7 @@ namespace fdl
     const std::vector<Point<spacedim>>           &boundary_points,
     const std::vector<Tensor<1, spacedim>>       &velocity,
     tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy)
-    : MeterBase<dim - 1, spacedim>(patch_hierarchy)
+    : Meter<dim - 1, spacedim>(patch_hierarchy)
   {
     reinit(boundary_points, velocity);
   }
@@ -222,7 +222,7 @@ namespace fdl
   {
     if (reinit_tria)
       this->reinit_tria(boundary_points, place_additional_boundary_vertices);
-    MeterBase<dim - 1, spacedim>::internal_reinit();
+    Meter<dim - 1, spacedim>::internal_reinit();
     reinit_mean_velocity(velocity_values);
   }
 

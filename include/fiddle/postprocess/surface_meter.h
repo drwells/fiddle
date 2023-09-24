@@ -3,7 +3,7 @@
 
 #include <fiddle/base/config.h>
 
-#include <fiddle/postprocess/meter_base.h>
+#include <fiddle/postprocess/meter.h>
 
 #include <deal.II/base/point.h>
 #include <deal.II/base/smartpointer.h>
@@ -75,7 +75,7 @@ namespace fdl
    * std::nexttoward().
    */
   template <int dim, int spacedim = dim>
-  class SurfaceMeter : public MeterBase<dim - 1, spacedim>
+  class SurfaceMeter : public Meter<dim - 1, spacedim>
   {
   public:
     /**
@@ -123,7 +123,7 @@ namespace fdl
                  tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy);
 
     /**
-     * Destructor. See the note in ~MeterBase().
+     * Destructor. See the note in ~Meter().
      */
     virtual ~SurfaceMeter();
 

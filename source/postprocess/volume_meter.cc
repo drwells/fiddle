@@ -14,7 +14,7 @@ namespace fdl
     const Point<spacedim>                        &center,
     const double                                 &radius,
     tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy)
-    : MeterBase<spacedim, spacedim>(patch_hierarchy)
+    : Meter<spacedim, spacedim>(patch_hierarchy)
     , center(center)
   {
     GridGenerator::hyper_ball_balanced(this->meter_tria, center, radius);
@@ -22,7 +22,7 @@ namespace fdl
 
     while (GridTools::maximal_cell_diameter(this->meter_tria) > dx)
       this->meter_tria.refine_global(1);
-    MeterBase<spacedim, spacedim>::internal_reinit();
+    Meter<spacedim, spacedim>::internal_reinit();
   }
 
   template <int spacedim>
@@ -33,7 +33,7 @@ namespace fdl
     GridTools::shift(displacement, this->meter_tria);
     center = new_center;
 
-    MeterBase<spacedim, spacedim>::internal_reinit();
+    Meter<spacedim, spacedim>::internal_reinit();
   }
 
   template <int spacedim>

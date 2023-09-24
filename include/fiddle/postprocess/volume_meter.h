@@ -3,7 +3,7 @@
 
 #include <fiddle/base/config.h>
 
-#include <fiddle/postprocess/meter_base.h>
+#include <fiddle/postprocess/meter.h>
 
 #include <deal.II/base/point.h>
 
@@ -27,7 +27,7 @@ namespace fdl
    * structure. Essentially the same as SurfaceMeter but without the flux parts.
    */
   template <int spacedim>
-  class VolumeMeter : public MeterBase<spacedim, spacedim>
+  class VolumeMeter : public Meter<spacedim, spacedim>
   {
   public:
     /**

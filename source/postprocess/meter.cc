@@ -6,7 +6,7 @@
 
 #include <fiddle/interaction/nodal_interaction.h>
 
-#include <fiddle/postprocess/meter_base.h>
+#include <fiddle/postprocess/meter.h>
 
 #include <deal.II/base/mpi.h>
 
@@ -36,7 +36,7 @@
 namespace fdl
 {
   template <int dim, int spacedim>
-  MeterBase<dim, spacedim>::MeterBase(
+  Meter<dim, spacedim>::Meter(
     tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy)
     : patch_hierarchy(patch_hierarchy)
     , meter_tria(tbox::SAMRAI_MPI::getCommunicator(),
@@ -45,7 +45,7 @@ namespace fdl
   {}
 
   template <int dim, int spacedim>
-  MeterBase<dim, spacedim>::MeterBase(
+  Meter<dim, spacedim>::Meter(
     const Triangulation<dim, spacedim>           &tria,
     tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy)
     : patch_hierarchy(patch_hierarchy)
@@ -68,12 +68,12 @@ namespace fdl
   }
 
   template <int dim, int spacedim>
-  MeterBase<dim, spacedim>::~MeterBase()
+  Meter<dim, spacedim>::~Meter()
   {}
 
   template <int dim, int spacedim>
   void
-  MeterBase<dim, spacedim>::reinit_dofs()
+  Meter<dim, spacedim>::reinit_dofs()
   {
     Assert(meter_tria.get_reference_cells().size() == 1,
            ExcFDLNotImplemented());
@@ -141,7 +141,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  MeterBase<dim, spacedim>::reinit_centroid()
+  Meter<dim, spacedim>::reinit_centroid()
   {
     // Since we support codim-1 meshes, the centroid (computed with the integral
     // formula) may not actually exist in the mesh. Find an equivalent point on
@@ -238,7 +238,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  MeterBase<dim, spacedim>::reinit_interaction()
+  Meter<dim, spacedim>::reinit_interaction()
   {
     // As the meter mesh is in absolute coordinates we can use a normal
     // mapping here
@@ -268,7 +268,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   void
-  MeterBase<dim, spacedim>::internal_reinit()
+  Meter<dim, spacedim>::internal_reinit()
   {
     reinit_dofs();
     reinit_centroid();
@@ -277,7 +277,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   double
-  MeterBase<dim, spacedim>::compute_centroid_value(
+  Meter<dim, spacedim>::compute_centroid_value(
     const int          data_idx,
     const std::string &kernel_name) const
   {
@@ -322,9 +322,8 @@ namespace fdl
 
   template <int dim, int spacedim>
   double
-  MeterBase<dim, spacedim>::compute_mean_value(
-    const int          data_idx,
-    const std::string &kernel_name) const
+  Meter<dim, spacedim>::compute_mean_value(const int          data_idx,
+                                           const std::string &kernel_name) const
   {
     const auto interpolated_data =
       interpolate_scalar_field(data_idx, kernel_name);
@@ -338,7 +337,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   LinearAlgebra::distributed::Vector<double>
-  MeterBase<dim, spacedim>::interpolate_scalar_field(
+  Meter<dim, spacedim>::interpolate_scalar_field(
     const int          data_idx,
     const std::string &kernel_name) const
   {
@@ -358,7 +357,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   LinearAlgebra::distributed::Vector<double>
-  MeterBase<dim, spacedim>::interpolate_vector_field(
+  Meter<dim, spacedim>::interpolate_vector_field(
     const int          data_idx,
     const std::string &kernel_name) const
   {
@@ -378,7 +377,7 @@ namespace fdl
 
   template <int dim, int spacedim>
   bool
-  MeterBase<dim, spacedim>::compute_vertices_inside_domain() const
+  Meter<dim, spacedim>::compute_vertices_inside_domain() const
   {
     tbox::Pointer<geom::CartesianGridGeometry<spacedim>> geom =
       patch_hierarchy->getGridGeometry();
@@ -402,6 +401,6 @@ namespace fdl
     return vertices_inside_domain;
   }
 
-  template class MeterBase<NDIM - 1, NDIM>;
-  template class MeterBase<NDIM, NDIM>;
+  template class Meter<NDIM - 1, NDIM>;
+  template class Meter<NDIM, NDIM>;
 } // namespace fdl
