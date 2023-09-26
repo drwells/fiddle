@@ -58,6 +58,47 @@ else to finish. This is a compile-time option provided to CMake with
 - lots of useful utilities, like meter meshes.
 - (WIP) examples.
 
+# Outline
+
+fiddle uses [clean
+architecture](https://medium.com/@MilanJovanovicTech/why-clean-architecture-is-great-for-complex-projects-fda2ec21901b?source=read_next_recirc).
+The primary layers (from out to in) are
+
+1. Providing functions called by IBAMR. This is what `fdl::IFEDMethod` and
+   everything else inheriting from `IBAMR::IBStrategy` do: these objects are
+   plugged directly into `IBAMR::IBExplicitHierarchyIntegrator`, at which point
+   IBAMR takes over time integration.
+
+   `fdl::PartVectors` and `fdl::Part` store the thermodynamic state of the
+   relevant structures (i.e., position and velocity of mechanical parts) modeled
+   with the finite element method. These are exclusively managed by other level
+   1 objects (though they are available as read-only values for postprocessing).
+   These are the only objects with truly transient state (i.e., they are updated
+   at every timestep), and therefore are the only objects with both getters and
+   setters (at the time of writing this the only other set function in fiddle is
+   `fdl::SpringForceBase::set_reference_position()`).
+2. Data structures which negotiate between deal.II and IBAMR. These objects are
+   immutable except for their `reinit()` member functions, which are typically
+   only called during regridding and parallel data redistribution. Examples
+   include `fdl::SurfaceMeter`, `fdl::NodalInteraction`, and
+   `fdl::OverlapTriangulation`.
+3. A functional core implementing the actual immersed boundary or finite element
+   algorithms. For example, `compute_spread()` and `compute_nodal_spread()` are
+   functions which spread forces to a specified SAMRAI data index, but neither
+   one modifies anything besides the patch data. These functions are defined in
+   the utility headers - e.g., `interaction_utilities.h` contains declarations
+   of all the IB functions.
+
+Each layer has read-only access to the level immediately above it, manages its
+own state, and only calls functions on the levels below it. For example,
+`fdl::PatchMap` is a level 2 class and it is read (but not modified) by level 3
+functions. For the most part, all the action occurs in level 3 and the other
+layers are just for book-keeping or interacting with the rest of IBAMR.
+
+The major reason things are done this way is that it makes testing algorithms
+very easy: most of the tests are for level 3 functions as they do all the actual
+computations.
+
 # Style Guide
 
 ## General Advice
