@@ -108,9 +108,7 @@ computations.
    function is basically impossible to understand or debug (code complexity
    scales nonlinearly with line count). Classes should be immutable for the most
    part aside from a reinit function (and maybe mutable position/velocity
-   vectors). No staggered initialization: use RAII. Clear ownership semantics:
-   e.g., users create `Part`s and `std::move()` them to signify that
-   `fdl::IFEDMethod` now owns them.
+   vectors).
 2. We want to build ten classes inheriting from `IBAMR::IBStrategy`: Presently
    `fdl::IFEDMethod` is just an interface that adapts other pieces to work with
    IBAMR. It doesn't much past get the pieces talking to each-other.
@@ -132,6 +130,12 @@ computations.
    those inheriting from `IBStrategy`) should mess with `RestartManager`.
    Singletons and other global state make programs much more difficult to
    understand and impede interoperability.
+5. Use clear data ownership semantics. Avoid `tbox::Pointer` and
+   `std::shared_ptr` in favor of either plain member variables or
+   `std::unique_ptr` so that the question "who is responsible for this object?"
+   always has an unambiguous single answer. Classes should use RAII and be ready
+   for use immediately after their constructor finishes. There are some
+   exceptions to this rule to make things work with SAMRAI.
 
 ## Naming Functions
 
