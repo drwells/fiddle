@@ -1,5 +1,5 @@
-#ifndef included_fiddle_postprocess_meter_base_h
-#define included_fiddle_postprocess_meter_base_h
+#ifndef included_fiddle_postprocess_meter_h
+#define included_fiddle_postprocess_meter_h
 
 #include <fiddle/base/config.h>
 
@@ -44,19 +44,19 @@ namespace fdl
    * Base class for the meter classes (SurfaceMeter and VolumeMeter).
    */
   template <int dim, int spacedim = dim>
-  class MeterBase
+  class Meter
   {
   public:
     /**
      * Constructor.
      */
-    MeterBase(tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy);
+    Meter(tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy);
 
     /**
      * Constructor. Copies an existing Triangulation.
      */
-    MeterBase(const Triangulation<dim, spacedim>           &tria,
-              tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy);
+    Meter(const Triangulation<dim, spacedim>           &tria,
+          tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy);
 
     /**
      * Destructor.
@@ -66,7 +66,7 @@ namespace fdl
      * the point at which the destructor is defined, so so the definition is in
      * the source file.
      */
-    virtual ~MeterBase();
+    virtual ~Meter();
 
     /* @name object access
      * @{
@@ -263,35 +263,35 @@ namespace fdl
 
   template <int dim, int spacedim>
   inline const Triangulation<dim, spacedim> &
-  MeterBase<dim, spacedim>::get_triangulation() const
+  Meter<dim, spacedim>::get_triangulation() const
   {
     return meter_tria;
   }
 
   template <int dim, int spacedim>
   inline const Mapping<dim, spacedim> &
-  MeterBase<dim, spacedim>::get_mapping() const
+  Meter<dim, spacedim>::get_mapping() const
   {
     return *meter_mapping;
   }
 
   template <int dim, int spacedim>
   inline const DoFHandler<dim, spacedim> &
-  MeterBase<dim, spacedim>::get_scalar_dof_handler() const
+  Meter<dim, spacedim>::get_scalar_dof_handler() const
   {
     return scalar_dof_handler;
   }
 
   template <int dim, int spacedim>
   inline const DoFHandler<dim, spacedim> &
-  MeterBase<dim, spacedim>::get_vector_dof_handler() const
+  Meter<dim, spacedim>::get_vector_dof_handler() const
   {
     return vector_dof_handler;
   }
 
   template <int dim, int spacedim>
   Point<spacedim>
-  MeterBase<dim, spacedim>::get_centroid() const
+  Meter<dim, spacedim>::get_centroid() const
   {
     return centroid;
   }

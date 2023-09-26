@@ -106,7 +106,7 @@ SET(FIDDLE_SRC
   source/mechanics/part_vectors.cc
   source/mechanics/fiber_network.cc
 
-  source/postprocess/meter_base.cc
+  source/postprocess/meter.cc
   source/postprocess/point_values.cc
   source/postprocess/surface_meter.cc
   source/postprocess/volume_meter.cc
