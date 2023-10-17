@@ -187,8 +187,13 @@ test()
         std::make_shared<Utilities::MPI::Partitioner>(locally_owned_dofs,
                                                       locally_relevant_dofs,
                                                       comm);
-      // inner boundary has id 0 - set to Dirichlet BCs
+// inner boundary has id 0 - set to Dirichlet BCs
+#if DEAL_II_VERSION_GTE(9, 6, 0)
+      AffineConstraints<double> constraints(locally_owned_dofs,
+                                            locally_relevant_dofs);
+#else
       AffineConstraints<double> constraints;
+#endif
       VectorTools::interpolate_boundary_values(
         mapping, dof_handler, 0, ExactSolution<dim>(), constraints);
       constraints.close();
