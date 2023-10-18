@@ -5,6 +5,7 @@
 
 #include <deal.II/base/bounding_box.h>
 #include <deal.II/base/quadrature.h>
+#include <deal.II/base/std_cxx17/optional.h>
 
 #include <memory>
 #include <vector>
@@ -260,6 +261,108 @@ namespace fdl
                        const Vector<double>         &position,
                        const Vector<double>         &spread_values);
 
+  /**
+   * Compute intersection the point of a line with an edge.
+   *
+   * This function returns the convex combination coefficient of the
+   * intersection between the start of the FD stencil and its end. Null pointer
+   * would be returned if there isn't an intersection.
+   *
+   * Linear interpolation:
+   *
+   * 0.5*(1-u)*p0 + 0.5*(1+u)*p1 = r + t*q
+   *
+   * Factor the interpolation formula:
+   *
+   * 0.5*(p1-p0)*u+0.5*(p1+p0) = r + t*q
+   *
+   * Solve for u:
+   *
+   *    a*u + b = 0
+   *
+   * with:
+   *
+   *   a = 0.5*(-p0+p1)
+   *   b = 0.5*(p0+p1) - r
+   *
+   * @param[in] simplex an array containing Eulerian location of
+   * vertices of the given element.
+   *
+   * @param[in] stencil_start the center location of the FD stencil.
+   *
+   * @param[in] stencil_width the width of the given FD stencil.
+   *
+   * @param[in] stencil_axis a given index indicate the stencil axis which
+   * suppose to be aligned with the coordinate axes.
+   *
+   * @note This function is only work for P1 element.
+   */
+  std_cxx17::optional<double>
+  intersect_line_with_edge(const std::array<Point<2>, 2> &simplex,
+                           const Point<2>                &stencil_start,
+                           const double                  &stencil_width,
+                           const unsigned int             stencil_axis);
+
+
+  /**
+   * Compute intersection the point of a line with a flat triangle
+   *
+   * This function returns the convex combination coefficient of the
+   * intersection between the start of the FD stencil and its end. Null pointer
+   * would be returned if there isn't an intersection.
+   *
+   * Due to large range of potential values of MFAC (interface(or
+   * structure)_mesh_size/fluid_mesh_size) We first run a simple check if the
+   * given line would intersect with a "minimum" box contains the triangle. Then
+   * we solve for intersections with
+   *
+   * Linear interpolation:
+   *
+   * (1-u-v)*p0 + u*p1 + v*p2 = p + t*d
+   *
+   * https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+   * http://www.lighthouse3d.com/tutorials/maths/ray-triangle-intersection/
+   * At the end we check if the intersection is within the projected triangle.
+   *
+   * @param[in] simplex an array containing Eulerian location of
+   * vertices of the given element.
+   *
+   * @param[in] stencil_start the center location of the FD stencil.
+   *
+   * @param[in] stencil_width the width of the given FD stencil.
+   *
+   * @param[in] stencil_axis a given index indicate the stencil axis which
+   * suppose to be aligned with the coordinate axes.
+   *
+   * @note This function is only work for P1 element.
+   */
+  std_cxx17::optional<double>
+  intersect_line_with_flat_triangle(const std::array<Point<3>, 3> &simplex,
+                                    const Point<3>    &stencil_start,
+                                    const double      &stencil_width,
+                                    const unsigned int stencil_axis);
+
+  /**
+   * Compute intersection the point of a line with a simplex.
+   *
+   * @param[in] simplex an array containing Eulerian location of
+   * vertices of the given element.
+   *
+   * @param[in] stencil_start the center location of the FD stencil.
+   *
+   * @param[in] stencil_width the width of the given FD stencil.
+   *
+   * @param[in] stencil_axis a given index indicate the stencil axis which
+   * suppose to be aligned with the coordinate axes.
+   *
+   */
+  template <int spacedim>
+  std_cxx17::optional<double>
+  intersect_stencil_with_simplex(
+    const std::array<Point<spacedim + 1>, spacedim + 1> &simplex,
+    const Point<spacedim + 1>                           &stencil_start,
+    const double                                        &stencil_width,
+    const unsigned int                                   stencil_axis);
 
 } // namespace fdl
 #endif

@@ -1,0 +1,16 @@
+test
+{
+  stencil_center_x_coordinate = 0
+  stencil_center_y_coordinate = 0
+  stencil_center_z_coordinate = 0
+  circle_center_x_coordinate = 0
+  circle_center_y_coordinate = 0
+  circle_center_z_coordinate = 0
+  stencil_axis = 1
+  stencil_width = 5
+  sphere_radius = 2
+}
+
+Main {
+   log_all_nodes = FALSE
+}
