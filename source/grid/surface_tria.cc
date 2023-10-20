@@ -55,8 +55,16 @@ namespace fdl
     pointlist.reserve(boundary_vertices.size() * 2);
     for (const Point<2> &p : boundary_vertices)
       {
-        pointlist.push_back(p[0]);
-        pointlist.push_back(p[1]);
+        if (additional_data.regularize_input)
+          {
+            pointlist.push_back(float(p[0]));
+            pointlist.push_back(float(p[1]));
+          }
+        else
+          {
+            pointlist.push_back(p[0]);
+            pointlist.push_back(p[1]);
+          }
       }
     in.pointlist = pointlist.data();
 
@@ -194,8 +202,28 @@ namespace fdl
         cell_data.back().vertices[2] = out.trianglelist[3 * i + 2];
       }
 
-    for (int i = 0; i < out.numberofpoints; ++i)
-      vertices.emplace_back(out.pointlist[2 * i], out.pointlist[2 * i + 1]);
+    if (additional_data.regularize_input)
+      {
+#ifdef DEBUG
+        for (int i = 0; i < in.numberofpoints; ++i)
+          {
+            Assert(
+              (out.pointlist[2 * i] == float(boundary_vertices[i][0])) &&
+                (out.pointlist[2 * i + 1] == float(boundary_vertices[i][1])),
+              ExcMessage(
+                "The truncated vertices should match the output vertices."));
+          }
+#endif
+        vertices = boundary_vertices;
+        for (int i = in.numberofpoints; i < out.numberofpoints; ++i)
+          vertices.emplace_back(out.pointlist[2 * i], out.pointlist[2 * i + 1]);
+      }
+    else
+      {
+        for (int i = 0; i < out.numberofpoints; ++i)
+          vertices.emplace_back(out.pointlist[2 * i], out.pointlist[2 * i + 1]);
+      }
+    AssertDimension(vertices.size(), out.numberofpoints);
 
     GridTools::invert_cells_with_negative_measure(vertices, cell_data);
     if (additional_data.apply_fixup_routines)

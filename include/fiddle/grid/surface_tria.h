@@ -26,6 +26,7 @@ namespace fdl
         , target_element_area(std::numeric_limits<double>::max())
         , place_additional_boundary_vertices(false)
         , apply_fixup_routines(false)
+        , regularize_input(true)
       {}
 
       /**
@@ -54,6 +55,23 @@ namespace fdl
        * input vertices.
        */
       bool apply_fixup_routines;
+
+      /**
+       * Whether or not to regularize the input.
+       *
+       * The triangulations Triangle creates are very sensitive to small changes
+       * in floating-point input. In particular, using higher optimization
+       * levels may (due to the presence of fused multiply-add instructions)
+       * create triangulations with O(1) differences vs. the triangulation
+       * created at lower optimization levels. To preserve consistency, this
+       * option truncates all input values to floats (i.e., by chopping down to
+       * the most significant 23 bits), creates the triangulation, and then
+       * restores precision to the input vertices. In most cases this should not
+       * be problematic since this will preserve, in base 10, the first 6
+       * digits, and more precision is typically not needed to distinguish
+       * between different vertices.
+       */
+      bool regularize_input;
     };
   } // namespace Triangle
 
