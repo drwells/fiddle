@@ -17,6 +17,16 @@ INCLUDE(CMakePackageConfigHelpers)
 INCLUDE(GNUInstallDirs)
 
 #
+# -march=native produces inconsistent results with Triangle: to ensure that is
+# -never set, we unset CMAKE_CXX_FLAGS and set FIDDLE_CXX_FLAGS below for fiddle
+# -and TRIANGLE_CXX_FLAGS for Triangle.
+#
+SEPARATE_ARGUMENTS(FIDDLE_CXX_FLAGS NATIVE_COMMAND "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}")
+SET(TRIANGLE_CXX_FLAGS "-g;-O1;-fPIC")
+SET(CMAKE_CXX_FLAGS "")
+SET(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} "")
+
+#
 # Options for configuring fiddle itself
 #
 
@@ -89,7 +99,6 @@ SET(FIDDLE_SRC
   source/grid/overlap_tria.cc
   source/grid/patch_map.cc
   source/grid/surface_tria.cc
-  source/grid/triangle.c
 
   source/interaction/dlm_method.cc
   source/interaction/elemental_interaction.cc
@@ -114,8 +123,6 @@ SET(FIDDLE_SRC
   source/transfer/overlap_partitioning_tools.cc
   source/transfer/scatter.cc
   )
-# Always compile triangle as C++
-SET_SOURCE_FILES_PROPERTIES(${FIDDLE_SRC} PROPERTIES LANGUAGE CXX)
 
 # set up the configuration header:
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/config.h.in
@@ -133,6 +140,19 @@ TARGET_INCLUDE_DIRECTORIES(
 INSTALL(TARGETS FIDDLEHeaders EXPORT FIDDLETargets)
 INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/include/fiddle
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+# manage Triangle separately so that we can avoid setting march=native:
+ADD_LIBRARY(libtriangle OBJECT "source/grid/triangle.c")
+TARGET_INCLUDE_DIRECTORIES(libtriangle
+  PRIVATE
+  $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include/>)
+# Always compile triangle as C++
+SET_SOURCE_FILES_PROPERTIES("source/grid/triangle.c" PROPERTIES LANGUAGE CXX)
+# See note at the top about compiler flags
+SET_TARGET_PROPERTIES(libtriangle PROPERTIES COMPILE_OPTIONS "${TRIANGLE_CXX_FLAGS}")
+# add some flags to get triangle compiling
+TARGET_COMPILE_OPTIONS(libtriangle PRIVATE -DANSI_DECLARATORS)
+TARGET_COMPILE_OPTIONS(libtriangle PRIVATE -DTRILIBRARY)
 
 # set up targets for export:
 SET(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/fiddle/)
@@ -165,7 +185,10 @@ INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/FIDDLEConfig.cmake
 FOREACH(_d ${FIDDLE_DIMENSIONS})
   SET(_lib "fiddle${_d}d")
   ADD_LIBRARY(${_lib})
+  SET_TARGET_PROPERTIES(${_lib} PROPERTIES COMPILE_OPTIONS "${FIDDLE_CXX_FLAGS}")
   TARGET_SOURCES(${_lib} PRIVATE ${FIDDLE_SRC})
+
+  TARGET_LINK_LIBRARIES(${_lib} PRIVATE libtriangle)
 
   TARGET_LINK_LIBRARIES(${_lib} PUBLIC FIDDLEHeaders)
 
@@ -173,7 +196,7 @@ FOREACH(_d ${FIDDLE_DIMENSIONS})
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include/>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/>)
 
-  # add some flags to get triangle compiling
+  # add some flags to allow interaction with Triangle correctly
   TARGET_COMPILE_OPTIONS(${_lib} PRIVATE -DANSI_DECLARATORS)
   TARGET_COMPILE_OPTIONS(${_lib} PRIVATE -DTRILIBRARY)
 
