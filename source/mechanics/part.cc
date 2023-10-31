@@ -98,9 +98,11 @@ namespace fdl
               ": this is not supported. See the documentation of Part for "
               "more information."));
 
-        // Don't permit body forces to depend on FF:
+        // Don't permit body forces to depend on FF. However, boundary forces
+        // may use the normal vectors in the deformed configuration, which
+        // ultimately requires FF: hence permit those to depend on FF.
         for (const auto &f : this->force_contributions)
-          if (!f->is_stress())
+          if (f->is_volume_force())
             AssertThrow(
               !(resolve_flag_dependencies(f->get_mechanics_update_flags()) &
                 update_FF),
