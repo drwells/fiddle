@@ -172,8 +172,8 @@ namespace fdl
     // check, element (q)uality (min angle in degrees)
     std::string flags("pzQCq");
     Assert(additional_data.min_angle > 0.0,
-           ExcMessage("The minimum angle must be larger than zero.")) flags +=
-      std::to_string(additional_data.min_angle);
+           ExcMessage("The minimum angle must be larger than zero."));
+    flags += std::to_string(additional_data.min_angle);
     if (additional_data.target_element_area ==
         std::numeric_limits<double>::max())
       {
