@@ -40,10 +40,10 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   std::ofstream output("output");
   for (const auto &cell : dof_handler.active_cell_iterators())
     {
-      std::array<Point<3>, 3> Pts = {
-        mapping.transform_unit_to_real_cell(cell, Point<2>(0, 0)),
-        mapping.transform_unit_to_real_cell(cell, Point<2>(0, 1)),
-        mapping.transform_unit_to_real_cell(cell, Point<2>(1, 0))};
+      const std::array<Point<3>, 3> Pts{
+        {mapping.transform_unit_to_real_cell(cell, Point<2>(0, 0)),
+         mapping.transform_unit_to_real_cell(cell, Point<2>(0, 1)),
+         mapping.transform_unit_to_real_cell(cell, Point<2>(1, 0))}};
       std_cxx17::optional<double> convex_coef =
         fdl::intersect_stencil_with_simplex<2>(
           Pts,
