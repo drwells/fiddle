@@ -497,16 +497,11 @@ namespace fdl
     AssertThrowExodusII(ierr);
     AssertDimension(mesh_dimension, spacedim);
 
-#  define CHECK_CENTERS 1
-#  ifdef CHECK_CENTERS
-    const auto vertices = read_vertices<spacedim>(ex_id, n_nodes);
-#  endif
-
     std::vector<int> element_block_ids(n_element_blocks);
     ierr = ex_get_ids(ex_id, EX_ELEM_BLOCK, element_block_ids.data());
     AssertThrowExodusII(ierr);
 
-    auto deal_cell = tria.begin_active();
+    auto cell = tria.begin_active();
     for (const int element_block_id : element_block_ids)
       {
         std::fill(cell_kind_name.begin(), cell_kind_name.end(), '\0');
@@ -550,49 +545,20 @@ namespace fdl
                           block_element_values.data());
         AssertThrowExodusII(ierr);
 
-        {
-          const std::size_t connection_size =
-            n_nodes_per_element * n_block_elements;
-#  if CHECK_CENTERS
-          std::vector<int> connection(connection_size);
-          ierr = ex_get_conn(ex_id,
-                             EX_ELEM_BLOCK,
-                             element_block_id,
-                             connection.data(),
-                             nullptr,
-                             nullptr);
-          AssertThrowExodusII(ierr);
-#  endif
-
-          for (std::size_t node_n = 0; node_n < connection_size;
-               node_n += n_nodes_per_element)
-            {
-              if (deal_cell->is_locally_owned())
-                {
-#  if CHECK_CENTERS
-                  CellData<dim> exodus_cell(type.n_vertices());
-                  for (unsigned int i : type.vertex_indices())
-                    exodus_cell
-                      .vertices[type.exodusii_vertex_to_deal_vertex(i)] =
-                      connection[node_n + i] - 1;
-
-                  Point<spacedim> exodus_center;
-                  for (const auto index : exodus_cell.vertices)
-                    exodus_center += vertices[index];
-                  exodus_center /= type.n_vertices();
-
-                  const Point<spacedim> deal_center = deal_cell->center();
-                  AssertThrow(
-                    (deal_center - exodus_center).norm() < 1e-10,
-                    ExcMessage(
-                      "The deal.II and ExodusII centers should be the same."));
-#  endif
-                  cell_vector[deal_cell->active_cell_index()] =
-                    block_element_values[node_n / n_nodes_per_element];
-                }
-              ++deal_cell;
-            }
-        }
+        for (int element_n = 0; element_n < n_block_elements; ++element_n)
+          {
+            if (cell->is_locally_owned())
+              {
+                AssertThrow(
+                  long(cell->material_id()) == long(element_block_id),
+                  ExcMessage(
+                    "This function requires that the elements are traversed in "
+                    "the same order as the ExodusII blocks."));
+                cell_vector[cell->active_cell_index()] =
+                  block_element_values[element_n];
+              }
+            ++cell;
+          }
       }
 
     ierr = ex_close(ex_id);
