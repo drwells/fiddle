@@ -65,9 +65,17 @@ namespace fdl
     , force_contributions(std::move(force_contributions))
     , active_strains(std::move(active_strains))
   {
+    // Verify that the forces are valid:
     for (const auto &f : this->force_contributions)
-      AssertThrow(f != nullptr,
-                  ExcMessage("The force contributions must not be nullptr"));
+      {
+        AssertThrow(f != nullptr,
+                    ExcMessage("The force contributions must not be nullptr"));
+        AssertThrow(f->is_boundary_force() ^ f->is_stress() ^
+                      f->is_volume_force(),
+                    ExcMessage(
+                      "A force contribution should exactly one of (boundary "
+                      "force, stress, volume force)."));
+      }
 
     if (this->active_strains.size() > 0)
       {
@@ -90,9 +98,11 @@ namespace fdl
               ": this is not supported. See the documentation of Part for "
               "more information."));
 
-        // Don't permit body forces to depend on FF:
+        // Don't permit body forces to depend on FF. However, boundary forces
+        // may use the normal vectors in the deformed configuration, which
+        // ultimately requires FF: hence permit those to depend on FF.
         for (const auto &f : this->force_contributions)
-          if (!f->is_stress())
+          if (f->is_volume_force())
             AssertThrow(
               !(resolve_flag_dependencies(f->get_mechanics_update_flags()) &
                 update_FF),
