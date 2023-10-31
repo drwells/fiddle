@@ -65,9 +65,17 @@ namespace fdl
     , force_contributions(std::move(force_contributions))
     , active_strains(std::move(active_strains))
   {
+    // Verify that the forces are valid:
     for (const auto &f : this->force_contributions)
-      AssertThrow(f != nullptr,
-                  ExcMessage("The force contributions must not be nullptr"));
+      {
+        AssertThrow(f != nullptr,
+                    ExcMessage("The force contributions must not be nullptr"));
+        AssertThrow(f->is_boundary_force() ^ f->is_stress() ^
+                      f->is_volume_force(),
+                    ExcMessage(
+                      "A force contribution should exactly one of (boundary "
+                      "force, stress, volume force)."));
+      }
 
     if (this->active_strains.size() > 0)
       {
