@@ -395,6 +395,39 @@ namespace fdl
     return decode_base64(base64.c_str(), base64.c_str() + base64.size());
   }
 
+  bool
+  samrai_is_initialized()
+  {
+    // This function doesn't work in all cases since either IBAMR nor SAMRAI
+    // provide a way to check that they have been initialized. It relies on the
+    // fact that SAMRAI stores a static copy of its communicator initialized as
+    // 0. If MPI_Comm is a pointer type then it is nullptr; otherwise, if it is
+    // an integer, it is initialized to zero. Neither mpich, mvapich, nor
+    // openmpi set MPI_COMM_WORLD to nullptr so this should work in at least
+    // those cases.
+    AssertThrow(MPI_COMM_WORLD != 0,
+                ExcMessage("This function cannot work if MPI_COMM_WORLD is "
+                           "equal to 0 in an MPI implementation."));
+    return tbox::SAMRAI_MPI::getCommunicator() != 0;
+  }
+
+  ScopedTimer::ScopedTimer(tbox::Timer *timer)
+    : timer(timer)
+  {
+    if (samrai_is_initialized())
+      {
+        AssertThrow(timer, ExcMessage("timer should not be null here"));
+        timer->start();
+      }
+  }
+
+  ScopedTimer::~ScopedTimer()
+  {
+    if (samrai_is_initialized() && timer)
+      timer->stop();
+  }
+
+
   // instantiations:
   template double
   compute_min_cell_width(const tbox::Pointer<hier::PatchHierarchy<NDIM>> &);

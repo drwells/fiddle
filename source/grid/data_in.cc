@@ -1,4 +1,5 @@
 #include <fiddle/base/exceptions.h>
+#include <fiddle/base/samrai_utilities.h>
 
 #include <fiddle/grid/data_in.h>
 
@@ -299,6 +300,8 @@ namespace fdl
                           const std::vector<unsigned int> &components,
                           VectorType                      &dof_vector)
     {
+      FDL_SETUP_TIMER_AND_SCOPE(t_read_nodal_components,
+                                "fdl::read_nodal_components()");
       // Read basic mesh information:
       std::vector<char> cell_kind_name(MAX_LINE_LENGTH + 1, '\0');
       int               mesh_dimension   = 0;
@@ -452,6 +455,8 @@ namespace fdl
                       const std::string                  &variable_name,
                       VectorType                         &cell_vector)
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_read_elemental_data,
+                              "fdl::read_elemental_data()");
     AssertDimension(cell_vector.size(), tria.n_active_cells());
     Assert(tria.n_levels() == 1,
            ExcMessage("This function can only be called on unrefined grids."));
@@ -577,6 +582,7 @@ namespace fdl
                 VectorType                      &dof_vector)
   // TODO - make this work with a ComponentMask
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_read_dof_data, "fdl::read_dof_data()");
 #ifdef DEAL_II_TRILINOS_WITH_SEACAS
     Assert(dof_handler.get_triangulation().n_levels() == 1,
            ExcMessage("This function can only be called on unrefined grids."));
