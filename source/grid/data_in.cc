@@ -523,14 +523,6 @@ namespace fdl
                             &n_attributes_per_element);
         AssertThrowExodusII(ierr);
 
-        const ReferenceCell type =
-          exodusii_name_to_type(cell_kind_name.data(), n_nodes_per_element);
-        // The number of nodes per element may be larger than what we want to
-        // read - for example, if the Exodus file contains a QUAD9 element, we
-        // only want to read the first four values and ignore the rest.
-        Assert(int(type.n_vertices()) <= n_nodes_per_element,
-               ExcInternalError());
-
         const int var_index =
           get_variable_index(ex_id, EX_ELEM_BLOCK, variable_name);
 
