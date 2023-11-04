@@ -77,7 +77,7 @@ namespace fdl
     /**
      * Internal data structure that manages both evaluation and communication.
      */
-    mutable Utilities::MPI::RemotePointEvaluation<dim, spacedim>
+    Utilities::MPI::RemotePointEvaluation<dim, spacedim>
       remote_point_evaluation;
   };
 
