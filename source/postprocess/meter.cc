@@ -53,6 +53,7 @@ namespace fdl
                  Triangulation<dim, spacedim>::MeshSmoothing::none,
                  true)
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_meter_ctor, "fdl::Meter::Meter()");
     AssertThrow(!tria.has_hanging_nodes(), ExcFDLNotImplemented());
     GridGenerator::flatten_triangulation(tria, meter_tria);
 
@@ -75,6 +76,7 @@ namespace fdl
   void
   Meter<dim, spacedim>::reinit_dofs()
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_reinit_dofs, "fdl::Meter::reinit_dofs()");
     Assert(meter_tria.get_reference_cells().size() == 1,
            ExcFDLNotImplemented());
     // only set up FEs once
@@ -143,6 +145,8 @@ namespace fdl
   void
   Meter<dim, spacedim>::reinit_centroid()
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_meter_centroid,
+                              "fdl::Meter::reinit_centroid()");
     // Since we support codim-1 meshes, the centroid (computed with the integral
     // formula) may not actually exist in the mesh. Find an equivalent point on
     // the mesh by
@@ -240,6 +244,8 @@ namespace fdl
   void
   Meter<dim, spacedim>::reinit_interaction()
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_meter_reinit_interaction,
+                              "fdl::Meter::reinit_interaction()");
     // As the meter mesh is in absolute coordinates we can use a normal
     // mapping here
     const auto local_bboxes =
@@ -281,6 +287,8 @@ namespace fdl
     const int          data_idx,
     const std::string &kernel_name) const
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_meter_centroid_value,
+                              "fdl::Meter::compute_centroid_value()");
     // TODO: this is pretty wasteful but we don't have infrastructure set up to
     // do single point evaluations right now - ultimately this will be added to
     // IBAMR.
@@ -325,6 +333,8 @@ namespace fdl
   Meter<dim, spacedim>::compute_mean_value(const int          data_idx,
                                            const std::string &kernel_name) const
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_meter_mean_value,
+                              "fdl::Meter::compute_mean_value()");
     const auto interpolated_data =
       interpolate_scalar_field(data_idx, kernel_name);
 
@@ -341,6 +351,8 @@ namespace fdl
     const int          data_idx,
     const std::string &kernel_name) const
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_meter_interpolate_scalar,
+                              "fdl::Meter::interpolate_scalar_field()");
     LinearAlgebra::distributed::Vector<double> interpolated_data(
       scalar_partitioner);
     nodal_interaction->interpolate(kernel_name,
@@ -361,6 +373,8 @@ namespace fdl
     const int          data_idx,
     const std::string &kernel_name) const
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_meter_interpolate_vector,
+                              "fdl::Meter::interpolate_vector_field()");
     LinearAlgebra::distributed::Vector<double> interpolated_data(
       vector_partitioner);
     nodal_interaction->interpolate(kernel_name,
@@ -379,6 +393,8 @@ namespace fdl
   bool
   Meter<dim, spacedim>::compute_vertices_inside_domain() const
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_meter_vertices_inside_domain,
+                              "fdl::Meter::compute_vertices_inside_domain()");
     tbox::Pointer<geom::CartesianGridGeometry<spacedim>> geom =
       patch_hierarchy->getGridGeometry();
     Assert(geom, ExcFDLInternalError());

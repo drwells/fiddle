@@ -3,6 +3,8 @@
 
 #include <fiddle/base/config.h>
 
+#include <tbox/TimerManager.h>
+
 #include <string>
 #include <utility>
 #include <vector>
@@ -185,6 +187,82 @@ namespace fdl
   std::string
   load_binary(const std::string                   &key,
               const tbox::Pointer<tbox::Database> &database);
+
+  /**
+   * Determine whether or not SAMRAI is initialized.
+   */
+  bool
+  samrai_is_initialized();
+
+  /**
+   * Start a SAMRAI timer owned by tbox::TimerManager. Does nothing if either
+   * SAMRAI is not initialized or if IBAMR was configured without timers
+   * enabled.
+   */
+  void
+  start_timer(const std::string &timer_name);
+
+  /**
+   * Stop a SAMRAI timer owned by tbox::TimerManager. Does nothing if either
+   * SAMRAI is not initialized or if IBAMR was configured without timers
+   * enabled.
+   */
+  void
+  stop_timer(const std::string &timer_name);
+
+  /**
+   * Simple scoped SAMRAI timer.
+   */
+  class ScopedTimer
+  {
+  public:
+    /**
+     * Constructor. Starts a SAMRAI timer owned by tbox::TimerManager. Does
+     * nothing if either SAMRAI is not initialized or if IBAMR was configured
+     * without timers enabled.
+     */
+    ScopedTimer(tbox::Timer *timer);
+
+    /**
+     * Destructor. Stops the timer.
+     */
+    ~ScopedTimer();
+
+  protected:
+    tbox::Timer *timer;
+  };
+
+  /**
+   * Macro for setting up a timer. Defines a static pointer with name
+   * 'timer_name' in the current scope. The arguments are the variable name of
+   * the timer (e.g., t_interpolate_velocity) and a string for identifying the
+   * timer in the output (e.g., "fdl::IFEDMethod::interpolateVelocity()").
+   *
+   * SAMRAI's TimerManager class stores the timers in an array: i.e., in order
+   * to find a timer, it must perform possibly hundreds of string comparisons.
+   * This is a performance problem for short functions which we still want to
+   * time. Hence, this macro sets up the timer as a static pointer and only
+   * defines it once.
+   */
+#define FDL_SETUP_TIMER(timer_name, timer_str)                               \
+  static ::SAMRAI::tbox::Timer *timer_name = nullptr;                        \
+  do                                                                         \
+    {                                                                        \
+      static bool timer_is_setup = false;                                    \
+      if (!timer_is_setup)                                                   \
+        {                                                                    \
+          timer_name =                                                       \
+            ::SAMRAI::tbox::TimerManager::getManager()->getTimer(timer_str); \
+          timer_is_setup = true;                                             \
+        }                                                                    \
+  } while (false)
+
+  /**
+   * Convenience macro which sets up a ScopedTimer for the given timer.
+   */
+#define FDL_SETUP_TIMER_AND_SCOPE(timer_name, timer_str) \
+  FDL_SETUP_TIMER(timer_name, timer_str);                \
+  ScopedTimer timer_name##_scope(timer_name);
 } // namespace fdl
 
 #endif

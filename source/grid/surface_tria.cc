@@ -1,4 +1,5 @@
 #include <fiddle/base/exceptions.h>
+#include <fiddle/base/samrai_utilities.h>
 
 #include <fiddle/grid/surface_tria.h>
 
@@ -42,6 +43,8 @@ namespace fdl
                        const Triangle::AdditionalData additional_data)
   {
     AssertThrow(boundary_vertices.size() >= 3, ExcFDLNotImplemented());
+    FDL_SETUP_TIMER_AND_SCOPE(t_triangulate_segments,
+                              "fdl::triangulate_segments()");
 
     // C structures are not initialized by default - zero everything
     triangulateio in, out;
@@ -261,6 +264,8 @@ namespace fdl
                               Triangulation<2, 3>           &tria,
                               const Triangle::AdditionalData additional_data)
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_create_planar_triangulation,
+                              "fdl::create_planar_triangulation()");
     // 1. Do a least-squares fit of the points to a plane: z = a x + b y + c
     FullMatrix<double> data(points.size(), 3);
     Vector<double>     rhs(points.size());
@@ -317,6 +322,8 @@ namespace fdl
   fit_boundary_vertices(const std::vector<Point<spacedim>> &new_vertices,
                         Triangulation<dim, spacedim>       &tria)
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_triangulate_segments,
+                              "fdl::fit_boundary_vertices()");
     Assert(tria.get_communicator() == MPI_COMM_SELF, ExcNotImplemented());
     Assert(tria.get_reference_cells().size() == 1, ExcNotImplemented());
     Assert(tria.n_levels() == 1, ExcNotImplemented());

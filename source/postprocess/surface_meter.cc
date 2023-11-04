@@ -32,6 +32,8 @@ namespace fdl
                        Triangulation<1, 2>            &tria,
                        const Triangle::AdditionalData &additional_data)
       {
+        FDL_SETUP_TIMER_AND_SCOPE(t_setup_meter_tria,
+                                  "fdl::internal::setup_meter_tria()");
         Assert(boundary_points.size() > 1, ExcFDLInternalError());
         std::vector<CellData<1>> cell_data;
         std::vector<Point<2>>    vertices;
@@ -80,6 +82,8 @@ namespace fdl
                        Triangulation<2, 3>            &tria,
                        const Triangle::AdditionalData &additional_data)
       {
+        FDL_SETUP_TIMER_AND_SCOPE(t_setup_meter_tria,
+                                  "fdl::internal::setup_meter_tria()");
         Assert(boundary_points.size() > 2, ExcFDLInternalError());
 
         // the input may be a parallel Triangulation, so copy back-and-forth
@@ -111,6 +115,8 @@ namespace fdl
         position_dof_handler,
         boundary_points))
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_surface_meter_ctor,
+                              "fdl::SurfaceMeter::SurfaceMeter()");
     // TODO: assert congruity between position_dof_handler.get_communicator()
     // and SAMRAI_MPI::getCommunicator()
     reinit(position, velocity);
@@ -122,6 +128,8 @@ namespace fdl
     tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy)
     : Meter<dim - 1, spacedim>(tria, patch_hierarchy)
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_surface_meter_ctor,
+                              "fdl::SurfaceMeter::SurfaceMeter()");
     internal_reinit(false, {}, {}, false);
   }
 
@@ -132,6 +140,8 @@ namespace fdl
     tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy)
     : Meter<dim - 1, spacedim>(patch_hierarchy)
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_surface_meter_ctor,
+                              "fdl::SurfaceMeter::SurfaceMeter()");
     reinit(boundary_points, velocity);
   }
 
@@ -152,6 +162,8 @@ namespace fdl
     const LinearAlgebra::distributed::Vector<double> &position,
     const LinearAlgebra::distributed::Vector<double> &velocity)
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_surface_meter_ctor,
+                              "fdl::SurfaceMeter::reinit()");
     Assert(uses_codim_zero_mesh(),
            ExcMessage("This function cannot be called when the SurfaceMeter is "
                       "set up without an underlying codimension zero "

@@ -1,3 +1,5 @@
+#include <fiddle/base/samrai_utilities.h>
+
 #include <fiddle/postprocess/point_values.h>
 
 #include <deal.II/lac/la_parallel_vector.h>
@@ -39,13 +41,18 @@ namespace fdl
     , dof_handler(&dof_handler)
     , evaluation_points(evaluation_points)
     , remote_point_evaluation(1e-12, true)
-  {}
+  {
+    FDL_SETUP_TIMER_AND_SCOPE(t_pointvalues_ctor,
+                              "fdl::PointValues::PointValues()");
+  }
 
   template <int n_components, int dim, int spacedim>
   std::vector<Tensor<1, n_components>>
   PointValues<n_components, dim, spacedim>::evaluate(
     const LinearAlgebra::distributed::Vector<double> &vector) const
   {
+    FDL_SETUP_TIMER_AND_SCOPE(t_pointvalues_evaluate,
+                              "fdl::PointValues::evaluate()");
     auto result =
       VectorTools::point_values<n_components>(*mapping,
                                               *dof_handler,
