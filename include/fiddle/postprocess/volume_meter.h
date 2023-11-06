@@ -50,9 +50,6 @@ namespace fdl
      */
     void
     reinit();
-
-  protected:
-    Point<spacedim> center;
   };
 } // namespace fdl
 

@@ -15,7 +15,6 @@ namespace fdl
     const double                                 &radius,
     tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy)
     : Meter<spacedim, spacedim>(patch_hierarchy)
-    , center(center)
   {
     FDL_SETUP_TIMER_AND_SCOPE(t_volume_meter_ctor,
                               "fdl::VolumeMeter::VolumeMeter()");
@@ -33,10 +32,7 @@ namespace fdl
   {
     FDL_SETUP_TIMER_AND_SCOPE(t_volume_meter_reinit,
                               "fdl::VolumeMeter::reinit()");
-    const Tensor<1, spacedim> displacement = new_center - center;
-    GridTools::shift(displacement, this->meter_tria);
-    center = new_center;
-
+    GridTools::shift(new_center - this->get_centroid(), this->meter_tria);
     Meter<spacedim, spacedim>::internal_reinit();
   }
 
