@@ -976,7 +976,7 @@ namespace fdl
             // stress contribution, isotropic term
             stresses[qp_n] =
               0.5 * a * std::exp(b * (I1_bar - 3.0)) * I1_bar_dFF;
-            // stress contribution, transversly isotropic term, fiber f
+            // stress contribution, transversely isotropic term, fiber f
             const double I4_f = I4_i(CC, fiber_f);
             if (kappa_f != 0.0 || I4_f > 1.0)
               {
@@ -989,7 +989,7 @@ namespace fdl
                   (kappa_f * I1_bar_dFF +
                    (1.0 - 3.0 * kappa_f) * dI4_i_dFF(FF, fiber_f));
               }
-            // stress contribution, transversly isotropic term, fiber s
+            // stress contribution, transversely isotropic term, fiber s
             const double I4_s = I4_i(CC, fiber_s);
             if (kappa_s != 0.0 || I4_s > 1.0)
               {
