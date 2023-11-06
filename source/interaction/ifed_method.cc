@@ -49,6 +49,7 @@ namespace
   static tbox::Timer *t_compute_lagrangian_force_position_ghost_update;
   static tbox::Timer *t_compute_lagrangian_force_setup_force_and_strain;
   static tbox::Timer *t_compute_lagrangian_force_pk1;
+  static tbox::Timer *t_compute_lagrangian_force_pre_compress_barrier;
   static tbox::Timer *t_compute_lagrangian_force_compress_vector;
   static tbox::Timer *t_compute_lagrangian_force_solve;
   static tbox::Timer *t_spread_force;
@@ -240,6 +241,8 @@ namespace fdl
       "fdl::IFEDMethod::computeLagrangianForce()[setup_force_and_strain]");
     t_compute_lagrangian_force_pk1 =
       set_timer("fdl::IFEDMethod::computeLagrangianForce()[pk1]");
+    t_compute_lagrangian_force_pre_compress_barrier = set_timer(
+      "fdl::IFEDMethod::computeLagrangianForce()[pre_compress_barrier]");
     t_compute_lagrangian_force_compress_vector =
       set_timer("fdl::IFEDMethod::computeLagrangianForce()[compress_vector]");
     t_compute_lagrangian_force_solve =
@@ -762,6 +765,14 @@ namespace fdl
             surface_part_forces,
             surface_part_right_hand_sides);
 
+#ifdef FDL_ENABLE_TIMER_BARRIERS
+    {
+      IBAMR_TIMER_START(t_compute_lagrangian_force_pre_compress_barrier);
+      const int ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
+      AssertThrowMPI(ierr);
+      IBAMR_TIMER_STOP(t_compute_lagrangian_force_pre_compress_barrier);
+    }
+#endif
     IBAMR_TIMER_START(t_compute_lagrangian_force_compress_vector);
     // Allow compression to overlap:
     auto do_compress = [](auto &vectors)
