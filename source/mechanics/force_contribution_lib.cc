@@ -885,7 +885,7 @@ namespace fdl
   }
 
   //
-  // ModifiedHolzapfelOgdenStress
+  // HolzapfelOgdenStress
   //
 
   template <int dim, int spacedim, typename Number>
