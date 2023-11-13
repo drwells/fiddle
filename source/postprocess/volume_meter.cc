@@ -7,6 +7,8 @@
 
 #include <PatchHierarchy.h>
 
+#include <cmath>
+
 namespace fdl
 {
   template <int spacedim>
@@ -21,8 +23,13 @@ namespace fdl
     GridGenerator::hyper_ball_balanced(this->meter_tria, center, radius);
     const double dx = compute_min_cell_width(patch_hierarchy);
 
-    while (GridTools::maximal_cell_diameter(this->meter_tria) > dx)
-      this->meter_tria.refine_global(1);
+    // On average, make MFAC 1 by solving (r0 / 2) / 2^n = delta x for n. With
+    // hyper_ball_balanced() there are about two points in the radial direction
+    // when the mesh is initially created. Hence we want to refine n times so
+    // that (r0 / 2) is ultimately equal to delta x.
+    const auto n_refinements =
+      static_cast<int>(std::ceil(std::log2(radius / dx) - 1.0));
+    this->meter_tria.refine_global(std::max(0, n_refinements));
     Meter<spacedim, spacedim>::internal_reinit();
   }
 
