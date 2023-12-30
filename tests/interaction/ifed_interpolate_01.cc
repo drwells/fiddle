@@ -10,6 +10,7 @@
 #include <deal.II/fe/mapping_fe_field.h>
 
 #include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/manifold_lib.h>
 
 #include <deal.II/numerics/data_out.h>
 
@@ -64,10 +65,18 @@ test(tbox::Pointer<IBTK::AppInitializer> app_initializer)
   center[0]       = 0.6;
   center[1]       = 0.5;
   center[dim - 1] = 0.5; // works in 2D and 3D
-  if (test_db->getBoolWithDefault("use_points_outside_domain", false))
+
+  const bool use_points_outside_domain =
+    test_db->getBoolWithDefault("use_points_outside_domain", false);
+  if (use_points_outside_domain)
     GridGenerator::hyper_cube(native_tria, -0.0001, 1.0001, true);
   else
     GridGenerator::hyper_ball(native_tria, center, 0.2);
+
+  if (!use_points_outside_domain)
+    boundary_tria.set_manifold(0u,
+                               SphericalManifold<dim - 1, spacedim>(center));
+
   native_tria.refine_global(
     test_db->getIntegerWithDefault("n_global_refinements", 3));
   GridGenerator::extract_boundary_mesh(native_tria, boundary_tria);
