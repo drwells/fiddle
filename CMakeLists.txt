@@ -60,8 +60,11 @@ FIND_PACKAGE(deal.II 9.5.0 REQUIRED HINTS ${DEAL_II_ROOT} $ENV{DEAL_II_DIR} $ENV
 IF(NOT ${DEAL_II_WITH_MPI})
   MESSAGE(FATAL_ERROR "fiddle requires that deal.II be compiled with support for MPI.")
 ENDIF()
+IF(NOT ${DEAL_II_WITH_CXX17})
+  MESSAGE(FATAL_ERROR "fiddle requires that deal.II be compiled with support for C++17.")
+ENDIF()
 
-FIND_PACKAGE(IBAMR 0.11.0 REQUIRED HINTS ${IBAMR_ROOT} $ENV{IBAMR_ROOT})
+FIND_PACKAGE(IBAMR 0.13.0 REQUIRED HINTS ${IBAMR_ROOT} $ENV{IBAMR_ROOT})
 
 #
 # Modify CMake and dependencies if requested:
