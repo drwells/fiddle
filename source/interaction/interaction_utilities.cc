@@ -8,8 +8,6 @@
 
 #include <fiddle/transfer/overlap_partitioning_tools.h>
 
-#include <deal.II/base/std_cxx17/optional.h>
-
 #include <deal.II/fe/fe_nothing.h>
 #include <deal.II/fe/fe_values.h>
 
@@ -22,6 +20,7 @@
 #include <ibtk/LEInteractor.h>
 
 #include <memory>
+#include <optional>
 #include <type_traits>
 #include <vector>
 
@@ -1136,7 +1135,7 @@ namespace fdl
 #undef ARGUMENTS
   }
 
-  std_cxx17::optional<double>
+  std::optional<double>
   intersect_line_with_edge(const std::array<Point<2>, 2> &simplex,
                            const Point<2>                &stencil_start,
                            const double                  &stencil_width,
@@ -1173,16 +1172,15 @@ namespace fdl
             t              = (p - stencil_start(1)) / q[1];
           }
         const double convex_coef = t / stencil_width;
-        return std::abs(convex_coef) <= 1 ?
-                 std_cxx17::optional<double>(convex_coef) :
-                 std::nullopt;
+        return std::abs(convex_coef) <= 1 ? std::optional<double>(convex_coef) :
+                                            std::nullopt;
       }
 
     return std::nullopt;
   }
 
 
-  std_cxx17::optional<double>
+  std::optional<double>
   intersect_line_with_flat_triangle(const std::array<Point<3>, 3> &simplex,
                                     const Point<3>    &stencil_start,
                                     const double      &stencil_width,
@@ -1243,7 +1241,7 @@ namespace fdl
                 const double convex_coef = t / stencil_width;
 
                 return abs(convex_coef) <= 1 ?
-                         std_cxx17::optional<double>(convex_coef) :
+                         std::optional<double>(convex_coef) :
                          std::nullopt;
               }
           }
@@ -1253,7 +1251,7 @@ namespace fdl
 
 
   template <int spacedim>
-  std_cxx17::optional<double>
+  std::optional<double>
   intersect_stencil_with_simplex(
     const std::array<Point<spacedim + 1>, spacedim + 1> &simplex,
     const Point<spacedim + 1>                           &stencil_start,
@@ -1386,7 +1384,7 @@ namespace fdl
                        const Vector<double>      &position,
                        const Vector<double>      &spread_values);
 
-  template std_cxx17::optional<double>
+  template std::optional<double>
   intersect_stencil_with_simplex<NDIM - 1>(
     const std::array<Point<NDIM>, NDIM> &simplex,
     const Point<NDIM>                   &stencil_start,

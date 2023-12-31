@@ -44,7 +44,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
         {mapping.transform_unit_to_real_cell(cell, Point<2>(0, 0)),
          mapping.transform_unit_to_real_cell(cell, Point<2>(0, 1)),
          mapping.transform_unit_to_real_cell(cell, Point<2>(1, 0))}};
-      std_cxx17::optional<double> convex_coef =
+      std::optional<double> convex_coef =
         fdl::intersect_stencil_with_simplex<2>(
           Pts,
           r,

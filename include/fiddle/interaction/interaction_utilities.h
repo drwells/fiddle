@@ -5,9 +5,9 @@
 
 #include <deal.II/base/bounding_box.h>
 #include <deal.II/base/quadrature.h>
-#include <deal.II/base/std_cxx17/optional.h>
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 // forward declarations
@@ -297,7 +297,7 @@ namespace fdl
    *
    * @note This function is only work for P1 element.
    */
-  std_cxx17::optional<double>
+  std::optional<double>
   intersect_line_with_edge(const std::array<Point<2>, 2> &simplex,
                            const Point<2>                &stencil_start,
                            const double                  &stencil_width,
@@ -336,7 +336,7 @@ namespace fdl
    *
    * @note This function is only work for P1 element.
    */
-  std_cxx17::optional<double>
+  std::optional<double>
   intersect_line_with_flat_triangle(const std::array<Point<3>, 3> &simplex,
                                     const Point<3>    &stencil_start,
                                     const double      &stencil_width,
@@ -357,7 +357,7 @@ namespace fdl
    *
    */
   template <int spacedim>
-  std_cxx17::optional<double>
+  std::optional<double>
   intersect_stencil_with_simplex(
     const std::array<Point<spacedim + 1>, spacedim + 1> &simplex,
     const Point<spacedim + 1>                           &stencil_start,
