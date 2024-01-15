@@ -918,11 +918,11 @@ namespace fdl
           // TODO - we should probably add a reinit() function that sets up the
           // DoFHandler we always need
           interactions[i]->add_dof_handler(part.get_dof_handler());
+          IBAMR_TIMER_STOP(t_reinit_interactions_objects);
         }
     };
     do_reinit(this->parts, interactions);
     do_reinit(this->surface_parts, surface_interactions);
-    IBAMR_TIMER_STOP(t_reinit_interactions_objects);
   }
 
 
