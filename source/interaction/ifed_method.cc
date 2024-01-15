@@ -306,15 +306,15 @@ namespace fdl
   IFEDMethod<dim, spacedim>::interpolateVelocity(
     int u_data_index,
     const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>>
-      &/*u_synch_scheds*/,
+      & /*u_synch_scheds*/,
     const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
-          &/*u_ghost_fill_scheds*/,
+      & /*u_ghost_fill_scheds*/,
     double data_time)
   {
 #ifdef FDL_ENABLE_TIMER_BARRIERS
     {
       ScopedTimer t0(t_interpolate_velocity_start_barrier);
-      const int ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
+      const int   ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
       AssertThrowMPI(ierr);
     }
 #endif
@@ -435,7 +435,7 @@ namespace fdl
     // barrier to keep the timers accurate
 #ifdef FDL_ENABLE_TIMER_BARRIERS
     {
-      ScopedTimer t2(t_interpolate_velocity_solve_start_barrier)
+      ScopedTimer t2(t_interpolate_velocity_solve_start_barrier);
       ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
       AssertThrowMPI(ierr);
     }
@@ -443,7 +443,7 @@ namespace fdl
 
     // Project:
     ScopedTimer t3(t_interpolate_velocity_solve);
-    auto do_solve = [&](const auto &collection,
+    auto        do_solve = [&](const auto &collection,
                         const auto &interactions,
                         auto       &vectors,
                         auto       &guesses,
@@ -519,12 +519,12 @@ namespace fdl
 #ifdef FDL_ENABLE_TIMER_BARRIERS
     {
       ScopedTimer t0(t_spread_force_start_barrier);
-      const int ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
+      const int   ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
       AssertThrowMPI(ierr);
     }
 #endif
     ScopedTimer t1(t_spread_force);
-    const int level_number = this->patch_hierarchy->getFinestLevelNumber();
+    const int   level_number = this->patch_hierarchy->getFinestLevelNumber();
 
     std::shared_ptr<IBTK::SAMRAIDataCache> data_cache =
       secondary_hierarchy.getSAMRAIDataCache();
@@ -693,7 +693,7 @@ namespace fdl
 #ifdef FDL_ENABLE_TIMER_BARRIERS
     {
       ScopedTimer t0(t_compute_lagrangian_force_start_barrier);
-      const int ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
+      const int   ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
       AssertThrowMPI(ierr);
     }
 #endif
@@ -759,7 +759,7 @@ namespace fdl
 #ifdef FDL_ENABLE_TIMER_BARRIERS
     {
       ScopedTimer t2(t_compute_lagrangian_force_pre_compress_barrier);
-      const int ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
+      const int   ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
       AssertThrowMPI(ierr);
     }
 #endif
@@ -794,7 +794,7 @@ namespace fdl
             }
           else
             {
-              ScopedTimer t4(t_compute_lagrangian_force_solve);
+              ScopedTimer   t4(t_compute_lagrangian_force_solve);
               SolverControl control(
                 input_db->getIntegerWithDefault("solver_iterations", 100),
                 input_db->getDoubleWithDefault("solver_relative_tolerance",

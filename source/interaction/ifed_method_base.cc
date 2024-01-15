@@ -173,7 +173,7 @@ namespace fdl
     tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
   {
     ScopedTimer t0(t_end_data_redistribution);
-    auto do_reset = [](auto &positions_regrid, const auto &collection)
+    auto        do_reset = [](auto &positions_regrid, const auto &collection)
     {
       positions_regrid.clear();
       for (unsigned int i = 0; i < collection.size(); ++i)
@@ -192,7 +192,7 @@ namespace fdl
   IFEDMethodBase<dim, spacedim>::getMaxPointDisplacement() const
   {
     ScopedTimer t0(t_max_point_displacement);
-    double max_displacement = 0;
+    double      max_displacement = 0;
 
     auto max_op = [&](const auto &collection, const auto &regrid_positions)
     {
