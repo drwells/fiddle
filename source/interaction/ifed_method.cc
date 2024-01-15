@@ -306,9 +306,9 @@ namespace fdl
   IFEDMethod<dim, spacedim>::interpolateVelocity(
     int u_data_index,
     const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>>
-      &u_synch_scheds,
+      &/*u_synch_scheds*/,
     const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
-          &u_ghost_fill_scheds,
+          &/*u_ghost_fill_scheds*/,
     double data_time)
   {
 #ifdef FDL_ENABLE_TIMER_BARRIERS
@@ -320,8 +320,6 @@ namespace fdl
     }
 #endif
     IBAMR_TIMER_START(t_interpolate_velocity);
-    (void)u_synch_scheds;
-    (void)u_ghost_fill_scheds;
 
     // Update the secondary hierarchy:
     secondary_hierarchy.transferPrimaryToSecondary(
