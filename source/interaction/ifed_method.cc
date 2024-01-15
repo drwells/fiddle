@@ -306,22 +306,19 @@ namespace fdl
   IFEDMethod<dim, spacedim>::interpolateVelocity(
     int u_data_index,
     const std::vector<tbox::Pointer<xfer::CoarsenSchedule<spacedim>>>
-      &u_synch_scheds,
+      & /*u_synch_scheds*/,
     const std::vector<tbox::Pointer<xfer::RefineSchedule<spacedim>>>
-          &u_ghost_fill_scheds,
+      & /*u_ghost_fill_scheds*/,
     double data_time)
   {
 #ifdef FDL_ENABLE_TIMER_BARRIERS
     {
-      IBAMR_TIMER_START(t_interpolate_velocity_start_barrier);
-      const int ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
+      ScopedTimer t0(t_interpolate_velocity_start_barrier);
+      const int   ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
       AssertThrowMPI(ierr);
-      IBAMR_TIMER_STOP(t_interpolate_velocity_start_barrier);
     }
 #endif
-    IBAMR_TIMER_START(t_interpolate_velocity);
-    (void)u_synch_scheds;
-    (void)u_ghost_fill_scheds;
+    ScopedTimer t1(t_interpolate_velocity);
 
     // Update the secondary hierarchy:
     secondary_hierarchy.transferPrimaryToSecondary(
@@ -438,16 +435,15 @@ namespace fdl
     // barrier to keep the timers accurate
 #ifdef FDL_ENABLE_TIMER_BARRIERS
     {
-      IBAMR_TIMER_START(t_interpolate_velocity_solve_start_barrier)
+      ScopedTimer t2(t_interpolate_velocity_solve_start_barrier);
       ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
       AssertThrowMPI(ierr);
-      IBAMR_TIMER_STOP(t_interpolate_velocity_solve_start_barrier)
     }
 #endif
 
     // Project:
-    IBAMR_TIMER_START(t_interpolate_velocity_solve);
-    auto do_solve = [&](const auto &collection,
+    ScopedTimer t3(t_interpolate_velocity_solve);
+    auto        do_solve = [&](const auto &collection,
                         const auto &interactions,
                         auto       &vectors,
                         auto       &guesses,
@@ -507,8 +503,6 @@ namespace fdl
              this->surface_part_vectors,
              surface_velocity_guesses,
              surface_rhs_vecs);
-    IBAMR_TIMER_STOP(t_interpolate_velocity_solve);
-    IBAMR_TIMER_STOP(t_interpolate_velocity);
   }
 
 
@@ -524,14 +518,13 @@ namespace fdl
   {
 #ifdef FDL_ENABLE_TIMER_BARRIERS
     {
-      IBAMR_TIMER_START(t_spread_force_start_barrier);
-      const int ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
+      ScopedTimer t0(t_spread_force_start_barrier);
+      const int   ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
       AssertThrowMPI(ierr);
-      IBAMR_TIMER_STOP(t_spread_force_start_barrier);
     }
 #endif
-    IBAMR_TIMER_START(t_spread_force);
-    const int level_number = this->patch_hierarchy->getFinestLevelNumber();
+    ScopedTimer t1(t_spread_force);
+    const int   level_number = this->patch_hierarchy->getFinestLevelNumber();
 
     std::shared_ptr<IBTK::SAMRAIDataCache> data_cache =
       secondary_hierarchy.getSAMRAIDataCache();
@@ -687,7 +680,6 @@ namespace fdl
                               f_data_index,
                               f_primary_scratch_data_index);
     }
-    IBAMR_TIMER_STOP(t_spread_force);
   }
 
   //
@@ -700,13 +692,12 @@ namespace fdl
   {
 #ifdef FDL_ENABLE_TIMER_BARRIERS
     {
-      IBAMR_TIMER_START(t_compute_lagrangian_force_start_barrier);
-      const int ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
+      ScopedTimer t0(t_compute_lagrangian_force_start_barrier);
+      const int   ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
       AssertThrowMPI(ierr);
-      IBAMR_TIMER_STOP(t_compute_lagrangian_force_start_barrier);
     }
 #endif
-    IBAMR_TIMER_START(t_compute_lagrangian_force);
+    ScopedTimer t1(t_compute_lagrangian_force);
 
     unsigned int channel = 0;
     auto         do_load =
@@ -767,16 +758,15 @@ namespace fdl
 
 #ifdef FDL_ENABLE_TIMER_BARRIERS
     {
-      IBAMR_TIMER_START(t_compute_lagrangian_force_pre_compress_barrier);
-      const int ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
+      ScopedTimer t2(t_compute_lagrangian_force_pre_compress_barrier);
+      const int   ierr = MPI_Barrier(IBTK::IBTK_MPI::getCommunicator());
       AssertThrowMPI(ierr);
-      IBAMR_TIMER_STOP(t_compute_lagrangian_force_pre_compress_barrier);
     }
 #endif
-    IBAMR_TIMER_START(t_compute_lagrangian_force_compress_vector);
     // Allow compression to overlap:
     auto do_compress = [](auto &vectors)
     {
+      ScopedTimer t3(t_compute_lagrangian_force_compress_vector);
       for (unsigned int i = 0; i < vectors.size(); ++i)
         vectors[i].compress_start(i, VectorOperation::add);
       for (unsigned int i = 0; i < vectors.size(); ++i)
@@ -784,7 +774,6 @@ namespace fdl
     };
     do_compress(part_right_hand_sides);
     do_compress(surface_part_right_hand_sides);
-    IBAMR_TIMER_STOP(t_compute_lagrangian_force_compress_vector);
 
     // And do the actual solve:
     auto do_solve = [&](const auto &collection,
@@ -805,7 +794,7 @@ namespace fdl
             }
           else
             {
-              IBAMR_TIMER_START(t_compute_lagrangian_force_solve);
+              ScopedTimer   t4(t_compute_lagrangian_force_solve);
               SolverControl control(
                 input_db->getIntegerWithDefault("solver_iterations", 100),
                 input_db->getDoubleWithDefault("solver_relative_tolerance",
@@ -825,7 +814,6 @@ namespace fdl
                              << control.last_step() << " steps." << std::endl;
                 }
               vectors.set_force(i, data_time, std::move(forces[i]));
-              IBAMR_TIMER_STOP(t_compute_lagrangian_force_solve);
             }
           for (auto &force : part.get_force_contributions())
             force->finish_force(data_time);
@@ -845,7 +833,6 @@ namespace fdl
              this->surface_part_vectors,
              surface_part_forces,
              surface_part_right_hand_sides);
-    IBAMR_TIMER_STOP(t_compute_lagrangian_force);
   }
 
   //
@@ -918,11 +905,11 @@ namespace fdl
           // TODO - we should probably add a reinit() function that sets up the
           // DoFHandler we always need
           interactions[i]->add_dof_handler(part.get_dof_handler());
+          IBAMR_TIMER_STOP(t_reinit_interactions_objects);
         }
     };
     do_reinit(this->parts, interactions);
     do_reinit(this->surface_parts, surface_interactions);
-    IBAMR_TIMER_STOP(t_reinit_interactions_objects);
   }
 
 
@@ -932,7 +919,7 @@ namespace fdl
     tbox::Pointer<hier::PatchHierarchy<spacedim>>    hierarchy,
     tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg)
   {
-    IBAMR_TIMER_START(t_begin_data_redistribution);
+    ScopedTimer t0(t_begin_data_redistribution);
     IFEDMethodBase<dim, spacedim>::beginDataRedistribution(hierarchy,
                                                            gridding_alg);
     // This function is called before initializePatchHierarchy is - in that
@@ -1005,7 +992,6 @@ namespace fdl
 
     // Clear a few things that depend on the current hierarchy:
     ghost_data_accumulator.reset();
-    IBAMR_TIMER_STOP(t_begin_data_redistribution);
   }
 
   template <int dim, int spacedim>
@@ -1014,7 +1000,7 @@ namespace fdl
     tbox::Pointer<hier::PatchHierarchy<spacedim>>    hierarchy,
     tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> gridding_alg)
   {
-    IBAMR_TIMER_START(t_end_data_redistribution);
+    ScopedTimer t0(t_end_data_redistribution);
     // same as beginDataRedistribution
     if (this->patch_hierarchy)
       {
@@ -1085,7 +1071,6 @@ namespace fdl
       }
     IFEDMethodBase<dim, spacedim>::endDataRedistribution(hierarchy,
                                                          gridding_alg);
-    IBAMR_TIMER_STOP(t_end_data_redistribution);
   }
 
   //
