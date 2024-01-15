@@ -137,10 +137,15 @@ computations.
    for use immediately after their constructor finishes. There are some
    exceptions to this rule to make things work with SAMRAI.
 
-## Naming Functions
+## Naming Conventions
 
-1. When a function returns a currently available (i.e., no MPI communication or
+1. In general, follow deal.II's naming conventions.
+2. When a function returns a currently available (i.e., no MPI communication or
    computation necessary) value: use `get_`.
-2. When a function computes a subset of an existing thing: use `extract_`.
-3. When a function combines a subset of an existing thing: use `combine_`.
-4. When a function computes values: use `compute_`.
+3. When a function computes a subset of an existing thing: use `extract_`.
+4. When a function combines a subset of an existing thing: use `combine_`.
+5. When a function computes values: use `compute_`.
+6. `ScopedTimer`s should be named `t0`, `t1`, etc. If the thing we're timing
+   doesn't intrinsically have some scope (e.g., we compute five things in a row
+   which depend on each-other) then use the
+   `IBAMR_TIMER_START`/`IBAMR_TIMER_STOP` macros.

@@ -163,8 +163,7 @@ namespace fdl
     tbox::Pointer<hier::PatchHierarchy<spacedim>> /*hierarchy*/,
     tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
   {
-    IBAMR_TIMER_START(t_begin_data_redistribution);
-    IBAMR_TIMER_STOP(t_begin_data_redistribution);
+    ScopedTimer t0(t_begin_data_redistribution);
   }
 
   template <int dim, int spacedim>
@@ -173,7 +172,7 @@ namespace fdl
     tbox::Pointer<hier::PatchHierarchy<spacedim>> /*hierarchy*/,
     tbox::Pointer<mesh::GriddingAlgorithm<spacedim>> /*gridding_alg*/)
   {
-    IBAMR_TIMER_START(t_end_data_redistribution);
+    ScopedTimer t0(t_end_data_redistribution);
     auto do_reset = [](auto &positions_regrid, const auto &collection)
     {
       positions_regrid.clear();
@@ -182,7 +181,6 @@ namespace fdl
     };
     do_reset(this->positions_at_last_regrid, this->parts);
     do_reset(this->surface_positions_at_last_regrid, this->surface_parts);
-    IBAMR_TIMER_STOP(t_end_data_redistribution);
   }
 
   //
@@ -193,7 +191,7 @@ namespace fdl
   double
   IFEDMethodBase<dim, spacedim>::getMaxPointDisplacement() const
   {
-    IBAMR_TIMER_START(t_max_point_displacement);
+    ScopedTimer t0(t_max_point_displacement);
     double max_displacement = 0;
 
     auto max_op = [&](const auto &collection, const auto &regrid_positions)
@@ -220,7 +218,6 @@ namespace fdl
              dynamic_cast<const hier::PatchLevel<spacedim> &>(
                *patch_hierarchy->getPatchLevel(
                  patch_hierarchy->getFinestLevelNumber())));
-    IBAMR_TIMER_STOP(t_max_point_displacement);
   }
 
   template <int dim, int spacedim>
@@ -233,7 +230,7 @@ namespace fdl
     bool /*initial_time*/,
     bool /*uses_richardson_extrapolation_too*/)
   {
-    IBAMR_TIMER_START(t_apply_gradient_detector);
+    ScopedTimer t0(t_apply_gradient_detector);
     // TODO: we should find a way to save the bboxes so they do not need to be
     // computed for each level that needs tagging - conceivably this could
     // happen in beginDataRedistribution() and the array can be cleared in
@@ -266,7 +263,6 @@ namespace fdl
 
     do_tag(parts);
     do_tag(surface_parts);
-    IBAMR_TIMER_STOP(t_apply_gradient_detector);
   }
 
   //
@@ -279,14 +275,13 @@ namespace fdl
                                                          double new_time,
                                                          int /*num_cycles*/)
   {
-    IBAMR_TIMER_START(t_preprocess_integrate_data);
+    ScopedTimer t0(t_preprocess_integrate_data);
     started_time_integration = true;
     part_vectors.begin_time_step(current_time, new_time);
     surface_part_vectors.begin_time_step(current_time, new_time);
     this->current_time = current_time;
     this->new_time     = new_time;
     this->half_time    = current_time + 0.5 * (new_time - current_time);
-    IBAMR_TIMER_STOP(t_preprocess_integrate_data);
   }
 
   template <int dim, int spacedim>
@@ -296,7 +291,7 @@ namespace fdl
     double /*new_time*/,
     int /*num_cycles*/)
   {
-    IBAMR_TIMER_START(t_postprocess_integrate_data);
+    ScopedTimer t0(t_postprocess_integrate_data);
     current_time = std::numeric_limits<double>::quiet_NaN();
     new_time     = std::numeric_limits<double>::quiet_NaN();
     half_time    = std::numeric_limits<double>::quiet_NaN();
@@ -329,7 +324,6 @@ namespace fdl
 
     part_vectors.end_time_step();
     surface_part_vectors.end_time_step();
-    IBAMR_TIMER_STOP(t_postprocess_integrate_data);
   }
 
   template <int dim, int spacedim>
