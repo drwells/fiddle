@@ -71,6 +71,12 @@ ENDIF()
 IF(NOT ${DEAL_II_WITH_CXX17})
   MESSAGE(FATAL_ERROR "fiddle requires that deal.II be compiled with support for C++17.")
 ENDIF()
+IF(NOT $DEAL_II_BUILD_TYPE} MATCHES "DebugRelease")
+  IF(NOT ${DEAL_II_BUILD_TYPE} MATCHES ${CMAKE_BUILD_TYPE})
+    MESSAGE(FATAL_ERROR "Your deal.II build type is " ${DEAL_II_BUILD_TYPE} " while you requested fiddle build type " ${CMAKE_BUILD_TYPE} ".\n"
+      "Either build the correct deal.II build type, build deal.II in DebugRelease mode, or request the matching fiddle build type.")
+  ENDIF()
+ENDIF()
 
 FIND_PACKAGE(IBAMR 0.13.0 REQUIRED HINTS ${IBAMR_ROOT} $ENV{IBAMR_ROOT})
 
