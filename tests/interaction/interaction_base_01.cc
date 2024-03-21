@@ -145,7 +145,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
   // This is necessary since InteractionBase isn't really intended to be used on
   // its own anyway
   auto &trans = dynamic_cast<fdl::Transaction<dim> &>(*transaction);
-  trans.rhs_scatter_back_op = VectorOperation::add;
+  trans.m_rhs_scatter_back_op = VectorOperation::add;
 
   transaction = interaction_base.compute_projection_rhs_scatter_finish(
     std::move(transaction));
@@ -181,7 +181,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
           position_fe.dofs_per_cell);
         QMidpoint<dim>                           quadrature;
         MappingFEField<dim, dim, Vector<double>> position_map(
-          position_overlap_dof_handler, trans.overlap_position);
+          position_overlap_dof_handler, trans.m_overlap_position);
 
         FEValues<dim> fe_values(position_map,
                                 position_fe,
@@ -207,7 +207,7 @@ test(SAMRAI::tbox::Pointer<IBTK::AppInitializer> app_initializer)
 
     DataOut<dim> data_out;
     data_out.attach_dof_handler(position_overlap_dof_handler);
-    data_out.add_data_vector(trans.overlap_position, "position");
+    data_out.add_data_vector(trans.m_overlap_position, "position");
     data_out.build_patches();
     std::ofstream data_out_stream("overlap-tria-" + std::to_string(rank) +
                                   ".vtu");

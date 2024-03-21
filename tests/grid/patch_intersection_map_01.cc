@@ -30,35 +30,35 @@ main(int argc, char **argv)
 
   for (unsigned int d = 0; d < NDIM; ++d)
     {
-      intersections.dx[d]             = grid_geometry->getDx()[d];
-      intersections.domain_x_lower[d] = grid_geometry->getXLower()[d];
+      intersections.m_dx[d]             = grid_geometry->getDx()[d];
+      intersections.m_domain_x_lower[d] = grid_geometry->getXLower()[d];
     }
 
-  intersections.lower_indices.emplace_back(hier::Index<NDIM>(0, 0));
-  intersections.lower_indices.emplace_back(hier::Index<NDIM>(0, 0));
-  intersections.lower_indices.emplace_back(hier::Index<NDIM>(1, 0));
+  intersections.m_lower_indices.emplace_back(hier::Index<NDIM>(0, 0));
+  intersections.m_lower_indices.emplace_back(hier::Index<NDIM>(0, 0));
+  intersections.m_lower_indices.emplace_back(hier::Index<NDIM>(1, 0));
 
-  intersections.axes.emplace_back(0);
-  intersections.axes.emplace_back(1);
-  intersections.axes.emplace_back(0);
+  intersections.m_axes.emplace_back(0);
+  intersections.m_axes.emplace_back(1);
+  intersections.m_axes.emplace_back(0);
 
-  intersections.convex_coefficients.emplace_back(0.0);
-  intersections.convex_coefficients.emplace_back(0.25);
-  intersections.convex_coefficients.emplace_back(1.0);
+  intersections.m_convex_coefficients.emplace_back(0.0);
+  intersections.m_convex_coefficients.emplace_back(0.25);
+  intersections.m_convex_coefficients.emplace_back(1.0);
 
   // Not used in the test but we need to allocate them anyway (there is an
   // assertion that all of these arrays have the same length)
-  intersections.cell_level.push_back(0);
-  intersections.cell_level.push_back(0);
-  intersections.cell_level.push_back(0);
+  intersections.m_cell_level.push_back(0);
+  intersections.m_cell_level.push_back(0);
+  intersections.m_cell_level.push_back(0);
 
-  intersections.cell_index.push_back(0);
-  intersections.cell_index.push_back(1);
-  intersections.cell_index.push_back(0);
+  intersections.m_cell_index.push_back(0);
+  intersections.m_cell_index.push_back(1);
+  intersections.m_cell_index.push_back(0);
 
   fdl::PatchIntersectionMap<NDIM - 1, NDIM>::Iterator it(&intersections, 0);
 
-  for (unsigned int i = 0; i < intersections.lower_indices.size(); ++i)
+  for (unsigned int i = 0; i < intersections.m_lower_indices.size(); ++i)
     {
       const pdat::SideIndex<NDIM> side_lower_index = it->get_side_lower();
       const pdat::SideIndex<NDIM> side_upper_index = it->get_side_upper();

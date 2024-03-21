@@ -62,25 +62,25 @@ namespace fdl
     struct PatchSingleIntersections
     {
       // Eulerian grid spacing.
-      Tensor<1, spacedim> dx;
+      Tensor<1, spacedim> m_dx;
 
       // Bottom left corner of the domain.
-      Point<spacedim> domain_x_lower;
+      Point<spacedim> m_domain_x_lower;
 
       // lower index of each intersection.
-      std::vector<pdat::CellIndex<spacedim>> lower_indices;
+      std::vector<pdat::CellIndex<spacedim>> m_lower_indices;
 
       // axis of each intersection.
-      std::vector<unsigned char> axes;
+      std::vector<unsigned char> m_axes;
 
       // convex combination coefficient of each intersection.
-      std::vector<double> convex_coefficients;
+      std::vector<double> m_convex_coefficients;
 
       // deal.II cell level.
-      std::vector<unsigned char> cell_level;
+      std::vector<unsigned char> m_cell_level;
 
       // deal.II cell index.
-      std::vector<int> cell_index;
+      std::vector<int> m_cell_index;
     };
   } // namespace internal
 
@@ -238,19 +238,20 @@ namespace fdl
   PatchIntersectionMap<dim, spacedim>::Accessor::assert_valid() const
   {
     Assert(container, ExcMessage("The pointer should be set."));
-    AssertIndexRange(linear_index, container->lower_indices.size());
+    AssertIndexRange(linear_index, container->m_lower_indices.size());
 
     // Also verify PatchSingleIntersections
-    AssertDimension(container->lower_indices.size(), container->axes.size());
-    AssertDimension(container->lower_indices.size(),
-                    container->convex_coefficients.size());
-    AssertDimension(container->lower_indices.size(),
-                    container->cell_level.size());
-    AssertDimension(container->lower_indices.size(),
-                    container->cell_index.size());
+    AssertDimension(container->m_lower_indices.size(),
+                    container->m_axes.size());
+    AssertDimension(container->m_lower_indices.size(),
+                    container->m_convex_coefficients.size());
+    AssertDimension(container->m_lower_indices.size(),
+                    container->m_cell_level.size());
+    AssertDimension(container->m_lower_indices.size(),
+                    container->m_cell_index.size());
 
     // Check that the convex combination is, in fact, convex
-    const auto convex = container->convex_coefficients[linear_index];
+    const auto convex = container->m_convex_coefficients[linear_index];
     (void)convex;
     Assert(0.0 <= convex && convex <= 1.0,
            ExcMessage(
@@ -265,7 +266,7 @@ namespace fdl
   {
     assert_valid();
 
-    return container->lower_indices[linear_index];
+    return container->m_lower_indices[linear_index];
   }
 
 
@@ -276,8 +277,8 @@ namespace fdl
   {
     assert_valid();
 
-    auto cell_index = container->lower_indices[linear_index];
-    ++cell_index(int(container->axes[linear_index]));
+    auto cell_index = container->m_lower_indices[linear_index];
+    ++cell_index(int(container->m_axes[linear_index]));
 
     return cell_index;
   }
@@ -309,7 +310,7 @@ namespace fdl
     assert_valid();
 
     const bool in_lower_cell =
-      container->convex_coefficients[linear_index] < 0.5;
+      container->m_convex_coefficients[linear_index] < 0.5;
 
     return pdat::SideIndex<spacedim>(in_lower_cell ? get_cell_lower() :
                                                      get_cell_upper(),
@@ -325,7 +326,7 @@ namespace fdl
   {
     assert_valid();
 
-    return container->axes[linear_index];
+    return container->m_axes[linear_index];
   }
 
 
@@ -337,7 +338,7 @@ namespace fdl
   {
     assert_valid();
 
-    return container->convex_coefficients[linear_index];
+    return container->m_convex_coefficients[linear_index];
   }
 
 
@@ -371,8 +372,8 @@ namespace fdl
     assert_valid();
 
     const auto      cell_index = get_cell_lower();
-    const auto      dx         = container->dx;
-    Point<spacedim> result     = container->domain_x_lower;
+    const auto      dx         = container->m_dx;
+    Point<spacedim> result     = container->m_domain_x_lower;
 
     for (unsigned int d = 0; d < spacedim; ++d)
       result[d] += (double(cell_index(d)) + 0.5) * dx[d];
