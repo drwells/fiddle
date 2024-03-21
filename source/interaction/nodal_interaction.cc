@@ -282,36 +282,36 @@ namespace fdl
     std::unique_ptr<TransactionBase> t_ptr) const
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
-    Assert((trans.operation ==
+    Assert((trans.m_operation ==
             Transaction<dim, spacedim>::Operation::Interpolation),
            ExcMessage("Transaction operation should be Interpolation"));
-    Assert((trans.next_state ==
+    Assert((trans.m_next_state ==
             Transaction<dim, spacedim>::State::Intermediate),
            ExcMessage("Transaction state should be Intermediate"));
 
     // If needed, convert the given position vector into the relevant nodal
     // one
     const bool reuse_nodes =
-      trans.native_position_dof_handler->get_fe().base_element(0) ==
-      trans.native_dof_handler->get_fe().base_element(0);
+      trans.m_native_position_dof_handler->get_fe().base_element(0) ==
+      trans.m_native_dof_handler->get_fe().base_element(0);
     Vector<double> nodal_coordinates;
     if (!reuse_nodes)
       {
         nodal_coordinates = compute_nodes(
-          this->get_overlap_dof_handler(*trans.native_position_dof_handler),
-          trans.overlap_position,
-          this->get_overlap_dof_handler(*trans.native_dof_handler));
+          this->get_overlap_dof_handler(*trans.m_native_position_dof_handler),
+          trans.m_overlap_position,
+          this->get_overlap_dof_handler(*trans.m_native_dof_handler));
       }
 
     // Actually do the work:
-    compute_nodal_interpolation(trans.kernel_name,
-                                trans.current_data_idx,
-                                get_nodal_patch_map(*trans.native_dof_handler),
-                                reuse_nodes ? trans.overlap_position :
-                                              nodal_coordinates,
-                                trans.overlap_rhs);
+    compute_nodal_interpolation(
+      trans.m_kernel_name,
+      trans.m_current_data_idx,
+      get_nodal_patch_map(*trans.m_native_dof_handler),
+      reuse_nodes ? trans.m_overlap_position : nodal_coordinates,
+      trans.m_overlap_rhs);
 
-    trans.next_state = Transaction<dim, spacedim>::State::AccumulateStart;
+    trans.m_next_state = Transaction<dim, spacedim>::State::AccumulateStart;
     return t_ptr;
   }
 
@@ -322,17 +322,17 @@ namespace fdl
     std::unique_ptr<TransactionBase> t_ptr)
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
-    Assert((trans.operation ==
+    Assert((trans.m_operation ==
             Transaction<dim, spacedim>::Operation::Interpolation),
            ExcMessage("Transaction operation should be Interpolation"));
-    Assert((trans.next_state ==
+    Assert((trans.m_next_state ==
             Transaction<dim, spacedim>::State::AccumulateFinish),
            ExcMessage("Transaction state should be Finish"));
 
-    trans.rhs_scatter.overlap_to_global_finish(trans.overlap_rhs,
-                                               trans.rhs_scatter_back_op,
-                                               *trans.native_rhs);
-    trans.next_state = Transaction<dim, spacedim>::State::Done;
+    trans.m_rhs_scatter.overlap_to_global_finish(trans.m_overlap_rhs,
+                                                 trans.m_rhs_scatter_back_op,
+                                                 *trans.m_native_rhs);
+    trans.m_next_state = Transaction<dim, spacedim>::State::Done;
 
     // If nodes are outside the domain then their value is still -DBL_MAX (in
     // contrast, if a node moved from one patch to another, the max operation
@@ -341,7 +341,7 @@ namespace fdl
     // TODO: if this takes a measurable amount of time to execute then it
     // would be better to only check DoFs which are within 1 cell of the
     // boundary as of the last regrid.
-    auto      &vec  = *trans.native_rhs;
+    auto      &vec  = *trans.m_native_rhs;
     const auto size = vec.locally_owned_size();
     DEAL_II_OPENMP_SIMD_PRAGMA
     for (types::global_dof_index i = 0; i < size; ++i)
@@ -351,10 +351,10 @@ namespace fdl
           v = 0.0;
       }
 
-    this->return_scatter(*trans.native_position_dof_handler,
-                         std::move(trans.position_scatter));
-    this->return_scatter(*trans.native_dof_handler,
-                         std::move(trans.rhs_scatter));
+    this->return_scatter(*trans.m_native_position_dof_handler,
+                         std::move(trans.m_position_scatter));
+    this->return_scatter(*trans.m_native_dof_handler,
+                         std::move(trans.m_rhs_scatter));
   }
 
 
@@ -392,10 +392,10 @@ namespace fdl
     std::unique_ptr<TransactionBase> t_ptr)
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
-    Assert((trans.operation ==
+    Assert((trans.m_operation ==
             Transaction<dim, spacedim>::Operation::Spreading),
            ExcMessage("Transaction operation should be Spreading"));
-    Assert((trans.next_state ==
+    Assert((trans.m_next_state ==
             Transaction<dim, spacedim>::State::Intermediate),
            ExcMessage("Transaction state should be Intermediate"));
 
@@ -405,15 +405,15 @@ namespace fdl
                 ExcFDLNotImplemented());
 
     // Actually do the spreading:
-    compute_nodal_spread(trans.kernel_name,
-                         trans.current_data_idx,
+    compute_nodal_spread(trans.m_kernel_name,
+                         trans.m_current_data_idx,
                          // TODO: casting away const is bad
                          const_cast<NodalPatchMap<dim, spacedim> &>(
-                           get_nodal_patch_map(*trans.native_dof_handler)),
-                         trans.overlap_position,
-                         trans.overlap_solution);
+                           get_nodal_patch_map(*trans.m_native_dof_handler)),
+                         trans.m_overlap_position,
+                         trans.m_overlap_solution);
 
-    trans.next_state = Transaction<dim, spacedim>::State::AccumulateFinish;
+    trans.m_next_state = Transaction<dim, spacedim>::State::AccumulateFinish;
 
     return t_ptr;
   }
@@ -424,21 +424,21 @@ namespace fdl
     std::unique_ptr<TransactionBase> t_ptr)
   {
     auto &trans = dynamic_cast<WorkloadTransaction<dim, spacedim> &>(*t_ptr);
-    Assert((trans.next_state ==
+    Assert((trans.m_next_state ==
             WorkloadTransaction<dim, spacedim>::State::Intermediate),
            ExcMessage("Transaction state should be Intermediate"));
 
     // Finish communication:
-    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
-                                                    trans.overlap_position);
+    trans.m_position_scatter.global_to_overlap_finish(*trans.m_native_position,
+                                                      trans.m_overlap_position);
 
-    count_nodes(trans.workload_index,
+    count_nodes(trans.m_workload_index,
                 // TODO: casting away const is bad
                 const_cast<NodalPatchMap<dim, spacedim> &>(
-                  get_nodal_patch_map(*trans.native_position_dof_handler)),
-                trans.overlap_position);
+                  get_nodal_patch_map(*trans.m_native_position_dof_handler)),
+                trans.m_overlap_position);
 
-    trans.next_state =
+    trans.m_next_state =
       WorkloadTransaction<dim, spacedim>::State::AccumulateFinish;
 
     return t_ptr;

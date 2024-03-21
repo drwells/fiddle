@@ -217,30 +217,30 @@ namespace fdl
     std::unique_ptr<TransactionBase> t_ptr) const
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
-    Assert((trans.operation ==
+    Assert((trans.m_operation ==
             Transaction<dim, spacedim>::Operation::Interpolation),
            ExcMessage("Transaction operation should be Interpolation"));
-    Assert((trans.next_state ==
+    Assert((trans.m_next_state ==
             Transaction<dim, spacedim>::State::Intermediate),
            ExcMessage("Transaction state should be Intermediate"));
 
     MappingFEField<dim, spacedim, Vector<double>> position_mapping(
-      this->get_overlap_dof_handler(*trans.native_position_dof_handler),
-      trans.overlap_position);
+      this->get_overlap_dof_handler(*trans.m_native_position_dof_handler),
+      trans.m_overlap_position);
 
     // Actually do the interpolation:
-    compute_projection_rhs(trans.kernel_name,
-                           trans.current_data_idx,
+    compute_projection_rhs(trans.m_kernel_name,
+                           trans.m_current_data_idx,
                            patch_map,
                            position_mapping,
                            quadrature_indices,
                            quadratures,
                            this->get_overlap_dof_handler(
-                             *trans.native_dof_handler),
-                           *trans.mapping,
-                           trans.overlap_rhs);
+                             *trans.m_native_dof_handler),
+                           *trans.m_mapping,
+                           trans.m_overlap_rhs);
 
-    trans.next_state = Transaction<dim, spacedim>::State::AccumulateStart;
+    trans.m_next_state = Transaction<dim, spacedim>::State::AccumulateStart;
 
     return t_ptr;
   }
@@ -251,29 +251,29 @@ namespace fdl
     std::unique_ptr<TransactionBase> t_ptr)
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
-    Assert((trans.operation ==
+    Assert((trans.m_operation ==
             Transaction<dim, spacedim>::Operation::Spreading),
            ExcMessage("Transaction operation should be Spreading"));
-    Assert((trans.next_state ==
+    Assert((trans.m_next_state ==
             Transaction<dim, spacedim>::State::Intermediate),
            ExcMessage("Transaction state should be Intermediate"));
 
     MappingFEField<dim, spacedim, Vector<double>> position_mapping(
-      this->get_overlap_dof_handler(*trans.native_position_dof_handler),
-      trans.overlap_position);
+      this->get_overlap_dof_handler(*trans.m_native_position_dof_handler),
+      trans.m_overlap_position);
 
     // Actually do the spreading:
-    compute_spread(trans.kernel_name,
-                   trans.current_data_idx,
+    compute_spread(trans.m_kernel_name,
+                   trans.m_current_data_idx,
                    patch_map,
                    position_mapping,
                    quadrature_indices,
                    quadratures,
-                   this->get_overlap_dof_handler(*trans.native_dof_handler),
-                   *trans.mapping,
-                   trans.overlap_solution);
+                   this->get_overlap_dof_handler(*trans.m_native_dof_handler),
+                   *trans.m_mapping,
+                   trans.m_overlap_solution);
 
-    trans.next_state = Transaction<dim, spacedim>::State::AccumulateFinish;
+    trans.m_next_state = Transaction<dim, spacedim>::State::AccumulateFinish;
 
     return t_ptr;
   }
@@ -284,25 +284,25 @@ namespace fdl
     std::unique_ptr<TransactionBase> t_ptr)
   {
     auto &trans = dynamic_cast<WorkloadTransaction<dim, spacedim> &>(*t_ptr);
-    Assert((trans.next_state ==
+    Assert((trans.m_next_state ==
             WorkloadTransaction<dim, spacedim>::State::Intermediate),
            ExcMessage("Transaction state should be Intermediate"));
 
     // Finish communication:
-    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
-                                                    trans.overlap_position);
+    trans.m_position_scatter.global_to_overlap_finish(*trans.m_native_position,
+                                                      trans.m_overlap_position);
 
     MappingFEField<dim, spacedim, Vector<double>> position_mapping(
-      this->get_overlap_dof_handler(*trans.native_position_dof_handler),
-      trans.overlap_position);
+      this->get_overlap_dof_handler(*trans.m_native_position_dof_handler),
+      trans.m_overlap_position);
 
-    count_quadrature_points(trans.workload_index,
+    count_quadrature_points(trans.m_workload_index,
                             patch_map,
                             position_mapping,
                             quadrature_indices,
                             quadratures);
 
-    trans.next_state =
+    trans.m_next_state =
       WorkloadTransaction<dim, spacedim>::State::AccumulateFinish;
 
     return t_ptr;

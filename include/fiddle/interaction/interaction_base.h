@@ -78,51 +78,51 @@ namespace fdl
   struct Transaction : public TransactionBase
   {
     /// Name of the IB kernel we should use.
-    std::string kernel_name;
+    std::string m_kernel_name;
 
     /// Current patch index.
-    int current_data_idx;
+    int m_current_data_idx;
 
     /// Native position DoFHandler.
-    SmartPointer<const DoFHandler<dim, spacedim>> native_position_dof_handler;
+    SmartPointer<const DoFHandler<dim, spacedim>> m_native_position_dof_handler;
 
     /// position scatter.
-    Scatter<double> position_scatter;
+    Scatter<double> m_position_scatter;
 
     /// Native-partitioned position.
     SmartPointer<const LinearAlgebra::distributed::Vector<double>>
-      native_position;
+      m_native_position;
 
     /// Overlap-partitioned position.
-    Vector<double> overlap_position;
+    Vector<double> m_overlap_position;
 
     /// Native DoFHandler.
-    SmartPointer<const DoFHandler<dim, spacedim>> native_dof_handler;
+    SmartPointer<const DoFHandler<dim, spacedim>> m_native_dof_handler;
 
     /// The other scatter (used for spreading).
-    Scatter<double> solution_scatter;
+    Scatter<double> m_solution_scatter;
 
     /// The other scatter (used for assembly).
-    Scatter<double> rhs_scatter;
+    Scatter<double> m_rhs_scatter;
 
     /// The operation used in the scatter.
-    VectorOperation::values rhs_scatter_back_op;
+    VectorOperation::values m_rhs_scatter_back_op;
 
     /// Mapping to use for the provided finite element field.
-    SmartPointer<const Mapping<dim, spacedim>> mapping;
+    SmartPointer<const Mapping<dim, spacedim>> m_mapping;
 
     /// Native-partitioned vector used for assembly.
-    SmartPointer<LinearAlgebra::distributed::Vector<double>> native_rhs;
+    SmartPointer<LinearAlgebra::distributed::Vector<double>> m_native_rhs;
 
     /// Native-partitioned vector used for spreading.
     SmartPointer<const LinearAlgebra::distributed::Vector<double>>
-      native_solution;
+      m_native_solution;
 
     /// Overlap-partitioned vector used for assembly.
-    Vector<double> overlap_rhs;
+    Vector<double> m_overlap_rhs;
 
     /// Overlap-partitioned vector used for spreading.
-    Vector<double> overlap_solution;
+    Vector<double> m_overlap_solution;
 
     /// Possible states for a transaction.
     enum class State
@@ -136,7 +136,7 @@ namespace fdl
     };
 
     /// Next state. Used for consistency checking.
-    State next_state;
+    State m_next_state;
 
     /// Possible operations.
     enum class Operation
@@ -146,7 +146,7 @@ namespace fdl
     };
 
     /// Operation of the current transaction. Used for consistency checking.
-    Operation operation;
+    Operation m_operation;
 
     virtual std::vector<MPI_Request>
     delegate_outstanding_requests() override;
@@ -163,20 +163,20 @@ namespace fdl
   template <int dim, int spacedim>
   struct WorkloadTransaction : public TransactionBase
   {
-    int workload_index;
+    int m_workload_index;
 
     /// Native position DoFHandler.
-    SmartPointer<const DoFHandler<dim, spacedim>> native_position_dof_handler;
+    SmartPointer<const DoFHandler<dim, spacedim>> m_native_position_dof_handler;
 
     /// position scatter.
-    Scatter<double> position_scatter;
+    Scatter<double> m_position_scatter;
 
     /// Native-partitioned position.
     SmartPointer<const LinearAlgebra::distributed::Vector<double>>
-      native_position;
+      m_native_position;
 
     /// Overlap-partitioned position.
-    Vector<double> overlap_position;
+    Vector<double> m_overlap_position;
 
     /// Possible states for a transaction.
     enum class State
@@ -190,7 +190,7 @@ namespace fdl
     };
 
     /// Next state. Used for consistency checking.
-    State next_state;
+    State m_next_state;
 
     virtual std::vector<MPI_Request>
     delegate_outstanding_requests() override;

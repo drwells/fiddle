@@ -37,9 +37,9 @@ namespace fdl
   std::vector<MPI_Request>
   Transaction<dim, spacedim>::delegate_outstanding_requests()
   {
-    auto copy1 = position_scatter.delegate_outstanding_requests();
-    auto copy2 = solution_scatter.delegate_outstanding_requests();
-    auto copy3 = rhs_scatter.delegate_outstanding_requests();
+    auto copy1 = m_position_scatter.delegate_outstanding_requests();
+    auto copy2 = m_solution_scatter.delegate_outstanding_requests();
+    auto copy3 = m_rhs_scatter.delegate_outstanding_requests();
 
     std::vector<MPI_Request> result;
     result.insert(result.end(), copy1.begin(), copy1.end());
@@ -52,7 +52,7 @@ namespace fdl
   std::vector<MPI_Request>
   WorkloadTransaction<dim, spacedim>::delegate_outstanding_requests()
   {
-    return position_scatter.delegate_outstanding_requests();
+    return m_position_scatter.delegate_outstanding_requests();
   }
 
   template <int dim, int spacedim>
@@ -341,32 +341,32 @@ namespace fdl
 
     Transaction<dim, spacedim> &transaction = *t_ptr;
     // set up everything we will need later
-    transaction.kernel_name      = kernel_name;
-    transaction.current_data_idx = data_idx;
+    transaction.m_kernel_name      = kernel_name;
+    transaction.m_current_data_idx = data_idx;
 
     // Setup position info:
-    transaction.native_position_dof_handler = &position_dof_handler;
-    transaction.native_position             = &position;
-    transaction.overlap_position.reinit(
+    transaction.m_native_position_dof_handler = &position_dof_handler;
+    transaction.m_native_position             = &position;
+    transaction.m_overlap_position.reinit(
       get_overlap_dof_handler(position_dof_handler).n_dofs());
-    transaction.position_scatter = get_scatter(position_dof_handler);
+    transaction.m_position_scatter = get_scatter(position_dof_handler);
 
     // Setup rhs info:
-    transaction.native_dof_handler = &dof_handler;
-    transaction.mapping            = &mapping;
-    transaction.native_rhs         = &rhs;
-    transaction.overlap_rhs.reinit(
+    transaction.m_native_dof_handler = &dof_handler;
+    transaction.m_mapping            = &mapping;
+    transaction.m_native_rhs         = &rhs;
+    transaction.m_overlap_rhs.reinit(
       get_overlap_dof_handler(dof_handler).n_dofs());
-    transaction.rhs_scatter         = get_scatter(dof_handler);
-    transaction.rhs_scatter_back_op = this->get_rhs_scatter_type();
+    transaction.m_rhs_scatter         = get_scatter(dof_handler);
+    transaction.m_rhs_scatter_back_op = this->get_rhs_scatter_type();
 
     // Setup state:
-    transaction.next_state = Transaction<dim, spacedim>::State::ScatterFinish;
-    transaction.operation =
+    transaction.m_next_state = Transaction<dim, spacedim>::State::ScatterFinish;
+    transaction.m_operation =
       Transaction<dim, spacedim>::Operation::Interpolation;
 
-    transaction.position_scatter.global_to_overlap_start(
-      *transaction.native_position, 0, transaction.overlap_position);
+    transaction.m_position_scatter.global_to_overlap_start(
+      *transaction.m_native_position, 0, transaction.m_overlap_position);
 
     return t_ptr;
   }
@@ -379,17 +379,17 @@ namespace fdl
     std::unique_ptr<TransactionBase> t_ptr) const
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
-    Assert((trans.operation ==
+    Assert((trans.m_operation ==
             Transaction<dim, spacedim>::Operation::Interpolation),
            ExcMessage("Transaction operation should be Interpolation"));
-    Assert((trans.next_state ==
+    Assert((trans.m_next_state ==
             Transaction<dim, spacedim>::State::ScatterFinish),
            ExcMessage("Transaction state should be ScatterFinish"));
 
-    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
-                                                    trans.overlap_position);
+    trans.m_position_scatter.global_to_overlap_finish(*trans.m_native_position,
+                                                      trans.m_overlap_position);
 
-    trans.next_state = Transaction<dim, spacedim>::State::Intermediate;
+    trans.m_next_state = Transaction<dim, spacedim>::State::Intermediate;
 
     return t_ptr;
   }
@@ -402,16 +402,16 @@ namespace fdl
     std::unique_ptr<TransactionBase> t_ptr) const
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
-    Assert((trans.operation ==
+    Assert((trans.m_operation ==
             Transaction<dim, spacedim>::Operation::Interpolation),
            ExcMessage("Transaction operation should be Interpolation"));
-    Assert((trans.next_state ==
+    Assert((trans.m_next_state ==
             Transaction<dim, spacedim>::State::Intermediate),
            ExcMessage("Transaction state should be Intermediate"));
 
     // this is the point at which a base class would normally do computations.
 
-    trans.next_state = Transaction<dim, spacedim>::State::AccumulateFinish;
+    trans.m_next_state = Transaction<dim, spacedim>::State::AccumulateFinish;
 
     return t_ptr;
   }
@@ -424,21 +424,21 @@ namespace fdl
     std::unique_ptr<TransactionBase> t_ptr) const
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
-    Assert((trans.operation ==
+    Assert((trans.m_operation ==
             Transaction<dim, spacedim>::Operation::Interpolation),
            ExcMessage("Transaction operation should be Interpolation"));
-    Assert((trans.next_state ==
+    Assert((trans.m_next_state ==
             Transaction<dim, spacedim>::State::AccumulateStart),
            ExcMessage("Transaction state should be AccumulateStart"));
 
     // This object cannot get here without the first scatter finishing so using
     // channel 0 again is fine
-    trans.rhs_scatter.overlap_to_global_start(trans.overlap_rhs,
-                                              trans.rhs_scatter_back_op,
-                                              0,
-                                              *trans.native_rhs);
+    trans.m_rhs_scatter.overlap_to_global_start(trans.m_overlap_rhs,
+                                                trans.m_rhs_scatter_back_op,
+                                                0,
+                                                *trans.m_native_rhs);
 
-    trans.next_state = Transaction<dim, spacedim>::State::AccumulateFinish;
+    trans.m_next_state = Transaction<dim, spacedim>::State::AccumulateFinish;
 
     return t_ptr;
   }
@@ -451,21 +451,21 @@ namespace fdl
     std::unique_ptr<TransactionBase> t_ptr)
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
-    Assert((trans.operation ==
+    Assert((trans.m_operation ==
             Transaction<dim, spacedim>::Operation::Interpolation),
            ExcMessage("Transaction operation should be Interpolation"));
-    Assert((trans.next_state ==
+    Assert((trans.m_next_state ==
             Transaction<dim, spacedim>::State::AccumulateFinish),
            ExcMessage("Transaction state should be AccumulateFinish"));
 
-    trans.rhs_scatter.overlap_to_global_finish(trans.overlap_rhs,
-                                               trans.rhs_scatter_back_op,
-                                               *trans.native_rhs);
-    trans.next_state = Transaction<dim, spacedim>::State::Done;
+    trans.m_rhs_scatter.overlap_to_global_finish(trans.m_overlap_rhs,
+                                                 trans.m_rhs_scatter_back_op,
+                                                 *trans.m_native_rhs);
+    trans.m_next_state = Transaction<dim, spacedim>::State::Done;
 
-    return_scatter(*trans.native_position_dof_handler,
-                   std::move(trans.position_scatter));
-    return_scatter(*trans.native_dof_handler, std::move(trans.rhs_scatter));
+    return_scatter(*trans.m_native_position_dof_handler,
+                   std::move(trans.m_position_scatter));
+    return_scatter(*trans.m_native_dof_handler, std::move(trans.m_rhs_scatter));
   }
 
 
@@ -507,37 +507,37 @@ namespace fdl
 
     Transaction<dim, spacedim> &transaction = *t_ptr;
     // set up everything we will need later
-    transaction.kernel_name      = kernel_name;
-    transaction.current_data_idx = data_idx;
+    transaction.m_kernel_name      = kernel_name;
+    transaction.m_current_data_idx = data_idx;
 
     // Setup position info:
-    transaction.native_position_dof_handler = &position_dof_handler;
-    transaction.position_scatter            = get_scatter(position_dof_handler);
-    transaction.native_position             = &position;
-    transaction.overlap_position.reinit(
+    transaction.m_native_position_dof_handler = &position_dof_handler;
+    transaction.m_position_scatter = get_scatter(position_dof_handler);
+    transaction.m_native_position  = &position;
+    transaction.m_overlap_position.reinit(
       get_overlap_dof_handler(position_dof_handler).n_dofs());
 
     // Setup solution info:
-    transaction.native_dof_handler = &dof_handler;
-    transaction.solution_scatter   = get_scatter(dof_handler);
-    transaction.mapping            = &mapping;
-    transaction.native_solution    = &solution;
-    transaction.overlap_solution.reinit(
+    transaction.m_native_dof_handler = &dof_handler;
+    transaction.m_solution_scatter   = get_scatter(dof_handler);
+    transaction.m_mapping            = &mapping;
+    transaction.m_native_solution    = &solution;
+    transaction.m_overlap_solution.reinit(
       get_overlap_dof_handler(dof_handler).n_dofs());
 
     // Setup state:
-    transaction.next_state = Transaction<dim, spacedim>::State::ScatterFinish;
-    transaction.operation  = Transaction<dim, spacedim>::Operation::Spreading;
+    transaction.m_next_state = Transaction<dim, spacedim>::State::ScatterFinish;
+    transaction.m_operation  = Transaction<dim, spacedim>::Operation::Spreading;
 
     // OK, now start scattering:
 
     // Since we set up our own communicator in this object we can fearlessly use
     // channels 0 and 1 to guarantee traffic is not accidentally mingled
-    transaction.position_scatter.global_to_overlap_start(
-      *transaction.native_position, 0, transaction.overlap_position);
+    transaction.m_position_scatter.global_to_overlap_start(
+      *transaction.m_native_position, 0, transaction.m_overlap_position);
 
-    transaction.solution_scatter.global_to_overlap_start(
-      *transaction.native_solution, 1, transaction.overlap_solution);
+    transaction.m_solution_scatter.global_to_overlap_start(
+      *transaction.m_native_solution, 1, transaction.m_overlap_solution);
 
     return t_ptr;
   }
@@ -550,19 +550,19 @@ namespace fdl
     std::unique_ptr<TransactionBase> t_ptr) const
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
-    Assert((trans.operation ==
+    Assert((trans.m_operation ==
             Transaction<dim, spacedim>::Operation::Spreading),
            ExcMessage("Transaction operation should be Spreading"));
-    Assert((trans.next_state ==
+    Assert((trans.m_next_state ==
             Transaction<dim, spacedim>::State::ScatterFinish),
            ExcMessage("Transaction state should be Intermediate"));
 
-    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
-                                                    trans.overlap_position);
-    trans.solution_scatter.global_to_overlap_finish(*trans.native_solution,
-                                                    trans.overlap_solution);
+    trans.m_position_scatter.global_to_overlap_finish(*trans.m_native_position,
+                                                      trans.m_overlap_position);
+    trans.m_solution_scatter.global_to_overlap_finish(*trans.m_native_solution,
+                                                      trans.m_overlap_solution);
 
-    trans.next_state = Transaction<dim, spacedim>::State::Intermediate;
+    trans.m_next_state = Transaction<dim, spacedim>::State::Intermediate;
 
     return t_ptr;
   }
@@ -575,21 +575,21 @@ namespace fdl
     std::unique_ptr<TransactionBase> t_ptr)
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
-    Assert((trans.operation ==
+    Assert((trans.m_operation ==
             Transaction<dim, spacedim>::Operation::Spreading),
            ExcMessage("Transaction operation should be Spreading"));
-    Assert((trans.next_state ==
+    Assert((trans.m_next_state ==
             Transaction<dim, spacedim>::State::Intermediate),
            ExcMessage("Transaction state should be Intermediate"));
 
-    trans.position_scatter.global_to_overlap_finish(*trans.native_position,
-                                                    trans.overlap_position);
-    trans.solution_scatter.global_to_overlap_finish(*trans.native_solution,
-                                                    trans.overlap_solution);
+    trans.m_position_scatter.global_to_overlap_finish(*trans.m_native_position,
+                                                      trans.m_overlap_position);
+    trans.m_solution_scatter.global_to_overlap_finish(*trans.m_native_solution,
+                                                      trans.m_overlap_solution);
 
     // this is the point at which a base class would normally do computations.
 
-    trans.next_state = Transaction<dim, spacedim>::State::AccumulateFinish;
+    trans.m_next_state = Transaction<dim, spacedim>::State::AccumulateFinish;
 
     return t_ptr;
   }
@@ -602,21 +602,21 @@ namespace fdl
     std::unique_ptr<TransactionBase> t_ptr)
   {
     auto &trans = dynamic_cast<Transaction<dim, spacedim> &>(*t_ptr);
-    Assert((trans.operation ==
+    Assert((trans.m_operation ==
             Transaction<dim, spacedim>::Operation::Spreading),
            ExcMessage("Transaction operation should be Spreading"));
-    Assert((trans.next_state ==
+    Assert((trans.m_next_state ==
             Transaction<dim, spacedim>::State::AccumulateFinish),
            ExcMessage("Transaction state should be AccumulateFinish"));
 
     // since no data is moved there is nothing else to do here
 
-    trans.next_state = Transaction<dim, spacedim>::State::Done;
+    trans.m_next_state = Transaction<dim, spacedim>::State::Done;
 
-    return_scatter(*trans.native_position_dof_handler,
-                   std::move(trans.position_scatter));
-    return_scatter(*trans.native_dof_handler,
-                   std::move(trans.solution_scatter));
+    return_scatter(*trans.m_native_position_dof_handler,
+                   std::move(trans.m_position_scatter));
+    return_scatter(*trans.m_native_dof_handler,
+                   std::move(trans.m_solution_scatter));
   }
 
   template <int dim, int spacedim>
@@ -629,21 +629,21 @@ namespace fdl
     auto t_ptr = std::make_unique<WorkloadTransaction<dim, spacedim>>();
     WorkloadTransaction<dim, spacedim> &transaction = *t_ptr;
 
-    transaction.workload_index = workload_index;
+    transaction.m_workload_index = workload_index;
 
     // Setup position info:
-    transaction.native_position_dof_handler = &position_dof_handler;
-    transaction.native_position             = &position;
-    transaction.position_scatter = this->get_scatter(position_dof_handler);
-    transaction.overlap_position.reinit(
+    transaction.m_native_position_dof_handler = &position_dof_handler;
+    transaction.m_native_position             = &position;
+    transaction.m_position_scatter = this->get_scatter(position_dof_handler);
+    transaction.m_overlap_position.reinit(
       this->get_overlap_dof_handler(position_dof_handler).n_dofs());
 
     // Setup state:
-    transaction.next_state =
+    transaction.m_next_state =
       WorkloadTransaction<dim, spacedim>::State::Intermediate;
 
-    transaction.position_scatter.global_to_overlap_start(
-      *transaction.native_position, 0, transaction.overlap_position);
+    transaction.m_position_scatter.global_to_overlap_start(
+      *transaction.m_native_position, 0, transaction.m_overlap_position);
 
     return t_ptr;
   }
@@ -662,14 +662,14 @@ namespace fdl
     std::unique_ptr<TransactionBase> t_ptr)
   {
     auto &trans = dynamic_cast<WorkloadTransaction<dim, spacedim> &>(*t_ptr);
-    Assert((trans.next_state ==
+    Assert((trans.m_next_state ==
             WorkloadTransaction<dim, spacedim>::State::AccumulateFinish),
            ExcMessage("Transaction state should be AccumulateFinish"));
 
-    trans.next_state = WorkloadTransaction<dim, spacedim>::State::Done;
+    trans.m_next_state = WorkloadTransaction<dim, spacedim>::State::Done;
 
-    this->return_scatter(*trans.native_position_dof_handler,
-                         std::move(trans.position_scatter));
+    this->return_scatter(*trans.m_native_position_dof_handler,
+                         std::move(trans.m_position_scatter));
   }
 
   // instantiations
