@@ -37,16 +37,16 @@ namespace fdl
     const Mapping<dim, spacedim>       &mapping,
     const DoFHandler<dim, spacedim>    &dof_handler,
     const std::vector<Point<spacedim>> &evaluation_points)
-    : mapping(&mapping)
-    , dof_handler(&dof_handler)
-    , evaluation_points(evaluation_points)
-    , remote_point_evaluation(1e-12, true)
+    : m_mapping(&mapping)
+    , m_dof_handler(&dof_handler)
+    , m_evaluation_points(evaluation_points)
+    , m_remote_point_evaluation(1e-12, true)
   {
     FDL_SETUP_TIMER_AND_SCOPE(t_pointvalues_ctor,
                               "fdl::PointValues::PointValues()");
-    remote_point_evaluation.reinit(this->evaluation_points,
-                                   this->dof_handler->get_triangulation(),
-                                   *this->mapping);
+    m_remote_point_evaluation.reinit(m_evaluation_points,
+                                     m_dof_handler->get_triangulation(),
+                                     *m_mapping);
   }
 
   template <int n_components, int dim, int spacedim>
@@ -57,8 +57,8 @@ namespace fdl
     FDL_SETUP_TIMER_AND_SCOPE(t_pointvalues_evaluate,
                               "fdl::PointValues::evaluate()");
     auto result =
-      VectorTools::point_values<n_components>(remote_point_evaluation,
-                                              *dof_handler,
+      VectorTools::point_values<n_components>(m_remote_point_evaluation,
+                                              *m_dof_handler,
                                               vector);
 
     return convert(result);

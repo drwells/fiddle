@@ -61,24 +61,24 @@ namespace fdl
     /**
      * Pointer to the provided mapping.
      */
-    SmartPointer<const Mapping<dim, spacedim>> mapping;
+    SmartPointer<const Mapping<dim, spacedim>> m_mapping;
 
     /**
      * Pointer to the provided DoFHandler.
      */
-    SmartPointer<const DoFHandler<dim, spacedim>> dof_handler;
+    SmartPointer<const DoFHandler<dim, spacedim>> m_dof_handler;
 
     /**
      * Points in reference coordinates where we will evaluate the finite element
      * field.
      */
-    std::vector<Point<spacedim>> evaluation_points;
+    std::vector<Point<spacedim>> m_evaluation_points;
 
     /**
      * Internal data structure that manages both evaluation and communication.
      */
     Utilities::MPI::RemotePointEvaluation<dim, spacedim>
-      remote_point_evaluation;
+      m_remote_point_evaluation;
   };
 
 
@@ -89,7 +89,7 @@ namespace fdl
   const std::vector<Point<spacedim>> &
   PointValues<n_components, dim, spacedim>::get_evaluation_points() const
   {
-    return evaluation_points;
+    return m_evaluation_points;
   }
 } // namespace fdl
 
