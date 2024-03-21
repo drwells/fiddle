@@ -109,12 +109,12 @@ namespace fdl
     delegate_outstanding_requests();
 
   protected:
-    std::shared_ptr<Utilities::MPI::Partitioner> partitioner;
+    std::shared_ptr<Utilities::MPI::Partitioner> m_partitioner;
 
     /**
      * Number of DoFs in the overlap partitioning.
      */
-    std::size_t n_overlap_dofs;
+    std::size_t m_n_overlap_dofs;
 
     /**
      * Indices of overlap_dofs which correspond to entries in the ghost buffer.
@@ -123,7 +123,7 @@ namespace fdl
      * ghost buffer (i.e., they are contiguous in the ghost buffer and not in
      * the overlap-partitioned vector).
      */
-    std::vector<unsigned int> overlap_ghost_indices;
+    std::vector<unsigned int> m_overlap_ghost_indices;
 
     /**
      * Indices of overlap_dofs which correspond to local (i.e, computed with
@@ -132,11 +132,11 @@ namespace fdl
      * index into an overlap-partitioned vector and the second is the local
      * index of a global vector.
      */
-    std::vector<std::pair<unsigned int, unsigned int>> overlap_local_indices;
+    std::vector<std::pair<unsigned int, unsigned int>> m_overlap_local_indices;
 
-    AlignedVector<T>         ghost_buffer;
-    AlignedVector<T>         import_buffer;
-    std::vector<MPI_Request> requests;
+    AlignedVector<T>         m_ghost_buffer;
+    AlignedVector<T>         m_import_buffer;
+    std::vector<MPI_Request> m_requests;
   };
 
 
@@ -146,26 +146,26 @@ namespace fdl
   template <typename T>
   inline Scatter<T>::Scatter(Scatter<T> &&t)
   {
-    partitioner.swap(t.partitioner);
-    std::swap(n_overlap_dofs, t.n_overlap_dofs);
-    overlap_ghost_indices.swap(t.overlap_ghost_indices);
-    overlap_local_indices.swap(t.overlap_local_indices);
-    ghost_buffer.swap(t.ghost_buffer);
-    import_buffer.swap(t.import_buffer);
-    requests.swap(t.requests);
+    m_partitioner.swap(t.m_partitioner);
+    std::swap(m_n_overlap_dofs, t.m_n_overlap_dofs);
+    m_overlap_ghost_indices.swap(t.m_overlap_ghost_indices);
+    m_overlap_local_indices.swap(t.m_overlap_local_indices);
+    m_ghost_buffer.swap(t.m_ghost_buffer);
+    m_import_buffer.swap(t.m_import_buffer);
+    m_requests.swap(t.m_requests);
   }
 
   template <typename T>
   inline Scatter<T> &
   Scatter<T>::operator=(Scatter<T> &&t)
   {
-    partitioner.swap(t.partitioner);
-    std::swap(n_overlap_dofs, t.n_overlap_dofs);
-    overlap_ghost_indices.swap(t.overlap_ghost_indices);
-    overlap_local_indices.swap(t.overlap_local_indices);
-    ghost_buffer.swap(t.ghost_buffer);
-    import_buffer.swap(t.import_buffer);
-    requests.swap(t.requests);
+    m_partitioner.swap(t.m_partitioner);
+    std::swap(m_n_overlap_dofs, t.m_n_overlap_dofs);
+    m_overlap_ghost_indices.swap(t.m_overlap_ghost_indices);
+    m_overlap_local_indices.swap(t.m_overlap_local_indices);
+    m_ghost_buffer.swap(t.m_ghost_buffer);
+    m_import_buffer.swap(t.m_import_buffer);
+    m_requests.swap(t.m_requests);
     return *this;
   }
 } // namespace fdl

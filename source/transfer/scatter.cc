@@ -28,21 +28,21 @@ namespace fdl
 
   template <typename T>
   Scatter<T>::Scatter()
-    : partitioner(std::make_shared<Utilities::MPI::Partitioner>())
-    , n_overlap_dofs(0)
+    : m_partitioner(std::make_shared<Utilities::MPI::Partitioner>())
+    , m_n_overlap_dofs(0)
   {}
 
   template <typename T>
   Scatter<T>::Scatter(const std::vector<types::global_dof_index> &overlap_dofs,
                       const IndexSet                             &local_dofs,
                       const MPI_Comm                             &communicator)
-    : partitioner(std::make_shared<Utilities::MPI::Partitioner>(
+    : m_partitioner(std::make_shared<Utilities::MPI::Partitioner>(
         local_dofs,
         setup_ghost_dofs(overlap_dofs, local_dofs),
         communicator))
-    , n_overlap_dofs(overlap_dofs.size())
-    , ghost_buffer(partitioner->n_ghost_indices())
-    , import_buffer(partitioner->n_import_indices())
+    , m_n_overlap_dofs(overlap_dofs.size())
+    , m_ghost_buffer(m_partitioner->n_ghost_indices())
+    , m_import_buffer(m_partitioner->n_import_indices())
   {
     Assert(local_dofs.is_contiguous() == true,
            ExcMessage("The index set specified in local_dofs is not "
@@ -57,12 +57,13 @@ namespace fdl
 #endif
     std::vector<std::pair<unsigned int, unsigned int>> overlap_pairs;
     for (unsigned int i = 0; i < overlap_dofs.size(); ++i)
-      if (!partitioner->in_local_range(overlap_dofs[i]))
+      if (!m_partitioner->in_local_range(overlap_dofs[i]))
         {
           overlap_pairs.emplace_back(
-            partitioner->ghost_indices().index_within_set(overlap_dofs[i]), i);
+            m_partitioner->ghost_indices().index_within_set(overlap_dofs[i]),
+            i);
         }
-    Assert(overlap_pairs.size() == partitioner->ghost_indices().n_elements(),
+    Assert(overlap_pairs.size() == m_partitioner->ghost_indices().n_elements(),
            ExcFDLInternalError());
     std::sort(overlap_pairs.begin(),
               overlap_pairs.end(),
@@ -70,13 +71,13 @@ namespace fdl
     for (unsigned int i = 0; i < overlap_pairs.size(); ++i)
       {
         Assert(overlap_pairs[i].first == i, ExcFDLInternalError());
-        overlap_ghost_indices.push_back(overlap_pairs[i].second);
+        m_overlap_ghost_indices.push_back(overlap_pairs[i].second);
       }
 
     for (std::size_t i = 0; i < overlap_dofs.size(); ++i)
-      if (partitioner->in_local_range(overlap_dofs[i]))
-        overlap_local_indices.emplace_back(
-          i, partitioner->global_to_local(overlap_dofs[i]));
+      if (m_partitioner->in_local_range(overlap_dofs[i]))
+        m_overlap_local_indices.emplace_back(
+          i, m_partitioner->global_to_local(overlap_dofs[i]));
   }
 
 
@@ -89,9 +90,9 @@ namespace fdl
     const unsigned int                     channel,
     LinearAlgebra::distributed::Vector<T> &output)
   {
-    Assert(input.size() == n_overlap_dofs,
+    Assert(input.size() == m_n_overlap_dofs,
            ExcMessage("Input vector should be indexed by overlap dofs"));
-    Assert(output.locally_owned_size() == partitioner->locally_owned_size(),
+    Assert(output.locally_owned_size() == m_partitioner->locally_owned_size(),
            ExcMessage("The output vector should have the same number of dofs "
                       "as were provided to the constructor in local"));
 
@@ -119,21 +120,21 @@ namespace fdl
         Assert(false, ExcFDLNotImplemented());
       }
 
-    for (unsigned int i = 0; i < overlap_ghost_indices.size(); ++i)
-      ghost_buffer[i] = input[overlap_ghost_indices[i]];
+    for (unsigned int i = 0; i < m_overlap_ghost_indices.size(); ++i)
+      m_ghost_buffer[i] = input[m_overlap_ghost_indices[i]];
 
-    for (const auto &pair : overlap_local_indices)
+    for (const auto &pair : m_overlap_local_indices)
       output.local_element(pair.second) = input[pair.first];
 
     const VectorOperation::values actual_op =
       operation == VectorOperation::insert ? VectorOperation::max : operation;
 
-    partitioner->import_from_ghosted_array_start(
+    m_partitioner->import_from_ghosted_array_start(
       actual_op,
       channel,
-      ArrayView<T>(ghost_buffer.data(), ghost_buffer.size()),
-      ArrayView<T>(import_buffer.data(), import_buffer.size()),
-      requests);
+      ArrayView<T>(m_ghost_buffer.data(), m_ghost_buffer.size()),
+      ArrayView<T>(m_import_buffer.data(), m_import_buffer.size()),
+      m_requests);
   }
 
 
@@ -146,21 +147,21 @@ namespace fdl
     LinearAlgebra::distributed::Vector<T> &output)
   {
     (void)input;
-    Assert(input.size() == n_overlap_dofs,
+    Assert(input.size() == m_n_overlap_dofs,
            ExcMessage("Input vector should be indexed by overlap dofs"));
-    Assert(output.locally_owned_size() == partitioner->locally_owned_size(),
+    Assert(output.locally_owned_size() == m_partitioner->locally_owned_size(),
            ExcMessage("The output vector should have the same number of dofs "
                       "as were provided to the constructor in local"));
 
     const VectorOperation::values actual_op =
       operation == VectorOperation::insert ? VectorOperation::max : operation;
 
-    partitioner->import_from_ghosted_array_finish<T>(
+    m_partitioner->import_from_ghosted_array_finish<T>(
       actual_op,
-      ArrayView<const T>(import_buffer.data(), import_buffer.size()),
+      ArrayView<const T>(m_import_buffer.data(), m_import_buffer.size()),
       ArrayView<T>(output.get_values(), output.locally_owned_size()),
-      ArrayView<T>(ghost_buffer.data(), ghost_buffer.size()),
-      requests);
+      ArrayView<T>(m_ghost_buffer.data(), m_ghost_buffer.size()),
+      m_requests);
   }
 
 
@@ -173,18 +174,18 @@ namespace fdl
     Vector<T>                                   &output)
   {
     (void)output;
-    Assert(output.size() == n_overlap_dofs,
+    Assert(output.size() == m_n_overlap_dofs,
            ExcMessage("output vector should be indexed by overlap dofs"));
-    Assert(input.locally_owned_size() == partitioner->locally_owned_size(),
+    Assert(input.locally_owned_size() == m_partitioner->locally_owned_size(),
            ExcMessage("The output vector should have the same number of dofs "
                       "as were provided to the constructor in local"));
 
-    partitioner->export_to_ghosted_array_start<T>(
+    m_partitioner->export_to_ghosted_array_start<T>(
       channel,
       ArrayView<const T>(input.get_values(), input.locally_owned_size()),
-      ArrayView<T>(import_buffer.data(), import_buffer.size()),
-      ArrayView<T>(ghost_buffer.data(), ghost_buffer.size()),
-      requests);
+      ArrayView<T>(m_import_buffer.data(), m_import_buffer.size()),
+      ArrayView<T>(m_ghost_buffer.data(), m_ghost_buffer.size()),
+      m_requests);
   }
 
 
@@ -195,19 +196,19 @@ namespace fdl
     const LinearAlgebra::distributed::Vector<T> &input,
     Vector<T>                                   &output)
   {
-    Assert(output.size() == n_overlap_dofs,
+    Assert(output.size() == m_n_overlap_dofs,
            ExcMessage("output vector should be indexed by overlap dofs"));
-    Assert(input.locally_owned_size() == partitioner->locally_owned_size(),
+    Assert(input.locally_owned_size() == m_partitioner->locally_owned_size(),
            ExcMessage("The output vector should have the same number of dofs "
                       "as were provided to the constructor in local"));
 
-    partitioner->export_to_ghosted_array_finish(
-      ArrayView<T>(ghost_buffer.data(), ghost_buffer.size()), requests);
+    m_partitioner->export_to_ghosted_array_finish(
+      ArrayView<T>(m_ghost_buffer.data(), m_ghost_buffer.size()), m_requests);
 
-    for (unsigned int i = 0; i < overlap_ghost_indices.size(); ++i)
-      output[overlap_ghost_indices[i]] = ghost_buffer[i];
+    for (unsigned int i = 0; i < m_overlap_ghost_indices.size(); ++i)
+      output[m_overlap_ghost_indices[i]] = m_ghost_buffer[i];
 
-    for (const auto &pair : overlap_local_indices)
+    for (const auto &pair : m_overlap_local_indices)
       output[pair.first] = input.local_element(pair.second);
   }
 
@@ -215,8 +216,8 @@ namespace fdl
   std::vector<MPI_Request>
   Scatter<T>::delegate_outstanding_requests()
   {
-    auto copy = requests;
-    std::fill(requests.begin(), requests.end(), MPI_REQUEST_NULL);
+    auto copy = m_requests;
+    std::fill(m_requests.begin(), m_requests.end(), MPI_REQUEST_NULL);
     return copy;
   }
 
