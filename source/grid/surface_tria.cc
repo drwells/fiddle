@@ -58,7 +58,7 @@ namespace fdl
     pointlist.reserve(boundary_vertices.size() * 2);
     for (const Point<2> &p : boundary_vertices)
       {
-        if (additional_data.regularize_input)
+        if (additional_data.m_regularize_input)
           {
             pointlist.push_back(float(p[0]));
             pointlist.push_back(float(p[1]));
@@ -174,10 +174,10 @@ namespace fdl
     // use a (p)SLG, index from (z)ero, (Q)uiet output, do a (C)onsistency
     // check, element (q)uality (min angle in degrees)
     std::string flags("pzQCq");
-    Assert(additional_data.min_angle > 0.0,
+    Assert(additional_data.m_min_angle > 0.0,
            ExcMessage("The minimum angle must be larger than zero."));
-    flags += std::to_string(additional_data.min_angle);
-    if (additional_data.target_element_area ==
+    flags += std::to_string(additional_data.m_min_angle);
+    if (additional_data.m_target_element_area ==
         std::numeric_limits<double>::max())
       {
         const double dx = boundary_vertices[segments[0]].distance(
@@ -186,8 +186,8 @@ namespace fdl
         flags += "a" + std::to_string(std::sqrt(3.0) / 4.0 * dx * dx);
       }
     else
-      flags += "a" + std::to_string(additional_data.target_element_area);
-    if (additional_data.place_additional_boundary_vertices == false)
+      flags += "a" + std::to_string(additional_data.m_target_element_area);
+    if (additional_data.m_place_additional_boundary_vertices == false)
       flags += "Y";
 
     triangulate(const_cast<char *>(flags.c_str()), &in, &out, nullptr);
@@ -205,7 +205,7 @@ namespace fdl
         cell_data.back().vertices[2] = out.trianglelist[3 * i + 2];
       }
 
-    if (additional_data.regularize_input)
+    if (additional_data.m_regularize_input)
       {
 #ifdef DEBUG
         for (int i = 0; i < in.numberofpoints; ++i)
@@ -229,7 +229,7 @@ namespace fdl
     AssertDimension(vertices.size(), out.numberofpoints);
 
     GridTools::invert_cells_with_negative_measure(vertices, cell_data);
-    if (additional_data.apply_fixup_routines)
+    if (additional_data.m_apply_fixup_routines)
       {
         std::vector<unsigned int> all_vertices;
         GridTools::delete_unused_vertices(vertices, cell_data, sub_cell_data);

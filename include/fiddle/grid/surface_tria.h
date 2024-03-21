@@ -22,11 +22,11 @@ namespace fdl
     struct AdditionalData
     {
       AdditionalData()
-        : min_angle(30.0)
-        , target_element_area(std::numeric_limits<double>::max())
-        , place_additional_boundary_vertices(false)
-        , apply_fixup_routines(false)
-        , regularize_input(true)
+        : m_min_angle(30.0)
+        , m_target_element_area(std::numeric_limits<double>::max())
+        , m_place_additional_boundary_vertices(false)
+        , m_apply_fixup_routines(false)
+        , m_regularize_input(true)
       {}
 
       /**
@@ -34,19 +34,19 @@ namespace fdl
        * generator to create an unnecessarily large number of elements, so the
        * default value (or a lower one) is recommended.
        */
-      double min_angle;
+      double m_min_angle;
 
       /**
        * Target area. Defaults to elements with an edge length equal to the
        * distance between the first two nodes.
        */
-      double target_element_area;
+      double m_target_element_area;
 
       /**
        * Whether or not additional vertices on the boundary (called Steiner
        * points) should be placed. Defaults to false.
        */
-      bool place_additional_boundary_vertices;
+      bool m_place_additional_boundary_vertices;
 
       /**
        * Whether or not the resulting mesh should be postprocessed by deleting
@@ -54,7 +54,7 @@ namespace fdl
        * vertex ordering is the same between the created triangulation and the
        * input vertices.
        */
-      bool apply_fixup_routines;
+      bool m_apply_fixup_routines;
 
       /**
        * Whether or not to regularize the input.
@@ -71,7 +71,7 @@ namespace fdl
        * digits, and more precision is typically not needed to distinguish
        * between different vertices.
        */
-      bool regularize_input;
+      bool m_regularize_input;
     };
   } // namespace Triangle
 

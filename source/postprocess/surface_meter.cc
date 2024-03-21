@@ -48,9 +48,10 @@ namespace fdl
             const Point<2> right = boundary_points[boundary_points_point_n + 1];
             const double   boundary_points_length = (left - right).norm();
             unsigned int   n_subcells             = 1;
-            if (additional_data.place_additional_boundary_vertices)
-              n_subcells = static_cast<unsigned int>(std::ceil(
-                boundary_points_length / additional_data.target_element_area));
+            if (additional_data.m_place_additional_boundary_vertices)
+              n_subcells = static_cast<unsigned int>(
+                std::ceil(boundary_points_length /
+                          additional_data.m_target_element_area));
             for (unsigned int subcell_n = 0; subcell_n < n_subcells;
                  ++subcell_n)
               {
@@ -216,8 +217,8 @@ namespace fdl
 
     this->meter_tria.clear();
     Triangle::AdditionalData additional_data;
-    additional_data.target_element_area = target_element_area;
-    additional_data.place_additional_boundary_vertices =
+    additional_data.m_target_element_area = target_element_area;
+    additional_data.m_place_additional_boundary_vertices =
       place_additional_boundary_vertices;
     internal::setup_meter_tria(boundary_points,
                                this->meter_tria,

@@ -25,8 +25,8 @@ main()
     vertices.emplace_back(0.0, 0.0);
 
     fdl::Triangle::AdditionalData additional_data;
-    additional_data.target_element_area                = 0.0125;
-    additional_data.place_additional_boundary_vertices = true;
+    additional_data.m_target_element_area                = 0.0125;
+    additional_data.m_place_additional_boundary_vertices = true;
     fdl::triangulate_segments(vertices, tria, additional_data);
 
     GridOut().write_vtk(tria, output);
@@ -44,8 +44,8 @@ main()
     vertices.emplace_back(0.0, 0.0, 0.0);
 
     fdl::Triangle::AdditionalData additional_data;
-    additional_data.target_element_area                = 0.0125;
-    additional_data.place_additional_boundary_vertices = true;
+    additional_data.m_target_element_area                = 0.0125;
+    additional_data.m_place_additional_boundary_vertices = true;
     fdl::create_planar_triangulation(vertices, tria, additional_data);
 
     GridOut().write_vtk(tria, output);
@@ -62,9 +62,9 @@ main()
                             1.0);
 
     fdl::Triangle::AdditionalData additional_data;
-    additional_data.target_element_area =
+    additional_data.m_target_element_area =
       (vertices[1] - vertices[0]).norm() / 8.0;
-    additional_data.place_additional_boundary_vertices = true;
+    additional_data.m_place_additional_boundary_vertices = true;
     fdl::create_planar_triangulation(vertices, tria, additional_data);
 
     GridOut().write_vtk(tria, output);
@@ -81,9 +81,9 @@ main()
                             1.0);
 
     fdl::Triangle::AdditionalData additional_data;
-    additional_data.target_element_area =
+    additional_data.m_target_element_area =
       (vertices[1] - vertices[0]).norm() / 8.0;
-    additional_data.place_additional_boundary_vertices = false;
+    additional_data.m_place_additional_boundary_vertices = false;
     fdl::create_planar_triangulation(vertices, tria, additional_data);
 
     GridOut().write_vtk(tria, output);
@@ -100,9 +100,9 @@ main()
                             std::sin(2.0 * numbers::PI * i / double(n_points)));
 
     fdl::Triangle::AdditionalData additional_data;
-    additional_data.target_element_area =
+    additional_data.m_target_element_area =
       (vertices[1] - vertices[0]).norm() / 4.0;
-    additional_data.place_additional_boundary_vertices = false;
+    additional_data.m_place_additional_boundary_vertices = false;
     fdl::create_planar_triangulation(vertices, tria, additional_data);
 
     // this shouldn't do anything since the mesh is already planar
@@ -122,9 +122,9 @@ main()
                             std::sin(4.0 * numbers::PI * i / double(n_points)));
 
     fdl::Triangle::AdditionalData additional_data;
-    additional_data.target_element_area =
+    additional_data.m_target_element_area =
       (vertices[1] - vertices[0]).norm() / 4.0;
-    additional_data.place_additional_boundary_vertices = false;
+    additional_data.m_place_additional_boundary_vertices = false;
     fdl::create_planar_triangulation(vertices, tria, additional_data);
 
     fdl::fit_boundary_vertices(vertices, tria);
