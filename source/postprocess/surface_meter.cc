@@ -109,11 +109,11 @@ namespace fdl
     const LinearAlgebra::distributed::Vector<double> &position,
     const LinearAlgebra::distributed::Vector<double> &velocity)
     : Meter<dim - 1, spacedim>(patch_hierarchy)
-    , mapping(&mapping)
-    , position_dof_handler(&position_dof_handler)
-    , point_values(std::make_unique<PointValues<spacedim, dim, spacedim>>(
-        mapping,
-        position_dof_handler,
+    , m_mapping(&mapping)
+    , m_position_dof_handler(&position_dof_handler)
+    , m_point_values(std::make_unique<PointValues<spacedim, dim, spacedim>>(
+        *m_mapping,
+        *m_position_dof_handler,
         boundary_points))
   {
     FDL_SETUP_TIMER_AND_SCOPE(t_surface_meter_ctor,
@@ -154,7 +154,7 @@ namespace fdl
   bool
   SurfaceMeter<dim, spacedim>::uses_codim_zero_mesh() const
   {
-    return position_dof_handler != nullptr;
+    return m_position_dof_handler != nullptr;
   }
 
   template <int dim, int spacedim>
@@ -171,11 +171,11 @@ namespace fdl
                       "Triangulation."));
     // Reset the meter mesh according to the new position values:
     const std::vector<Tensor<1, spacedim>> position_values =
-      point_values->evaluate(position);
+      m_point_values->evaluate(position);
     const std::vector<Point<spacedim>> boundary_points(position_values.begin(),
                                                        position_values.end());
     const std::vector<Tensor<1, spacedim>> velocity_values =
-      point_values->evaluate(velocity);
+      m_point_values->evaluate(velocity);
 
     internal_reinit(true, boundary_points, velocity_values, false);
   }
@@ -212,16 +212,16 @@ namespace fdl
     const std::vector<Point<spacedim>> &boundary_points,
     const bool                          place_additional_boundary_vertices)
   {
-    const double dx = compute_min_cell_width(this->patch_hierarchy);
+    const double dx = compute_min_cell_width(this->m_patch_hierarchy);
     const double target_element_area = std::pow(dx, dim - 1);
 
-    this->meter_tria.clear();
+    this->m_meter_tria.clear();
     Triangle::AdditionalData additional_data;
     additional_data.m_target_element_area = target_element_area;
     additional_data.m_place_additional_boundary_vertices =
       place_additional_boundary_vertices;
     internal::setup_meter_tria(boundary_points,
-                               this->meter_tria,
+                               this->m_meter_tria,
                                additional_data);
   }
 
@@ -246,17 +246,17 @@ namespace fdl
   {
     if (velocity_values.size() == 0)
       {
-        mean_velocity = 0.0;
+        m_mean_velocity = 0.0;
         return;
       }
 
     if (dim == 2)
       {
         // Average the velocities (there should only be two anyway).
-        mean_velocity = std::accumulate(velocity_values.begin(),
-                                        velocity_values.end(),
-                                        Tensor<1, spacedim>()) *
-                        (1.0 / double(velocity_values.size()));
+        m_mean_velocity = std::accumulate(velocity_values.begin(),
+                                          velocity_values.end(),
+                                          Tensor<1, spacedim>()) *
+                          (1.0 / double(velocity_values.size()));
       }
     if (dim == 3)
       {
@@ -270,15 +270,16 @@ namespace fdl
         weights.emplace_back(0.5);
         Quadrature<dim - 2>           face_quadrature(points, weights);
         FE_Nothing<dim - 1, spacedim> fe_nothing(
-          this->meter_tria.get_reference_cells()[0]);
+          this->get_triangulation().get_reference_cells()[0]);
         FEFaceValues<dim - 1, spacedim> face_values(this->get_mapping(),
                                                     fe_nothing,
                                                     face_quadrature,
                                                     update_JxW_values);
-        mean_velocity                 = 0.0;
+        m_mean_velocity               = 0.0;
         double       area             = 0.0;
         unsigned int n_boundary_faces = 0;
-        for (const auto &cell : this->meter_tria.active_cell_iterators())
+        for (const auto &cell : this->
+               get_triangulation().active_cell_iterators())
           for (unsigned int face_no : cell->face_indices())
             if (cell->face(face_no)->at_boundary())
               {
@@ -291,13 +292,13 @@ namespace fdl
                 const auto JxW0 = face_values.get_JxW_values()[0];
                 const auto JxW1 = face_values.get_JxW_values()[1];
 
-                mean_velocity += v0 * JxW0;
-                mean_velocity += v1 * JxW1;
+                m_mean_velocity += v0 * JxW0;
+                m_mean_velocity += v1 * JxW1;
                 area += JxW0;
                 area += JxW1;
                 ++n_boundary_faces;
               }
-        mean_velocity *= 1.0 / area;
+        m_mean_velocity *= 1.0 / area;
         AssertThrow(n_boundary_faces == velocity_values.size(),
                     ExcMessage("There should be exactly one boundary face for "
                                "every boundary vertex, and one velocity value "
@@ -317,12 +318,12 @@ namespace fdl
     const auto                 &fe = this->get_vector_dof_handler().get_fe();
     FEValues<dim - 1, spacedim> fe_values(this->get_mapping(),
                                           fe,
-                                          this->meter_quadrature,
+                                          this->m_meter_quadrature,
                                           update_normal_vectors |
                                             update_values | update_JxW_values);
 
     std::vector<types::global_dof_index> cell_dofs(fe.dofs_per_cell);
-    std::vector<Tensor<1, spacedim>> cell_values(this->meter_quadrature.size());
+    std::vector<Tensor<1, spacedim>> cell_values(this->m_meter_quadrature.size());
     double                           flux = 0.0;
     Tensor<1, spacedim>              mean_normal;
     for (const auto &cell :
@@ -333,7 +334,7 @@ namespace fdl
         fe_values.reinit(cell);
         fe_values[FEValuesExtractors::Vector(0)].get_function_values(
           interpolated_data, cell_values);
-        for (unsigned int q = 0; q < this->meter_quadrature.size(); ++q)
+        for (unsigned int q = 0; q < this->m_meter_quadrature.size(); ++q)
           {
             flux +=
               cell_values[q] * fe_values.normal_vector(q) * fe_values.JxW(q);
@@ -341,9 +342,9 @@ namespace fdl
           }
       }
 
-    flux = Utilities::MPI::sum(flux, this->meter_tria.get_communicator());
-    mean_normal =
-      Utilities::MPI::sum(mean_normal, this->meter_tria.get_communicator());
+    const MPI_Comm comm = this->m_meter_tria.get_communicator();
+    flux = Utilities::MPI::sum(flux, comm);
+    mean_normal = Utilities::MPI::sum(mean_normal, comm);
     mean_normal /= mean_normal.norm();
     return std::make_pair(flux, mean_normal);
   }
@@ -355,7 +356,7 @@ namespace fdl
     const auto                 &fe = this->get_vector_dof_handler().get_fe();
     FEValues<dim - 1, spacedim> fe_values(this->get_mapping(),
                                           fe,
-                                          this->meter_quadrature,
+                                          this->m_meter_quadrature,
                                           update_normal_vectors |
                                             update_values | update_JxW_values);
 
@@ -365,12 +366,12 @@ namespace fdl
            IteratorFilters::LocallyOwnedCell())
       {
         fe_values.reinit(cell);
-        for (unsigned int q = 0; q < this->meter_quadrature.size(); ++q)
+        for (unsigned int q = 0; q < this->m_meter_quadrature.size(); ++q)
           mean_normal += fe_values.normal_vector(q) * fe_values.JxW(q);
       }
 
     mean_normal =
-      Utilities::MPI::sum(mean_normal, this->meter_tria.get_communicator());
+      Utilities::MPI::sum(mean_normal, this->get_triangulation().get_communicator());
     mean_normal /= mean_normal.norm();
     return mean_normal;
   }

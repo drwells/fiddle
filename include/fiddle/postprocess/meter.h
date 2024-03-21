@@ -188,73 +188,73 @@ namespace fdl
     /**
      * Meter centroid.
      */
-    Point<spacedim> centroid;
+    Point<spacedim> m_centroid;
 
     /**
      * Meter centroid, in reference cell coordinates.
      */
-    Point<dim> ref_centroid;
+    Point<dim> m_ref_centroid;
 
     /**
      * Cell containing the centroid.
      */
-    typename Triangulation<dim, spacedim>::active_cell_iterator centroid_cell;
+    typename Triangulation<dim, spacedim>::active_cell_iterator m_centroid_cell;
 
     /**
      * Cartesian-grid data.
      */
-    tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy;
+    tbox::Pointer<hier::PatchHierarchy<spacedim>> m_patch_hierarchy;
 
     /**
      * Meter Triangulation.
      */
-    parallel::shared::Triangulation<dim, spacedim> meter_tria;
+    parallel::shared::Triangulation<dim, spacedim> m_meter_tria;
 
     /**
      * Mapping on the meter Triangulation.
      */
-    std::unique_ptr<Mapping<dim, spacedim>> meter_mapping;
+    std::unique_ptr<Mapping<dim, spacedim>> m_meter_mapping;
 
     /**
      * Quadrature to use on the meter mesh. Has degree $2 * scalar_fe.degree +
      * 1$.
      */
-    Quadrature<dim> meter_quadrature;
+    Quadrature<dim> m_meter_quadrature;
 
     /**
      * Scalar FiniteElement used on meter_tria
      */
-    std::unique_ptr<FiniteElement<dim, spacedim>> scalar_fe;
+    std::unique_ptr<FiniteElement<dim, spacedim>> m_scalar_fe;
 
     /**
      * Vector FiniteElement used on meter_tria
      */
-    std::unique_ptr<FiniteElement<dim, spacedim>> vector_fe;
+    std::unique_ptr<FiniteElement<dim, spacedim>> m_vector_fe;
 
     /**
      * DoFHandler for scalar quantities defined on meter_tria.
      */
-    DoFHandler<dim, spacedim> scalar_dof_handler;
+    DoFHandler<dim, spacedim> m_scalar_dof_handler;
 
     /**
      * DoFHandler for vector-valued quantities defined on meter_tria.
      */
-    DoFHandler<dim, spacedim> vector_dof_handler;
+    DoFHandler<dim, spacedim> m_vector_dof_handler;
 
-    std::shared_ptr<Utilities::MPI::Partitioner> vector_partitioner;
+    std::shared_ptr<Utilities::MPI::Partitioner> m_vector_partitioner;
 
-    std::shared_ptr<Utilities::MPI::Partitioner> scalar_partitioner;
+    std::shared_ptr<Utilities::MPI::Partitioner> m_scalar_partitioner;
 
     /**
      * Positions of the mesh DoFs - always the identity function after
      * reinitalization.
      */
-    LinearAlgebra::distributed::Vector<double> identity_position;
+    LinearAlgebra::distributed::Vector<double> m_identity_position;
 
     /**
      * Interaction object.
      */
-    std::unique_ptr<NodalInteraction<dim, spacedim>> nodal_interaction;
+    std::unique_ptr<NodalInteraction<dim, spacedim>> m_nodal_interaction;
   };
 
 
@@ -265,35 +265,35 @@ namespace fdl
   inline const Triangulation<dim, spacedim> &
   Meter<dim, spacedim>::get_triangulation() const
   {
-    return meter_tria;
+    return m_meter_tria;
   }
 
   template <int dim, int spacedim>
   inline const Mapping<dim, spacedim> &
   Meter<dim, spacedim>::get_mapping() const
   {
-    return *meter_mapping;
+    return *m_meter_mapping;
   }
 
   template <int dim, int spacedim>
   inline const DoFHandler<dim, spacedim> &
   Meter<dim, spacedim>::get_scalar_dof_handler() const
   {
-    return scalar_dof_handler;
+    return m_scalar_dof_handler;
   }
 
   template <int dim, int spacedim>
   inline const DoFHandler<dim, spacedim> &
   Meter<dim, spacedim>::get_vector_dof_handler() const
   {
-    return vector_dof_handler;
+    return m_vector_dof_handler;
   }
 
   template <int dim, int spacedim>
   Point<spacedim>
   Meter<dim, spacedim>::get_centroid() const
   {
-    return centroid;
+    return m_centroid;
   }
 } // namespace fdl
 

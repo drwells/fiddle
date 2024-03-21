@@ -242,22 +242,22 @@ namespace fdl
     /**
      * Original Mapping.
      */
-    SmartPointer<const Mapping<dim, spacedim>> mapping;
+    SmartPointer<const Mapping<dim, spacedim>> m_mapping;
 
     /**
      * Original DoFHandler.
      */
-    SmartPointer<const DoFHandler<dim, spacedim>> position_dof_handler;
+    SmartPointer<const DoFHandler<dim, spacedim>> m_position_dof_handler;
 
     /**
      * PointValues object for computing the mesh's position.
      */
-    std::unique_ptr<PointValues<spacedim, dim, spacedim>> point_values;
+    std::unique_ptr<PointValues<spacedim, dim, spacedim>> m_point_values;
 
     /**
      * Mean meter velocity.
      */
-    Tensor<1, spacedim> mean_velocity;
+    Tensor<1, spacedim> m_mean_velocity;
   };
 
 
@@ -267,7 +267,7 @@ namespace fdl
   Tensor<1, spacedim>
   SurfaceMeter<dim, spacedim>::get_mean_velocity() const
   {
-    return mean_velocity;
+    return m_mean_velocity;
   }
 } // namespace fdl
 

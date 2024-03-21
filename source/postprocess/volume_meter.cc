@@ -20,7 +20,7 @@ namespace fdl
   {
     FDL_SETUP_TIMER_AND_SCOPE(t_volume_meter_ctor,
                               "fdl::VolumeMeter::VolumeMeter()");
-    GridGenerator::hyper_ball_balanced(this->meter_tria, center, radius);
+    GridGenerator::hyper_ball_balanced(this->m_meter_tria, center, radius);
     const double dx = compute_min_cell_width(patch_hierarchy);
 
     // On average, make MFAC 1 by solving (r0 / 2) / 2^n = delta x for n. With
@@ -29,7 +29,7 @@ namespace fdl
     // that (r0 / 2) is ultimately equal to delta x.
     const auto n_refinements =
       static_cast<int>(std::ceil(std::log2(radius / dx) - 1.0));
-    this->meter_tria.refine_global(std::max(0, n_refinements));
+    this->m_meter_tria.refine_global(std::max(0, n_refinements));
     Meter<spacedim, spacedim>::internal_reinit();
   }
 
@@ -39,7 +39,7 @@ namespace fdl
   {
     FDL_SETUP_TIMER_AND_SCOPE(t_volume_meter_reinit,
                               "fdl::VolumeMeter::reinit()");
-    GridTools::shift(new_center - this->get_centroid(), this->meter_tria);
+    GridTools::shift(new_center - this->get_centroid(), this->m_meter_tria);
     Meter<spacedim, spacedim>::internal_reinit();
   }
 
