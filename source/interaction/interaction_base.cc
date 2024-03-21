@@ -57,8 +57,8 @@ namespace fdl
 
   template <int dim, int spacedim>
   InteractionBase<dim, spacedim>::InteractionBase()
-    : communicator(MPI_COMM_NULL)
-    , level_numbers(
+    : m_communicator(MPI_COMM_NULL)
+    , m_level_numbers(
         {std::numeric_limits<int>::max(), std::numeric_limits<int>::max()})
   {}
 
@@ -68,19 +68,19 @@ namespace fdl
     const parallel::shared::Triangulation<dim, spacedim> &n_tria,
     const std::vector<BoundingBox<spacedim, float>> &global_active_cell_bboxes,
     const std::vector<float>                        &global_active_cell_lengths,
-    tbox::Pointer<hier::PatchHierarchy<spacedim>>    p_hierarchy,
-    const std::pair<int, int>                       &l_numbers)
-    : communicator(MPI_COMM_NULL)
-    , native_tria(&n_tria)
-    , patch_hierarchy(p_hierarchy)
-    , level_numbers(l_numbers)
+    tbox::Pointer<hier::PatchHierarchy<spacedim>>    patch_hierarchy,
+    const std::pair<int, int>                       &level_numbers)
+    : m_communicator(MPI_COMM_NULL)
+    , m_native_tria(&n_tria)
+    , m_patch_hierarchy(patch_hierarchy)
+    , m_level_numbers(level_numbers)
   {
     reinit(input_db,
            n_tria,
            global_active_cell_bboxes,
            global_active_cell_lengths,
-           p_hierarchy,
-           l_numbers);
+           m_patch_hierarchy,
+           m_level_numbers);
   }
 
 
@@ -93,20 +93,20 @@ namespace fdl
     const std::vector<BoundingBox<spacedim, float>> &global_active_cell_bboxes,
     const std::vector<float> & /*global_active_cell_lengths*/,
     tbox::Pointer<hier::PatchHierarchy<spacedim>> p_hierarchy,
-    const std::pair<int, int>                    &l_numbers)
+    const std::pair<int, int>                    &level_numbers)
   {
     // We don't need to create a communicator unless its the first time we are
     // here or if we, for some reason, get reinitialized with a totally new
     // Triangulation with a new network
-    if (communicator == MPI_COMM_NULL ||
-        native_tria->get_communicator() != n_tria.get_communicator())
-      communicator =
+    if (m_communicator == MPI_COMM_NULL ||
+        m_native_tria->get_communicator() != n_tria.get_communicator())
+      m_communicator =
         Utilities::MPI::duplicate_communicator(n_tria.get_communicator());
 
 #ifdef DEBUG
     {
       int result = 0;
-      int ierr   = MPI_Comm_compare(communicator,
+      int ierr   = MPI_Comm_compare(m_communicator,
                                   tbox::SAMRAI_MPI::getCommunicator(),
                                   &result);
       AssertThrowMPI(ierr);
@@ -116,19 +116,19 @@ namespace fdl
     }
 #endif
 
-    native_tria     = &n_tria;
-    patch_hierarchy = p_hierarchy;
-    level_numbers   = l_numbers;
+    m_native_tria     = &n_tria;
+    m_patch_hierarchy = p_hierarchy;
+    m_level_numbers   = level_numbers;
 
     // Check inputs
-    Assert(global_active_cell_bboxes.size() == native_tria->n_active_cells(),
+    Assert(global_active_cell_bboxes.size() == m_native_tria->n_active_cells(),
            ExcMessage("There should be a bounding box for each active cell"));
-    Assert(patch_hierarchy,
+    Assert(m_patch_hierarchy,
            ExcMessage("The provided pointer to a patch hierarchy should not be "
                       "null."));
-    Assert(l_numbers.first <= l_numbers.second,
+    Assert(level_numbers.first <= level_numbers.second,
            ExcMessage("The coarser level number should be first"));
-    AssertIndexRange(l_numbers.second, patch_hierarchy->getNumberOfLevels());
+    AssertIndexRange(level_numbers.second, m_patch_hierarchy->getNumberOfLevels());
 
     // clear old dof info
     native_dof_handlers.clear();
@@ -137,10 +137,10 @@ namespace fdl
     scatters.clear();
 
     std::vector<tbox::Pointer<hier::Patch<spacedim>>> patches;
-    for (int ln = level_numbers.first; ln <= level_numbers.second; ++ln)
+    for (int ln = m_level_numbers.first; ln <= m_level_numbers.second; ++ln)
       {
         const auto level_patches =
-          extract_patches(patch_hierarchy->getPatchLevel(ln));
+          extract_patches(m_patch_hierarchy->getPatchLevel(ln));
         patches.insert(patches.end(),
                        level_patches.begin(),
                        level_patches.end());
@@ -150,8 +150,8 @@ namespace fdl
         patches, input_db->getDoubleWithDefault("ghost_cell_fraction", 1.0));
     BoxIntersectionPredicate<dim, spacedim> predicate(global_active_cell_bboxes,
                                                       patch_bboxes,
-                                                      *native_tria);
-    overlap_tria.reinit(*native_tria, predicate);
+                                                      *m_native_tria);
+    m_overlap_tria.reinit(*m_native_tria, predicate);
   }
 
 
@@ -159,7 +159,7 @@ namespace fdl
   template <int dim, int spacedim>
   InteractionBase<dim, spacedim>::~InteractionBase()
   {
-    int ierr = MPI_Comm_free(&communicator);
+    int ierr = MPI_Comm_free(&m_communicator);
     (void)ierr;
     AssertNothrow(ierr == 0, ExcMessage("Unable to free the MPI communicator"));
   }
@@ -235,7 +235,7 @@ namespace fdl
            ExcFDLInternalError());
     Scatter<double> scatter(overlap_to_native_dof_translations[index],
                             native_dof_handler.locally_owned_dofs(),
-                            communicator);
+                            m_communicator);
     return scatter;
   }
 
@@ -270,7 +270,7 @@ namespace fdl
   InteractionBase<dim, spacedim>::add_dof_handler(
     const DoFHandler<dim, spacedim> &native_dof_handler)
   {
-    AssertThrow(&native_dof_handler.get_triangulation() == native_tria,
+    AssertThrow(&native_dof_handler.get_triangulation() == m_native_tria,
                 ExcMessage("The DoFHandler must use the underlying native "
                            "triangulation."));
     const auto ptr = &native_dof_handler;
@@ -281,13 +281,13 @@ namespace fdl
         native_dof_handlers.emplace_back(ptr);
         // TODO - implement a move ctor for DH in deal.II
         overlap_dof_handlers.emplace_back(
-          std::make_unique<DoFHandler<dim, spacedim>>(overlap_tria));
+          std::make_unique<DoFHandler<dim, spacedim>>(m_overlap_tria));
         auto &overlap_dof_handler = *overlap_dof_handlers.back();
         overlap_dof_handler.distribute_dofs(
           native_dof_handler.get_fe_collection());
 
         std::vector<types::global_dof_index> overlap_to_native_dofs =
-          compute_overlap_to_native_dof_translation(overlap_tria,
+          compute_overlap_to_native_dof_translation(m_overlap_tria,
                                                     overlap_dof_handler,
                                                     native_dof_handler);
         overlap_to_native_dof_translations.emplace_back(
@@ -320,7 +320,7 @@ namespace fdl
 #ifdef DEBUG
     {
       int result = 0;
-      int ierr   = MPI_Comm_compare(communicator,
+      int ierr   = MPI_Comm_compare(m_communicator,
                                   position.get_mpi_communicator(),
                                   &result);
       AssertThrowMPI(ierr);
@@ -329,7 +329,7 @@ namespace fdl
                "The same communicator should be used for position and the "
                "input triangulation"));
       ierr =
-        MPI_Comm_compare(communicator, rhs.get_mpi_communicator(), &result);
+        MPI_Comm_compare(m_communicator, rhs.get_mpi_communicator(), &result);
       AssertThrowMPI(ierr);
       Assert(result == MPI_CONGRUENT,
              ExcMessage("The same communicator should be used for rhs and "
@@ -484,7 +484,7 @@ namespace fdl
 #ifdef DEBUG
     {
       int result = 0;
-      int ierr   = MPI_Comm_compare(communicator,
+      int ierr   = MPI_Comm_compare(m_communicator,
                                   position.get_mpi_communicator(),
                                   &result);
       AssertThrowMPI(ierr);
@@ -492,7 +492,7 @@ namespace fdl
              ExcMessage(
                "The same communicator should be used for position and the "
                "input triangulation"));
-      ierr = MPI_Comm_compare(communicator,
+      ierr = MPI_Comm_compare(m_communicator,
                               solution.get_mpi_communicator(),
                               &result);
       AssertThrowMPI(ierr);

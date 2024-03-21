@@ -448,7 +448,7 @@ namespace fdl
      * than a few dozen of these objects over the course of a simulator run so
      * its unlikely to be a problem.
      */
-    MPI_Comm communicator;
+    MPI_Comm m_communicator;
 
     /**
      * Return a reference to the overlap dof handler corresponding to the
@@ -498,7 +498,7 @@ namespace fdl
      * Native triangulation, which is stored separately.
      */
     SmartPointer<const parallel::shared::Triangulation<dim, spacedim>>
-      native_tria;
+      m_native_tria;
 
     /**
      * Overlap triangulation - i.e., the part of native_tria that intersects the
@@ -509,7 +509,7 @@ namespace fdl
     /**
      * Pointer to the patch hierarchy.
      */
-    tbox::Pointer<hier::PatchHierarchy<spacedim>> patch_hierarchy;
+    tbox::Pointer<hier::PatchHierarchy<spacedim>> m_patch_hierarchy;
 
     /**
      * Number of the patch level we interact with.
